@@ -137,6 +137,12 @@ namespace Fuxion.Test
 		private class Base { }
 
 		private class Derived : Base { }
+		[Fact(DisplayName = "System - Serialize expception")]
+		public void SerializeException()
+		{
+			var ex = new Exception("");
+			var res = ex.ToJson();
+		}
 		#endregion
 		#region Transform
 		[Fact(DisplayName = "Object - Transform")]

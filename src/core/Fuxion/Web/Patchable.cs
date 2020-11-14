@@ -1,7 +1,6 @@
 ﻿//using Microsoft.CSharp.RuntimeBinder;
 //using Microsoft.CSharp.RuntimeBinder;
 using Microsoft.CSharp.RuntimeBinder;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -157,14 +156,15 @@ namespace Fuxion.Web
 				{
 					var listType = typeof(List<>).MakeGenericType(property.PropertyType.GenericTypeArguments[0]);
 					var list = Activator.CreateInstance(listType) as IList;
-					foreach (var item in pro.Value.Value as IList ?? new object[] { })
+					foreach (var item in pro.Value.Value as IList ?? Array.Empty<object>())
 					{
-						if (item is JToken jobj)
-						{
-							var proType = property.PropertyType.GetTypeInfo().GenericTypeArguments[0];
-							var obj2 = jobj.ToObject(proType);
-							list?.Add(obj2);
-						}
+						list?.Add(item);
+						//if (item is JToken jobj)
+						//{
+						//	var proType = property.PropertyType.GetTypeInfo().GenericTypeArguments[0];
+						//	var obj2 = jobj.ToObject(proType);
+						//	list?.Add(obj2);
+						//}
 					}
 					property.SetValue(obj, list);
 				}

@@ -1,7 +1,5 @@
 ﻿using Fuxion.Threading;
 using Fuxion.Windows.Threading;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -11,6 +9,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 
 namespace Fuxion.ComponentModel
@@ -159,47 +158,47 @@ namespace Fuxion.ComponentModel
 	{
 		new event NotifierPropertyChangedEventHandler<TNotifier> PropertyChanged;
 	}
-	public class NotifierJsonConverter : JsonConverter
-	{
-		public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
-		{
-			if (value != null && value.GetType().IsSubclassOfRawGeneric(typeof(Notifier<>)))
-			{
-				var ti = value.GetType().GetTypeInfo();
-				while (ti != null && (!ti.IsGenericType || ti.GetGenericTypeDefinition() != typeof(Notifier<>)))
-				{
-					ti = ti.BaseType?.GetTypeInfo();
-				}
-				var field = ti?.GetDeclaredField("PropertiesDictionary");
-				var pros = (Dictionary<string, object>)(field?.GetValue(value) ?? new NullReferenceException($"The '{nameof(value)}' parameter cannot be reflected prior to write it at json"));
-				writer.WriteStartObject();
-				foreach (var pro in pros.Where(p => p.Key != "UseSynchronizerOnRaisePropertyChanged"))
-				{
-					writer.WritePropertyName(pro.Key);
-					serializer.Serialize(writer, pro.Value);
-				}
-				writer.WriteEndObject();
-				Debug.WriteLine("");
-			}
-			else
-			{
-				throw new InvalidCastException($"Type '{value?.GetType().Name ?? "null"}' isn't a subclass of '{typeof(Notifier<>).Name}'");
-			}
-		}
-		public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
-		{
-			if (existingValue == null) existingValue = Activator.CreateInstance(objectType);
-			// Load JObject from stream
-			var jObject = JObject.Load(reader);
-			if (existingValue != null)
-				serializer.Populate(jObject.CreateReader(), existingValue);
-			return existingValue;
-		}
-		public override bool CanConvert(Type objectType) =>
-			//return _types.Any(t => t == objectType);
-			false;
-		public override bool CanRead => true;
-	}
+	//public class NotifierJsonConverter : JsonConverter
+	//{
+	//	public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+	//	{
+	//		if (value != null && value.GetType().IsSubclassOfRawGeneric(typeof(Notifier<>)))
+	//		{
+	//			var ti = value.GetType().GetTypeInfo();
+	//			while (ti != null && (!ti.IsGenericType || ti.GetGenericTypeDefinition() != typeof(Notifier<>)))
+	//			{
+	//				ti = ti.BaseType?.GetTypeInfo();
+	//			}
+	//			var field = ti?.GetDeclaredField("PropertiesDictionary");
+	//			var pros = (Dictionary<string, object>)(field?.GetValue(value) ?? new NullReferenceException($"The '{nameof(value)}' parameter cannot be reflected prior to write it at json"));
+	//			writer.WriteStartObject();
+	//			foreach (var pro in pros.Where(p => p.Key != "UseSynchronizerOnRaisePropertyChanged"))
+	//			{
+	//				writer.WritePropertyName(pro.Key);
+	//				serializer.Serialize(writer, pro.Value);
+	//			}
+	//			writer.WriteEndObject();
+	//			Debug.WriteLine("");
+	//		}
+	//		else
+	//		{
+	//			throw new InvalidCastException($"Type '{value?.GetType().Name ?? "null"}' isn't a subclass of '{typeof(Notifier<>).Name}'");
+	//		}
+	//	}
+	//	public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+	//	{
+	//		if (existingValue == null) existingValue = Activator.CreateInstance(objectType);
+	//		// Load JObject from stream
+	//		var jObject = JObject.Load(reader);
+	//		if (existingValue != null)
+	//			serializer.Populate(jObject.CreateReader(), existingValue);
+	//		return existingValue;
+	//	}
+	//	public override bool CanConvert(Type objectType) =>
+	//		//return _types.Any(t => t == objectType);
+	//		false;
+	//	public override bool CanRead => true;
+	//}
 	[DataContract(IsReference = true)]
 	//[DataContract]
 	//[JsonConverter(typeof(NotifierJsonConverter))]

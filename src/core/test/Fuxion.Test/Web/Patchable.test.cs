@@ -1,5 +1,6 @@
 ﻿using Fuxion.Web;
 using System;
+using System.Collections.Generic;
 using Xunit;
 
 namespace Fuxion.Test.Web
@@ -12,14 +13,16 @@ namespace Fuxion.Test.Web
 			var toPatch = new ToPatch
 			{
 				Integer = 123,
-				String = "TEST"
+				String = "TEST",
+				IntList = new List<int> { 1, 2, 3 }
 			};
 			dynamic dyn = new Patchable<ToPatch>();
 			dyn.Integer = 111;
-
 			dyn.Patch(toPatch);
-
 			Assert.Equal(111, toPatch.Integer);
+			dyn.IntList = new List<int> { 4, 5, 6 };
+			dyn.Patch(toPatch);
+			Assert.Equal(4, toPatch.IntList[0]);
 		}
 		[Fact(DisplayName = "Patchable - Get")]
 		public void Get()
@@ -98,6 +101,7 @@ namespace Fuxion.Test.Web
 		public int Integer { get; set; }
 		public string? String { get; set; }
 		public Guid Id { get; set; }
+		public List<int> IntList { get; set; } = new List<int>();
 	}
 	public class DerivedToPatch : ToPatch
 	{

@@ -54,7 +54,7 @@ namespace Fuxion.Test.Json
 			if (pod is null) throw new NullReferenceException($"'pod' deserialization is null");
 
 			Output.WriteLine("pod.PayloadJRaw.Value: ");
-			Output.WriteLine(pod.PayloadJRaw.Value?.ToString());
+			//Output.WriteLine(pod.PayloadJRaw);
 
 			void AssertBase(PayloadBase payload)
 			{

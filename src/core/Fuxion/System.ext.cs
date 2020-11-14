@@ -1,6 +1,4 @@
 ﻿using Fuxion;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -18,6 +16,8 @@ using Fuxion.Resources;
 using System.Globalization;
 using Fuxion.Json;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace System
 {
@@ -64,37 +64,61 @@ namespace System
 		public static DisposableEnvelope<T> AsDisposable<T>(this T me, Action<T>? actionOnDispose = null) { return new DisposableEnvelope<T>(me, actionOnDispose); }
 		#endregion
 		#region Json
-		public static string ToJson(this object me, Formatting formatting = Formatting.Indented, JsonSerializerSettings? settings = null)
+		public static string ToJson<T>(this T me, JsonSerializerOptions? options = null)
+			=> JsonSerializer.Serialize<T>(me, options);
+		//public static string ToJson(this object? me, Formatting formatting = Formatting.Indented, JsonSerializerSettings? settings = null)
+		//{
+		//	JsonSerializer.Serialize(me, formatting, options)
+		//	if (settings != null)
+		//		return JsonConvert.Serialize(me, formatting, settings);
+		//	return JsonConvert.SerializeObject(me, formatting);
+		//}
+		public static string ToJson(this Exception me)
 		{
-			if (settings != null)
-				return JsonConvert.SerializeObject(me, formatting, settings);
-			return JsonConvert.SerializeObject(me, formatting);
+			JsonSerializerOptions options = new JsonSerializerOptions();
+			options.Converters.Add(new ExceptionConverter());
+			options.WriteIndented = true;
+			return JsonSerializer.Serialize(me, options);
 		}
-		public static string ToJson(this Exception me, Formatting formatting = Formatting.Indented)
+		//public static string ToJson(this Exception me, Formatting formatting = Formatting.Indented)
+		//{
+		//	return me.ToJson(
+		//		formatting,
+		//		new JsonSerializerSettings().Transform<JsonSerializerSettings>(s =>
+		//			s.ContractResolver = new ExceptionContractResolver
+		//			{
+		//				IgnoreSerializableInterface = true,
+		//				IgnoreSerializableAttribute = true
+		//			}));
+		//}
+		public static T? FromJson<T>(this string me, [DoesNotReturnIf(true)] bool exceptionIfNull = false, JsonSerializerOptions? options = null)
 		{
-			return me.ToJson(
-				formatting,
-				new JsonSerializerSettings().Transform<JsonSerializerSettings>(s =>
-					s.ContractResolver = new ExceptionContractResolver
-					{
-						IgnoreSerializableInterface = true,
-						IgnoreSerializableAttribute = true
-					}));
-		}
-		public static T? FromJson<T>(this string me, [DoesNotReturnIf(true)] bool exceptionIfNull = false, JsonSerializerSettings? settings = null)
-		{
-			var res = JsonConvert.DeserializeObject<T>(me, settings);
+			var res = JsonSerializer.Deserialize<T>(me, options);
 			if (exceptionIfNull && res is null)
 				throw new SerializationException($"The string cannot be deserialized as '{typeof(T).Name}':\r\n{me}");
 			return res;
 		}
-		public static object? FromJson(this string me, Type type, [DoesNotReturnIf(true)] bool exceptionIfNull = false)
+		//public static T? FromJson<T>(this string me, [DoesNotReturnIf(true)] bool exceptionIfNull = false, JsonSerializerSettings? settings = null)
+		//{
+		//	var res = JsonConvert.DeserializeObject<T>(me, settings);
+		//	if (exceptionIfNull && res is null)
+		//		throw new SerializationException($"The string cannot be deserialized as '{typeof(T).Name}':\r\n{me}");
+		//	return res;
+		//}
+		public static object? FromJson(this string me, Type type, [DoesNotReturnIf(true)] bool exceptionIfNull = false, JsonSerializerOptions? options = null)
 		{
-			var res = JsonConvert.DeserializeObject(me, type);
+			var res = JsonSerializer.Deserialize(me, type, options);
 			if (exceptionIfNull && res is null)
 				throw new SerializationException($"The string cannot be deserialized as '{type.Name}':\r\n{me}");
 			return res;
 		}
+		//public static object? FromJson(this string me, Type type, [DoesNotReturnIf(true)] bool exceptionIfNull = false)
+		//{
+		//	var res = JsonConvert.DeserializeObject(me, type);
+		//	if (exceptionIfNull && res is null)
+		//		throw new SerializationException($"The string cannot be deserialized as '{type.Name}':\r\n{me}");
+		//	return res;
+		//}
 		public static T CloneWithJson<T>(this T me) => (T)(FromJson(
 			me?.ToJson() ?? throw new InvalidDataException(),
 			me?.GetType() ?? throw new InvalidDataException()) ?? default!);

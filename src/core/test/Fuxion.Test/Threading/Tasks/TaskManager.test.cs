@@ -142,12 +142,14 @@ namespace Fuxion.Test.Threading.Tasks
 				Printer.WriteLine($"{nameof(named)}: {named}");
 				Printer.WriteLine($"{nameof(parNum)}: {parNum}");
 			}
-			
 
 			AutoResetEvent are = new AutoResetEvent(true);
 			object seqLocker = new object();
 			string seq = "";
 			var results = new(bool WasCancelled, string? Result)[3];
+
+
+			#endregion
 
 			#region Methods
 			void AddToSeq(string val)
@@ -209,7 +211,7 @@ namespace Fuxion.Test.Threading.Tasks
 					{
 						AddToSeq($"S{order}-");
 						Printer.WriteLine("Start " + order);
-						Task.Delay(runDelay, TaskManager.Current?.GetCancellationToken()??throw new InvalidProgramException("Cancellation token cannot be obtained")).Wait();
+						Task.Delay(runDelay, TaskManager.Current?.GetCancellationToken() ?? throw new InvalidProgramException("Cancellation token cannot be obtained")).Wait();
 						AddToSeq($"E{order}-");
 						Printer.WriteLine("End " + order);
 					}
@@ -277,6 +279,7 @@ namespace Fuxion.Test.Threading.Tasks
 					}
 				}
 				if (@void)
+				{
 					if (sync)
 						return parNum switch
 						{
@@ -307,22 +310,24 @@ namespace Fuxion.Test.Threading.Tasks
 							9 => new Func<int, int, int, int, int, int, int, int, int, Task>((s1, s2, s3, s4, s5, s6, s7, s8, s9) => Void_Async()),
 							_ => throw new InvalidProgramException(),
 						};
+				}
 				else
+				{
 					if (sync)
-						return parNum switch
-						{
-							0 => new Func<string>(() => Result_Sync()),
-							1 => new Func<int, string>(s => Result_Sync()),
-							2 => new Func<int, int, string>((s1, s2) => Result_Sync()),
-							3 => new Func<int, int, int, string>((s1, s2, s3) => Result_Sync()),
-							4 => new Func<int, int, int, int, string>((s1, s2, s3, s4) => Result_Sync()),
-							5 => new Func<int, int, int, int, int, string>((s1, s2, s3, s4, s5) => Result_Sync()),
-							6 => new Func<int, int, int, int, int, int, string>((s1, s2, s3, s4, s5, s6) => Result_Sync()),
-							7 => new Func<int, int, int, int, int, int, int, string>((s1, s2, s3, s4, s5, s6, s7) => Result_Sync()),
-							8 => new Func<int, int, int, int, int, int, int, int, string>((s1, s2, s3, s4, s5, s6, s7, s8) => Result_Sync()),
-							9 => new Func<int, int, int, int, int, int, int, int, int, string>((s1, s2, s3, s4, s5, s6, s7, s8, s9) => Result_Sync()),
-							_ => throw new InvalidProgramException(),
-						};
+					return parNum switch
+					{
+						0 => new Func<string>(() => Result_Sync()),
+						1 => new Func<int, string>(s => Result_Sync()),
+						2 => new Func<int, int, string>((s1, s2) => Result_Sync()),
+						3 => new Func<int, int, int, string>((s1, s2, s3) => Result_Sync()),
+						4 => new Func<int, int, int, int, string>((s1, s2, s3, s4) => Result_Sync()),
+						5 => new Func<int, int, int, int, int, string>((s1, s2, s3, s4, s5) => Result_Sync()),
+						6 => new Func<int, int, int, int, int, int, string>((s1, s2, s3, s4, s5, s6) => Result_Sync()),
+						7 => new Func<int, int, int, int, int, int, int, string>((s1, s2, s3, s4, s5, s6, s7) => Result_Sync()),
+						8 => new Func<int, int, int, int, int, int, int, int, string>((s1, s2, s3, s4, s5, s6, s7, s8) => Result_Sync()),
+						9 => new Func<int, int, int, int, int, int, int, int, int, string>((s1, s2, s3, s4, s5, s6, s7, s8, s9) => Result_Sync()),
+						_ => throw new InvalidProgramException(),
+					};
 				else
 					return parNum switch
 					{
@@ -338,10 +343,11 @@ namespace Fuxion.Test.Threading.Tasks
 						9 => new Func<int, int, int, int, int, int, int, int, int, Task<string>>((s1, s2, s3, s4, s5, s6, s7, s8, s9) => Result_Async()),
 						_ => throw new InvalidProgramException(),
 					};
+				}
 			}
 			ConcurrencyProfile GetConcurrencyProfile(int order) => new ConcurrencyProfile
 			{
-				Name = named 
+				Name = named
 					? order % 2 == 0
 						? "even"
 						: "odd"
@@ -426,7 +432,6 @@ namespace Fuxion.Test.Threading.Tasks
 				}
 				finally { are.Set(); }
 			}
-			#endregion
 			#endregion
 
 			#region Run
@@ -584,6 +589,14 @@ namespace Fuxion.Test.Threading.Tasks
 								AssertIfTaskWasExecuted(2);
 								AssertIfTaskWasFinishBeforeOtherStart(2, 3);
 								AssertIfTaskWasExecutedSuccessfully(3);
+								Assert.True(seq switch
+								{
+									"S1-E1-S2-E2-S3-E3" => true,
+									"S1-E1X-S2-E2-S3-E3" => true,
+									"S1-E1-S2-E2X-S3-E3" => true,
+									"S1-E1X-S2-E2X-S3-E3" => true,
+									_ => false
+								});
 								//Assert.True(seq == "S1-E1-S2-E2-S3-E3" || seq == "S1-E1-S2-E2X-S3-E3" || seq == "S1-E1X-S2-E2-S3-E3" || seq == "S1-E1X-S2-E2X-S3-E3");
 							}
 						}

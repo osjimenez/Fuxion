@@ -23,7 +23,7 @@ namespace Fuxion.Test.Json
 			Assert.Throws<EventFeatureNotFoundException>(() => new EventSourcingPod(evt));
 			evt.AddEventSourcingFeature(10);
 			var pod = evt.ToEventSourcingPod();
-			Assert.True(pod.PayloadHasValue);
+			//Assert.True(pod.PayloadHasValue);
 			Assert.IsType<MockEvent>(pod.Payload);
 
 			var json = pod.ToJson();
@@ -57,7 +57,7 @@ namespace Fuxion.Test.Json
 			if (pod is null) throw new NullReferenceException($"'pod' deserialization is null");
 			Assert.Equal("MockEvent", pod.PayloadKey);
 			Assert.Equal(10, pod.TargetVersion);
-			Assert.False(pod.PayloadHasValue);
+			//Assert.False(pod.PayloadHasValue);
 			Assert.Null(pod.Payload);
 
 			var evt = pod.WithTypeKeyDirectory(tkd);
@@ -106,8 +106,8 @@ namespace Fuxion.Test.Json
 	}
 	public class EventSourcingPod : JsonPod<Event, string>
 	{
-		[JsonConstructor]
-		protected EventSourcingPod() { }
+		//[JsonConstructor]
+		//protected EventSourcingPod() { }
 		internal EventSourcingPod(Event @event) : base(@event, @event.GetType().GetTypeKey() ?? @event.GetType().FullName ?? throw new InvalidProgramException($"Event type '{@event.GetType().Name}' hasn't a FullName"))
 		{
 			if (!@event.HasEventSourcing()) throw new EventFeatureNotFoundException($"'{nameof(EventSourcingPod)}' require '{nameof(EventSourcingEventFeature)}'");
