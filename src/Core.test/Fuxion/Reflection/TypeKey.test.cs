@@ -1,12 +1,13 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Fuxion.Reflection;
 
 namespace Fuxion.Test.Reflection;
 
-public class TypeKeyTest : BaseTest<TypeKeyTest>
+public class TypeKeyTest(ITestOutputHelper output) : BaseTest<TypeKeyTest>(output)
 {
-	public TypeKeyTest(ITestOutputHelper output):base(output){}
+	void PrintChain(TypeKey tk, [CallerArgumentExpression(nameof(tk))] string? name = null) 
+		=> Output.WriteLine($"{name}:\n\t{tk.KeyChain.Aggregate((a, c) => $"{a}\n\t{c}")}");
 	[Fact(DisplayName = "Serialize TypeKey")]
 	public void Serialize()
 	{
@@ -26,20 +27,20 @@ public class TypeKeyTest : BaseTest<TypeKeyTest>
 	{
 		var tk = "\"folder1/folder2\"".DeserializeFromJson<TypeKey>();
 		Assert.NotNull(tk);
-		Output.WriteLine($"Chain:\n\t{tk.KeyChain.Aggregate((a,c)=>$"{a}\n\t{c}")}");
+		PrintChain(tk, "Chain");
 		Assert.Equal("folder1",tk.KeyChain[0]);
 		Assert.Equal("folder2",tk.KeyChain[1]);
 
 		tk = "\"http://domain.com/folder1/folder2\"".DeserializeFromJson<TypeKey>();
 		Assert.NotNull(tk);
-		Output.WriteLine($"Chain:\n\t{tk.KeyChain.Aggregate((a,c)=>$"{a}\n\t{c}")}");
+		PrintChain(tk, "Chain");
 		Assert.Equal("http://domain.com",tk.KeyChain[0]);
 		Assert.Equal("folder1",tk.KeyChain[1]);
 		Assert.Equal("folder2",tk.KeyChain[2]);
 		
 		tk = "\"https://domain/folder1/folder2\"".DeserializeFromJson<TypeKey>();
 		Assert.NotNull(tk);
-		Output.WriteLine($"Chain:\n\t{tk.KeyChain.Aggregate((a,c)=>$"{a}\n\t{c}")}");
+		PrintChain(tk, "Chain");
 		
 		Output.WriteLine($"Throws => {Assert.Throws<TypeKeyException>(() => "\"scheme://domain/folder1/folder2\"".DeserializeFromJson<TypeKey>()).Message}");
 		Output.WriteLine($"Throws => {Assert.Throws<TypeKeyException>(() => "\"https://domain/folder1/folder2?one=123&two=456\"".DeserializeFromJson<TypeKey>()).Message}");
@@ -55,13 +56,13 @@ public class TypeKeyTest : BaseTest<TypeKeyTest>
 	public void DerivedTypes()
 	{
 		Output.WriteLine($"One TypeKey = {typeof(One).GetTypeKey()}");
-		Assert.Equal($"http://fuxion.dev/{nameof(One)}",typeof(One).GetTypeKey());
-		Assert.Equal($"http://fuxion.dev/{nameof(One)}",typeof(One).GetTypeKey(processInheritance:false));
+		Assert.Equal($"{TestTypeKeyAttribute.TestUrl}/{nameof(One)}",typeof(One).GetTypeKey());
+		Assert.Equal($"{TestTypeKeyAttribute.TestUrl}/{nameof(One)}",typeof(One).GetTypeKey(processInheritance:false));
 		Output.WriteLine($"One Throws = {Assert.Throws<TypeKeyException>(() => typeof(One).GetTypeKey(false,true)).Message}");
-		Assert.Equal($"http://fuxion.dev/{nameof(One)}",typeof(One).GetTypeKey(false,true, false));
+		Assert.Equal($"{TestTypeKeyAttribute.TestUrl}/{nameof(One)}",typeof(One).GetTypeKey(false,true, false));
 		
 		Output.WriteLine($"Two TypeKey = {typeof(Two).GetTypeKey()}");
-		Assert.Equal($"http://fuxion.dev/{nameof(One)}/{nameof(Two)}",typeof(Two).GetTypeKey());
+		Assert.Equal($"{TestTypeKeyAttribute.TestUrl}/{nameof(One)}/{nameof(Two)}",typeof(Two).GetTypeKey());
 		Assert.Equal($"{nameof(Two)}",typeof(Two).GetTypeKey(processInheritance:false));
 		Output.WriteLine($"Two Throws = {Assert.Throws<TypeKeyException>(() => typeof(Two).GetTypeKey(false,true)).Message}");
 		Assert.Equal($"{nameof(Two)}",typeof(Two).GetTypeKey(false,true, false));
@@ -76,11 +77,42 @@ public class TypeKeyTest : BaseTest<TypeKeyTest>
 		Output.WriteLine($"Four Throws = {Assert.Throws<TypeKeyException>(() => typeof(Four).GetTypeKey(false, true)).Message}");
 		Assert.Equal($"{nameof(Four)}",typeof(Four).GetTypeKey(false, true, false));
 	}
+	[Fact(DisplayName = "Implicit conversion")]
+	public void ImplicitConversion()
+	{
+		PrintChain(new("one","two"));
+		PrintChain(new("http://fuxion.dev","one","two"));
+		PrintChain(new("https://fuxion.dev/one/two/three"));
+		Assert.Throws<TypeKeyException>(() => PrintChain("ftp://one/two"));
+	}
 }
-[TypeKey("http://fuxion.dev",nameof(One))]
-public class One { }
-[TypeKey(nameof(Two))] 
-public class Two : One{}
-public class Three : Two{}
+[TestTypeKey(TestTypeKeyClass.Test, nameof(One))]
+file class One { }
+[TypeKey(nameof(Two))]
+file class Two : One{}
+file class Three : Two{}
 [TypeKey(nameof(Four))]
-public class Four : Three{}
+file class Four : Three{}
+
+file enum TestTypeKeyClass
+{
+	Test
+}
+// This is a sample of TypeKeyAttribute extension with custom way to create keyChain
+file class TestTypeKeyAttribute(TestTypeKeyClass @class, params string[] keyChain) : TypeKeyAttribute(GetChain(@class, keyChain))
+{
+	public const string TestUrl = "http://fuxion.dev";
+	static string[] GetChain(TestTypeKeyClass @class, IEnumerable<string> keyChain)
+	{
+		var strClass = @class switch
+		{
+			TestTypeKeyClass.Test => TestUrl,
+			var _ => throw new InvalidOperationException($"{@class} is not valid value")
+		};
+		return new[]
+			{
+				strClass
+			}.Concat(keyChain)
+			.ToArray();
+	}
+}
