@@ -10,13 +10,13 @@ public interface IFeature { }
 public interface IFeature<in TFeaturizable> : IFeature where TFeaturizable : IFeaturizable<TFeaturizable>
 {
 	public void OnAttach(TFeaturizable featurizable)
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 		;
 #else
 		{ }
 #endif
 	public void OnDetach(TFeaturizable featurizable)
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 		;
 #else
 		{ }
@@ -25,7 +25,7 @@ public interface IFeature<in TFeaturizable> : IFeature where TFeaturizable : IFe
 
 public interface IFeaturizable<in TFeaturizable>
 	where TFeaturizable : IFeaturizable<TFeaturizable>
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 // In legacy frameworks default interface implementations is not supported
 // The interface will be implemented without implmentations
 {
@@ -49,7 +49,7 @@ public class Featurizable<TFeaturizable> where TFeaturizable : IFeaturizable<TFe
 #endif
 {
 	IFeatureCollection<TFeaturizable> Features { get; }
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 		= new FeatureCollection<TFeaturizable>();
 #endif
 	public bool Has(UriKey key)
@@ -62,7 +62,7 @@ public class Featurizable<TFeaturizable> where TFeaturizable : IFeaturizable<TFe
 		if (Has(type.GetUriKey())) throw new FeatureAlreadyExistException($"'{GetType().GetSignature()}' object already has '{type.Name}' feature");
 		var feaObj = Activator.CreateInstance(type) ?? throw new InvalidProgramException($"Feature cannot be created");
 		((IFeature<TFeaturizable>)feaObj).OnAttach((TFeaturizable)
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 			(IFeaturizable<TFeaturizable>)
 #endif
 			this);
@@ -74,7 +74,7 @@ public class Featurizable<TFeaturizable> where TFeaturizable : IFeaturizable<TFe
 		if (Has<TFeature>()) throw new FeatureAlreadyExistException($"'{GetType().GetSignature()}' object already has '{typeof(TFeature).Name}' feature");
 		TFeature fea = new();
 		((IFeature<TFeaturizable>)fea).OnAttach((TFeaturizable)
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 			(IFeaturizable<TFeaturizable>)
 #endif
 			this);
@@ -86,7 +86,7 @@ public class Featurizable<TFeaturizable> where TFeaturizable : IFeaturizable<TFe
 	{
 		if (!Has<TFeature>() && exceptionIfNotFound) throw new FeatureNotFoundException($"Feature {typeof(TFeature).GetSignature()} was not found");
 		((IFeature<TFeaturizable>)Features.Get<TFeature>()).OnDetach((TFeaturizable)
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 			(IFeaturizable<TFeaturizable>)
 #endif
 			this);
@@ -112,7 +112,7 @@ public interface IFeatureCollection<in TFeaturizable> where TFeaturizable : IFea
 	internal bool TryGet<TFeature>([NotNullWhen(true)] out TFeature? feature) where TFeature : IFeature;
 	internal dynamic Get(UriKey key);
 	internal IEnumerable<TFeature> All<TFeature>() where TFeature : IFeature;
-#if !NETSTANDARD2_0 && !NET462
+#if !NETSTANDARD2_0 && !NET472
 	public static IFeatureCollection<TFeaturizable> Create() => new FeatureCollection<TFeaturizable>();
 #endif
 }

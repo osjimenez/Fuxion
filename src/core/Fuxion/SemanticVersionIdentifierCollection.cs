@@ -13,7 +13,7 @@ public class SemanticVersionIdentifierCollection(SemanticVersionIdentifier[] ide
 	public static bool operator !=(SemanticVersionIdentifierCollection collection1, SemanticVersionIdentifierCollection collection2) => !(collection1 == collection2);
 	public static bool operator < (SemanticVersionIdentifierCollection collection1, SemanticVersionIdentifierCollection collection2)
 	{
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 		if (collection1 is null) throw new ArgumentException(nameof(collection1));
 #else
 		ArgumentNullException.ThrowIfNull(collection1);
@@ -23,7 +23,7 @@ public class SemanticVersionIdentifierCollection(SemanticVersionIdentifier[] ide
 	public static bool operator <=(SemanticVersionIdentifierCollection collection1, SemanticVersionIdentifierCollection collection2) => collection1 == collection2 || collection1 < collection2;
 	public static bool operator > (SemanticVersionIdentifierCollection collection1, SemanticVersionIdentifierCollection collection2)
 	{
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 		if (collection1 is null) throw new ArgumentException(nameof(collection1));
 #else
 		ArgumentNullException.ThrowIfNull(collection1);

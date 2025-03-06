@@ -21,7 +21,7 @@ public class AggregateTest
 }
 
 public
-#if NET462
+#if NET472
 	class
 #else
 	record
@@ -32,7 +32,7 @@ TestedEvent : Fuxion.Domain.Event
 }
 
 public class MockAggregate :
-#if NET462
+#if NET472
 	Featurizable<MockAggregate>,
 #endif
 	IAggregate
@@ -43,15 +43,15 @@ public class MockAggregate :
 	public Guid Id
 	{
 		get;
-#if !NET462
+#if !NET472
 		init;
 #endif
 	}
-#if NET462
+#if NET472
 		= Guid.NewGuid();
 #endif
 	IFeatureCollection<IAggregate> IFeaturizable<IAggregate>.Features { get; } =
-#if NET462
+#if NET472
 		new FeatureCollection<IAggregate>();
 #else
 		IFeatureCollection<IAggregate>.Create();
@@ -59,14 +59,14 @@ public class MockAggregate :
 }
 
 public class User : 
-#if NET462
+#if NET472
 	Featurizable<User>,
 #endif
 	IAggregate
 {
 	
 	public IFeatureCollection<IAggregate> Features { get; } = 
-#if NET462
+#if NET472
 		new FeatureCollection<IAggregate>();
 #else
 		IFeatureCollection<IAggregate>.Create();
@@ -74,11 +74,11 @@ public class User :
 	public Guid Id
 	{
 		get;
-#if !NET462
+#if !NET472
 		init;
 #endif
 	}
-#if NET462
+#if NET472
 		= Guid.NewGuid();
 #endif
 	public DateTime BirthdayDate { get; private set; }

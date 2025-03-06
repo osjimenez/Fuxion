@@ -1,14 +1,14 @@
-﻿namespace Fuxion.Domain;
+namespace Fuxion.Domain;
 
 // public abstract record Command(Guid Id) { }
 public abstract 
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 	class
 #else
 	record
 #endif
 	Command(Guid aggregateId) : 
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 	Featurizable<Command>,
 #endif
 	IFeaturizable<Command>

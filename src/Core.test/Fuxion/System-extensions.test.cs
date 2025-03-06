@@ -361,8 +361,8 @@ public class SystemExtensionsTest : BaseTest<SystemExtensionsTest>
 	[Fact(DisplayName = "Range - Custom integer enumerator")]
 	public void CustomIntEnumerator()
 	{
-#if !NET462
-		// TODO hacer que funcione en net462
+#if !NET472
+		// TODO hacer que funcione en net472
 		Logger.LogInformation($"Enumerate with range:");
 		foreach (var i in 0..10) Logger.LogInformation($"\t{i}");
 		Assert.Throws<NotSupportedException>(() => {

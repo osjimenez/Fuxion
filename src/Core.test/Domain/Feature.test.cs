@@ -40,7 +40,7 @@ public class AggregateFeature : IFeature<IAggregate>
 }
 
 public class MockUser : 
-#if NET462
+#if NET472
 	Featurizable<MockAggregate>,
 #endif
 	IAggregate, IFeaturizable<MockUser>
@@ -52,7 +52,7 @@ public class MockUser :
 	public bool Attached { get; set; }
 	//IFeatureCollection<IAggregate> IFeaturizable<IAggregate>.Features => ((IFeaturizable<MockUser>)this).Features;
 	IFeatureCollection<IAggregate> IFeaturizable<IAggregate>.Features { get; } = 
-#if NET462
+#if NET472
 		new FeatureCollection<IAggregate>();
 #else
 		IFeatureCollection<IAggregate>.Create();
@@ -62,11 +62,11 @@ public class MockUser :
 	public Guid Id
 	{
 		get;
-#if !NET462
+#if !NET472
 		init;
 #endif
 	}
-#if NET462
+#if NET472
 		= Guid.NewGuid();
 #endif
 }
@@ -79,7 +79,7 @@ public class MockUserFeature : IFeature<MockUser>
 
 
 public class MockGroup : 
-#if NET462
+#if NET472
 	Featurizable<MockAggregate>,
 #endif
 	IAggregate
@@ -89,17 +89,17 @@ public class MockGroup :
 		Id = id;
 	}
 	IFeatureCollection<IAggregate> IFeaturizable<IAggregate>.Features { get; } = 
-#if NET462
+#if NET472
 		new FeatureCollection<IAggregate>();
 #else
 		IFeatureCollection<IAggregate>.Create();
 #endif
 	public Guid Id { get; 
-#if !NET462
+#if !NET472
 		init;
 #endif
 	}
-#if NET462
+#if NET472
 		= Guid.NewGuid();
 #endif
 }

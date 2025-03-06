@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net462</TargetFrameworks>
+		<TargetFrameworks>net472</TargetFrameworks>
 		<Title>Fuxion Asp.Net</Title>
 		<PackageId>Fuxion.AspNet</PackageId>
 		<Description>Fuxion library for Asp.Net</Description>

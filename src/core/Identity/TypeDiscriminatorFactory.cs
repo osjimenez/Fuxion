@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -15,7 +15,7 @@ public class TypeDiscriminatorFactory
 	public bool AllowMoreThanOneTypeByDiscriminator { get; set; }
 	public Func<Type, TypeDiscriminatedAttribute?, string> GetIdFunction { get; set; } = (type, att) => {
 		if (att != null && !string.IsNullOrWhiteSpace(att.Id)) 
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 			return att?.Id ?? "";
 #else
 			return att.Id;
@@ -24,7 +24,7 @@ public class TypeDiscriminatorFactory
 	};
 	public Func<Type, TypeDiscriminatedAttribute?, string> GetNameFunction { get; set; } = (type, att) => {
 		if (att != null && !string.IsNullOrWhiteSpace(att.Name)) 
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 			return att?.Name ?? "";
 #else
 			return att.Name;

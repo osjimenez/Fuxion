@@ -5,13 +5,13 @@ namespace Fuxion.Domain;
 
 [UriKey(UriKey.FuxionBaseUri + "domain/event/1.0.0")]
 public abstract
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 	class
 #else
 	record
 #endif
 	Event(Guid aggregateId) :
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 	Featurizable<Event>,
 #endif
 	IFeaturizable<Event>

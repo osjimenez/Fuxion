@@ -1,4 +1,4 @@
-﻿#if !NETSTANDARD2_0 && !NET462
+#if !NETSTANDARD2_0 && !NET472
 using System.Dynamic;
 using Microsoft.Extensions.DependencyInjection;
 

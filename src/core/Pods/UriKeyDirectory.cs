@@ -24,7 +24,7 @@ public class UriKeyDirectory : IUriKeyResolver
 	}
 	readonly Dictionary<UriKey, Type> _keyToTypeDictionary = new();
 	readonly Dictionary<Type, UriKey> _typeToKeyDictionary = new(
-#if !NETSTANDARD2_0 && !NET462
+#if !NETSTANDARD2_0 && !NET472
 		ReferenceEqualityComparer.Instance
 #endif
 		);
@@ -120,7 +120,7 @@ public class UriKeyDirectory : IUriKeyResolver
 			// Additional types
 			DateTime();
 			DateTimeArray();
-#if !NETSTANDARD2_0 && !NET462
+#if !NETSTANDARD2_0 && !NET472
 			DateOnly();
 			DateOnlyArray();
 			TimeOnly();
@@ -196,7 +196,7 @@ public class UriKeyDirectory : IUriKeyResolver
 		#region DateTime, DateOnly, TimeOnly
 		public void DateTime() => directory.Register<DateTime>(SystemUriKeys.DateTime);
 		public void DateTimeArray() => directory.Register<DateTime[]>(SystemUriKeys.DateTimeArray);
-#if !NETSTANDARD2_0 && !NET462
+#if !NETSTANDARD2_0 && !NET472
 		public void DateOnly() => directory.Register<DateOnly>(SystemUriKeys.DateOnly);
 		public void DateOnlyArray() => directory.Register<DateOnly[]>(SystemUriKeys.DateOnlyArray);
 		public void TimeOnly() => directory.Register<TimeOnly>(SystemUriKeys.TimeOnly);
@@ -255,7 +255,7 @@ public static class SystemUriKeys
 		// Dic.Add(typeof(dynamic[]), DynamicArray);
 		Dic.Add(typeof(DateTime), DateTime);
 		Dic.Add(typeof(DateTime[]), DateTimeArray);
-#if !NETSTANDARD2_0 && !NET462
+#if !NETSTANDARD2_0 && !NET472
 		Dic.Add(typeof(DateOnly), DateOnly);
 		Dic.Add(typeof(DateOnly[]), DateOnlyArray);
 		Dic.Add(typeof(TimeOnly), TimeOnly);

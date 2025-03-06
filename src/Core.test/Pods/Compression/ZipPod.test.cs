@@ -15,7 +15,7 @@ public class ZipPodTest(ITestOutputHelper output) : BaseTest<ZipPodTest>(output)
 			Name = "payloadName",
 			Age = 23,
 			Nick = "payloadNick",
-			#if NET462
+			#if NET472
 			Birthdate = DateTime.Parse("12/12/2012")
 			#else
 			Birthdate = DateOnly.Parse("12/12/2012")
@@ -70,7 +70,7 @@ public class ZipPodTest(ITestOutputHelper output) : BaseTest<ZipPodTest>(output)
 			.Payload;
 	}
 }
-#if !NET462
+#if !NET472
 file
 #endif
 	class TestPod(string discriminator, TestPayload payload) : Pod<string, TestPayload>(discriminator, payload)
@@ -79,33 +79,33 @@ file
 	[JsonPropertyName("Class-custom")]
 	public string? Class { get; set; }
 }
-#if !NET462
+#if !NET472
 file
 #endif
 	class TestPayload
 {
 	public string? Name { get; set; }
 	[JsonPropertyName("Age-custom")]
-#if NET462
+#if NET472
 	[JsonInclude]
 #endif
 	public required int Age { get; init; }
 }
-#if !NET462
+#if !NET472
 file
 #endif
 	class TestPayloadDerived : TestPayload
 {
 	public required string Nick { get; set; }
 	[JsonPropertyName("Birthdate-custom")]
-#if NET462
+#if NET472
 	// PEND https://www.nuget.org/packages/Portable.System.DateTimeOnly#readme-body-tab
 	public DateTime Birthdate { get; set; }
 #else
 	public DateOnly Birthdate { get; set; }
 #endif
 }
-#if !NET462
+#if !NET472
 file
 #endif
 	record TestRecordPayload(string Name);

@@ -1,4 +1,4 @@
-﻿using System.Data.Common;
+using System.Data.Common;
 using System.Data.Entity.Migrations;
 using System.Data.SqlClient;
 using Fuxion.EntityFramework.Test.Migrations;
@@ -14,7 +14,7 @@ public class Sequences : BaseTest<Sequences>, IDisposable
 	public Sequences(ITestOutputHelper output) : base(output)
 	{
 		// https://devblogs.microsoft.com/dotnet/announcing-entity-framework-6-3-preview-with-net-core-support/
-#if !NET462
+#if !NET472
 		DbProviderFactories.RegisterFactory("System.Data.SqlClient", SqlClientFactory.Instance);
 #endif
 		con = new();

@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Reflection;
 
 namespace Fuxion.Domain.Aggregates;
@@ -23,7 +23,7 @@ public class EventsAggregateFeature : IFeature<IAggregate>
 					&& typeof(Event).IsAssignableFrom(m.GetParameters().First().ParameterType)).ToDictionary(m => m.GetParameters().First().ParameterType), (_, __) => __);
 		eventHandlerCache = aggregateEventHandlerCache[aggregateType].ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 	}
-	#if NETSTANDARD2_0 || NET462
+	#if NETSTANDARD2_0 || NET472
 	public void OnDetach(IAggregate aggregate) { }
 	#endif
 	public event EventHandler<EventArgs<Event>>? Applying;

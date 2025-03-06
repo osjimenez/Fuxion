@@ -299,14 +299,14 @@ public static partial class Extensions
 			: null;
 	public static string GetFullNameWithAssemblyName(this Type me) => $"{me.AssemblyQualifiedName?.Split(',').Take(2).Aggregate("", (a, n) => a + ", " + n, a => a.Trim(' ', ','))}";
 	const string FileScopeClassNameRegexPattern = "^(.*)<[a-zA-Z_]+>[A-F0-9]+__(.*)$";
-#if !NET462 && !NETSTANDARD2_0
+#if !NET472 && !NETSTANDARD2_0
 	[GeneratedRegex(FileScopeClassNameRegexPattern)]
 	private static partial Regex FileScopeClassNameRegex();
 #endif
 	public static string GetSignature(this Type type, bool useFullNames = false)
 	{
 		var regex =
-#if NET462 || NETSTANDARD2_0
+#if NET472 || NETSTANDARD2_0
 		new Regex(FileScopeClassNameRegexPattern);
 #else
 		FileScopeClassNameRegex();
@@ -605,13 +605,13 @@ public static partial class Extensions
 	public static string RandomString(
 		this string me,
 		int length
-#if NETSTANDARD2_0 || NET462 || NET7_0
+#if NETSTANDARD2_0 || NET472 || NET7_0
 		, Random? ran = null
 #endif
 	)
 	{
 		const string defaultStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-#if NETSTANDARD2_0 || NET462 || NET7_0
+#if NETSTANDARD2_0 || NET472 || NET7_0
 		ran ??= new(Guid.NewGuid().GetHashCode());
 		var str = string.IsNullOrWhiteSpace(me) ? defaultStr : me;
 		return new(Enumerable.Repeat(str, length)

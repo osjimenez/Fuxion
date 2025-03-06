@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Fuxion.Identity.Helpers;
@@ -10,7 +10,7 @@ public class PasswordProvider : IPasswordProvider
 	public PasswordHashAlgorithm Algorithm { get; set; } = PasswordHashAlgorithm.SHA256;
 	public void Generate(string password, out byte[] salt, out byte[] hash)
 	{
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 		var data = new byte[SaltBytesLenght];
 		Random ran = new(Guid.NewGuid()
 			.GetHashCode());

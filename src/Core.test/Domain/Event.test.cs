@@ -1,4 +1,4 @@
-﻿using Xunit;
+using Xunit;
 
 namespace Fuxion.Domain.Test;
 
@@ -20,7 +20,7 @@ public class EventTest
 }
 
 public
-#if NET462
+#if NET472
 	class
 #else
 	record

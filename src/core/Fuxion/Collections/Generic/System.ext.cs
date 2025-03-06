@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 
 namespace Fuxion.Collections.Generic;
 
@@ -14,7 +14,7 @@ public static class Extensions
 		List<T> res = new();
 		for (var i = 0; i < count; i++)
 		{
-#if NETSTANDARD2_0 || NET462
+#if NETSTANDARD2_0 || NET472
 			var ran = new Random(Guid.NewGuid().GetHashCode());
 			var actual = ran.Next(0, list.Count);
 			while (used.Contains(actual)) actual = ran.Next(0, list.Count);

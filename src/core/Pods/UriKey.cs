@@ -45,7 +45,7 @@ public class UriKey : IEquatable<UriKey>, IComparable, IComparable<UriKey>
 	public const string FuxionSystemTypesBaseUri = FuxionBaseUri + "system/";
 
 	public UriKey(
-#if !NETSTANDARD2_0 && !NET462
+#if !NETSTANDARD2_0 && !NET472
 		[ConstantExpected]
 #endif
 		string key) : this(new(key),false) { }
@@ -170,7 +170,7 @@ public class UriKey : IEquatable<UriKey>, IComparable, IComparable<UriKey>
 	public static bool operator !=(UriKey identifier1, UriKey identifier2) => !(identifier1 == identifier2);
 	public static bool operator <(UriKey identifier1, UriKey identifier2)
 	{
-#if !NETSTANDARD2_0 && !NET462
+#if !NETSTANDARD2_0 && !NET472
 		ArgumentNullException.ThrowIfNull(identifier1);
 #else
 		if(identifier1 is null) throw new ArgumentException(nameof(identifier1));
@@ -180,7 +180,7 @@ public class UriKey : IEquatable<UriKey>, IComparable, IComparable<UriKey>
 	public static bool operator <=(UriKey identifier1, UriKey identifier2) => identifier1 == identifier2 || identifier1 < identifier2;
 	public static bool operator >(UriKey identifier1, UriKey identifier2)
 	{
-#if !NETSTANDARD2_0 && !NET462
+#if !NETSTANDARD2_0 && !NET472
 		ArgumentNullException.ThrowIfNull(identifier1);
 #else
 		if(identifier1 is null) throw new ArgumentException(nameof(identifier1));

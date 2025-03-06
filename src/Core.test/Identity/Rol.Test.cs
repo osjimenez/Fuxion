@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Fuxion.Identity.Test.Dao;
 using Fuxion.Identity.Test.Mocks;
 using Fuxion.Repositories;
@@ -90,7 +90,7 @@ public class RolTest : BaseTest<RolTest>
 				Scopes = new[] {
 					new ScopeDao("", "", Categories.Purchases, ScopePropagation.ToMe),
 					new ScopeDao("", "", pro.GetRequiredService<TypeDiscriminatorFactory>().FromType<BaseDao>(true)
-#if NETSTABDARD2_0 || NET462
+#if NETSTABDARD2_0 || NET472
 						?? throw new NullReferenceException()
 #endif
 						, ScopePropagation.ToMe | ScopePropagation.ToInclusions)
