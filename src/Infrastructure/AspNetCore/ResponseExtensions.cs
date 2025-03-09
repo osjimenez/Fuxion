@@ -30,8 +30,8 @@ public static class ResponseExtensions
 				return Results.NoContent();
 		
 		var extensions = me.Extensions.ToDictionary();
-		me.Extensions.Remove(StatusCodeKey);
-		me.Extensions.Remove(ReasonPhraseKey);
+		extensions.Remove(StatusCodeKey);
+		extensions.Remove(ReasonPhraseKey);
 
 		if (me.Payload is not null)
 			extensions[PayloadKey] = me.Payload;

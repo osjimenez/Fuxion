@@ -24,8 +24,8 @@ public static class ResponseExtensions
 			return HttpActionResultFactory.Success(me.Payload, me.Message);
 
 		var extensions = me.Extensions.ToDictionary(e => e.Key, e => e.Value);
-		me.Extensions.Remove(StatusCodeKey);
-		me.Extensions.Remove(ReasonPhraseKey);
+		extensions.Remove(StatusCodeKey);
+		extensions.Remove(ReasonPhraseKey);
 		if (me.Payload is not null)
 		{
 			extensions[PayloadKey] = me.Payload;
