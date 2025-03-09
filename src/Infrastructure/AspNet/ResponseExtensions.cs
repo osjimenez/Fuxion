@@ -9,6 +9,7 @@ using System.Web.Http;
 using System.Web.Http.Results;
 using Fuxion.Text.Json.Serialization;
 using static System.Net.WebRequestMethods;
+using static Fuxion.Net.Http.Extensions;
 
 namespace Fuxion.AspNet;
 
@@ -20,17 +21,17 @@ public static class ResponseExtensions
 	public static IHttpActionResult ToApiResult<TPayload>(this Response<TPayload> me)
 	{
 		if (me.IsSuccess)
-			return HttpActionResultFactory.Success(me.Payload);
+			return HttpActionResultFactory.Success(me.Payload, me.Message);
 
-		var extensions = me.Extensions?.ToDictionary(e => e.Key, e => e.Value);
+		var extensions = me.Extensions.ToDictionary(e => e.Key, e => e.Value);
+		me.Extensions.Remove(StatusCodeKey);
+		me.Extensions.Remove(ReasonPhraseKey);
 		if (me.Payload is not null)
 		{
-			extensions ??= new();
-			extensions["payload"] = me.Payload;
+			extensions[PayloadKey] = me.Payload;
 		}
 		if (IncludeException && me.Exception is not null)
 		{
-			extensions ??= new();
 			var jsonOptions = JsonSerializerOptions is null
 				? new() { Converters = { new ExceptionConverter() } }
 				: JsonSerializerOptions.Transform(o =>
@@ -39,7 +40,7 @@ public static class ResponseExtensions
 					res.Converters.Add(new ExceptionConverter());
 					return res;
 				});
-			extensions["exception"] = UseNewtonsoft
+			extensions[ExceptionKey] = UseNewtonsoft
 				? Newtonsoft.Json.Linq.JObject.Parse(me.Exception.SerializeToJson(true))
 				: JsonSerializer.SerializeToElement(me.Exception, options: jsonOptions);
 		}
@@ -64,11 +65,16 @@ public static class ResponseExtensions
 		};
 	}
 }
-file class HttpActionResultFactory(HttpStatusCode status, object? payload = null) : IHttpActionResult
+file class HttpActionResultFactory(HttpStatusCode status, object? payload = null, string? message = null) : IHttpActionResult
 {
 	public Task<HttpResponseMessage> ExecuteAsync(CancellationToken cancellationToken)
 		=> payload is null
-			? Task.FromResult(new HttpResponseMessage(status))
+			? message is null
+				? Task.FromResult(new HttpResponseMessage(status))
+				: Task.FromResult(new HttpResponseMessage(status)
+				{
+					Content = new StringContent(message)
+				})
 			: Task.FromResult(new HttpResponseMessage(status)
 			{
 				Content = ResponseExtensions.UseNewtonsoft
@@ -80,9 +86,11 @@ file class HttpActionResultFactory(HttpStatusCode status, object? payload = null
 						Encoding.UTF8,
 						"application/json"),
 			});
-	public static IHttpActionResult Success(object? payload)
+	public static IHttpActionResult Success(object? payload, string? message)
 		=> payload is null
-			? new HttpActionResultFactory(HttpStatusCode.NoContent, payload)
+			? message is null
+				? new HttpActionResultFactory(HttpStatusCode.NoContent, payload)
+				: new HttpActionResultFactory(HttpStatusCode.OK, null, message)
 			: new HttpActionResultFactory(HttpStatusCode.OK, payload);
 	public static IHttpActionResult Problem(string? detail, HttpStatusCode statusCode, string title, Dictionary<string, object?>? extensions)
 		=> new HttpActionResultFactory(statusCode, new ResponseProblemDetails

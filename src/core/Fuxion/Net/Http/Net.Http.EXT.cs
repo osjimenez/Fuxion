@@ -9,6 +9,13 @@ namespace Fuxion.Net.Http;
 
 public static class Extensions
 {
+	public const string InnerProblemKey = "inner-problem";
+	public const string JsonContentKey = "json-content";
+	public const string StringContentKey = "string-content";
+	public const string PayloadKey = "payload";
+	public const string ExceptionKey = "exception";
+	public const string StatusCodeKey = "status-code";
+	public const string ReasonPhraseKey = "reason-phrase";
 	static async Task<(
 		List<(string, object?)> Extensions,
 		ResponseProblemDetails? Problem,
@@ -20,8 +27,8 @@ public static class Extensions
 	{
 		List<(string, object?)> extensions =
 		[
-			("status-code", (int)res.StatusCode),
-			("reason-phrase", res.ReasonPhrase)
+			(StatusCodeKey, (int)res.StatusCode),
+			(ReasonPhraseKey, res.ReasonPhrase)
 		];
 		ResponseProblemDetails? problem = null;
 		object? deserializedBody = null;
@@ -37,7 +44,7 @@ public static class Extensions
 				try
 				{
 					problem = strContent.DeserializeFromJson<ResponseProblemDetails>(options: jsonOptions);
-					if (problem is not null) extensions.Add(("problem-details", problem));
+					if (problem is not null) extensions.Add((InnerProblemKey, problem));
 				} catch
 				{
 					// ignored
@@ -60,10 +67,10 @@ public static class Extensions
 					try
 					{
 						var jsonContent = JsonNode.Parse(strContent);
-						if (jsonContent is not null) extensions.Add(("json-content", jsonContent));
+						if (jsonContent is not null) extensions.Add((JsonContentKey, jsonContent));
 					} catch
 					{
-						extensions.Add(("string-content", strContent));
+						extensions.Add((StringContentKey, strContent));
 					}
 				}
 			}
@@ -77,11 +84,11 @@ public static class Extensions
 		var (extensions, problem, _) = await DoAsResponse(res, null, jsonOptions, ct);
 
 		if (res.IsSuccessStatusCode)
-			if (extensions.Any(e => e.Item1 == "string-content"))
+			if (extensions.Any(e => e.Item1 == StringContentKey))
 				return Response.Get.Success(
-					message: extensions.First(e => e.Item1 == "string-content").Item2?.ToString(),
+					message: extensions.First(e => e.Item1 == StringContentKey).Item2?.ToString(),
 					extensions: extensions);
-			else 
+			else
 				return Response.Get.Success(extensions: extensions);
 
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
@@ -99,9 +106,9 @@ public static class Extensions
 
 		if (res.IsSuccessStatusCode)
 		{
-			if(deserializedBody is TPayload payload)
+			if (deserializedBody is TPayload payload)
 				return Response.Get.Success(payload, extensions: extensions);
-			if(extensions.Any(e=>e.Item1 == "json-content"))
+			if (extensions.Any(e => e.Item1 == JsonContentKey))
 				return Response.Get.Error.InvalidData($"The content of the response isn't '{typeof(TPayload).GetSignature()}' type.", extensions: extensions);
 			return Response.Get.Error.InvalidData($"The content of the response isn't a valid json.", extensions: extensions);
 		}
@@ -205,7 +212,7 @@ public static class Extensions
 		};
 	public static bool TryGetProblemDetails<TPayload>(this Response<TPayload> me, [NotNullWhen(true)] out ResponseProblemDetails? problem)
 	{
-		if (me.Extensions.TryGetValue("problem-details", out var obj) && obj is ResponseProblemDetails res)
+		if (me.Extensions.TryGetValue(InnerProblemKey, out var obj) && obj is ResponseProblemDetails res)
 		{
 			problem = res;
 			return true;
@@ -215,12 +222,12 @@ public static class Extensions
 	}
 	public static bool TryGetPayload<TPayload>(this ResponseProblemDetails problem, [NotNullWhen(true)] out TPayload? payload, JsonSerializerOptions? jsonOptions = null)
 	{
-		if (problem.Extensions.TryGetValue("payload", out var obj) && obj is JsonElement jsonElement)
+		if (problem.Extensions.TryGetValue(PayloadKey, out var obj) && obj is JsonElement jsonElement)
 		{
 			try
 			{
 				payload = jsonElement.Deserialize<TPayload>(jsonOptions);
-				if(payload is not null)
+				if (payload is not null)
 					return true;
 			} catch
 			{

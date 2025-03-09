@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
+using static Fuxion.Net.Http.Extensions;
 
 namespace Fuxion.AspNetCore;
 
@@ -29,11 +30,13 @@ public static class ResponseExtensions
 				return Results.NoContent();
 		
 		var extensions = me.Extensions.ToDictionary();
+		me.Extensions.Remove(StatusCodeKey);
+		me.Extensions.Remove(ReasonPhraseKey);
 
 		if (me.Payload is not null)
-			extensions["payload"] = me.Payload;
+			extensions[PayloadKey] = me.Payload;
 		if (IncludeException && me.Exception is not null)
-			extensions["exception"] = JsonSerializer.SerializeToElement(me.Exception, options: new(){ Converters = { new ExceptionConverter() }});
+			extensions[ExceptionKey] = JsonSerializer.SerializeToElement(me.Exception, options: new(){ Converters = { new ExceptionConverter() }});
 
 		return me.ErrorType switch
 		{
