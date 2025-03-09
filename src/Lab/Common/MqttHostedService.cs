@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.Text;
 using Microsoft.Extensions.Hosting;
 using MQTTnet;
-using MQTTnet.Client;
 using MQTTnet.Formatter;
 using MQTTnet.Packets;
 using MQTTnet.Protocol;
@@ -29,7 +28,7 @@ public class MqttHostedService : IHostedService
 	{
 		ServiceCancellationToken = cancellationToken;
 		_logger.LogInformation("Creating MQTT client...");
-		MqttFactory factory = new();
+		MqttClientFactory factory = new();
 
 		MqttClient = factory.CreateMqttClient();
 

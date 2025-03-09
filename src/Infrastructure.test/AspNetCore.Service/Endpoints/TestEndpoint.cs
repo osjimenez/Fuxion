@@ -53,5 +53,5 @@ public class Level1
 }
 public class Level2
 {
-	public void Throw() => throw new NotImplementedException("This method was not implemented jet");
+	public void Throw() => throw new NotImplementedException("Not implemented");
 }

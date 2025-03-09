@@ -1,11 +1,11 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Fuxion.Reflection;
 
-public static class MemberInfoExtensions
+public static class Extensions
 {
 	// TODO GetCustomAttribute is now in framework but not with same parameters and behavior
 	

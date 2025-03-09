@@ -4,10 +4,11 @@ using System.Net.Http;
 using System.Net.Http.Formatting;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Web.Http;
 using System.Web.Http.Results;
 using Fuxion.Text.Json.Serialization;
-using Newtonsoft.Json.Linq;
+using static System.Net.WebRequestMethods;
 
 namespace Fuxion.AspNet;
 
@@ -31,15 +32,15 @@ public static class ResponseExtensions
 		{
 			extensions ??= new();
 			var jsonOptions = JsonSerializerOptions is null
-				? new(){ Converters = { new ExceptionConverter() } }
-				: JsonSerializerOptions.Transform(o=>
+				? new() { Converters = { new ExceptionConverter() } }
+				: JsonSerializerOptions.Transform(o =>
 				{
 					var res = new JsonSerializerOptions(o);
 					res.Converters.Add(new ExceptionConverter());
 					return res;
 				});
 			extensions["exception"] = UseNewtonsoft
-				? JObject.Parse(me.Exception.SerializeToJson(true))
+				? Newtonsoft.Json.Linq.JObject.Parse(me.Exception.SerializeToJson(true))
 				: JsonSerializer.SerializeToElement(me.Exception, options: jsonOptions);
 		}
 
@@ -77,99 +78,73 @@ file class HttpActionResultFactory(HttpStatusCode status, object? payload = null
 								? new(ResponseExtensions.JsonSerializerOptions)
 								: null),
 						Encoding.UTF8,
-						"application/json"), });
+						"application/json"),
+			});
 	public static IHttpActionResult Success(object? payload)
 		=> payload is null
 			? new HttpActionResultFactory(HttpStatusCode.NoContent, payload)
 			: new HttpActionResultFactory(HttpStatusCode.OK, payload);
 	public static IHttpActionResult Problem(string? detail, HttpStatusCode statusCode, string title, Dictionary<string, object?>? extensions)
-		=> new HttpActionResultFactory(statusCode, new ProblemDetails(statusCode, title, detail)
+		=> new HttpActionResultFactory(statusCode, new ResponseProblemDetails
 		{
-			Extensions = extensions
+			Type = GetTypeFromStatusCode(statusCode),
+			Status = (int)statusCode,
+			Title = title,
+			Detail = detail,
+			Extensions = extensions ?? new(StringComparer.Ordinal)
 		});
-}
-
-public class ProblemDetails
-{
-	public ProblemDetails(HttpStatusCode status, string? title, string? detail)
-	{
-		Type = GetTypeFromStatusCode(status);
-		Title = title;
-		Detail = detail;
-		Status = (int)status;
-	}
-	string GetTypeFromStatusCode(HttpStatusCode status)
+	static string GetTypeFromStatusCode(HttpStatusCode status)
 	{
 		return status switch
 		{
-			HttpStatusCode.Continue => "https://tools.ietf.org/html/rfc7231#section-6.2.1", // 100
-			HttpStatusCode.SwitchingProtocols => "https://tools.ietf.org/html/rfc7231#section-6.2.2", // 101
+			HttpStatusCode.Continue => "https://httpwg.org/specs/rfc9110.html#section-15.2.1", // 100
+			HttpStatusCode.SwitchingProtocols => "https://httpwg.org/specs/rfc9110.html#section-15.2.2", // 101
 
-			HttpStatusCode.OK => "https://tools.ietf.org/html/rfc7231#section-6.3.1", // 200
-			HttpStatusCode.Created => "https://tools.ietf.org/html/rfc7231#section-6.3.2", // 201
-			HttpStatusCode.Accepted => "https://tools.ietf.org/html/rfc7231#section-6.3.3", // 202
-			HttpStatusCode.NonAuthoritativeInformation => "https://tools.ietf.org/html/rfc7231#section-6.3.4", // 203
-			HttpStatusCode.NoContent => "https://tools.ietf.org/html/rfc7231#section-6.3.5", // 204
-			HttpStatusCode.ResetContent => "https://tools.ietf.org/html/rfc7231#section-6.3.6", // 205
-			HttpStatusCode.PartialContent => "https://tools.ietf.org/html/rfc7233#section-4.1", // 206
+			HttpStatusCode.OK => "https://httpwg.org/specs/rfc9110.html#section-15.3.1", // 200
+			HttpStatusCode.Created => "https://httpwg.org/specs/rfc9110.html#section-15.3.2", // 201
+			HttpStatusCode.Accepted => "https://httpwg.org/specs/rfc9110.html#section-15.3.3", // 202
+			HttpStatusCode.NonAuthoritativeInformation => "https://httpwg.org/specs/rfc9110.html#section-15.3.4", // 203
+			HttpStatusCode.NoContent => "https://httpwg.org/specs/rfc9110.html#section-15.3.5", // 204
+			HttpStatusCode.ResetContent => "https://httpwg.org/specs/rfc9110.html#section-15.3.6", // 205
+			HttpStatusCode.PartialContent => "https://httpwg.org/specs/rfc9110.html#section-15.3.7", // 206
 
-			HttpStatusCode.MultipleChoices => "https://tools.ietf.org/html/rfc7231#section-6.4.1", // 300
-			HttpStatusCode.MovedPermanently => "https://tools.ietf.org/html/rfc7231#section-6.4.2", // 301
-			HttpStatusCode.Found => "https://tools.ietf.org/html/rfc7231#section-6.4.3", // 302
-			HttpStatusCode.SeeOther => "https://tools.ietf.org/html/rfc7231#section-6.4.4", // 303
-			HttpStatusCode.NotModified => "https://tools.ietf.org/html/rfc7232#section-4.1", // 304
-			HttpStatusCode.UseProxy => "https://tools.ietf.org/html/rfc7231#section-6.4.5", // 305
-			HttpStatusCode.Unused => "https://tools.ietf.org/html/rfc7231#section-6.4.6", // 306
-			HttpStatusCode.TemporaryRedirect => "https://tools.ietf.org/html/rfc7231#section-6.4.7", // 307
+			HttpStatusCode.MultipleChoices => "https://httpwg.org/specs/rfc9110.html#section-15.4.1", // 300
+			HttpStatusCode.MovedPermanently => "https://httpwg.org/specs/rfc9110.html#section-15.4.2", // 301
+			HttpStatusCode.Found => "https://httpwg.org/specs/rfc9110.html#section-15.4.3", // 302
+			HttpStatusCode.SeeOther => "https://httpwg.org/specs/rfc9110.html#section-15.4.4", // 303
+			HttpStatusCode.NotModified => "https://httpwg.org/specs/rfc9110.html#section-15.4.5", // 304
+			HttpStatusCode.UseProxy => "https://httpwg.org/specs/rfc9110.html#section-15.4.6", // 305
+			HttpStatusCode.Unused => "https://httpwg.org/specs/rfc9110.html#section-15.4.7", // 306
+			HttpStatusCode.TemporaryRedirect => "https://httpwg.org/specs/rfc9110.html#section-15.4.8", // 307
 
-			HttpStatusCode.BadRequest => "https://tools.ietf.org/html/rfc7231#section-6.5.1", // 400
-			HttpStatusCode.Unauthorized => "https://tools.ietf.org/html/rfc7235#section-3.1", // 401
-			HttpStatusCode.PaymentRequired => "https://tools.ietf.org/html/rfc7231#section-6.5.2", // 402
-			HttpStatusCode.Forbidden => "https://tools.ietf.org/html/rfc7231#section-6.5.3", // 403
-			HttpStatusCode.NotFound => "https://tools.ietf.org/html/rfc7231#section-6.5.4", // 404
-			HttpStatusCode.MethodNotAllowed => "https://tools.ietf.org/html/rfc7231#section-6.5.5", // 405
-			HttpStatusCode.NotAcceptable => "https://tools.ietf.org/html/rfc7231#section-6.5.6", // 406
-			HttpStatusCode.ProxyAuthenticationRequired => "https://tools.ietf.org/html/rfc7235#section-3.2", // 407
-			HttpStatusCode.RequestTimeout => "https://tools.ietf.org/html/rfc7231#section-6.5.7", // 408
-			HttpStatusCode.Conflict => "https://tools.ietf.org/html/rfc7231#section-6.5.8", // 409
-			HttpStatusCode.Gone => "https://tools.ietf.org/html/rfc7231#section-6.5.9", // 410
-			HttpStatusCode.LengthRequired => "https://tools.ietf.org/html/rfc7231#section-6.5.10", // 411
-			HttpStatusCode.PreconditionFailed => "https://tools.ietf.org/html/rfc7232#section-4.2", // 412
-			HttpStatusCode.RequestEntityTooLarge => "https://tools.ietf.org/html/rfc7231#section-6.5.11", // 413
-			HttpStatusCode.RequestUriTooLong => "https://tools.ietf.org/html/rfc7231#section-6.5.12", //414
-			HttpStatusCode.UnsupportedMediaType => "https://tools.ietf.org/html/rfc7231#section-6.5.13", //415
-			HttpStatusCode.RequestedRangeNotSatisfiable => "https://tools.ietf.org/html/rfc7233#section-4.4", // 416
-			HttpStatusCode.ExpectationFailed => "https://tools.ietf.org/html/rfc7231#section-6.5.14", // 417
-			HttpStatusCode.UpgradeRequired => "https://tools.ietf.org/html/rfc7231#section-6.5.15", // 426
+			HttpStatusCode.BadRequest => "https://httpwg.org/specs/rfc9110.html#section-15.5.1", // 400
+			HttpStatusCode.Unauthorized => "https://httpwg.org/specs/rfc9110.html#section-15.5.2", // 401
+			HttpStatusCode.PaymentRequired => "https://httpwg.org/specs/rfc9110.html#section-15.5.3", // 402
+			HttpStatusCode.Forbidden => "https://httpwg.org/specs/rfc9110.html#section-15.5.4", // 403
+			HttpStatusCode.NotFound => "https://httpwg.org/specs/rfc9110.html#section-15.5.5", // 404
+			HttpStatusCode.MethodNotAllowed => "https://httpwg.org/specs/rfc9110.html#section-15.5.6", // 405
+			HttpStatusCode.NotAcceptable => "https://httpwg.org/specs/rfc9110.html#section-15.5.7", // 406
+			HttpStatusCode.ProxyAuthenticationRequired => "https://httpwg.org/specs/rfc9110.html#section-15.5.8", // 407
+			HttpStatusCode.RequestTimeout => "https://httpwg.org/specs/rfc9110.html#section-15.5.9", // 408
+			HttpStatusCode.Conflict => "https://httpwg.org/specs/rfc9110.html#section-15.5.10", // 409
+			HttpStatusCode.Gone => "https://httpwg.org/specs/rfc9110.html#section-15.5.11", // 410
+			HttpStatusCode.LengthRequired => "https://httpwg.org/specs/rfc9110.html#section-15.5.12", // 411
+			HttpStatusCode.PreconditionFailed => "https://httpwg.org/specs/rfc9110.html#section-15.5.13", // 412
+			HttpStatusCode.RequestEntityTooLarge => "https://httpwg.org/specs/rfc9110.html#section-15.5.14", // 413
+			HttpStatusCode.RequestUriTooLong => "https://httpwg.org/specs/rfc9110.html#section-15.5.15", // 414
+			HttpStatusCode.UnsupportedMediaType => "https://httpwg.org/specs/rfc9110.html#section-15.5.16", // 415
+			HttpStatusCode.RequestedRangeNotSatisfiable => "https://httpwg.org/specs/rfc9110.html#section-15.5.17", // 416
+			HttpStatusCode.ExpectationFailed => "https://httpwg.org/specs/rfc9110.html#section-15.5.18", // 417
+			HttpStatusCode.UpgradeRequired => "https://httpwg.org/specs/rfc9110.html#section-15.5.19", // 426
 
-			HttpStatusCode.InternalServerError => "https://tools.ietf.org/html/rfc7231#section-6.6.1", // 500
-			HttpStatusCode.NotImplemented => "https://tools.ietf.org/html/rfc7231#section-6.6.2", // 501
-			HttpStatusCode.BadGateway => "https://tools.ietf.org/html/rfc7231#section-6.6.3", // 502
-			HttpStatusCode.ServiceUnavailable => "https://tools.ietf.org/html/rfc7231#section-6.6.4", // 503
-			HttpStatusCode.GatewayTimeout => "https://tools.ietf.org/html/rfc7231#section-6.6.5", // 504
-			HttpStatusCode.HttpVersionNotSupported => "https://tools.ietf.org/html/rfc7231#section-6.6.6", // 505
+			HttpStatusCode.InternalServerError => "https://httpwg.org/specs/rfc9110.html#section-15.6.1", // 500
+			HttpStatusCode.NotImplemented => "https://httpwg.org/specs/rfc9110.html#section-15.6.2", // 501
+			HttpStatusCode.BadGateway => "https://httpwg.org/specs/rfc9110.html#section-15.6.3", // 502
+			HttpStatusCode.ServiceUnavailable => "https://httpwg.org/specs/rfc9110.html#section-15.6.4", // 503
+			HttpStatusCode.GatewayTimeout => "https://httpwg.org/specs/rfc9110.html#section-15.6.5", // 504
+			HttpStatusCode.HttpVersionNotSupported => "https://httpwg.org/specs/rfc9110.html#section-15.6.6", // 505
+
 			var _ => throw new NotImplementedException($"Status code '{status}' is not supported")
 		};
 	}
-	string GetTypeFromInt(int status) => GetTypeFromStatusCode((HttpStatusCode)status);
-
-	[Newtonsoft.Json.JsonProperty(DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Ignore)]
-	[System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-	public string? Type { get; set; }
-
-	[Newtonsoft.Json.JsonProperty(DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Ignore)]
-	[System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-	public string? Title { get; set; }
-
-	[Newtonsoft.Json.JsonProperty(DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Ignore)]
-	[System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-	public string? Detail { get; set; }
-
-	[Newtonsoft.Json.JsonProperty(DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Ignore)]
-	[System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-	public int? Status { get; set; }
-
-	[Newtonsoft.Json.JsonExtensionData]
-	[System.Text.Json.Serialization.JsonExtensionData]
-	public Dictionary<string, object?>? Extensions { get; internal set; }
 }

@@ -27,18 +27,13 @@ public static class ResponseExtensions
 				return Results.Content(me.Message);
 			else
 				return Results.NoContent();
+		
+		var extensions = me.Extensions.ToDictionary();
 
-		var extensions = me.Extensions?.ToDictionary();
 		if (me.Payload is not null)
-		{
-			extensions ??= new();
 			extensions["payload"] = me.Payload;
-		}
 		if (IncludeException && me.Exception is not null)
-		{
-			extensions ??= new();
 			extensions["exception"] = JsonSerializer.SerializeToElement(me.Exception, options: new(){ Converters = { new ExceptionConverter() }});
-		}
 
 		return me.ErrorType switch
 		{

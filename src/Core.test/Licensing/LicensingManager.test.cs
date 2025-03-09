@@ -1,4 +1,4 @@
-﻿using Fuxion.Xunit;
+using Fuxion.Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
@@ -51,7 +51,7 @@ public class LicensingManagerTest : BaseTest<LicensingManagerTest>
 				man.Validate<LicenseMock>(Const.PUBLIC_KEY, true);
 			} catch (LicenseValidationException lvex)
 			{
-				if (expectedValidation) Assert.False(true, lvex.Message);
+				if (expectedValidation) Assert.Fail(lvex.Message);
 			}
 		tp?.SetOffset(TimeSpan.Zero);
 	}
