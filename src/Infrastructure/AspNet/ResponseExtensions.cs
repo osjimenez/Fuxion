@@ -65,7 +65,7 @@ public static class ResponseExtensions
 		};
 	}
 }
-file class HttpActionResultFactory(HttpStatusCode status, object? payload = null, string? message = null) : IHttpActionResult
+file class HttpActionResultFactory(HttpStatusCode status, object? payload = null, string? message = null, bool isProblem = false) : IHttpActionResult
 {
 	public Task<HttpResponseMessage> ExecuteAsync(CancellationToken cancellationToken)
 		=> payload is null
@@ -84,7 +84,7 @@ file class HttpActionResultFactory(HttpStatusCode status, object? payload = null
 								? new(ResponseExtensions.JsonSerializerOptions)
 								: null),
 						Encoding.UTF8,
-						"application/json"),
+						isProblem ? "application/problem+json" : "application/json"),
 			});
 	public static IHttpActionResult Success(object? payload, string? message)
 		=> payload is null
@@ -100,7 +100,7 @@ file class HttpActionResultFactory(HttpStatusCode status, object? payload = null
 			Title = title,
 			Detail = detail,
 			Extensions = extensions ?? new(StringComparer.Ordinal)
-		});
+		}, isProblem: true);
 	static string GetTypeFromStatusCode(HttpStatusCode status)
 	{
 		return status switch

@@ -78,9 +78,9 @@ public static class Extensions
 		return (extensions, problem, deserializedBody);
 	}
 	public static async Task<Response> AsResponseAsync(this Task<HttpResponseMessage> me, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+		=> await AsResponseAsync(await me, jsonOptions, ct);
+	public static async Task<Response> AsResponseAsync(this HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 	{
-		using var res = await me;
-
 		var (extensions, problem, _) = await DoAsResponse(res, null, jsonOptions, ct);
 
 		if (res.IsSuccessStatusCode)
@@ -99,9 +99,9 @@ public static class Extensions
 			extensions: extensions);
 	}
 	public static async Task<Response<TPayload>> AsResponseAsync<TPayload>(this Task<HttpResponseMessage> me, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+		=> await AsResponseAsync<TPayload>(await me, jsonOptions, ct);
+	public static async Task<Response<TPayload>> AsResponseAsync<TPayload>(this HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 	{
-		using var res = await me;
-
 		var (extensions, problem, deserializedBody) = await DoAsResponse(res, typeof(TPayload), jsonOptions, ct);
 
 		if (res.IsSuccessStatusCode)
