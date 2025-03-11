@@ -1,14 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Threading.Tasks;
 using Fuxion.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 using static Fuxion.Net.Http.Extensions;
@@ -18,48 +11,154 @@ namespace Fuxion.AspNetCore;
 public static class ResponseExtensions
 {
 	public static bool IncludeException { get; set; } = true;
-	// https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/responses?view=aspnetcore-9.0
-	public static IResult ToApiResult<TPayload>(this Response<TPayload> me)
+
+	public static async Task<IResult> ToApiFileStreamResultAsync<TPayload>(
+		this Task<Response<TPayload>> me,
+		string? contentType = null,
+		string? fileDownloadName = null,
+		DateTimeOffset? lastModified = null,
+		EntityTagHeaderValue? entityTag = null,
+		bool enableRangeProcessing = false)
+		where TPayload : Stream
+		=> ToApiResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+	public static async Task<IResult> ToApiFileBytesResultAsync<TPayload>(
+		this Task<Response<TPayload>> me,
+		string? contentType = null,
+		string? fileDownloadName = null,
+		DateTimeOffset? lastModified = null,
+		EntityTagHeaderValue? entityTag = null,
+		bool enableRangeProcessing = false)
+		where TPayload : IEnumerable<byte>
+		=> ToApiResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+	public static IResult ToApiFileStreamResult<TPayload>(
+		this Response<TPayload> me,
+		string? contentType = null,
+		string? fileDownloadName = null,
+		DateTimeOffset? lastModified = null,
+		EntityTagHeaderValue? entityTag = null,
+		bool enableRangeProcessing = false)
+		where TPayload : Stream
+		=> ToApiResult(me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+	public static IResult ToApiFileBytesResult<TPayload>(
+		this Response<TPayload> me,
+		string? contentType = null,
+		string? fileDownloadName = null,
+		DateTimeOffset? lastModified = null,
+		EntityTagHeaderValue? entityTag = null,
+		bool enableRangeProcessing = false)
+		where TPayload : IEnumerable<byte>
+		=> ToApiResult(me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+	public static async Task<IResult> ToApiResultAsync<TPayload>(this Task<Response<TPayload>> me)
+		=> ToApiResult(await me);
+	public static IResult ToApiResult<TPayload>(this Response<TPayload> me) => ToApiResult(me, null, null, null, null, false);
+	static IResult ToApiResult<TPayload>(
+		this Response<TPayload> me,
+		string? contentType,
+		string? fileDownloadName,
+		DateTimeOffset? lastModified,
+		EntityTagHeaderValue? entityTag,
+		bool enableRangeProcessing)
 	{
 		if (me.IsSuccess)
 			if (me.Payload is not null)
-				return Results.Ok(me.Payload);
+				if (me.Payload is Stream stream)
+					return Results.File(stream, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+				else if(me.Payload is IEnumerable<byte> bytes)
+					return Results.File(bytes.ToArray(), contentType, fileDownloadName, enableRangeProcessing, lastModified, entityTag);
+				else
+					return Results.Ok(me.Payload);
 			else if (me.Message is not null)
 				return Results.Content(me.Message);
 			else
 				return Results.NoContent();
-		
+
 		var extensions = me.Extensions.ToDictionary();
 		extensions.Remove(StatusCodeKey);
 		extensions.Remove(ReasonPhraseKey);
 
-		if (me.Payload is not null)
-			extensions[PayloadKey] = me.Payload;
+		if (me.Payload is not null && me.Payload is not Stream) extensions[PayloadKey] = me.Payload;
 		if (IncludeException && me.Exception is not null)
-			extensions[ExceptionKey] = JsonSerializer.SerializeToElement(me.Exception, options: new(){ Converters = { new ExceptionConverter() }});
+			extensions[ExceptionKey] = JsonSerializer.SerializeToElement(me.Exception, options: new()
+			{
+				Converters =
+				{
+					new ExceptionConverter()
+				}
+			});
 
 		return me.ErrorType switch
 		{
-			ErrorType.NotFound
-				=> Results.Problem(me.Message, statusCode: StatusCodes.Status404NotFound, title: "Not found", extensions: extensions),
-			ErrorType.PermissionDenied
-				=> Results.Problem(me.Message, statusCode: StatusCodes.Status403Forbidden, title: "Forbidden", extensions: extensions),
-			ErrorType.InvalidData
-				=> Results.Problem(me.Message, statusCode: StatusCodes.Status400BadRequest, title: "Bad request", extensions: extensions),
-			ErrorType.Conflict
-				=> Results.Problem(me.Message, statusCode: StatusCodes.Status409Conflict, title: "Conflict", extensions: extensions),
-			ErrorType.Critical
-				=> Results.Problem(me.Message, statusCode: StatusCodes.Status500InternalServerError, title: "Internal server error", extensions: extensions),
-			ErrorType.NotSupported
-				=> Results.Problem(me.Message, statusCode: StatusCodes.Status501NotImplemented, title: "Not implemented", extensions: extensions),
+			ErrorType.NotFound => Results.Problem(me.Message, statusCode: StatusCodes.Status404NotFound, title: "Not found", extensions: extensions),
+			ErrorType.PermissionDenied => Results.Problem(me.Message, statusCode: StatusCodes.Status403Forbidden, title: "Forbidden", extensions: extensions),
+			ErrorType.InvalidData => Results.Problem(me.Message, statusCode: StatusCodes.Status400BadRequest, title: "Bad request", extensions: extensions),
+			ErrorType.Conflict => Results.Problem(me.Message, statusCode: StatusCodes.Status409Conflict, title: "Conflict", extensions: extensions),
+			ErrorType.Critical => Results.Problem(me.Message, statusCode: StatusCodes.Status500InternalServerError, title: "Internal server error", extensions: extensions),
+			ErrorType.NotSupported => Results.Problem(me.Message, statusCode: StatusCodes.Status501NotImplemented, title: "Not implemented", extensions: extensions),
 			var _ => Results.Problem(me.Message, statusCode: StatusCodes.Status500InternalServerError, title: "Internal server error", extensions: extensions)
 		};
 	}
+
+	public static async Task<IActionResult> ToApiFileStreamActionResultAsync<TPayload>(
+		this Task<Response<TPayload>> me,
+		string? contentType = null,
+		string? fileDownloadName = null,
+		DateTimeOffset? lastModified = null,
+		EntityTagHeaderValue? entityTag = null,
+		bool enableRangeProcessing = false)
+		where TPayload : Stream
+		=> ToApiActionResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+	public static async Task<IActionResult> ToApiFileBytesActionResultAsync<TPayload>(
+		this Task<Response<TPayload>> me,
+		string? contentType = null,
+		string? fileDownloadName = null,
+		DateTimeOffset? lastModified = null,
+		EntityTagHeaderValue? entityTag = null,
+		bool enableRangeProcessing = false)
+		where TPayload : IEnumerable<byte>
+		=> ToApiActionResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+	public static IActionResult ToApiFileStreamActionResult<TPayload>(
+		this Response<TPayload> me,
+		string? contentType = null,
+		string? fileDownloadName = null,
+		DateTimeOffset? lastModified = null,
+		EntityTagHeaderValue? entityTag = null,
+		bool enableRangeProcessing = false)
+		where TPayload : Stream
+		=> me.ToApiActionResult(contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+	public static IActionResult ToApiFileBytesActionResult<TPayload>(
+		this Response<TPayload> me,
+		string? contentType = null,
+		string? fileDownloadName = null,
+		DateTimeOffset? lastModified = null,
+		EntityTagHeaderValue? entityTag = null,
+		bool enableRangeProcessing = false)
+		where TPayload : IEnumerable<byte>
+		=> me.ToApiActionResult(contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+	public static async Task<IActionResult> ToApiActionResultAsync<TPayload>(this Task<Response<TPayload>> me)
+		=> ToApiActionResult(await me);
 	public static IActionResult ToApiActionResult<TPayload>(this Response<TPayload> me)
+		=> me.ToApiActionResult(null, null, null, null, false);
+
+	static IActionResult ToApiActionResult<TPayload>(
+		this Response<TPayload> me,
+		string? contentType,
+		string? fileDownloadName,
+		DateTimeOffset? lastModified,
+		EntityTagHeaderValue? entityTag,
+		bool enableRangeProcessing)
 	{
 		if (me.IsSuccess)
 			if (me.Payload is not null)
-				return new OkObjectResult(me.Payload);
+				if (me.Payload is Stream stream)
+					return new FileStreamResult(stream, contentType ?? string.Empty)
+					{
+						FileDownloadName = fileDownloadName,
+						LastModified = lastModified,
+						EntityTag = entityTag,
+						EnableRangeProcessing = enableRangeProcessing
+					};
+				else
+					return new OkObjectResult(me.Payload);
 			else if (me.Message is not null)
 				return new ContentResult
 				{
@@ -69,54 +168,47 @@ public static class ResponseExtensions
 			else
 				return new NoContentResult();
 
-		var extensions = me.Extensions?.ToDictionary();
-		if (me.Payload is not null)
-		{
-			extensions ??= new();
-			extensions["payload"] = me.Payload;
-		}
+		var extensions = me.Extensions.ToDictionary();
+		if (me.Payload is not null && me.Payload is not Stream) extensions["payload"] = me.Payload;
 		if (IncludeException && me.Exception is not null)
-		{
-			extensions ??= new();
-			extensions["exception"] = JsonSerializer.SerializeToElement(me.Exception, options: new() { Converters = { new ExceptionConverter() } });
-		}
+			extensions["exception"] = JsonSerializer.SerializeToElement(me.Exception, options: new()
+			{
+				Converters =
+				{
+					new ExceptionConverter()
+				}
+			});
 
 		return me.ErrorType switch
 		{
-			ErrorType.NotFound
-				=> new ObjectResult(GetProblem(me.Message, StatusCodes.Status404NotFound, "Not found", extensions))
-				{
-					StatusCode = StatusCodes.Status404NotFound
-				},
-			ErrorType.PermissionDenied
-				=> new ObjectResult(GetProblem(me.Message, StatusCodes.Status403Forbidden, "Forbidden", extensions))
-				{
-					StatusCode = StatusCodes.Status403Forbidden
-				},
-			ErrorType.InvalidData
-				=> new ObjectResult(GetProblem(me.Message, StatusCodes.Status400BadRequest, "Bad request", extensions))
-				{
-					StatusCode = StatusCodes.Status400BadRequest
-				},
-			ErrorType.Conflict
-				=> new ObjectResult(GetProblem(me.Message, StatusCodes.Status409Conflict, "Conflict", extensions))
-				{
-					StatusCode = StatusCodes.Status409Conflict
-				},
-			ErrorType.Critical
-				=> new ObjectResult(GetProblem(me.Message, StatusCodes.Status500InternalServerError, "Internal server error", extensions))
-				{
-					StatusCode = StatusCodes.Status500InternalServerError
-				},
-			ErrorType.NotSupported
-				=> new ObjectResult(GetProblem(me.Message, StatusCodes.Status501NotImplemented, "Not implemented", extensions))
-				{
-					StatusCode = StatusCodes.Status501NotImplemented
-				},
-			var _ => new ObjectResult(GetProblem(me.Message, StatusCodes.Status500InternalServerError, "Internal server error", extensions))
+			ErrorType.NotFound => new(GetProblem(me.Message, StatusCodes.Status404NotFound, "Not found", extensions))
+			{
+				StatusCode = StatusCodes.Status404NotFound
+			},
+			ErrorType.PermissionDenied => new(GetProblem(me.Message, StatusCodes.Status403Forbidden, "Forbidden", extensions))
+			{
+				StatusCode = StatusCodes.Status403Forbidden
+			},
+			ErrorType.InvalidData => new(GetProblem(me.Message, StatusCodes.Status400BadRequest, "Bad request", extensions))
+			{
+				StatusCode = StatusCodes.Status400BadRequest
+			},
+			ErrorType.Conflict => new(GetProblem(me.Message, StatusCodes.Status409Conflict, "Conflict", extensions))
+			{
+				StatusCode = StatusCodes.Status409Conflict
+			},
+			ErrorType.Critical => new(GetProblem(me.Message, StatusCodes.Status500InternalServerError, "Internal server error", extensions))
 			{
 				StatusCode = StatusCodes.Status500InternalServerError
 			},
+			ErrorType.NotSupported => new(GetProblem(me.Message, StatusCodes.Status501NotImplemented, "Not implemented", extensions))
+			{
+				StatusCode = StatusCodes.Status501NotImplemented
+			},
+			var _ => new ObjectResult(GetProblem(me.Message, StatusCodes.Status500InternalServerError, "Internal server error", extensions))
+			{
+				StatusCode = StatusCodes.Status500InternalServerError
+			}
 		};
 		ProblemDetails GetProblem(string? detail, int? status, string? title, Dictionary<string, object?>? extensions)
 		{
@@ -127,15 +219,14 @@ public static class ResponseExtensions
 				Title = title,
 				Type = status is not null ? GetTypeFromInt(status.Value) : null
 			};
-			if (extensions is not null)
-				res.Extensions = extensions;
+			if (extensions is not null) res.Extensions = extensions;
 			return res;
 		}
 	}
+
 	static string GetTypeFromInt(int status) => GetTypeFromStatusCode((HttpStatusCode)status);
 	static string GetTypeFromStatusCode(HttpStatusCode status)
-	{
-		return status switch
+		=> status switch
 		{
 			HttpStatusCode.Continue => "https://tools.ietf.org/html/rfc7231#section-6.2.1", // 100
 			HttpStatusCode.SwitchingProtocols => "https://tools.ietf.org/html/rfc7231#section-6.2.2", // 101
@@ -185,5 +276,4 @@ public static class ResponseExtensions
 			HttpStatusCode.HttpVersionNotSupported => "https://tools.ietf.org/html/rfc7231#section-6.6.6", // 505
 			var _ => throw new NotImplementedException($"Status code '{status}' is not supported")
 		};
-	}
 }

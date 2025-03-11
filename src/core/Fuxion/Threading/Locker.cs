@@ -1,17 +1,16 @@
-﻿using Fuxion.Threading.Tasks;
+using Fuxion.Threading.Tasks;
 
 namespace Fuxion.Threading;
 
-public class Locker<TObjectLocked> : IDisposable
+public class Locker<TObjectLocked>(TObjectLocked objectLocked, LockRecursionPolicy recursionPolicy = LockRecursionPolicy.SupportsRecursion) : IDisposable
 {
-	public Locker(TObjectLocked objectLocked, LockRecursionPolicy recursionPolicy = LockRecursionPolicy.NoRecursion) => this.objectLocked = objectLocked;
-	readonly ReaderWriterLockSlim _ReaderWriterLockSlim = new(LockRecursionPolicy.SupportsRecursion);
-	TObjectLocked objectLocked;
+	readonly ReaderWriterLockSlim readerWriterLockSlim = new(recursionPolicy);
+	//TObjectLocked objectLocked;
 	public ILogger? Logger { get; set; }
-	public void Dispose() => _ReaderWriterLockSlim.Dispose();
+	public void Dispose() => readerWriterLockSlim.Dispose();
 	public void Read(Action<TObjectLocked> action)
 	{
-		_ReaderWriterLockSlim.EnterReadLock();
+		readerWriterLockSlim.EnterReadLock();
 		try
 		{
 			action.Invoke(objectLocked);
@@ -21,12 +20,12 @@ public class Locker<TObjectLocked> : IDisposable
 			throw;
 		} finally
 		{
-			_ReaderWriterLockSlim.ExitReadLock();
+			readerWriterLockSlim.ExitReadLock();
 		}
 	}
 	public void ReadUpgradeable(Action<TObjectLocked> action)
 	{
-		_ReaderWriterLockSlim.EnterUpgradeableReadLock();
+		readerWriterLockSlim.EnterUpgradeableReadLock();
 		try
 		{
 			action.Invoke(objectLocked);
@@ -36,12 +35,12 @@ public class Locker<TObjectLocked> : IDisposable
 			throw;
 		} finally
 		{
-			_ReaderWriterLockSlim.ExitUpgradeableReadLock();
+			readerWriterLockSlim.ExitUpgradeableReadLock();
 		}
 	}
 	public TResult Read<TResult>(Func<TObjectLocked, TResult> func)
 	{
-		_ReaderWriterLockSlim.EnterReadLock();
+		readerWriterLockSlim.EnterReadLock();
 		try
 		{
 			var res = func.Invoke(objectLocked);
@@ -52,12 +51,12 @@ public class Locker<TObjectLocked> : IDisposable
 			throw;
 		} finally
 		{
-			_ReaderWriterLockSlim.ExitReadLock();
+			readerWriterLockSlim.ExitReadLock();
 		}
 	}
 	public TResult ReadUpgradeable<TResult>(Func<TObjectLocked, TResult> func)
 	{
-		_ReaderWriterLockSlim.EnterUpgradeableReadLock();
+		readerWriterLockSlim.EnterUpgradeableReadLock();
 		try
 		{
 			var res = func.Invoke(objectLocked);
@@ -68,12 +67,12 @@ public class Locker<TObjectLocked> : IDisposable
 			throw;
 		} finally
 		{
-			_ReaderWriterLockSlim.ExitUpgradeableReadLock();
+			readerWriterLockSlim.ExitUpgradeableReadLock();
 		}
 	}
 	public void Write(Action<TObjectLocked> action)
 	{
-		_ReaderWriterLockSlim.EnterWriteLock();
+		readerWriterLockSlim.EnterWriteLock();
 		try
 		{
 			action.Invoke(objectLocked);
@@ -83,12 +82,12 @@ public class Locker<TObjectLocked> : IDisposable
 			throw;
 		} finally
 		{
-			_ReaderWriterLockSlim.ExitWriteLock();
+			readerWriterLockSlim.ExitWriteLock();
 		}
 	}
 	public TResult Write<TResult>(Func<TObjectLocked, TResult> func)
 	{
-		_ReaderWriterLockSlim.EnterWriteLock();
+		readerWriterLockSlim.EnterWriteLock();
 		try
 		{
 			var res = func.Invoke(objectLocked);
@@ -99,20 +98,20 @@ public class Locker<TObjectLocked> : IDisposable
 			throw;
 		} finally
 		{
-			_ReaderWriterLockSlim.ExitWriteLock();
+			readerWriterLockSlim.ExitWriteLock();
 		}
 	}
 	public void WriteObject(TObjectLocked value)
 	{
-		_ReaderWriterLockSlim.EnterWriteLock();
+		readerWriterLockSlim.EnterWriteLock();
 		objectLocked = value;
-		_ReaderWriterLockSlim.ExitWriteLock();
+		readerWriterLockSlim.ExitWriteLock();
 	}
 
 	#region Async delegates
 	Task DelegateReadAsync(Delegate del, params object?[] pars) =>
 		TaskManager.StartNew((d, ps) => {
-			_ReaderWriterLockSlim.EnterReadLock();
+			readerWriterLockSlim.EnterReadLock();
 			try
 			{
 				var p = new object?[] {
@@ -126,12 +125,12 @@ public class Locker<TObjectLocked> : IDisposable
 				throw;
 			} finally
 			{
-				_ReaderWriterLockSlim.ExitReadLock();
+				readerWriterLockSlim.ExitReadLock();
 			}
 		}, del, pars);
 	Task<TResult> DelegateReadAsync<TResult>(Delegate del, params object?[] pars) where TResult : notnull =>
 		TaskManager.StartNew<Delegate, object?[], TResult>((d, ps) => {
-			_ReaderWriterLockSlim.EnterReadLock();
+			readerWriterLockSlim.EnterReadLock();
 			try
 			{
 				var p = new object?[] {
@@ -147,12 +146,12 @@ public class Locker<TObjectLocked> : IDisposable
 				throw;
 			} finally
 			{
-				_ReaderWriterLockSlim.ExitReadLock();
+				readerWriterLockSlim.ExitReadLock();
 			}
 		}, del, pars);
 	Task<TResult?> DelegateReadNullableAsync<TResult>(Delegate del, params object?[] pars) =>
 		TaskManager.StartNew<Delegate, object?[], TResult?>((d, ps) => {
-			_ReaderWriterLockSlim.EnterReadLock();
+			readerWriterLockSlim.EnterReadLock();
 			try
 			{
 				var p = new object?[] {
@@ -167,12 +166,12 @@ public class Locker<TObjectLocked> : IDisposable
 				throw;
 			} finally
 			{
-				_ReaderWriterLockSlim.ExitReadLock();
+				readerWriterLockSlim.ExitReadLock();
 			}
 		}, del, pars);
 	Task DelegateWriteAsync(Delegate del, params object?[] pars) =>
 		TaskManager.StartNew((d, ps) => {
-			_ReaderWriterLockSlim.EnterWriteLock();
+			readerWriterLockSlim.EnterWriteLock();
 			try
 			{
 				var p = new object?[] {
@@ -186,12 +185,12 @@ public class Locker<TObjectLocked> : IDisposable
 				throw;
 			} finally
 			{
-				_ReaderWriterLockSlim.ExitWriteLock();
+				readerWriterLockSlim.ExitWriteLock();
 			}
 		}, del, pars);
 	Task<TResult> DelegateWriteAsync<TResult>(Delegate del, params object?[] pars) =>
 		TaskManager.StartNew((d, ps) => {
-			_ReaderWriterLockSlim.EnterWriteLock();
+			readerWriterLockSlim.EnterWriteLock();
 			try
 			{
 				var p = new object?[] {
@@ -207,7 +206,7 @@ public class Locker<TObjectLocked> : IDisposable
 				throw;
 			} finally
 			{
-				_ReaderWriterLockSlim.ExitWriteLock();
+				readerWriterLockSlim.ExitWriteLock();
 			}
 		}, del, pars);
 	#endregion

@@ -128,40 +128,42 @@ public static class Extensions
 		foreach (var i in res) outputConsole?.Invoke("  - " + i);
 		return res;
 	}
-	public static IEnumerable<(double Percentage, int Rounded, double Exact)> DistributeAsPercentages(this IEnumerable<double> percentages, int amountOfItems)
+	public static Response<IEnumerable<(double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(this IEnumerable<double> percentages, int amountOfItems)
 	{
-		if (percentages.Count() > amountOfItems) throw new InvalidDataException($"{nameof(percentages)}.Count ({percentages.Count()}) must be less than {nameof(amountOfItems)} ({amountOfItems})");
-		if (percentages.Sum() != 100) throw new InvalidProgramException($"Percentajes must sum 100, but sum {percentages.Sum()}");
-		var ordered = percentages.OrderBy(_ => _);
+		var count = percentages.Count();
+		if (count > amountOfItems) return Response.Get.Error.InvalidData($"{nameof(percentages)}.Count ({count}) must be less than {nameof(amountOfItems)} ({amountOfItems})");
+		var sum = percentages.Sum();
+		if (sum != 100) return Response.Get.Error.InvalidData($"Percentages must sum 100, but sum {sum}");
+		var ordered = percentages.OrderBy(x => x);
 		var quantities = ordered.Select(value => new {
 			Percentage = value,
 			Rounded = (int)System.Math.Floor(amountOfItems * (value / 100d)),
 			Exact = amountOfItems * (value / 100d)
 		}).ToList();
-		quantities = quantities.Select(_ => _ with {
-			Rounded = _.Rounded == 0
+		quantities = quantities.Select(x => x with {
+			Rounded = x.Rounded == 0
 				? 1
-				: _.Rounded
+				: x.Rounded
 		}).ToList();
-		while (quantities.Sum(_ => _.Rounded) > amountOfItems)
+		while (quantities.Sum(x => x.Rounded) > amountOfItems)
 		{
 			var quantity = quantities.MaxBy(_ => _.Rounded);
-			if (quantity is null) throw new InvalidProgramException($"{nameof(quantity)} cannot be null");
+			if (quantity is null) return Response.Get.Error.Critical($"{nameof(quantity)} cannot be null");
 			var index = quantities.IndexOf(quantity);
 			quantities.Remove(quantity);
 			quantities.Insert(index, quantity with { Rounded = quantity.Rounded - 1 });
 		}
-		return quantities.Select(_ => (_.Percentage, _.Rounded, _.Exact));
+		return Response.Get.Success(quantities.Select(x => (x.Percentage, x.Rounded, x.Exact)));
 	}
-	public static IDictionary<string, (double Percentage, int Rounded, double Exact)> DistributeAsPercentages(
+	public static Response<IDictionary<string, (double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(
 		this IList<(string Label, double Percentage)> percentages,
 		int amountOfItems)
 	{
 		if (percentages.Count > amountOfItems)
-			throw new InvalidDataException(
+			return Response.Get.Error.InvalidData(
 				$"{nameof(percentages)}.Count ({percentages.Count}) must be less than {nameof(amountOfItems)} ({amountOfItems})");
 		if (percentages.Sum(x => x.Percentage) != 100)
-			throw new InvalidProgramException($"Percentages must sum 100, but sum {percentages.Sum(x => x.Percentage)}");
+			return Response.Get.Error.InvalidData($"Percentages must sum 100, but sum {percentages.Sum(x => x.Percentage)}");
 		var ordered = percentages.OrderBy(x => x.Percentage);
 		var quantities = ordered.Select(value => new
 		{
@@ -179,7 +181,7 @@ public static class Extensions
 		while (quantities.Sum(x => x.Rounded) > amountOfItems)
 		{
 			var quantity = quantities.OrderByDescending(x => x.Rounded).MaxBy(y => y.Exact);
-			if (quantity is null) throw new InvalidProgramException($"{nameof(quantity)} cannot be null");
+			if (quantity is null) return Response.Get.Error.Critical($"{nameof(quantity)} cannot be null");
 			var index = quantities.IndexOf(quantity);
 			quantities.Remove(quantity);
 			quantities.Insert(index, quantity with { Rounded = quantity.Rounded - 1 });
@@ -188,7 +190,7 @@ public static class Extensions
 		while (quantities.Sum(x => x.Rounded) < amountOfItems)
 		{
 			var quantity = quantities.OrderBy(x => x.Rounded).MaxBy(y => y.Exact);
-			if (quantity is null) throw new InvalidProgramException($"{nameof(quantity)} cannot be null");
+			if (quantity is null) return Response.Get.Error.Critical($"{nameof(quantity)} cannot be null");
 			var index = quantities.IndexOf(quantity);
 			quantities.Remove(quantity);
 			quantities.Insert(index, quantity with { Rounded = quantity.Rounded + 1 });

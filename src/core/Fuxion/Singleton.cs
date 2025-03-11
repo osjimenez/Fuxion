@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Fuxion.Reflection;
 using Fuxion.Threading;
 
@@ -9,15 +9,14 @@ public class Singleton
 	readonly Locker<Dictionary<SingletonKey, object?>> objects = new(new());
 
 	#region Constants
-	public static ISingletonConstants Constants => default!;
+	public static ISingletonConstants Constants => null!;
 	#endregion
 
 	class SingletonKey
 	{
 		SingletonKey(Type type, object? key)
 		{
-			if (type == null) throw new ArgumentNullException("type", "El tipo no puede ser null");
-			Type = type;
+			Type = type ?? throw new ArgumentNullException(nameof(type), "El tipo no puede ser null");
 			Key = key;
 		}
 		public Type Type { get; }
@@ -40,17 +39,11 @@ public class Singleton
 		public static SingletonKey GetKey(Type type, object? key) => new(type, key);
 	}
 
-	class SubscriptionItem
+	class SubscriptionItem(Type type, SingletonKey key, Delegate action)
 	{
-		public SubscriptionItem(Type type, SingletonKey key, Delegate action)
-		{
-			Type = type;
-			Key = key;
-			Action = action;
-		}
-		public Type Type { get; }
-		public SingletonKey Key { get; }
-		public Delegate Action { get; }
+		public Type Type { get; } = type;
+		public SingletonKey Key { get; } = key;
+		public Delegate Action { get; } = action;
 		public void Invoke<T>(T previousValue, T actualValue, SingletonAction action) => Action.DynamicInvoke(new SingletonSubscriptionArgs<T>(previousValue, actualValue, action));
 	}
 

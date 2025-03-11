@@ -1,4 +1,4 @@
-﻿namespace Fuxion;
+namespace Fuxion;
 
 [DefaultSingletonInstance(typeof(LocalMachineTimeProvider))]
 public interface ITimeProvider

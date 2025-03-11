@@ -282,7 +282,7 @@ public class SystemExtensionsTest : BaseTest<SystemExtensionsTest>
 		Assert.Null(source);
 		var res = source.TransformIfNotNull(s => s?.String);
 		Assert.Null(res);
-		
+
 		source = new(123, "test");
 
 		source = source.TransformIfNotNull(s =>
@@ -296,7 +296,7 @@ public class SystemExtensionsTest : BaseTest<SystemExtensionsTest>
 	[Fact(DisplayName = "Object - ThenTransformIfNotNull")]
 	public async Task ThenTransformIfNotNullTest()
 	{
-		var sourceTask = TaskManager.StartNew(()=>(TransformationSource?)null);
+		var sourceTask = TaskManager.StartNew(() => (TransformationSource?)null);
 
 		var source = await sourceTask.ThenTransformIfNotNull(s =>
 		{
@@ -372,33 +372,38 @@ public class SystemExtensionsTest : BaseTest<SystemExtensionsTest>
 
 		Logger.LogInformation($"Enumerate with int:");
 		foreach (var i in 10) Logger.LogInformation($"\t{i}");
-		Assert.Throws<ArgumentException>("number", () => {
+		Assert.Throws<ArgumentException>("number", () =>
+		{
 			foreach (var i in -10) Logger.LogInformation($"\t{i}");
 		});
 	}
 	[Fact(DisplayName = "Enumerable - DistributeAsPercentages")]
 	public void DistributeAsPercentages()
 	{
+		Assert.Throws<InvalidProgramException>(() => Do(100, [50, 60]));
+		Assert.Throws<InvalidDataException>(() => Do(1, [50, 50]));
+		Do(5, [0.1d, 9.9d, 20, 40, 30]);
+		Do(50, [0.1d, 9.9d, 20, 40, 30]);
+		Do(1000, [0.1d, 9.9d, 20, 40, 30]);
+		Do(5884, [0.1d, 9.9d, 20, 40, 30]);
+		Do(5884, [20, 40, 40]);
+		return;
 		void Do(int num, List<double> list)
 		{
 			Logger.LogInformation("================================");
 			Logger.LogInformation($"Num: {num}");
 			Logger.LogInformation("Percentage List:");
 			foreach (var percentage in list) Logger.LogInformation($"\t{percentage}");
-			var res = list.DistributeAsPercentages(num);
+			var response = list.DistributeAsPercentages(num);
+			IsTrue(response.IsSuccess);
+			Assert.NotNull(response.Payload);
+			var res = response.Payload;
 			Logger.LogInformation("Results:");
-			foreach (var r in res) Logger.LogInformation($"\t{r.Percentage:N2}% - {r.Rounded.ToString().PadRight(5)} - {r.Exact:N2}");
+			foreach (var r in res) Logger.LogInformation($"\t{r.Percentage:N2}% - {r.Rounded.ToString(),-5} - {r.Exact:N2}");
 			Logger.LogInformation($"Sum exact: {res.Sum(_ => _.Exact)}");
 			Logger.LogInformation($"Sum roundad: {res.Sum(_ => _.Rounded)}");
 			if (res.Sum(_ => _.Rounded) > num) Logger.LogWarning("ATENCION !!!");
 		}
-		Assert.Throws<InvalidProgramException>(() => Do(100, new() { 50, 60 }));
-		Assert.Throws<InvalidDataException>(() => Do(1, new() { 50, 50 }));
-		Do(5, new() { 0.1d, 9.9d, 20, 40, 30 });
-		Do(50, new() { 0.1d, 9.9d, 20, 40, 30 });
-		Do(1000, new() { 0.1d, 9.9d, 20, 40, 30 });
-		Do(5884, new() { 0.1d, 9.9d, 20, 40, 30 });
-		Do(5884, new() { 20, 40, 40 });
 	}
 	[Fact(DisplayName = "Enumerable - TakeRandomly")]
 	public void TakeRandomly()

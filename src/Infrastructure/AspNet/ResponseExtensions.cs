@@ -1,14 +1,11 @@
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Formatting;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Web.Http;
-using System.Web.Http.Results;
 using Fuxion.Text.Json.Serialization;
-using static System.Net.WebRequestMethods;
+using Newtonsoft.Json.Linq;
 using static Fuxion.Net.Http.Extensions;
 
 namespace Fuxion.AspNet;
@@ -16,94 +13,126 @@ namespace Fuxion.AspNet;
 public static class ResponseExtensions
 {
 	public static bool IncludeException { get; set; } = true;
-	public static bool UseNewtonsoft { get; set; } = false;
+
 	public static JsonSerializerOptions? JsonSerializerOptions { get; set; }
+
+	public static async Task<IHttpActionResult> ToApiFileStreamResultAsync<TPayload>(this Task<Response<TPayload>> me, string? contentType = null, string? fileDownloadName = null)
+		where TPayload : Stream
+		=> ToApiResult(await me, contentType, fileDownloadName);
+	public static async Task<IHttpActionResult> ToApiFileBytesResultAsync<TPayload>(this Task<Response<TPayload>> me, string? contentType = null, string? fileDownloadName = null)
+		where TPayload : IEnumerable<byte>
+		=> ToApiResult(await me, contentType, fileDownloadName);
+	public static IHttpActionResult ToApiFileStreamResult<TPayload>(this Response<TPayload> me, string? contentType = null, string? fileDownloadName = null)
+		where TPayload : Stream
+		=> me.ToApiResult(contentType, fileDownloadName);
+	public static IHttpActionResult ToApiFileBytesResult<TPayload>(this Response<TPayload> me, string? contentType = null, string? fileDownloadName = null)
+		where TPayload : IEnumerable<byte>
+		=> me.ToApiResult(contentType, fileDownloadName);
+	public static async Task<IHttpActionResult> ToApiResultAsync<TPayload>(this Task<Response<TPayload>> me)
+		=> ToApiResult(await me);
 	public static IHttpActionResult ToApiResult<TPayload>(this Response<TPayload> me)
+		=> me.ToApiResult(null, null);
+	
+	static IHttpActionResult ToApiResult<TPayload>(this Response<TPayload> me, string? contentType, string? fileDownloadName)
 	{
 		if (me.IsSuccess)
-			return HttpActionResultFactory.Success(me.Payload, me.Message);
+			if (me.Payload is not null)
+				if (me.Payload is Stream stream)
+					return Factory.Ok(new StreamContent(stream)
+					{
+						Headers =
+						{
+							ContentDisposition = new("attachment")
+							{
+								FileName = fileDownloadName ?? (me.Extensions.TryGetValue(FileNameKey, out var fileNameExt) && fileNameExt is string fn ? fn : null),
+							},
+							ContentType = new(contentType ?? (me.Extensions.TryGetValue(ContentTypeKey, out var contentTypeExt) && contentTypeExt is string con ? con : null)),
+							ContentLength = me.Extensions.TryGetValue(ContentLengthKey, out var extension) && extension is long length ? length : -1,
+						}
+					});
+				else if(me.Payload is byte[] bytes)
+					return Factory.Ok(new ByteArrayContent(bytes)
+					{
+						Headers =
+						{
+							ContentDisposition = new("attachment")
+							{
+								FileName = fileDownloadName ?? (me.Extensions.TryGetValue(FileNameKey, out var fileNameExt) && fileNameExt is string fn ? fn : null)
+							},
+							ContentType = new(contentType ?? (me.Extensions.TryGetValue(ContentTypeKey, out var contentTypeExt) && contentTypeExt is string con ? con : null)),
+							ContentLength = me.Extensions.TryGetValue(ContentLengthKey, out var extension) && extension is long length ? length : -1
+						}
+					});
+				else
+					return Factory.Ok(
+						//new ObjectContent<TPayload>(me.Payload, new JsonMediaTypeFormatter()));
+						//new ObjectContent(me.Payload.GetType(), me.Payload, new JsonMediaTypeFormatter()));
+						new StringContent(me.Payload.SerializeToJson(true, JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8,
+									"application/json"));
+			else if (me.Message is not null)
+				return Factory.Ok(new StringContent(me.Message));
+			else
+				return Factory.NoContent();
 
 		var extensions = me.Extensions.ToDictionary(e => e.Key, e => e.Value);
 		extensions.Remove(StatusCodeKey);
 		extensions.Remove(ReasonPhraseKey);
-		if (me.Payload is not null)
-		{
-			extensions[PayloadKey] = me.Payload;
-		}
+		if (me.Payload is not null) extensions[PayloadKey] = me.Payload;
 		if (IncludeException && me.Exception is not null)
 		{
 			var jsonOptions = JsonSerializerOptions is null
-				? new() { Converters = { new ExceptionConverter() } }
+				? new()
+				{
+					Converters =
+					{
+						new ExceptionConverter()
+					}
+				}
 				: JsonSerializerOptions.Transform(o =>
 				{
 					var res = new JsonSerializerOptions(o);
 					res.Converters.Add(new ExceptionConverter());
 					return res;
 				});
-			extensions[ExceptionKey] = UseNewtonsoft
-				? Newtonsoft.Json.Linq.JObject.Parse(me.Exception.SerializeToJson(true))
-				: JsonSerializer.SerializeToElement(me.Exception, options: jsonOptions);
+			extensions[ExceptionKey] = JsonSerializer.SerializeToElement(me.Exception, jsonOptions);
 		}
 
 		return me.ErrorType switch
 		{
-			ErrorType.NotFound
-				=> HttpActionResultFactory.Problem(me.Message, HttpStatusCode.NotFound, "Not found", extensions),
-			ErrorType.PermissionDenied
-				=> HttpActionResultFactory.Problem(me.Message, HttpStatusCode.Forbidden, "Forbidden", extensions),
-			ErrorType.InvalidData
-				=> HttpActionResultFactory.Problem(me.Message, HttpStatusCode.BadRequest, "Bad request", extensions),
-			ErrorType.Conflict
-				=> HttpActionResultFactory.Problem(me.Message, HttpStatusCode.Conflict, "Conflict", extensions),
-			ErrorType.Critical
-				=> HttpActionResultFactory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error", extensions),
-			ErrorType.NotSupported
-				=> HttpActionResultFactory.Problem(me.Message, HttpStatusCode.NotImplemented, "Not implemented", extensions),
-			ErrorType.Unavailable
-				=> HttpActionResultFactory.Problem(me.Message, HttpStatusCode.ServiceUnavailable, "Service unavailable", extensions),
-			var _ => HttpActionResultFactory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error", extensions)
+			ErrorType.NotFound => Factory.Problem(me.Message, HttpStatusCode.NotFound, "Not found", extensions),
+			ErrorType.PermissionDenied => Factory.Problem(me.Message, HttpStatusCode.Forbidden, "Forbidden", extensions),
+			ErrorType.InvalidData => Factory.Problem(me.Message, HttpStatusCode.BadRequest, "Bad request", extensions),
+			ErrorType.Conflict => Factory.Problem(me.Message, HttpStatusCode.Conflict, "Conflict", extensions),
+			ErrorType.Critical => Factory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error", extensions),
+			ErrorType.NotSupported => Factory.Problem(me.Message, HttpStatusCode.NotImplemented, "Not implemented", extensions),
+			ErrorType.Unavailable => Factory.Problem(me.Message, HttpStatusCode.ServiceUnavailable, "Service unavailable", extensions),
+			var _ => Factory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error", extensions)
 		};
 	}
 }
-file class HttpActionResultFactory(HttpStatusCode status, object? payload = null, string? message = null, bool isProblem = false) : IHttpActionResult
+
+file class Factory(Func<CancellationToken, Task<HttpResponseMessage>> func) : IHttpActionResult
 {
-	public Task<HttpResponseMessage> ExecuteAsync(CancellationToken cancellationToken)
-		=> payload is null
-			? message is null
-				? Task.FromResult(new HttpResponseMessage(status))
-				: Task.FromResult(new HttpResponseMessage(status)
-				{
-					Content = new StringContent(message)
-				})
-			: Task.FromResult(new HttpResponseMessage(status)
-			{
-				Content = ResponseExtensions.UseNewtonsoft
-					? new ObjectContent(payload.GetType(), payload, new JsonMediaTypeFormatter())
-					: new StringContent(payload.SerializeToJson(
-							true, ResponseExtensions.JsonSerializerOptions != null
-								? new(ResponseExtensions.JsonSerializerOptions)
-								: null),
-						Encoding.UTF8,
-						isProblem ? "application/problem+json" : "application/json"),
-			});
-	public static IHttpActionResult Success(object? payload, string? message)
-		=> payload is null
-			? message is null
-				? new HttpActionResultFactory(HttpStatusCode.NoContent, payload)
-				: new HttpActionResultFactory(HttpStatusCode.OK, null, message)
-			: new HttpActionResultFactory(HttpStatusCode.OK, payload);
-	public static IHttpActionResult Problem(string? detail, HttpStatusCode statusCode, string title, Dictionary<string, object?>? extensions)
-		=> new HttpActionResultFactory(statusCode, new ResponseProblemDetails
+	public static Factory Ok(HttpContent? content = null) => Create(HttpStatusCode.OK, content);
+	public static Factory NoContent() => Create(HttpStatusCode.NoContent);
+	public static Factory Problem(string? detail, HttpStatusCode statusCode, string title, Dictionary<string, object?>? extensions)
+		=> Create(statusCode, new StringContent(new ResponseProblemDetails
 		{
 			Type = GetTypeFromStatusCode(statusCode),
 			Status = (int)statusCode,
 			Title = title,
 			Detail = detail,
 			Extensions = extensions ?? new(StringComparer.Ordinal)
-		}, isProblem: true);
+		}.SerializeToJson(true, ResponseExtensions.JsonSerializerOptions != null ? new(ResponseExtensions.JsonSerializerOptions) : null), Encoding.UTF8, "application/problem+json"));
+	static Factory Create(HttpStatusCode status, HttpContent? content = null)
+		=> new(_ =>
+		{
+			var msg = new HttpResponseMessage(status);
+			if (content is not null) msg.Content = content;
+			return Task.FromResult(msg);
+		});
 	static string GetTypeFromStatusCode(HttpStatusCode status)
-	{
-		return status switch
+		=> status switch
 		{
 			HttpStatusCode.Continue => "https://httpwg.org/specs/rfc9110.html#section-15.2.1", // 100
 			HttpStatusCode.SwitchingProtocols => "https://httpwg.org/specs/rfc9110.html#section-15.2.2", // 101
@@ -154,5 +183,5 @@ file class HttpActionResultFactory(HttpStatusCode status, object? payload = null
 
 			var _ => throw new NotImplementedException($"Status code '{status}' is not supported")
 		};
-	}
+	Task<HttpResponseMessage> IHttpActionResult.ExecuteAsync(CancellationToken cancellationToken) => func(cancellationToken);
 }

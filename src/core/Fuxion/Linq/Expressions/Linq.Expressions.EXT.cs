@@ -1,28 +1,28 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Fuxion.Linq.Expressions;
 
-public static class ExpressionExtensions
+public static class Extensions
 {
 	public static string GetMemberName<T>(this object me, Expression<Func<T>> expression) => expression.GetMemberName();
 	public static string GetMemberName<T>(this Expression<Func<T>> expression)
 	{
-		if (expression.NodeType != ExpressionType.Lambda) throw new ArgumentException("La expresión debe ser una lambda", "expression");
+		if (expression.NodeType != ExpressionType.Lambda) throw new ArgumentException("La expresión debe ser una lambda", nameof(expression));
 		if (expression.Body is MemberExpression body) return body.Member.Name;
 		if (expression.Body is UnaryExpression) return ((MemberExpression)((UnaryExpression)expression.Body).Operand).Member.Name;
 		throw new ArgumentException("La expresión lambda debe ser de tipo 'MemberExpression' o 'UnaryExpression'.");
 	}
 	public static string GetMemberName<TInstance, TMember>(this Expression<Func<TInstance, TMember>> expression)
 	{
-		if (expression.NodeType != ExpressionType.Lambda) throw new ArgumentException("La expresión debe ser una lambda", "expression");
+		if (expression.NodeType != ExpressionType.Lambda) throw new ArgumentException("La expresión debe ser una lambda", nameof(expression));
 		if (expression.Body is MemberExpression body) return body.Member.Name;
 		if (expression.Body is UnaryExpression) return ((MemberExpression)((UnaryExpression)expression.Body).Operand).Member.Name;
 		throw new ArgumentException("La expresión lambda debe ser de tipo 'MemberExpression' o 'UnaryExpression'.");
 	}
 	public static PropertyInfo GetPropertyInfo<T>(this Expression<Func<T>> expression)
 	{
-		if (expression.NodeType != ExpressionType.Lambda) throw new ArgumentException("La expresión debe ser una lambda", "expression");
+		if (expression.NodeType != ExpressionType.Lambda) throw new ArgumentException("La expresión debe ser una lambda", nameof(expression));
 		if (expression.Body is MemberExpression body)
 		{
 			var mem = body.Member;

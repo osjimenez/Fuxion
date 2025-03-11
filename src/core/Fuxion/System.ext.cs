@@ -113,7 +113,7 @@ public static partial class Extensions
 				TypeInfoResolver = new PrivateConstructorContractResolver()
 			};
 		var res = JsonSerializer.Deserialize(me, type, options);
-		if (exceptionIfNull && res is null) throw new SerializationException($"The string cannot be deserialized as '{type.Name}':\r\n{me}");
+		if (exceptionIfNull && res is null) throw new SerializationException($"The string cannot be deserialized as '{type.GetSignature()}':\r\n{me}");
 		return res;
 	}
 	public static T CloneWithJson<T>(this T me) => (T)(DeserializeFromJson(me?.SerializeToJson() ?? throw new InvalidDataException(), me?.GetType() ?? throw new InvalidDataException()) ?? default!);
@@ -393,8 +393,8 @@ public static partial class Extensions
 		var pi = obj.GetType()
 			.GetProperty(propName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 		if (pi == null)
-			throw new ArgumentOutOfRangeException(nameof(propName), string.Format("Property {0} was not found in Type {1}", propName, obj.GetType()
-				.FullName));
+			throw new ArgumentOutOfRangeException(nameof(propName), $"Property {propName} was not found in Type {obj.GetType()
+				.FullName}");
 		return (T?)pi.GetValue(obj, null);
 	}
 	/// <summary>

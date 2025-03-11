@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 
 namespace Fuxion.Collections.ObjectModel;
@@ -53,9 +53,9 @@ public class DeactivatableObservableCollection<T> : ObservableCollection<T>
 	public void Remove(IEnumerable<T> items) => Remove(items, true);
 	public void Remove(IEnumerable<T> items, bool mustBeNotified)
 	{
-		if (items == null) throw new ArgumentNullException("list");
+		if (items == null) throw new ArgumentNullException(nameof(items));
 		var list = items.ToList();
-		if (list.Count == 0) throw new ArgumentException("La lista de elementos no puede estar vacia.");
+		if (list.Count == 0) throw new ArgumentException("La lista de elementos no puede estar vacía.");
 		foreach (var item in list) Remove(item, false);
 		if (mustBeNotified) OnCollectionChanged(new(NotifyCollectionChangedAction.Remove, list));
 	}
@@ -68,8 +68,9 @@ public class DeactivatableObservableCollection<T> : ObservableCollection<T>
 	public void Replace(IEnumerable<T> originalList, IEnumerable<T> subtituteList) => Replace(originalList, subtituteList, true);
 	public void Replace(IEnumerable<T> originalList, IEnumerable<T> subtituteList, bool mustBeNotified)
 	{
-		if (originalList == null || subtituteList == null) throw new ArgumentNullException("list");
-		if (!originalList.All(o => Contains(o))) throw new ArgumentException("Some elements of the original list aren't in collection.");
+		if (originalList == null) throw new ArgumentNullException(nameof(originalList));
+		if (subtituteList == null) throw new ArgumentNullException(nameof(subtituteList));
+		if (!originalList.All(Contains)) throw new ArgumentException("Some elements of the original list aren't in collection.");
 		var oriList = originalList.ToList();
 		var subList = subtituteList.ToList();
 		if (oriList.Count != subList.Count) throw new ArgumentException("Original and substitute lists size cannot be differ.");

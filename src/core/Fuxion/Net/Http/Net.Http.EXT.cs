@@ -1,4 +1,3 @@
-
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http;
@@ -16,10 +15,10 @@ public static class Extensions
 	public const string ExceptionKey = "exception";
 	public const string StatusCodeKey = "status-code";
 	public const string ReasonPhraseKey = "reason-phrase";
-	static async Task<(
-		List<(string, object?)> Extensions,
-		ResponseProblemDetails? Problem,
-		object? deserializedBody)> DoAsResponse(
+	public const string ContentLengthKey = "content-length";
+	public const string ContentTypeKey = "content-type";
+	public const string FileNameKey = "file-name";
+	static async Task<(List<(string, object?)> Extensions, ResponseProblemDetails? Problem, object? deserializedBody)> DoAsResponse(
 		HttpResponseMessage res,
 		Type? deserializationType = null,
 		JsonSerializerOptions? jsonOptions = null,
@@ -32,9 +31,34 @@ public static class Extensions
 		];
 		ResponseProblemDetails? problem = null;
 		object? deserializedBody = null;
-		var strContent = await res.Content.ReadAsStringAsync(
+
+		if (deserializationType is not null && typeof(Stream).IsAssignableFrom(deserializationType))
+		{
+			extensions.Add((ContentLengthKey, res.Content.Headers.ContentLength));
+			extensions.Add((ContentTypeKey, res.Content.Headers.ContentType?.MediaType));
+			extensions.Add((FileNameKey, res.Content.Headers.ContentDisposition?.FileName));
+			return (extensions, problem, await res.Content.ReadAsStreamAsync(
 #if !NETSTANDARD2_0 && !NET472
 				ct
+#endif
+			));
+		}
+
+		if (deserializationType is not null && typeof(byte[]).IsAssignableFrom(deserializationType))
+		{
+			extensions.Add((ContentLengthKey, res.Content.Headers.ContentLength));
+			extensions.Add((ContentTypeKey, res.Content.Headers.ContentType?.MediaType));
+			extensions.Add((FileNameKey, res.Content.Headers.ContentDisposition?.FileName));
+			return (extensions, problem, await res.Content.ReadAsByteArrayAsync(
+#if !NETSTANDARD2_0 && !NET472
+				ct
+#endif
+			));
+		}
+
+		var strContent = await res.Content.ReadAsStringAsync(
+#if !NETSTANDARD2_0 && !NET472
+			ct
 #endif
 		);
 		if (!strContent.IsNullOrEmpty())
@@ -56,7 +80,7 @@ public static class Extensions
 				{
 					try
 					{
-						deserializedBody = JsonSerializer.Deserialize(strContent, deserializationType, options: jsonOptions);
+						deserializedBody = JsonSerializer.Deserialize(strContent, deserializationType, jsonOptions);
 					} catch
 					{
 						// ignored
@@ -85,18 +109,14 @@ public static class Extensions
 
 		if (res.IsSuccessStatusCode)
 			if (extensions.Any(e => e.Item1 == StringContentKey))
-				return Response.Get.Success(
-					message: extensions.First(e => e.Item1 == StringContentKey).Item2?.ToString(),
-					extensions: extensions);
+				return Response.Get.Success(extensions.First(e => e.Item1 == StringContentKey)
+					.Item2?.ToString(), extensions);
 			else
 				return Response.Get.Success(extensions: extensions);
 
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
-		return Response.Get.Error(
-			problem?.Detail ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.",
-			type: errorType,
-			extensions: extensions);
+		return Response.Get.Error(problem?.Detail ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions);
 	}
 	public static async Task<Response<TPayload>> AsResponseAsync<TPayload>(this Task<HttpResponseMessage> me, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 		=> await AsResponseAsync<TPayload>(await me, jsonOptions, ct);
@@ -106,18 +126,14 @@ public static class Extensions
 
 		if (res.IsSuccessStatusCode)
 		{
-			if (deserializedBody is TPayload payload)
-				return Response.Get.Success(payload, extensions: extensions);
+			if (deserializedBody is TPayload payload) return Response.Get.Success(payload, extensions: extensions);
 			if (extensions.Any(e => e.Item1 == JsonContentKey))
 				return Response.Get.Error.InvalidData($"The content of the response isn't '{typeof(TPayload).GetSignature()}' type.", extensions: extensions);
-			return Response.Get.Error.InvalidData($"The content of the response isn't a valid json.", extensions: extensions);
+			return Response.Get.Error.InvalidData("The content of the response isn't a valid json.", extensions: extensions);
 		}
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
-		return Response.Get.Error(
-			problem?.Detail ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.",
-			type: errorType,
-			extensions: extensions);
+		return Response.Get.Error(problem?.Detail ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions);
 	}
 	static ErrorType HttpStatusCodeToErrorType(HttpStatusCode statusCode)
 		=> statusCode switch
@@ -227,8 +243,7 @@ public static class Extensions
 			try
 			{
 				payload = jsonElement.Deserialize<TPayload>(jsonOptions);
-				if (payload is not null)
-					return true;
+				if (payload is not null) return true;
 			} catch
 			{
 				// ignored
