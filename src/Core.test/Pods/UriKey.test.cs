@@ -63,6 +63,7 @@ public class UriKeyTest(ITestOutputHelper output) : BaseTest<UriKeyTest>(output)
 	[Fact(DisplayName = "Derived types chain")]
 	public void DerivedTypesChain()
 	{
+		Output.WriteLine("Chain 0 - First echelon must be an absolute uri");
 		DoTypeThrow<UriKeyInheritanceException>(typeof(Chain0));
 		Output.WriteLine("Chain 1 - Show how alone echelon in chain doesn't works");
 		DoTypeThrow<UriKeyInheritanceException>(typeof(Chain1));
