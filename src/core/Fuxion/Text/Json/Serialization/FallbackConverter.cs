@@ -140,8 +140,7 @@ public class FallbackConverter<T> : JsonConverter<T>
 			JsonSerializerOptions opt = new(options);
 			var con = opt.Converters.FirstOrDefault(c => c is FallbackConverter<T>);
 			if (con is not null) opt.Converters.Remove(con);
-			//foreach (var conv in options.Converters.Where(_ => _ is not FallbackConverter<T>))
-			//	opt.Converters.Add(conv);
+			opt.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 			var json = value.SerializeToJson(options: opt);
 			writer.WriteRawValue(json);
 		} catch
