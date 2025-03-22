@@ -174,6 +174,7 @@ public class FallbackConverter<T> : JsonConverter<T>
 			});
 			if (converter is null) throw new InvalidProgramException($"Program couldn't create FallbackConverter<{value.GetType().Name}>");
 			opt.Converters.Add((JsonConverter)converter);
+			opt.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 			var json = value.SerializeToJson(options: opt);
 			writer.WriteRawValue(json);
 		} catch (Exception ex)
