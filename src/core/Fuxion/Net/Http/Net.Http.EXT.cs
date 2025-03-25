@@ -84,7 +84,7 @@ public static class Extensions
 						deserializedBody = JsonSerializer.Deserialize(strContent, deserializationType, jsonOptions);
 					} catch (Exception ex)
 					{
-						extensions.Add((JsonErrorKey, ex.SerializeToJson()));
+						extensions.Add((JsonErrorKey, JsonNode.Parse(ex.SerializeToJson())));
 					}
 				}
 				if (deserializedBody is null)
