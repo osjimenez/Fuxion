@@ -8,17 +8,14 @@ namespace Fuxion.Text.Json.Serialization;
 
 public abstract class PropertyFallbackResolver
 {
+	internal int Deep { get; set; }
 	public abstract bool Match(object value, PropertyInfo propertyInfo);
 	public abstract void Do(object value, PropertyInfo propertyInfo, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers);
 	protected void FallbackWriteRaw(object value, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers)
 	{
 		var converterType = typeof(FallbackConverter<>).MakeGenericType(value.GetType());
-		var converter = Activator.CreateInstance(converterType, new object?[] {
-			resolvers.ToArray()
-		});
-		converterType.GetMethod(nameof(FallbackConverter<object>.FallbackWriteRaw))?.Invoke(converter, new[] {
-			value, writer, options, resolvers
-		});
+		var converter = Activator.CreateInstance(converterType, Deep + 1, resolvers.ToArray());
+		converterType.GetMethod(nameof(FallbackConverter<object>.FallbackWriteRaw))?.Invoke(converter, [value, writer, options, resolvers]);
 	}
 }
 
@@ -51,11 +48,11 @@ public class CollectionPropertyFallbackResolver : PropertyFallbackResolver
 		if (propertyInfo.GetValue(value) is not ICollection collection) throw new InvalidProgramException("Collection cannot be null");
 		writer.WritePropertyName(propertyInfo.Name);
 		writer.WriteStartArray();
-		var writeComma = false;
+		//var writeComma = false;
 		foreach (var item in collection)
 		{
-			if (writeComma) writer.WriteRawValue($",");
-			writeComma = true;
+			//if (writeComma) writer.WriteRawValue($",");
+			//writeComma = true;
 			FallbackWriteRaw(item, writer, options, resolvers);
 		}
 		writer.WriteEndArray();
@@ -115,20 +112,22 @@ public class StackTraceFallbackResolver : PropertyFallbackResolver
 	}
 }
 
-public class ExceptionConverter() : FallbackConverter<Exception>(
+public class ExceptionConverter() : FallbackConverter<Exception>(0,
 	new StackTraceFallbackResolver(),
 	new MultilineStringToCollectionPropertyFallbackResolver()
 	);
 public class FallbackConverter<T> : JsonConverter<T>
 {
-	public FallbackConverter() : this([]){}
-	public FallbackConverter(params PropertyFallbackResolver[] resolvers)
+	public FallbackConverter(int deep) : this(deep, []) { }
+	public FallbackConverter(int deep, params PropertyFallbackResolver[] resolvers)
 	{
-		if (!resolvers.OfType<IfNullWritePropertyFallbackResolver>().Any()) this.resolvers.Add(new IfNullWritePropertyFallbackResolver());
-		if (!resolvers.OfType<IfMemberInfoWriteNamePropertyFallbackResolver>().Any()) this.resolvers.Add(new IfMemberInfoWriteNamePropertyFallbackResolver());
-		if (!resolvers.OfType<CollectionPropertyFallbackResolver>().Any()) this.resolvers.Add(new CollectionPropertyFallbackResolver());
-		this.resolvers.AddRange(resolvers);
+		if (!resolvers.OfType<IfNullWritePropertyFallbackResolver>().Any()) this.resolvers.Add(new IfNullWritePropertyFallbackResolver{ Deep = deep });
+		if (!resolvers.OfType<IfMemberInfoWriteNamePropertyFallbackResolver>().Any()) this.resolvers.Add(new IfMemberInfoWriteNamePropertyFallbackResolver { Deep = deep });
+		if (!resolvers.OfType<CollectionPropertyFallbackResolver>().Any()) this.resolvers.Add(new CollectionPropertyFallbackResolver { Deep = deep });
+		this.resolvers.AddRange(resolvers.TransformEach(t => t.Deep = deep));
+		this.deep = deep;
 	}
+	readonly int deep = 0;
 	readonly List<PropertyFallbackResolver> resolvers = new();
 	public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
 		throw new NotSupportedException($"{nameof(FallbackConverter<T>)} doesn't support deserialization");
@@ -140,7 +139,9 @@ public class FallbackConverter<T> : JsonConverter<T>
 			JsonSerializerOptions opt = new(options);
 			var con = opt.Converters.FirstOrDefault(c => c is FallbackConverter<T>);
 			if (con is not null) opt.Converters.Remove(con);
+			//opt.ReferenceHandler = ReferenceHandler.Preserve;
 			opt.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+			opt.MaxDepth = 16;
 			var json = value.SerializeToJson(options: opt);
 			writer.WriteRawValue(json);
 		} catch
@@ -163,18 +164,26 @@ public class FallbackConverter<T> : JsonConverter<T>
 			writer.WriteEndObject();
 		}
 	}
-	public static void FallbackWriteRaw(object value, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers)
+	public void FallbackWriteRaw(object? value, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers)
 	{
 		try
 		{
+			if (value is null)
+			{
+				writer.WriteNullValue();
+				return;
+			}
 			JsonSerializerOptions opt = new(options);
-			var converterType = typeof(FallbackConverter<>).MakeGenericType(value.GetType());
-			var converter = Activator.CreateInstance(converterType, new object?[] {
-				resolvers.ToArray()
-			});
-			if (converter is null) throw new InvalidProgramException($"Program couldn't create FallbackConverter<{value.GetType().Name}>");
-			opt.Converters.Add((JsonConverter)converter);
+			if (deep <= 3) // INFO: Con 3 funciona, con 4 no
+			{
+				var converterType = typeof(FallbackConverter<>).MakeGenericType(value.GetType());
+				var converter = Activator.CreateInstance(converterType, deep + 1, resolvers.ToArray());
+				if (converter is null) throw new InvalidProgramException($"Program couldn't create FallbackConverter<{value.GetType().Name}>");
+				opt.Converters.Add((JsonConverter)converter);
+			}
+			//opt.ReferenceHandler = ReferenceHandler.Preserve;
 			opt.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+			opt.MaxDepth = 16;
 			var json = value.SerializeToJson(options: opt);
 			writer.WriteRawValue(json);
 		} catch (Exception ex)

@@ -7,8 +7,8 @@ public class TestEndpoint : IEndpoint
 	public void MapEndpoint(IEndpointRouteBuilder builder)
 	{
 		// SUCCESS
-		builder.MapGet("endpoint-test-empty-success", () => Response.Get.Success().ToApiResult());
-		builder.MapGet("endpoint-test-message-success", () => Response.Get.Success("Success message").ToApiResult());
+		builder.MapGet("endpoint-test-empty-success", () => Response.Get.SuccessMessage().ToApiResult());
+		builder.MapGet("endpoint-test-message-success", () => Response.Get.SuccessMessage("Success message").ToApiResult());
 		builder.MapGet("endpoint-test-payload-success", () => Response.Get.Success(new TestPayload
 			{
 				FirstName = "Test name",
@@ -30,7 +30,7 @@ public class TestEndpoint : IEndpoint
 			try
 			{
 				new Level1().Throw();
-				return Response.Get.Success().ToApiResult();
+				return Response.Get.SuccessMessage().ToApiResult();
 			} catch (Exception ex)
 			{
 				return Response.Get.Exception(ex).ToApiResult();

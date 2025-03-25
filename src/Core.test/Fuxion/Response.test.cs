@@ -2,9 +2,9 @@ namespace Fuxion.Test;
 
 public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(output)
 {
-	public Response GetSuccess() => Response.Get.Success();
-	public Response GetSuccessMessage() => Response.Get.Success("message");
-	public Response GetSuccessMessageWithExtensions() => Response.Get.Success("message", ("Extension", 123.456));
+	public Response GetSuccess() => Response.Get.SuccessMessage();
+	public Response GetSuccessMessage() => Response.Get.SuccessMessage("message");
+	public Response GetSuccessMessageWithExtensions() => Response.Get.SuccessMessage("message", ("Extension", 123.456));
 	public Response GetSuccessWithPayload() => Response.Get.Success(123);
 	public Response GetSuccessWithPayloadAndExtensions()
 		=> Response.Get.Success(123, extensions: ("Extension", 123.456));
@@ -30,11 +30,11 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 	[Fact]
 	public void Success()
 	{
-		var s1 = Response.Get.Success();
+		var s1 = Response.Get.SuccessMessage();
 
 		Assert.Null(s1.Message);
 		Assert.Null(s1.Payload);
-		var s2 = Response.Get.Success("message");
+		var s2 = Response.Get.SuccessMessage("message");
 		Assert.NotNull(s2.Message);
 		Assert.Null(s2.Payload);
 		var s3 = Response.Get.Success(payload: "payload");
@@ -64,8 +64,8 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 
 		var results = new Response[]
 		{
-			Response.Get.Success(),
-			Response.Get.Success("message",("Extension", 123.456)),
+			Response.Get.SuccessMessage(),
+			Response.Get.SuccessMessage("message",("Extension", 123.456)),
 			Response.Get.Success(123, "message"),
 			Response.Get.Error.NotFound("message"),
 			Response.Get.Error("message", new Payload("Bob", 25), extensions: ("Extension", 123.456))

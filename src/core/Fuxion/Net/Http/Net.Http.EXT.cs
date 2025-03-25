@@ -109,10 +109,10 @@ public static class Extensions
 
 		if (res.IsSuccessStatusCode)
 			if (extensions.Any(e => e.Item1 == StringContentKey))
-				return Response.Get.Success(extensions.First(e => e.Item1 == StringContentKey)
+				return Response.Get.SuccessMessage(extensions.First(e => e.Item1 == StringContentKey)
 					.Item2?.ToString(), extensions);
 			else
-				return Response.Get.Success(extensions: extensions);
+				return Response.Get.SuccessMessage(extensions: extensions);
 
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 

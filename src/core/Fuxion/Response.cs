@@ -164,9 +164,9 @@ public static class ResponseExtensions
 	}
 
 	// Response.Get helpers
-	public static Response Success(this IResponseFactory me, string message)
+	public static Response SuccessMessage(this IResponseFactory me, string message)
 		=> new(true, message);
-	public static Response Success(this IResponseFactory me, string? message = null, params IEnumerable<(string Property, object? Value)> extensions)
+	public static Response SuccessMessage(this IResponseFactory me, string? message = null, params IEnumerable<(string Property, object? Value)> extensions)
 		=> new(true, message)
 		{
 			Extensions = extensions.ToDictionary(t => t.Property, t => t.Value)
