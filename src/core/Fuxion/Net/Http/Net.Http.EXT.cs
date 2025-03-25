@@ -10,6 +10,7 @@ public static class Extensions
 {
 	public const string InnerProblemKey = "inner-problem";
 	public const string JsonContentKey = "json-content";
+	public const string JsonErrorKey = "json-error";
 	public const string StringContentKey = "string-content";
 	public const string PayloadKey = "payload";
 	public const string ExceptionKey = "exception";
@@ -69,7 +70,7 @@ public static class Extensions
 				{
 					problem = strContent.DeserializeFromJson<ResponseProblemDetails>(options: jsonOptions);
 					if (problem is not null) extensions.Add((InnerProblemKey, problem));
-				} catch
+				} catch(Exception ex)
 				{
 					// ignored
 				}
@@ -81,9 +82,9 @@ public static class Extensions
 					try
 					{
 						deserializedBody = JsonSerializer.Deserialize(strContent, deserializationType, jsonOptions);
-					} catch
+					} catch (Exception ex)
 					{
-						// ignored
+						extensions.Add((JsonErrorKey, ex.SerializeToJson()));
 					}
 				}
 				if (deserializedBody is null)
