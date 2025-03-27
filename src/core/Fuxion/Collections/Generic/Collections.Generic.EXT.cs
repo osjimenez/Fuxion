@@ -153,7 +153,7 @@ public static class Extensions
 			quantities.Remove(quantity);
 			quantities.Insert(index, quantity with { Rounded = quantity.Rounded - 1 });
 		}
-		return Response.Get.Success(quantities.Select(x => (x.Percentage, x.Rounded, x.Exact)));
+		return Response.Get.SuccessPayload(quantities.Select(x => (x.Percentage, x.Rounded, x.Exact)));
 	}
 	public static Response<IDictionary<string, (double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(
 		this IList<(string Label, double Percentage)> percentages,

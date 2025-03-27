@@ -111,9 +111,9 @@ public static class Extensions
 		if (res.IsSuccessStatusCode)
 			if (extensions.Any(e => e.Item1 == StringContentKey))
 				return Response.Get.SuccessMessage(extensions.First(e => e.Item1 == StringContentKey)
-					.Item2?.ToString(), extensions);
+					.Item2?.ToString() ?? string.Empty, extensions);
 			else
-				return Response.Get.SuccessMessage(extensions: extensions);
+				return Response.Get.Success(extensions: extensions);
 
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
@@ -127,7 +127,7 @@ public static class Extensions
 
 		if (res.IsSuccessStatusCode)
 		{
-			if (deserializedBody is TPayload payload) return Response.Get.Success(payload, extensions: extensions);
+			if (deserializedBody is TPayload payload) return Response.Get.SuccessPayload(payload, extensions: extensions);
 			if (extensions.Any(e => e.Item1 == JsonContentKey))
 				return Response.Get.Error.InvalidData($"The content of the response isn't '{typeof(TPayload).GetSignature()}' type.", extensions: extensions);
 			return Response.Get.Error.InvalidData("The content of the response isn't a valid json.", extensions: extensions);

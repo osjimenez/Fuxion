@@ -163,14 +163,17 @@ public static class ResponseExtensions
 	}
 
 	// Response.Get helpers
-	public static Response SuccessMessage(this IResponseFactory me, string message)
-		=> new(true, message);
-	public static Response SuccessMessage(this IResponseFactory me, string? message = null, params IEnumerable<(string Property, object? Value)> extensions)
+	public static Response Success(this IResponseFactory me, params IEnumerable<(string Property, object? Value)> extensions)
+		=> new(true)
+		{
+			Extensions = extensions.ToDictionary(t => t.Property, t => t.Value)
+		};
+	public static Response SuccessMessage(this IResponseFactory me, string message, params IEnumerable<(string Property, object? Value)> extensions)
 		=> new(true, message)
 		{
 			Extensions = extensions.ToDictionary(t => t.Property, t => t.Value)
 		};
-	public static Response<TPayload> Success<TPayload>(this IResponseFactory me, TPayload payload, string? message = null, params IEnumerable<(string Property, object? Value)> extensions)
+	public static Response<TPayload> SuccessPayload<TPayload>(this IResponseFactory me, TPayload payload, string? message = null, params IEnumerable<(string Property, object? Value)> extensions)
 		=> new(true, payload, message)
 		{
 			Extensions = extensions.ToDictionary(t => t.Property, t => t.Value)

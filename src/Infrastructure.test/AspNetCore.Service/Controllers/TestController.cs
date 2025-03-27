@@ -10,7 +10,7 @@ public class TestController : ControllerBase
 	// SUCCESS
 	[Route("test-empty-success")]
 	[HttpGet]
-	public IActionResult EmptySuccess() => Fuxion.Response.Get.SuccessMessage().ToApiActionResult();
+	public IActionResult EmptySuccess() => Fuxion.Response.Get.Success().ToApiActionResult();
 
 	[Route("test-message-success")]
 	[HttpGet]
@@ -18,7 +18,7 @@ public class TestController : ControllerBase
 
 	[Route("test-payload-success")]
 	[HttpGet]
-	public IActionResult PayloadSuccess() => Fuxion.Response.Get.Success(new TestPayload
+	public IActionResult PayloadSuccess() => Fuxion.Response.Get.SuccessPayload(new TestPayload
 	{
 		FirstName = "Test name",
 		Age = 123
@@ -44,7 +44,7 @@ public class TestController : ControllerBase
 		try
 		{
 			new Level1().Throw();
-			return Fuxion.Response.Get.SuccessMessage().ToApiActionResult();
+			return Fuxion.Response.Get.Success().ToApiActionResult();
 		} catch (Exception ex)
 		{
 			return Fuxion.Response.Get.Exception(ex).ToApiActionResult();

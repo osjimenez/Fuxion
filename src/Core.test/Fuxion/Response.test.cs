@@ -2,12 +2,12 @@ namespace Fuxion.Test;
 
 public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(output)
 {
-	public Response GetSuccess() => Response.Get.SuccessMessage();
+	public Response GetSuccess() => Response.Get.Success();
 	public Response GetSuccessMessage() => Response.Get.SuccessMessage("message");
 	public Response GetSuccessMessageWithExtensions() => Response.Get.SuccessMessage("message", ("Extension", 123.456));
-	public Response GetSuccessWithPayload() => Response.Get.Success(123);
+	public Response GetSuccessWithPayload() => Response.Get.SuccessPayload(123);
 	public Response GetSuccessWithPayloadAndExtensions()
-		=> Response.Get.Success(123, extensions: ("Extension", 123.456));
+		=> Response.Get.SuccessPayload(123, extensions: ("Extension", 123.456));
 	public Response GetError() => Response.Get.Error("message");
 	public Response GetErrorWithPayload() => Response.Get.Error("message", 123);
 	public Response GetNotFound() => Response.Get.Error.NotFound("message");
@@ -23,24 +23,24 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 		Assert.Equal(123, val);
 
 		return;
-		int OkInt() => Response.Get.Success(123);
+		int OkInt() => Response.Get.SuccessPayload(123);
 		int ErrorInt() => Response.Get.Error("message", 456);
 		Response<int> OkResponse() => 123;
 	}
 	[Fact]
 	public void Success()
 	{
-		var s1 = Response.Get.SuccessMessage();
+		var s1 = Response.Get.Success();
 
 		Assert.Null(s1.Message);
 		Assert.Null(s1.Payload);
 		var s2 = Response.Get.SuccessMessage("message");
 		Assert.NotNull(s2.Message);
 		Assert.Null(s2.Payload);
-		var s3 = Response.Get.Success(payload: "payload");
+		var s3 = Response.Get.SuccessPayload(payload: "payload");
 		Assert.Null(s3.Message);
 		Assert.NotNull(s3.Payload);
-		var s4 = Response.Get.Success(123);
+		var s4 = Response.Get.SuccessPayload(123);
 		Assert.Null(s4.Message);
 		Assert.Equal(123, s4.Payload);
 	}
@@ -64,9 +64,9 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 
 		var results = new Response[]
 		{
-			Response.Get.SuccessMessage(),
+			Response.Get.Success(),
 			Response.Get.SuccessMessage("message",("Extension", 123.456)),
-			Response.Get.Success(123, "message"),
+			Response.Get.SuccessPayload(123, "message"),
 			Response.Get.Error.NotFound("message"),
 			Response.Get.Error("message", new Payload("Bob", 25), extensions: ("Extension", 123.456))
 		};
