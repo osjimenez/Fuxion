@@ -2,13 +2,14 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Fuxion.Reflection;
 
-public static class Extensions
+public static partial class Extensions
 {
 	// TODO GetCustomAttribute is now in framework but not with same parameters and behavior
-	
+
 	/// <summary>
 	///    Retrieves a custom attribute of a specified type that is applied to a specified
 	///    member, and optionally inspects the ancestors of that member.
@@ -20,7 +21,8 @@ public static class Extensions
 	/// <param name="exceptionIfMoreThanOne">true to throw <see cref="AttributeMoreThanOneException" /> if custom attribute found more than once.</param>
 	/// <returns></returns>
 	public static TAttribute? GetCustomAttribute<TAttribute>(this MemberInfo me,
-		bool inherit = true, [DoesNotReturnIf(true)] bool exceptionIfNotFound = false,
+		bool inherit = true,
+		[DoesNotReturnIf(true)] bool exceptionIfNotFound = false,
 		bool exceptionIfMoreThanOne = false) where TAttribute : Attribute
 	{
 		var objAtts = me.GetCustomAttributes(typeof(TAttribute), inherit);
@@ -33,18 +35,40 @@ public static class Extensions
 	public static bool HasCustomAttribute<TAttribute>(this MemberInfo member, bool inherit = true, [DoesNotReturnIf(true)] bool exceptionIfMoreThanOne = true)
 		where TAttribute : Attribute
 		=> member.GetCustomAttribute<TAttribute>(inherit, false, exceptionIfMoreThanOne) is not null;
-	
+
+
+	const string AsyncMethodRegexPattern = @"<(?<method>.+?)>d__\d+";
+#if NETSTANDARD2_0 || NET472
+	internal static Regex AsyncMethodRegex() => new(AsyncMethodRegexPattern);
+#else
+	[GeneratedRegex(AsyncMethodRegexPattern)]
+	internal static partial Regex AsyncMethodRegex();
+#endif
 	public static string GetSignature(this MethodBase method,
 		bool includeAccessModifiers = false,
 		bool includeReturn = false,
 		bool includeDeclaringType = true,
 		bool useFullNames = false,
+		bool fullNamesOnlyInMethodName = false,
 		bool includeParameters = true,
 		bool includeParametersNames = false,
 		Func<bool, bool, MethodBase, object?, string>? parametersFunction = null,
 		object? parametersFunctionArguments = null)
 	{
 		var res = new StringBuilder();
+
+		// Detect if method is a generated async method (MoveNext)
+		if (method.Name == "MoveNext" && method.DeclaringType?.Name.Contains("<") == true)
+		{
+			// Try to extract original name between <>
+			var match = AsyncMethodRegex().Match(method.DeclaringType.Name);
+			if (match.Success)
+			{
+				var methodName = match.Groups["method"].Value;
+				method = method.DeclaringType?.DeclaringType?.GetMethod(methodName) ?? method;
+			}
+		}
+
 		// Access modifiers
 		if (includeAccessModifiers)
 		{
@@ -62,19 +86,21 @@ public static class Extensions
 		if (includeReturn)
 		{
 			if (method is MethodInfo mi)
-				res.Append(mi.ReturnType.GetSignature(useFullNames) + " ");
+				res.Append(mi.ReturnType.GetSignature(useFullNames && !fullNamesOnlyInMethodName) + " ");
 			else
 				res.Append("<ctor> ");
 		}
+
 		// Method name
 		if (includeDeclaringType) res.Append(method.DeclaringType?.GetSignature(useFullNames) + ".");
 		res.Append(method.Name);
+
 		// Generics arguments
 		if (method.IsGenericMethod)
 		{
 			res.Append("<");
 			var genericArgs = method.GetGenericArguments();
-			for (var i = 0; i < genericArgs.Length; i++) res.Append((i > 0 ? ", " : "") + genericArgs[i].GetSignature(useFullNames));
+			for (var i = 0; i < genericArgs.Length; i++) res.Append((i > 0 ? ", " : "") + genericArgs[i].GetSignature(useFullNames && !fullNamesOnlyInMethodName));
 			res.Append(">");
 		}
 		// Parameters
@@ -82,7 +108,7 @@ public static class Extensions
 		{
 			res.Append("(");
 			if (parametersFunction != null)
-				res.Append(parametersFunction(useFullNames, includeParametersNames, method, parametersFunctionArguments));
+				res.Append(parametersFunction(useFullNames && !fullNamesOnlyInMethodName, includeParametersNames, method, parametersFunctionArguments));
 			else
 			{
 				var pars = method.GetParameters();
@@ -93,7 +119,7 @@ public static class Extensions
 					if (par.ParameterType.IsByRef)
 						res.Append("ref ");
 					else if (par.IsOut) res.Append("out ");
-					res.Append(par.ParameterType.GetSignature(useFullNames));
+					res.Append(par.ParameterType.GetSignature(useFullNames && !fullNamesOnlyInMethodName));
 					if (includeParametersNames) res.Append(" " + par.Name);
 					if (i < pars.Length - 1) res.Append(", ");
 				}

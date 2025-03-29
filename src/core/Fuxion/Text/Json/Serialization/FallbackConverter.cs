@@ -1,7 +1,9 @@
 using System.Collections;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Fuxion.Reflection;
 
 namespace Fuxion.Text.Json.Serialization;
@@ -34,7 +36,14 @@ public class IfMemberInfoWriteNamePropertyFallbackResolver : PropertyFallbackRes
 		writer.WritePropertyName(propertyInfo.Name);
 		var mi = propertyInfo.GetValue(value) as MemberInfo;
 		if (mi is MethodBase mb)
-			writer.WriteRawValue($"\"{mi.GetType().Name} => {mb.GetSignature(true, true, true, true, true, true)}\"");
+			writer.WriteRawValue($"\"{mb.GetSignature(
+				includeAccessModifiers: true,
+				includeReturn: true,
+				includeDeclaringType: true,
+				useFullNames: true,
+				fullNamesOnlyInMethodName: true,
+				includeParameters: true,
+				includeParametersNames: true)}\"");
 		else
 			writer.WriteRawValue($"\"{mi?.Name}\"");
 	}
@@ -75,40 +84,51 @@ public class MultilineStringToCollectionPropertyFallbackResolver : PropertyFallb
 public class StackTraceFallbackResolver : PropertyFallbackResolver
 {
 	public override bool Match(object value, PropertyInfo propertyInfo)
-		=> propertyInfo.Name == "StackTrace" && propertyInfo.GetValue(value) is string;// s && s.Contains('\r');
+		=> value is Exception && propertyInfo.Name == "StackTrace" && propertyInfo.GetValue(value) is string;
 	public override void Do(object value, PropertyInfo propertyInfo, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers)
 	{
-		if (propertyInfo.GetValue(value) is not string str) throw new InvalidProgramException("str cannot be null");
+		if (value is not Exception ex) throw new InvalidProgramException("ex cannot be null");
 		writer.WritePropertyName(propertyInfo.Name);
 		writer.WriteStartArray();
-		var lineOrder = 1;
-		foreach (var item in str.SplitInLines())
+
+		var trace = new StackTrace(ex, true); // 'true' pide info de archivo si hay .pdb
+
+		foreach (var frame in trace.GetFrames() ?? [])
 		{
-			var val = item;
-			val = val.Trim();
-			val = val.Replace("at ", "");
-			var s1 = val.Split([" in "], StringSplitOptions.RemoveEmptyEntries);
-			if (s1.Length > 1)
+			JsonSerializer.Serialize(writer, new StackFrameEntry
 			{
-				var s2 = s1[1].Split([":line"], StringSplitOptions.RemoveEmptyEntries);
-				JsonSerializer.Serialize(writer, new
-				{
-					Order = lineOrder,
-					At = s1[0].Trim(),
-					In = s2[0].Trim(),
-					Line = s2[1].Trim()
-				}, options);
-			} else
-			{
-				JsonSerializer.Serialize(writer, new
-				{
-					Order = lineOrder,
-					At = s1[0].Trim()
-				}, options);
-			}
-			lineOrder++;
+				Method = frame.GetMethod()?.GetSignature(
+					includeAccessModifiers: true,
+					includeReturn: true,
+					includeDeclaringType: true,
+					useFullNames: true,
+					fullNamesOnlyInMethodName: true,
+					includeParameters: true,
+					includeParametersNames: true),
+				File = frame.GetFileName(),
+				Line = frame.GetFileLineNumber()
+			}, options);
 		}
 		writer.WriteEndArray();
+	}
+	class StackFrameEntry
+	{
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		public string? Method { get; set; }
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		public string? File { get; set; }
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		public int? Line
+		{
+			get => field;
+			set
+			{
+				if (value == 0)
+					field = null;
+				else
+					field = value;
+			}
+		}
 	}
 }
 
@@ -121,7 +141,7 @@ public class FallbackConverter<T> : JsonConverter<T>
 	public FallbackConverter(int deep) : this(deep, []) { }
 	public FallbackConverter(int deep, params PropertyFallbackResolver[] resolvers)
 	{
-		if (!resolvers.OfType<IfNullWritePropertyFallbackResolver>().Any()) this.resolvers.Add(new IfNullWritePropertyFallbackResolver{ Deep = deep });
+		if (!resolvers.OfType<IfNullWritePropertyFallbackResolver>().Any()) this.resolvers.Add(new IfNullWritePropertyFallbackResolver { Deep = deep });
 		if (!resolvers.OfType<IfMemberInfoWriteNamePropertyFallbackResolver>().Any()) this.resolvers.Add(new IfMemberInfoWriteNamePropertyFallbackResolver { Deep = deep });
 		if (!resolvers.OfType<CollectionPropertyFallbackResolver>().Any()) this.resolvers.Add(new CollectionPropertyFallbackResolver { Deep = deep });
 		this.resolvers.AddRange(resolvers.TransformEach(t => t.Deep = deep));

@@ -340,7 +340,7 @@ public static partial class Extensions
 				"Void" => "void",
 				var _ => name
 			};
-		StringBuilder sb = new(name[..name.IndexOf('`')]);
+		StringBuilder sb = new(name.Contains("`") ? name[..name.IndexOf('`')] : name);
 		sb.Append('<');
 		var first = true;
 		foreach (var t in type.GenericTypeArguments)
