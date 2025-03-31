@@ -13,31 +13,26 @@ namespace Fuxion.AspNet;
 public static class ResponseExtensions
 {
 	public static bool IncludeException { get; set; } = true;
-
 	public static JsonSerializerOptions? JsonSerializerOptions { get; set; }
-
-	public static async Task<IHttpActionResult> ToApiFileStreamResultAsync<TPayload>(this Task<Response<TPayload>> me, string? contentType = null, string? fileDownloadName = null)
+	public static async Task<IHttpActionResult> ToApiFileStreamResultAsync<TPayload>(this Task<IResponse> me, string? contentType = null, string? fileDownloadName = null)
 		where TPayload : Stream
-		=> ToApiResult(await me, contentType, fileDownloadName);
-	public static async Task<IHttpActionResult> ToApiFileBytesResultAsync<TPayload>(this Task<Response<TPayload>> me, string? contentType = null, string? fileDownloadName = null)
+		=> ToApiResult(await me, contentType, fileDownloadName, false);
+	public static async Task<IHttpActionResult> ToApiFileBytesResultAsync<TPayload>(this Task<IResponse<TPayload>> me, string? contentType = null, string? fileDownloadName = null)
 		where TPayload : IEnumerable<byte>
-		=> ToApiResult(await me, contentType, fileDownloadName);
-	public static IHttpActionResult ToApiFileStreamResult<TPayload>(this Response<TPayload> me, string? contentType = null, string? fileDownloadName = null)
+		=> ToApiResult(await me, contentType, fileDownloadName, false);
+	public static IHttpActionResult ToApiFileStreamResult<TPayload>(this IResponse me, string? contentType = null, string? fileDownloadName = null)
 		where TPayload : Stream
-		=> me.ToApiResult(contentType, fileDownloadName);
-	public static IHttpActionResult ToApiFileBytesResult<TPayload>(this Response<TPayload> me, string? contentType = null, string? fileDownloadName = null)
+		=> me.ToApiResult(contentType, fileDownloadName, false);
+	public static IHttpActionResult ToApiFileBytesResult<TPayload>(this IResponse me, string? contentType = null, string? fileDownloadName = null)
 		where TPayload : IEnumerable<byte>
-		=> me.ToApiResult(contentType, fileDownloadName);
-	public static async Task<IHttpActionResult> ToApiResultAsync<TPayload>(this Task<Response<TPayload>> me)
-		=> ToApiResult(await me);
-	public static IHttpActionResult ToApiResult<TPayload>(this Response<TPayload> me)
-		=> me.ToApiResult(null, null);
-	
-	static IHttpActionResult ToApiResult<TPayload>(this Response<TPayload> me, string? contentType, string? fileDownloadName)
+		=> me.ToApiResult(contentType, fileDownloadName, false);
+	public static async Task<IHttpActionResult> ToApiResultAsync(this Task<IResponse> me) => ToApiResult(await me);
+	public static IHttpActionResult ToApiResult(this IResponse me, bool fullSerialization = false) => me.ToApiResult(null, null, true);
+	static IHttpActionResult ToApiResult(this IResponse me, string? contentType, string? fileDownloadName, bool fullSerialization)
 	{
 		if (me.IsSuccess)
-			if (me.Payload is not null)
-				if (me.Payload is Stream stream)
+			if (me is IResponse<object?> { Payload: not null } me2)
+				if (me2.Payload is Stream stream)
 					return Factory.Ok(new StreamContent(stream)
 					{
 						Headers =
@@ -50,7 +45,7 @@ public static class ResponseExtensions
 							ContentLength = me.Extensions.TryGetValue(ContentLengthKey, out var extension) && extension is long length ? length : -1,
 						}
 					});
-				else if(me.Payload is byte[] bytes)
+				else if (me2.Payload is byte[] bytes)
 					return Factory.Ok(new ByteArrayContent(bytes)
 					{
 						Headers =
@@ -64,11 +59,10 @@ public static class ResponseExtensions
 						}
 					});
 				else
-					return Factory.Ok(
-						//new ObjectContent<TPayload>(me.Payload, new JsonMediaTypeFormatter()));
-						//new ObjectContent(me.Payload.GetType(), me.Payload, new JsonMediaTypeFormatter()));
-						new StringContent(me.Payload.SerializeToJson(true, JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8,
-									"application/json"));
+					return Factory.Ok(fullSerialization
+							? new StringContent(me2.SerializeToJson(true, JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
+							: new StringContent(me2.Payload.SerializeToJson(true, JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
+					);
 			else if (me.Message is not null)
 				return Factory.Ok(new StringContent(me.Message));
 			else
@@ -77,7 +71,7 @@ public static class ResponseExtensions
 		var extensions = me.Extensions.ToDictionary(e => e.Key, e => e.Value);
 		extensions.Remove(StatusCodeKey);
 		extensions.Remove(ReasonPhraseKey);
-		if (me.Payload is not null) extensions[PayloadKey] = me.Payload;
+		if (me is IResponse<object?> { Payload: not null } me3) extensions[PayloadKey] = me3.Payload;
 		if (IncludeException && me.Exception is not null)
 		{
 			var jsonOptions = JsonSerializerOptions is null

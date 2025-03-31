@@ -70,7 +70,7 @@ public static class Extensions
 				{
 					problem = strContent.DeserializeFromJson<ResponseProblemDetails>(options: jsonOptions);
 					if (problem is not null) extensions.Add((InnerProblemKey, problem));
-				} catch(Exception ex)
+				} catch (Exception ex)
 				{
 					// ignored
 				}
@@ -102,9 +102,9 @@ public static class Extensions
 		}
 		return (extensions, problem, deserializedBody);
 	}
-	public static async Task<Response> AsResponseAsync(this Task<HttpResponseMessage> me, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+	public static async Task<IResponse> AsResponseAsync(this Task<HttpResponseMessage> me, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 		=> await AsResponseAsync(await me, jsonOptions, ct);
-	public static async Task<Response> AsResponseAsync(this HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+	public static async Task<IResponse> AsResponseAsync(this HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 	{
 		var (extensions, problem, _) = await DoAsResponse(res, null, jsonOptions, ct);
 
@@ -113,28 +113,32 @@ public static class Extensions
 				return Response.Get.SuccessMessage(extensions.First(e => e.Item1 == StringContentKey)
 					.Item2?.ToString() ?? string.Empty, extensions);
 			else
-				return Response.Get.Success(extensions: extensions);
+				return Response.Get.Success(extensions);
 
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
 		return Response.Get.Error(problem?.Detail ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions);
 	}
-	public static async Task<Response<TPayload>> AsResponseAsync<TPayload>(this Task<HttpResponseMessage> me, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+	public static async Task<IResponse<TPayload>> AsResponseAsync<TPayload>(this Task<HttpResponseMessage> me, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 		=> await AsResponseAsync<TPayload>(await me, jsonOptions, ct);
-	public static async Task<Response<TPayload>> AsResponseAsync<TPayload>(this HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+	public static async Task<IResponse<TPayload>> AsResponseAsync<TPayload>(this HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 	{
 		var (extensions, problem, deserializedBody) = await DoAsResponse(res, typeof(TPayload), jsonOptions, ct);
 
 		if (res.IsSuccessStatusCode)
 		{
-			if (deserializedBody is TPayload payload) return Response.Get.SuccessPayload(payload, extensions: extensions);
+			if (deserializedBody is TPayload payload)
+				return Response.Get.SuccessPayload(payload, extensions: extensions);
 			if (extensions.Any(e => e.Item1 == JsonContentKey))
-				return Response.Get.Error.InvalidData($"The content of the response isn't '{typeof(TPayload).GetSignature()}' type.", extensions: extensions);
-			return Response.Get.Error.InvalidData("The content of the response isn't a valid json.", extensions: extensions);
+				return Response.Get.Error.InvalidData($"The content of the response isn't '{typeof(TPayload).GetSignature()}' type.", extensions: extensions)
+					.AsPayload<TPayload>();
+			return Response.Get.Error.InvalidData("The content of the response isn't a valid json.", extensions: extensions)
+				.AsPayload<TPayload>();
 		}
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
-		return Response.Get.Error(problem?.Detail ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions);
+		return Response.Get.Error(problem?.Detail ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions)
+			.AsPayload<TPayload>();
 	}
 	static ErrorType HttpStatusCodeToErrorType(HttpStatusCode statusCode)
 		=> statusCode switch
@@ -227,7 +231,7 @@ public static class Extensions
 #endif
 			var _ => ErrorType.Critical
 		};
-	public static bool TryGetProblemDetails<TPayload>(this Response<TPayload> me, [NotNullWhen(true)] out ResponseProblemDetails? problem)
+	public static bool TryGetProblemDetails(this IResponse me, [NotNullWhen(true)] out ResponseProblemDetails? problem)
 	{
 		if (me.Extensions.TryGetValue(InnerProblemKey, out var obj) && obj is ResponseProblemDetails res)
 		{

@@ -9,7 +9,6 @@ namespace Fuxion.Reflection;
 public static partial class Extensions
 {
 	// TODO GetCustomAttribute is now in framework but not with same parameters and behavior
-
 	/// <summary>
 	///    Retrieves a custom attribute of a specified type that is applied to a specified
 	///    member, and optionally inspects the ancestors of that member.
@@ -20,13 +19,12 @@ public static partial class Extensions
 	/// <param name="exceptionIfNotFound">true to throw <see cref="AttributeNotFoundException" /> if custom attribute not found.</param>
 	/// <param name="exceptionIfMoreThanOne">true to throw <see cref="AttributeMoreThanOneException" /> if custom attribute found more than once.</param>
 	/// <returns></returns>
-	public static TAttribute? GetCustomAttribute<TAttribute>(this MemberInfo me,
-		bool inherit = true,
-		[DoesNotReturnIf(true)] bool exceptionIfNotFound = false,
-		bool exceptionIfMoreThanOne = false) where TAttribute : Attribute
+	public static TAttribute? GetCustomAttribute<TAttribute>(this MemberInfo me, bool inherit = true, [DoesNotReturnIf(true)] bool exceptionIfNotFound = false, bool exceptionIfMoreThanOne = false)
+		where TAttribute : Attribute
 	{
 		var objAtts = me.GetCustomAttributes(typeof(TAttribute), inherit);
-		var atts = objAtts?.Cast<TAttribute>().ToArray();
+		var atts = objAtts?.Cast<TAttribute>()
+			.ToArray();
 		if (exceptionIfMoreThanOne && atts is { Length: > 1 }) throw new AttributeMoreThanOneException(me, typeof(TAttribute));
 		var att = atts?.FirstOrDefault();
 		if (exceptionIfNotFound && att == null) throw new AttributeNotFoundException(me, typeof(TAttribute));
@@ -35,8 +33,6 @@ public static partial class Extensions
 	public static bool HasCustomAttribute<TAttribute>(this MemberInfo member, bool inherit = true, [DoesNotReturnIf(true)] bool exceptionIfMoreThanOne = true)
 		where TAttribute : Attribute
 		=> member.GetCustomAttribute<TAttribute>(inherit, false, exceptionIfMoreThanOne) is not null;
-
-
 	const string AsyncMethodRegexPattern = @"<(?<method>.+?)>d__\d+";
 #if NETSTANDARD2_0 || NET472
 	internal static Regex AsyncMethodRegex() => new(AsyncMethodRegexPattern);
@@ -44,7 +40,8 @@ public static partial class Extensions
 	[GeneratedRegex(AsyncMethodRegexPattern)]
 	internal static partial Regex AsyncMethodRegex();
 #endif
-	public static string GetSignature(this MethodBase method,
+	public static string GetSignature(
+		this MethodBase method,
 		bool includeAccessModifiers = false,
 		bool includeReturn = false,
 		bool includeDeclaringType = true,
@@ -61,7 +58,8 @@ public static partial class Extensions
 		if (method.Name == "MoveNext" && method.DeclaringType?.Name.Contains("<") == true)
 		{
 			// Try to extract original name between <>
-			var match = AsyncMethodRegex().Match(method.DeclaringType.Name);
+			var match = AsyncMethodRegex()
+				.Match(method.DeclaringType.Name);
 			if (match.Success)
 			{
 				var methodName = match.Groups["method"].Value;
@@ -83,12 +81,9 @@ public static partial class Extensions
 			if (method.IsAbstract) res.Append("abstract ");
 		}
 		// Return type
-		if (includeReturn)
+		if (includeReturn && method is MethodInfo mi)
 		{
-			if (method is MethodInfo mi)
-				res.Append(mi.ReturnType.GetSignature(useFullNames && !fullNamesOnlyInMethodName) + " ");
-			else
-				res.Append("<ctor> ");
+			res.Append(mi.ReturnType.GetSignature(useFullNames && !fullNamesOnlyInMethodName) + " ");
 		}
 
 		// Method name
@@ -100,7 +95,9 @@ public static partial class Extensions
 		{
 			res.Append("<");
 			var genericArgs = method.GetGenericArguments();
-			for (var i = 0; i < genericArgs.Length; i++) res.Append((i > 0 ? ", " : "") + genericArgs[i].GetSignature(useFullNames && !fullNamesOnlyInMethodName));
+			for (var i = 0; i < genericArgs.Length; i++)
+				res.Append((i > 0 ? ", " : "") + genericArgs[i]
+					.GetSignature(useFullNames && !fullNamesOnlyInMethodName));
 			res.Append(">");
 		}
 		// Parameters
@@ -132,18 +129,14 @@ public static partial class Extensions
 	public static Stream? GetResourceStream(this Assembly assembly, string folder, string fileName)
 	{
 		if (assembly.FullName is null) throw new InvalidOperationException("assembly.FullName is null");
-		var resourceName = assembly.FullName.Split(',')[0] + "." + folder.Replace("\\", ".").Replace("/", ".") + "." + fileName;
-		return new List<string>(assembly.GetManifestResourceNames())
-			.Contains(resourceName)
-			? assembly.GetManifestResourceStream(resourceName)
-			: null;
+		var resourceName = assembly.FullName.Split(',')[0] + "." + folder.Replace("\\", ".")
+			.Replace("/", ".") + "." + fileName;
+		return new List<string>(assembly.GetManifestResourceNames()).Contains(resourceName) ? assembly.GetManifestResourceStream(resourceName) : null;
 	}
 	// TODO Check when folder is null or empty
 	public static string? GetResourceAsString(this Assembly assembly, string folder, string fileName)
 	{
 		var stream = GetResourceStream(assembly, folder, fileName);
-		return stream is null
-			? null
-			: new StreamReader(stream).ReadToEnd();
+		return stream is null ? null : new StreamReader(stream).ReadToEnd();
 	}
 }

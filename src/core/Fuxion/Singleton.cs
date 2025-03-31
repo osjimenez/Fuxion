@@ -65,12 +65,15 @@ public class Singleton
 	#endregion
 
 	#region Add
-	public static void Add<T>() where T : new() => Add(new T(), SingletonKey.GetKey<T>());
+	public static void Add<T>()
+		where T : new()
+		=> Add(new T(), SingletonKey.GetKey<T>());
 	public static void Add<T>(T objectInstance) => Add(objectInstance, SingletonKey.GetKey<T>());
 	public static void Add<T>(T objectInstance, object key) => Add(objectInstance, SingletonKey.GetKey<T>(key));
 	static void Add<T>(T objectInstance, SingletonKey key)
 	{
-		Instance.objects.Write(_ => {
+		Instance.objects.Write(_ =>
+		{
 			if (_.ContainsKey(key)) throw new ArgumentException("No se puede agregar el objeto porque la combinación clave/tipo esta en uso");
 			_.Add(key, objectInstance);
 		});
@@ -78,12 +81,15 @@ public class Singleton
 		//Instance.objects.Add(key, objectInstance);
 		foreach (var sub in Instance.subscriptions.Where(sub => sub.Type == objectInstance?.GetType() && sub.Key == key)) sub.Invoke(default!, objectInstance, SingletonAction.Add);
 	}
-	public static void AddOrSkip<T>() where T : new() => AddOrSkip(new T(), SingletonKey.GetKey<T>());
+	public static void AddOrSkip<T>()
+		where T : new()
+		=> AddOrSkip(new T(), SingletonKey.GetKey<T>());
 	public static void AddOrSkip<T>(T objectInstance) => AddOrSkip(objectInstance, SingletonKey.GetKey<T>());
 	public static void AddOrSkip<T>(T objectInstance, object key) => AddOrSkip(objectInstance, SingletonKey.GetKey<T>(key));
 	static void AddOrSkip<T>(T objectInstance, SingletonKey key)
 	{
-		var added = Instance.objects.Write(_ => {
+		var added = Instance.objects.Write(_ =>
+		{
 			if (!_.ContainsKey(key))
 			{
 				_.Add(key, objectInstance);
@@ -102,7 +108,8 @@ public class Singleton
 	public static bool Remove<T>(object key) => Remove<T>(SingletonKey.GetKey<T>(key));
 	static bool Remove<T>(SingletonKey key)
 	{
-		var (value, result) = Instance.objects.Write(_ => {
+		var (value, result) = Instance.objects.Write(_ =>
+		{
 			if (!_.ContainsKey(key)) return (null, false);
 			return (_[key], _.Remove(key));
 		});
@@ -127,17 +134,15 @@ public class Singleton
 		if (throwExceptionIfNotFound) throw new KeyNotFoundException("No se ha encontrado el objecto de tipo '" + typeof(T).Name + " con la clave '" + (key ?? "null") + "'.");
 		return default!;
 	}
-	static object? Get(SingletonKey key, Type requestedType) =>
-		Instance.objects.ReadUpgradeable(_ => {
-			if (_.ContainsKey(key)) return _[key];
+	static object? Get(SingletonKey key, Type requestedType)
+		=> Instance.objects.ReadUpgradeable(_ =>
+		{
+			if (_.TryGetValue(key, out var instance)) return instance;
 			var att = requestedType.GetCustomAttribute<DefaultSingletonInstanceAttribute>(true, false);
-			if (att != null)
-			{
-				var ins = Activator.CreateInstance(att.Type);
-				Add(ins, key);
-				return ins;
-			}
-			return _[key];
+			if (att == null) return _[key];
+			var ins = Activator.CreateInstance(att.Type);
+			Add(ins, key);
+			return ins;
 		});
 	#endregion
 
@@ -152,18 +157,18 @@ public class Singleton
 	}
 	static object? Find(SingletonKey key, Type requestedType)
 		//=> Instance.objects.Read(_ => _.ContainsKey(key) ? _[key] : null);
-		=>
-			Instance.objects.ReadUpgradeable(_ => {
-				if (_.ContainsKey(key)) return _[key];
-				var att = requestedType.GetCustomAttribute<DefaultSingletonInstanceAttribute>(true, false);
-				if (att != null)
-				{
-					var ins = Activator.CreateInstance(att.Type);
-					Add(ins, key);
-					return ins;
-				}
-				return null;
-			});
+		=> Instance.objects.ReadUpgradeable(_ =>
+		{
+			if (_.ContainsKey(key)) return _[key];
+			var att = requestedType.GetCustomAttribute<DefaultSingletonInstanceAttribute>(true, false);
+			if (att != null)
+			{
+				var ins = Activator.CreateInstance(att.Type);
+				Add(ins, key);
+				return ins;
+			}
+			return null;
+		});
 	#endregion
 
 	#region Set
@@ -171,7 +176,8 @@ public class Singleton
 	public static bool Set<T>(T substitute, object key) => Set(SingletonKey.GetKey<T>(key), substitute);
 	static bool Set<T>(SingletonKey key, T substitute)
 	{
-		var (previous, setted) = Instance.objects.Write(_ => {
+		var (previous, setted) = Instance.objects.Write(_ =>
+		{
 			if (_.ContainsKey(key))
 			{
 				var previous = (T)_[key]!;
@@ -198,12 +204,13 @@ public class Singleton
 	//    if (Instance.objects.ContainsKey(key)) changeAction((T)Instance.objects[key]);
 	//}
 	public static void Subscribe<T>(Action<SingletonSubscriptionArgs<T>> changeAction, bool raiseAddIfAlreadyAdded = true) => Subscribe(changeAction, SingletonKey.GetKey<T>(), raiseAddIfAlreadyAdded);
-	public static void Subscribe<T>(Action<SingletonSubscriptionArgs<T>> changeAction, object key, bool raiseAddIfAlreadyAdded = true) =>
-		Subscribe(changeAction, SingletonKey.GetKey<T>(key), raiseAddIfAlreadyAdded);
+	public static void Subscribe<T>(Action<SingletonSubscriptionArgs<T>> changeAction, object key, bool raiseAddIfAlreadyAdded = true)
+		=> Subscribe(changeAction, SingletonKey.GetKey<T>(key), raiseAddIfAlreadyAdded);
 	static void Subscribe<T>(Action<SingletonSubscriptionArgs<T>> changeAction, SingletonKey key, bool raiseAddIfAlreadyAdded = true)
 	{
 		Instance.subscriptions.Add(new(typeof(T), key, changeAction));
-		Instance.objects.Read(_ => {
+		Instance.objects.Read(_ =>
+		{
 			if (raiseAddIfAlreadyAdded && _.ContainsKey(key)) changeAction(new(default!, (T)_[key]!, SingletonAction.Add));
 		});
 	}

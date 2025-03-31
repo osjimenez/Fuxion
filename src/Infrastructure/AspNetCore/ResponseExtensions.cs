@@ -13,7 +13,7 @@ public static class ResponseExtensions
 	public static bool IncludeException { get; set; } = true;
 
 	public static async Task<IResult> ToApiFileStreamResultAsync<TPayload>(
-		this Task<Response<TPayload>> me,
+		this Task<IResponse<TPayload>> me,
 		string? contentType = null,
 		string? fileDownloadName = null,
 		DateTimeOffset? lastModified = null,
@@ -22,7 +22,7 @@ public static class ResponseExtensions
 		where TPayload : Stream
 		=> ToApiResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
 	public static async Task<IResult> ToApiFileBytesResultAsync<TPayload>(
-		this Task<Response<TPayload>> me,
+		this Task<IResponse<TPayload>> me,
 		string? contentType = null,
 		string? fileDownloadName = null,
 		DateTimeOffset? lastModified = null,
@@ -31,7 +31,7 @@ public static class ResponseExtensions
 		where TPayload : IEnumerable<byte>
 		=> ToApiResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
 	public static IResult ToApiFileStreamResult<TPayload>(
-		this Response<TPayload> me,
+		this IResponse<TPayload> me,
 		string? contentType = null,
 		string? fileDownloadName = null,
 		DateTimeOffset? lastModified = null,
@@ -40,7 +40,7 @@ public static class ResponseExtensions
 		where TPayload : Stream
 		=> ToApiResult(me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
 	public static IResult ToApiFileBytesResult<TPayload>(
-		this Response<TPayload> me,
+		this IResponse<TPayload> me,
 		string? contentType = null,
 		string? fileDownloadName = null,
 		DateTimeOffset? lastModified = null,
@@ -48,11 +48,11 @@ public static class ResponseExtensions
 		bool enableRangeProcessing = false)
 		where TPayload : IEnumerable<byte>
 		=> ToApiResult(me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
-	public static async Task<IResult> ToApiResultAsync<TPayload>(this Task<Response<TPayload>> me)
+	public static async Task<IResult> ToApiResultAsync(this Task<IResponse> me)
 		=> ToApiResult(await me);
-	public static IResult ToApiResult<TPayload>(this Response<TPayload> me) => ToApiResult(me, null, null, null, null, false);
-	static IResult ToApiResult<TPayload>(
-		this Response<TPayload> me,
+	public static IResult ToApiResult(this IResponse me) => ToApiResult(me, null, null, null, null, false);
+	static IResult ToApiResult(
+		this IResponse me,
 		string? contentType,
 		string? fileDownloadName,
 		DateTimeOffset? lastModified,
@@ -60,13 +60,13 @@ public static class ResponseExtensions
 		bool enableRangeProcessing)
 	{
 		if (me.IsSuccess)
-			if (me.Payload is not null)
-				if (me.Payload is Stream stream)
+			if (me is IResponse<object?> me2 && me2.Payload is not null)
+				if (me2.Payload is Stream stream)
 					return Results.File(stream, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
-				else if(me.Payload is IEnumerable<byte> bytes)
+				else if(me2.Payload is IEnumerable<byte> bytes)
 					return Results.File(bytes.ToArray(), contentType, fileDownloadName, enableRangeProcessing, lastModified, entityTag);
 				else
-					return Results.Ok(me.Payload);
+					return Results.Ok(me2.Payload);
 			else if (me.Message is not null)
 				return Results.Content(me.Message);
 			else
@@ -76,7 +76,7 @@ public static class ResponseExtensions
 		extensions.Remove(StatusCodeKey);
 		extensions.Remove(ReasonPhraseKey);
 
-		if (me.Payload is not null && me.Payload is not Stream) extensions[PayloadKey] = me.Payload;
+		if (me is IResponse<object?> me3 && me3.Payload is not null && me3.Payload is not Stream) extensions[PayloadKey] = me3.Payload;
 		if (IncludeException && me.Exception is not null)
 			extensions[ExceptionKey] = JsonSerializer.SerializeToElement(me.Exception, options: new()
 			{
@@ -99,7 +99,7 @@ public static class ResponseExtensions
 	}
 
 	public static async Task<IActionResult> ToApiFileStreamActionResultAsync<TPayload>(
-		this Task<Response<TPayload>> me,
+		this Task<IResponse<TPayload>> me,
 		string? contentType = null,
 		string? fileDownloadName = null,
 		DateTimeOffset? lastModified = null,
@@ -108,7 +108,7 @@ public static class ResponseExtensions
 		where TPayload : Stream
 		=> ToApiActionResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
 	public static async Task<IActionResult> ToApiFileBytesActionResultAsync<TPayload>(
-		this Task<Response<TPayload>> me,
+		this Task<IResponse<TPayload>> me,
 		string? contentType = null,
 		string? fileDownloadName = null,
 		DateTimeOffset? lastModified = null,
@@ -117,7 +117,7 @@ public static class ResponseExtensions
 		where TPayload : IEnumerable<byte>
 		=> ToApiActionResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
 	public static IActionResult ToApiFileStreamActionResult<TPayload>(
-		this Response<TPayload> me,
+		this IResponse<TPayload> me,
 		string? contentType = null,
 		string? fileDownloadName = null,
 		DateTimeOffset? lastModified = null,
@@ -126,7 +126,7 @@ public static class ResponseExtensions
 		where TPayload : Stream
 		=> me.ToApiActionResult(contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
 	public static IActionResult ToApiFileBytesActionResult<TPayload>(
-		this Response<TPayload> me,
+		this IResponse<TPayload> me,
 		string? contentType = null,
 		string? fileDownloadName = null,
 		DateTimeOffset? lastModified = null,
@@ -134,13 +134,13 @@ public static class ResponseExtensions
 		bool enableRangeProcessing = false)
 		where TPayload : IEnumerable<byte>
 		=> me.ToApiActionResult(contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
-	public static async Task<IActionResult> ToApiActionResultAsync<TPayload>(this Task<Response<TPayload>> me)
+	public static async Task<IActionResult> ToApiActionResultAsync(this Task<IResponse> me)
 		=> ToApiActionResult(await me);
-	public static IActionResult ToApiActionResult<TPayload>(this Response<TPayload> me)
+	public static IActionResult ToApiActionResult(this IResponse me)
 		=> me.ToApiActionResult(null, null, null, null, false);
 
-	static IActionResult ToApiActionResult<TPayload>(
-		this Response<TPayload> me,
+	static IActionResult ToApiActionResult(
+		this IResponse me,
 		string? contentType,
 		string? fileDownloadName,
 		DateTimeOffset? lastModified,
@@ -148,8 +148,8 @@ public static class ResponseExtensions
 		bool enableRangeProcessing)
 	{
 		if (me.IsSuccess)
-			if (me.Payload is not null)
-				if (me.Payload is Stream stream)
+			if (me is IResponse<object?> me2 && me2.Payload is not null)
+				if (me2.Payload is Stream stream)
 					return new FileStreamResult(stream, contentType ?? string.Empty)
 					{
 						FileDownloadName = fileDownloadName,
@@ -158,7 +158,7 @@ public static class ResponseExtensions
 						EnableRangeProcessing = enableRangeProcessing
 					};
 				else
-					return new OkObjectResult(me.Payload);
+					return new OkObjectResult(me2.Payload);
 			else if (me.Message is not null)
 				return new ContentResult
 				{
@@ -169,7 +169,7 @@ public static class ResponseExtensions
 				return new NoContentResult();
 
 		var extensions = me.Extensions.ToDictionary();
-		if (me.Payload is not null && me.Payload is not Stream) extensions["payload"] = me.Payload;
+		if (me is IResponse<object?> me3 && me3.Payload is not null && me3.Payload is not Stream) extensions["payload"] = me3.Payload;
 		if (IncludeException && me.Exception is not null)
 			extensions["exception"] = JsonSerializer.SerializeToElement(me.Exception, options: new()
 			{
