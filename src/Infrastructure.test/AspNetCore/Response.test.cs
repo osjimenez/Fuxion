@@ -192,6 +192,8 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 		{
 			var res = await cli.GetAsync($"{prefix}test-message-exception")
 				.AsResponseAsync(jsonOptions);
+
+			PrintVariable(res.SerializeToJson(true));
 			Assert.False(res.IsSuccess);
 			Assert.Equal(500, res.Extensions[StatusCodeKey]);
 			Assert.True(res.TryGetProblemDetails(out var problem));

@@ -37,7 +37,7 @@ public class Response(bool isSuccess, string? message = null, object? type = nul
 {
 	public static IResponseFactory Get => new ResponseFactory();
 
-	public bool IsSuccess { get; init; } = isSuccess;
+	public bool IsSuccess { get; protected init; } = isSuccess;
 	[JsonIgnore]
 	public bool IsError => !IsSuccess;
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -68,6 +68,16 @@ public class Response(bool isSuccess, string? message = null, object? type = nul
 public class Response<TPayload>(bool isSuccess, TPayload payload, string? message = null, object? type = null, Exception? exception = null)
 	: Response(isSuccess, message, type, exception), IResponse<TPayload>
 {
+	[MemberNotNullWhen(true, nameof(Payload))]
+	public new bool IsSuccess
+	{
+		get => base.IsSuccess;
+		protected init => base.IsSuccess = value;
+	}
+	[MemberNotNullWhen(false, nameof(Payload))]
+	[JsonIgnore]
+	public new bool IsError => base.IsError;
+
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 	public TPayload? Payload
 	{
