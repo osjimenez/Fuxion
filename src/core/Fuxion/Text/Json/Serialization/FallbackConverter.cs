@@ -161,7 +161,7 @@ public class FallbackConverter<T> : JsonConverter<T>
 			if (con is not null) opt.Converters.Remove(con);
 			//opt.ReferenceHandler = ReferenceHandler.Preserve;
 			opt.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-			opt.MaxDepth = 16;
+			opt.MaxDepth = 8;
 			var json = value.SerializeToJson(options: opt);
 			writer.WriteRawValue(json);
 		} catch
@@ -203,7 +203,7 @@ public class FallbackConverter<T> : JsonConverter<T>
 			}
 			//opt.ReferenceHandler = ReferenceHandler.Preserve;
 			opt.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-			opt.MaxDepth = 16;
+			opt.MaxDepth = 8;
 			var json = value.SerializeToJson(options: opt);
 			writer.WriteRawValue(json);
 		} catch (Exception ex)

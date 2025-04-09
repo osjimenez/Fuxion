@@ -50,7 +50,11 @@ public static class ResponseExtensions
 		=> ToApiResult(me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
 	public static async Task<IResult> ToApiResultAsync(this Task<IResponse> me)
 		=> ToApiResult(await me);
+	public static async Task<IResult> ToApiResultAsync<TPayload>(this Task<IResponse<TPayload>> me)
+		=> ToApiResult(await me);
 	public static IResult ToApiResult(this IResponse me) => ToApiResult(me, null, null, null, null, false);
+	public static IResult ToApiResult<TPayload>(this IResponse<TPayload> me) => ToApiResult(me, null, null, null, null, false);
+
 	static IResult ToApiResult(
 		this IResponse me,
 		string? contentType,
@@ -136,7 +140,11 @@ public static class ResponseExtensions
 		=> me.ToApiActionResult(contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
 	public static async Task<IActionResult> ToApiActionResultAsync(this Task<IResponse> me)
 		=> ToApiActionResult(await me);
+	public static async Task<IActionResult> ToApiActionResultAsync<TPayload>(this Task<IResponse<TPayload>> me)
+		=> ToApiActionResult(await me);
 	public static IActionResult ToApiActionResult(this IResponse me)
+		=> me.ToApiActionResult(null, null, null, null, false);
+	public static IActionResult ToApiActionResult<TPayload>(this IResponse<TPayload> me)
 		=> me.ToApiActionResult(null, null, null, null, false);
 
 	static IActionResult ToApiActionResult(
