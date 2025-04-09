@@ -121,13 +121,7 @@ public class StackTraceFallbackResolver : PropertyFallbackResolver
 		public int? Line
 		{
 			get => field;
-			set
-			{
-				if (value == 0)
-					field = null;
-				else
-					field = value;
-			}
+			set => field = value == 0 ? null : value;
 		}
 	}
 }
@@ -161,7 +155,7 @@ public class FallbackConverter<T> : JsonConverter<T>
 			if (con is not null) opt.Converters.Remove(con);
 			//opt.ReferenceHandler = ReferenceHandler.Preserve;
 			opt.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-			opt.MaxDepth = 8;
+			opt.MaxDepth = 6;
 			var json = value.SerializeToJson(options: opt);
 			writer.WriteRawValue(json);
 		} catch
@@ -194,7 +188,7 @@ public class FallbackConverter<T> : JsonConverter<T>
 				return;
 			}
 			JsonSerializerOptions opt = new(options);
-			if (deep <= 3) // INFO: Con 3 funciona, con 4 no
+			if (deep <= 2) // INFO: Con 2 funciona, con 3 a veces, con 4 casi nunca
 			{
 				var converterType = typeof(FallbackConverter<>).MakeGenericType(value.GetType());
 				var converter = Activator.CreateInstance(converterType, deep + 1, resolvers.ToArray());
@@ -203,7 +197,7 @@ public class FallbackConverter<T> : JsonConverter<T>
 			}
 			//opt.ReferenceHandler = ReferenceHandler.Preserve;
 			opt.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-			opt.MaxDepth = 8;
+			opt.MaxDepth = 6;
 			var json = value.SerializeToJson(options: opt);
 			writer.WriteRawValue(json);
 		} catch (Exception ex)
