@@ -33,7 +33,8 @@ public static partial class Extensions
 	public static bool HasCustomAttribute<TAttribute>(this MemberInfo member, bool inherit = true, [DoesNotReturnIf(true)] bool exceptionIfMoreThanOne = true)
 		where TAttribute : Attribute
 		=> member.GetCustomAttribute<TAttribute>(inherit, false, exceptionIfMoreThanOne) is not null;
-	const string AsyncMethodRegexPattern = @"<(?<method>.+?)>d__\d+";
+	const string AsyncMethodRegexPattern2 = @"<(?<method>.+?)>d__\d+";
+	const string AsyncMethodRegexPattern = @"<(?<method>.+?)>d__\d+`*(?<num_args>\d+)*";
 #if NETSTANDARD2_0 || NET472
 	internal static Regex AsyncMethodRegex() => new(AsyncMethodRegexPattern);
 #else
@@ -63,7 +64,31 @@ public static partial class Extensions
 			if (match.Success)
 			{
 				var methodName = match.Groups["method"].Value;
-				method = method.DeclaringType?.DeclaringType?.GetMethod(methodName) ?? method;
+
+				// Extract number of generics arguments
+				var methodNumArgs = match.Groups["num_args"].Value;
+				if(methodNumArgs == string.Empty) methodNumArgs = "0";
+				var numArgs = int.Parse(methodNumArgs);
+
+				// Get the methods with the same name and number of generic arguments
+				var methods = method.DeclaringType?.DeclaringType?.GetMethods()
+					.Where(m => m.Name == methodName)
+					.Where(m => m.GetGenericArguments().Length == numArgs);
+
+				// Attempt to match the method by parameters
+				var stateMachineFields = method.DeclaringType?
+					.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+					.Where(f => !f.Name.StartsWith("<"))
+					.ToList() ?? [];
+
+				method = methods?.FirstOrDefault(m =>
+				{
+					var currentParams = m.GetParameters();
+					// Check if all parameters of the original method are represented as fields in the state machine
+					return currentParams.Length == stateMachineFields.Count
+						&& currentParams.All(p => 
+							stateMachineFields.Any(f => f.Name == p.Name && f.FieldType == p.ParameterType));
+				}) ?? method;
 			}
 		}
 

@@ -4,9 +4,8 @@ using Fuxion.Threading.Tasks;
 
 namespace Fuxion.Test;
 
-public class SystemExtensionsTest : BaseTest<SystemExtensionsTest>
+public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExtensionsTest>(output)
 {
-	public SystemExtensionsTest(ITestOutputHelper output) : base(output) { }
 	void GenerateException() => throw new NotImplementedException("Fuxion.Test method for testing");
 	void GenerateExceptionWithInner()
 	{
