@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+		<TargetFrameworks>net9.0;net10.0</TargetFrameworks>
 		<Title>Fuxion Orleans</Title>
 		<PackageId>Fuxion.Orleans</PackageId>
 		<Description>Fuxion infrastructure for Orleans frameowrk</Description>
@@ -17,8 +17,8 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-		<PackageReference Include="Microsoft.Orleans.EventSourcing" Version="9.1.2" />
-		<PackageReference Include="Microsoft.Orleans.Sdk" Version="9.1.2" />
+		<PackageReference Include="Microsoft.Orleans.EventSourcing" Version="9.2.0-preview1" />
+		<PackageReference Include="Microsoft.Orleans.Sdk" Version="9.2.0-preview1" />
 	</ItemGroup>
 
 </Project>

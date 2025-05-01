@@ -804,3 +804,7 @@ public struct CustomIntEnumerator
 	}
 }
 
+public static class Extensions2
+{
+
+}
