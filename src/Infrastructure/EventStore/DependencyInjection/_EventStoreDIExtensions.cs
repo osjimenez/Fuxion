@@ -1,4 +1,4 @@
-﻿#if false
+#if false
 using EventStore.Client;
 using Fuxion.EventStore;
 using Fuxion.Reflection;

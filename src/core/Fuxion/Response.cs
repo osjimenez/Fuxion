@@ -220,6 +220,7 @@ public static class ResponseExtensions
 		params IEnumerable<(string Property, object? Value)> extensions)
 		=> me.Factory.Error(message, payload, ErrorType.PermissionDenied, exception, extensions);
 	public static bool IsPermissionDenied(this IResponse res) => res.IsErrorType(ErrorType.PermissionDenied);
+	
 	public static IResponse InvalidData(this IErrorResponseFactory me, string message, Exception? exception = null, params List<(string Property, object? Value)> extensions)
 		=> me.Factory.Error(message, ErrorType.InvalidData, exception, extensions);
 	public static IResponse<TPayload> InvalidData<TPayload>(

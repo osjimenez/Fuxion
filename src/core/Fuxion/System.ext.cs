@@ -7,7 +7,6 @@ using System.Runtime.Serialization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Fuxion.Json;
 using Fuxion.Resources;
@@ -17,44 +16,9 @@ namespace Fuxion;
 
 public static partial class Extensions
 {
-	/// <summary>
-	///    Permite una clonación en profundidad de origen.
-	/// </summary>
-	/// <param name="origen">Objeto serializable</param>
-	/// <exception cref="ArgumentExcepcion">
-	///    Se produce cuando el objeto no es serializable.
-	/// </exception>
-	/// <remarks>
-	///    Extraido desde
-	///    http://es.debugmodeon.com/articulo/clonar-objetos-de-estructura-compleja
-	/// </remarks>
-	//public static T CloneWithBinary<T>(this T source)
-	//      {
-	//          // Verificamos que sea serializable antes de hacer la copia            
-	//          if (!typeof(T).IsSerializable)
-	//              throw new ArgumentException("La clase " + typeof(T).ToString() + " no es serializable");
-
-	//          // En caso de ser nulo el objeto, se devuelve tal cual
-	//          if (Object.ReferenceEquals(source, null))
-	//              return default!;
-
-	//          //Creamos un stream en memoria
-	//          IFormatter formatter = new BinaryFormatter();
-	//          Stream stream = new MemoryStream();
-	//          using (stream)
-	//          {
-	//              try
-	//              {
-	//                  formatter.Serialize(stream, source);
-	//                  stream.Seek(0, SeekOrigin.Begin);
-	//                  //Deserializamos la porcón de memoria en el nuevo objeto                
-	//                  return (T)formatter.Deserialize(stream);
-	//              }
-	//              catch (SerializationException ex)
-	//              { throw new ArgumentException(ex.Message, ex); }
-	//              catch { throw; }
-	//          }
-	//      }
+	#region IsNullOrDefault
+	public static bool IsNullOrDefault<T>(this T me) => EqualityComparer<T>.Default.Equals(me, default!);
+	#endregion
 
 	#region Disposable
 	public static DisposableEnvelope<T> AsDisposable<T>(this T me, Action<T>? actionOnDispose = null)
@@ -63,10 +27,6 @@ public static partial class Extensions
 	public static DisposableEnvelope<T> AsDisposableAsync<T>(this T me, Func<T, ValueTask>? functionOnDispose = null)
 		where T : notnull
 		=> new(me, functionOnDispose);
-	#endregion
-
-	#region IsNullOrDefault
-	public static bool IsNullOrDefault<T>(this T me) => EqualityComparer<T>.Default.Equals(me, default!);
 	#endregion
 
 	#region Json
@@ -94,18 +54,9 @@ public static partial class Extensions
 			options.Converters.Add(new ExceptionConverter());
 		return JsonSerializer.Serialize(me, options);
 	}
-	public static T? DeserializeFromJson<T>(
-		this string me,
-		[DoesNotReturnIf(true)] bool exceptionIfNull = false,
-		JsonSerializerOptions? options = null,
-		bool usePrivateConstructor = true)
+	public static T? DeserializeFromJson<T>(this string me, [DoesNotReturnIf(true)] bool exceptionIfNull = false, JsonSerializerOptions? options = null, bool usePrivateConstructor = true)
 		=> (T?)DeserializeFromJson(me, typeof(T), exceptionIfNull, options, usePrivateConstructor);
-	public static object? DeserializeFromJson(
-		this string me,
-		Type type,
-		[DoesNotReturnIf(true)] bool exceptionIfNull = false,
-		JsonSerializerOptions? options = null,
-		bool usePrivateConstructor = true)
+	public static object? DeserializeFromJson(this string me, Type type, [DoesNotReturnIf(true)] bool exceptionIfNull = false, JsonSerializerOptions? options = null, bool usePrivateConstructor = true)
 	{
 		if (usePrivateConstructor)
 			options ??= new()
@@ -146,11 +97,12 @@ public static partial class Extensions
 			transformFunction(me.Result);
 			return me.Result;
 		}
-		return await me.AsTask().ContinueWith(t =>
-		{
-			transformFunction(t.Result);
-			return t.Result;
-		}, ct);
+		return await me.AsTask()
+			.ContinueWith(t =>
+			{
+				transformFunction(t.Result);
+				return t.Result;
+			}, ct);
 	}
 	public static async ValueTask<TSource> ThenTransform<TSource>(this ValueTask<TSource> me, Func<TSource, CancellationToken, ValueTask> transformFunction, CancellationToken ct = default)
 	{
@@ -159,17 +111,17 @@ public static partial class Extensions
 			await transformFunction(me.Result, ct);
 			return me.Result;
 		}
-		return await await me.AsTask().ContinueWith(async t =>
-		{
-			await transformFunction(t.Result, ct);
-			return t.Result;
-		}, ct);
+		return await await me.AsTask()
+			.ContinueWith(async t =>
+			{
+				await transformFunction(t.Result, ct);
+				return t.Result;
+			}, ct);
 	}
 	//		Nullable
 	public static TSource? TransformIfNotNull<TSource>(this TSource? me, Action<TSource> transformFunction)
 	{
-		if (me is not null)
-			transformFunction(me);
+		if (me is not null) transformFunction(me);
 		return me;
 	}
 	public static async Task<TSource?> ThenTransformIfNotNull<TSource>(this Task<TSource?> me, Action<TSource> transformFunction, CancellationToken ct = default)
@@ -188,32 +140,30 @@ public static partial class Extensions
 	{
 		if (me.IsCompleted)
 		{
-			if (me.Result is not null)
-				transformFunction(me.Result);
+			if (me.Result is not null) transformFunction(me.Result);
 			return me.Result;
 		}
-		var res = await me.AsTask().ContinueWith(t =>
-		{
-			if (t.Result is not null)
-				transformFunction(t.Result);
-			return t.Result;
-		}, ct);
+		var res = await me.AsTask()
+			.ContinueWith(t =>
+			{
+				if (t.Result is not null) transformFunction(t.Result);
+				return t.Result;
+			}, ct);
 		return res;
 	}
 	public static async ValueTask<TSource?> ThenTransformIfNotNull<TSource>(this ValueTask<TSource?> me, Func<TSource, CancellationToken, ValueTask> transformFunction, CancellationToken ct = default)
 	{
 		if (me.IsCompleted)
 		{
-			if (me.Result is not null)
-				await transformFunction(me.Result, ct);
+			if (me.Result is not null) await transformFunction(me.Result, ct);
 			return me.Result;
 		}
-		return await await me.AsTask().ContinueWith(async t =>
-		{
-			if (t.Result is not null)
-				await transformFunction(t.Result, ct);
-			return t.Result;
-		}, ct);
+		return await await me.AsTask()
+			.ContinueWith(async t =>
+			{
+				if (t.Result is not null) await transformFunction(t.Result, ct);
+				return t.Result;
+			}, ct);
 	}
 
 	// Transform and map
@@ -244,21 +194,24 @@ public static partial class Extensions
 	}
 	public static async Task<TResult?> ThenTransformIfNotNull<TSource, TResult>(this Task<TSource?> me, Func<TSource, TResult> transformFunction, CancellationToken ct = default)
 		=> await me.ContinueWith(t => t.Result is not null ? transformFunction(t.Result) : default, ct);
-	public static async Task<TResult?> ThenTransformIfNotNull<TSource, TResult>(this Task<TSource?> me, Func<TSource, CancellationToken, Task<TResult>> transformFunction, CancellationToken ct = default)
+	public static async Task<TResult?> ThenTransformIfNotNull<TSource, TResult>(
+		this Task<TSource?> me,
+		Func<TSource, CancellationToken, Task<TResult>> transformFunction,
+		CancellationToken ct = default)
 		=> await await me.ContinueWith(async t => t.Result is not null ? await transformFunction(t.Result, ct) : default, ct);
 	public static async ValueTask<TResult?> ThenTransformIfNotNull<TSource, TResult>(this ValueTask<TSource?> me, Func<TSource, TResult> transformFunction, CancellationToken ct = default)
 		=> me.IsCompleted
 			? me.Result is not null ? transformFunction(me.Result) : default
 			: await me.AsTask()
 				.ContinueWith(t => t.Result is not null ? transformFunction(t.Result) : default, ct);
-	public static async ValueTask<TResult?> ThenTransformIfNotNull<TSource, TResult>(this ValueTask<TSource?> me, Func<TSource, CancellationToken, ValueTask<TResult>> transformFunction, CancellationToken ct = default)
+	public static async ValueTask<TResult?> ThenTransformIfNotNull<TSource, TResult>(
+		this ValueTask<TSource?> me,
+		Func<TSource, CancellationToken, ValueTask<TResult>> transformFunction,
+		CancellationToken ct = default)
 		=> me.IsCompleted
 			? me.Result is not null ? await transformFunction(me.Result, ct) : default
 			: await await me.AsTask()
 				.ContinueWith(async t => t.Result is not null ? await transformFunction(t.Result, ct) : default, ct);
-
-
-
 	public static IEnumerable<TSource> TransformEach<TSource>(this IEnumerable<TSource> me, Action<TSource> transformFunction)
 	{
 		foreach (var item in me) transformFunction(item);
@@ -309,7 +262,7 @@ public static partial class Extensions
 #if NET472 || NETSTANDARD2_0
 		new Regex(FileScopeClassNameRegexPattern);
 #else
-		FileScopeClassNameRegex();
+			FileScopeClassNameRegex();
 #endif
 		var name = useFullNames && !string.IsNullOrWhiteSpace(type.FullName) ? type.FullName : type.Name;
 		var match = regex.Match(name);
@@ -489,19 +442,18 @@ public static partial class Extensions
 			hex = BitConverter.ToString(list.ToArray());
 		} else
 			hex = BitConverter.ToString(me);
-		if (separatorChar is not null) return hex.Replace('-', separatorChar.Value);
-		return hex.Replace("-", string.Empty);
+		return separatorChar is not null ? hex.Replace('-', separatorChar.Value) : hex.Replace("-", string.Empty);
 	}
 	public static byte[] ToByteArrayFromHexadecimal(this string me, char? separatorChar = null, bool isBigEndian = false)
 	{
 		if (separatorChar is not null) me = me.RemoveChar(separatorChar.Value);
-		var NumberChars = me.Length;
-		var bytes = new byte[NumberChars / 2];
+		var numberChars = me.Length;
+		var bytes = new byte[numberChars / 2];
 		if (isBigEndian)
-			for (var i = NumberChars; i > 1; i -= 2)
+			for (var i = numberChars; i > 1; i -= 2)
 				bytes[(i - 2) / 2] = Convert.ToByte(me.Substring(i - 2, 2), 16);
 		else
-			for (var i = 0; i < NumberChars; i += 2)
+			for (var i = 0; i < numberChars; i += 2)
 				bytes[i / 2] = Convert.ToByte(me.Substring(i, 2), 16);
 		if (isBigEndian)
 		{
@@ -540,9 +492,7 @@ public static partial class Extensions
 			case 0: break; // No pad chars in this case
 			case 2: s += "=="; break; // Two pad chars
 			case 3: s += "="; break; // One pad char
-			default:
-				throw new System.Exception(
-				"Illegal base64url string!");
+			default: throw new("Illegal base64url string!");
 		}
 		return Convert.FromBase64String(s); // Standard base64 decoder
 	}
@@ -634,7 +584,7 @@ public static partial class Extensions
 	public static IEnumerable<int> AllIndexesOf(this string me, string value, StringComparison comparisonType)
 	{
 		if (string.IsNullOrEmpty(value)) throw new ArgumentException("The string to find may not be empty", "value");
-		for (var index = 0; ; index += value.Length)
+		for (var index = 0;; index += value.Length)
 		{
 			index = me.IndexOf(value, index, comparisonType);
 			if (index == -1) break;
@@ -678,133 +628,302 @@ public static partial class Extensions
 		}
 		return res;
 	}
-	public static string Format(this string me, params object?[] @params)
-	{
-		return string.Format(me, @params);
-	}
+	public static string Format(this string me, params object?[] @params) => string.Format(me, @params);
 	public static bool IsNullOrEmpty([NotNullWhen(false)] this string? me) => string.IsNullOrEmpty(me);
 	public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? me) => string.IsNullOrWhiteSpace(me);
 	#endregion
 
-	#region IsBetween
-	public static bool IsBetween(this short me, short minimum, short maximum) => minimum <= me && me <= maximum;
-	public static bool IsBetween(this ushort me, ushort minimum, ushort maximum) => minimum <= me && me <= maximum;
-	public static bool IsBetween(this int me, int minimum, int maximum) => minimum <= me && me <= maximum;
-	public static bool IsBetween(this uint me, uint minimum, uint maximum) => minimum <= me && me <= maximum;
-	public static bool IsBetween(this long me, long minimum, long maximum) => minimum <= me && me <= maximum;
-	public static bool IsBetween(this ulong me, ulong minimum, ulong maximum) => minimum <= me && me <= maximum;
-	public static bool IsBetween(this decimal me, decimal minimum, decimal maximum) => minimum <= me && me <= maximum;
-	public static bool IsBetween(this double me, double minimum, double maximum) => minimum <= me && me <= maximum;
-	public static bool IsBetween(this float me, float minimum, float maximum) => minimum <= me && me <= maximum;
-	public static bool IsBetween(this DateTime me, DateTime minimum, DateTime maximum) => minimum <= me && me <= maximum;
-	public static bool IsBetween(this TimeSpan me, TimeSpan minimum, TimeSpan maximum) => minimum <= me && me <= maximum;
+	#region IsBetween - CONVERTED
+	//public static bool IsBetween(this short me, short minimum, short maximum) => minimum <= me && me <= maximum;
+	//public static bool IsBetween(this ushort me, ushort minimum, ushort maximum) => minimum <= me && me <= maximum;
+	//public static bool IsBetween(this int me, int minimum, int maximum) => minimum <= me && me <= maximum;
+	//public static bool IsBetween(this uint me, uint minimum, uint maximum) => minimum <= me && me <= maximum;
+	//public static bool IsBetween(this long me, long minimum, long maximum) => minimum <= me && me <= maximum;
+	//public static bool IsBetween(this ulong me, ulong minimum, ulong maximum) => minimum <= me && me <= maximum;
+	//public static bool IsBetween(this decimal me, decimal minimum, decimal maximum) => minimum <= me && me <= maximum;
+	//public static bool IsBetween(this double me, double minimum, double maximum) => minimum <= me && me <= maximum;
+	//public static bool IsBetween(this float me, float minimum, float maximum) => minimum <= me && me <= maximum;
+	//public static bool IsBetween(this DateTime me, DateTime minimum, DateTime maximum) => minimum <= me && me <= maximum;
+	//public static bool IsBetween(this TimeSpan me, TimeSpan minimum, TimeSpan maximum) => minimum <= me && me <= maximum;
 	#endregion
 
-	#region Time
-	public static string ToTimeString(this TimeSpan me, int numberOfElements = 5, bool onlyLetters = false)
-	{
-		var res = "";
-		TimeSpan ts;
-		if (me.Ticks < 0)
-		{
-			res += "- ";
-			ts = me.Negate();
-		} else
-			ts = me;
-		var count = 0;
-		if (count >= numberOfElements) return res.Trim(',', ' ');
-		if (ts.Days > 0)
-		{
-			res += $"{ts.Days} {(onlyLetters ? "d" : ts.Days > 1 ? Strings.days : Strings.day)}{(onlyLetters ? "" : ",")} ";
-			count++;
-		}
-		if (count >= numberOfElements) return res.Trim(',', ' ');
-		if (ts.Hours > 0)
-		{
-			res += $"{ts.Hours} {(onlyLetters ? "h" : ts.Hours > 1 ? Strings.hours : Strings.hour)}{(onlyLetters ? "" : ",")} ";
-			count++;
-		}
-		if (count >= numberOfElements) return res.Trim(',', ' ');
-		if (ts.Minutes > 0)
-		{
-			res += $"{ts.Minutes} {(onlyLetters ? "m" : ts.Minutes > 1 ? Strings.minutes : Strings.minute)}{(onlyLetters ? "" : ",")} ";
-			count++;
-		}
-		if (count >= numberOfElements) return res.Trim(',', ' ');
-		if (ts.Seconds > 0)
-		{
-			res += $"{ts.Seconds} {(onlyLetters ? "s" : ts.Seconds > 1 ? Strings.seconds : Strings.second)}{(onlyLetters ? "" : ",")} ";
-			count++;
-		}
-		if (count >= numberOfElements) return res.Trim(',', ' ');
-		if (ts.Milliseconds > 0) res += $"{ts.Milliseconds} {(onlyLetters ? "ms" : ts.Milliseconds > 1 ? Strings.milliseconds : Strings.millisecond)}{(onlyLetters ? "" : ",")} ";
-		if (string.IsNullOrWhiteSpace(res)) res = "0";
-		return res.Trim(',', ' ');
-	}
-	public static DateTime AverageDateTime(this IEnumerable<DateTime> me)
-	{
-		var list = me.ToList();
-		var temp = 0D;
-		for (var i = 0; i < list.Count; i++) temp += list[i].Ticks / (double)list.Count;
-		return new((long)temp);
-	}
-	public static DateTimeOffset AverageDateTime(this IEnumerable<DateTimeOffset> me)
-	{
-		var list = me.ToList();
-		var temp = 0D;
-		for (var i = 0; i < list.Count; i++) temp += list[i].Ticks / (double)list.Count;
-		return new(new((long)temp));
-	}
-	static readonly DateTime StartTime = new(1970, 1, 1);
-	public static long ToEpoch(this DateTime dt, bool failIfPrior1970 = false)
-	{
-		var res = (long)(dt - StartTime).TotalSeconds;
-		if (res < 0)
-			if (failIfPrior1970)
-				throw new InvalidDataException("DateTime cannot be prior 1/1/1970 to be converted to EPOCH date");
-			else
-				return 0;
-		return res;
-	}
-	public static DateTime ToEpochDateTime(this long me) => StartTime.AddSeconds(me);
-	public static DateTime ToEpochDateTime(this double me) => StartTime.AddSeconds(me);
-	public static TimeSpan Seconds(this int me) => TimeSpan.FromSeconds(me);
+	#region Time - CONVERTED
+	//public static string ToTimeString(this TimeSpan me, int numberOfElements = 5, bool onlyLetters = false)
+	//{
+	//	var res = "";
+	//	TimeSpan ts;
+	//	if (me.Ticks < 0)
+	//	{
+	//		res += "- ";
+	//		ts = me.Negate();
+	//	} else
+	//		ts = me;
+	//	var count = 0;
+	//	if (count >= numberOfElements) return res.Trim(',', ' ');
+	//	if (ts.Days > 0)
+	//	{
+	//		res += $"{ts.Days} {(onlyLetters ? "d" : ts.Days > 1 ? Strings.days : Strings.day)}{(onlyLetters ? "" : ",")} ";
+	//		count++;
+	//	}
+	//	if (count >= numberOfElements) return res.Trim(',', ' ');
+	//	if (ts.Hours > 0)
+	//	{
+	//		res += $"{ts.Hours} {(onlyLetters ? "h" : ts.Hours > 1 ? Strings.hours : Strings.hour)}{(onlyLetters ? "" : ",")} ";
+	//		count++;
+	//	}
+	//	if (count >= numberOfElements) return res.Trim(',', ' ');
+	//	if (ts.Minutes > 0)
+	//	{
+	//		res += $"{ts.Minutes} {(onlyLetters ? "m" : ts.Minutes > 1 ? Strings.minutes : Strings.minute)}{(onlyLetters ? "" : ",")} ";
+	//		count++;
+	//	}
+	//	if (count >= numberOfElements) return res.Trim(',', ' ');
+	//	if (ts.Seconds > 0)
+	//	{
+	//		res += $"{ts.Seconds} {(onlyLetters ? "s" : ts.Seconds > 1 ? Strings.seconds : Strings.second)}{(onlyLetters ? "" : ",")} ";
+	//		count++;
+	//	}
+	//	if (count >= numberOfElements) return res.Trim(',', ' ');
+	//	if (ts.Milliseconds > 0) res += $"{ts.Milliseconds} {(onlyLetters ? "ms" : ts.Milliseconds > 1 ? Strings.milliseconds : Strings.millisecond)}{(onlyLetters ? "" : ",")} ";
+	//	if (string.IsNullOrWhiteSpace(res)) res = "0";
+	//	return res.Trim(',', ' ');
+	//}
+	//public static DateTime AverageDateTime(this IEnumerable<DateTime> me)
+	//{
+	//	var list = me.ToList();
+	//	var temp = 0D;
+	//	for (var i = 0; i < list.Count; i++) temp += list[i].Ticks / (double)list.Count;
+	//	return new((long)temp);
+	//}
+	//public static DateTimeOffset AverageDateTime(this IEnumerable<DateTimeOffset> me)
+	//{
+	//	var list = me.ToList();
+	//	var temp = 0D;
+	//	for (var i = 0; i < list.Count; i++) temp += list[i].Ticks / (double)list.Count;
+	//	return new(new((long)temp));
+	//}
+	//static readonly DateTime EpochStartTime = new(1970, 1, 1);
+	//public static long ToEpoch(this DateTime dt, bool failIfPrior1970 = false)
+	//{
+	//	var res = (long)(dt - EpochStartTime).TotalSeconds;
+	//	if (res < 0)
+	//		if (failIfPrior1970)
+	//			throw new InvalidDataException("DateTime cannot be prior 1/1/1970 to be converted to EPOCH date");
+	//		else
+	//			return 0;
+	//	return res;
+	//}
+	//public static DateTime ToEpochDateTime(this long me) => EpochStartTime.AddSeconds(me);
+	//public static DateTime ToEpochDateTime(this double me) => EpochStartTime.AddSeconds(me);
+	//public static TimeSpan Seconds(this int me) => TimeSpan.FromSeconds(me);
 	#endregion
 
-	#region Range
-	public static CustomIntEnumerator GetEnumerator(this Range range) => new(range);
-	public static CustomIntEnumerator GetEnumerator(this int number)
-		=> number <= 0 ? throw new ArgumentException($"{nameof(number)} must be a positive value greater than 0", nameof(number)) : new(new(0, number));
+	#region Range - CONVERTED
+	//public static CustomIntEnumerator GetEnumerator(this Range range) => new(range);
+	//public static CustomIntEnumerator GetEnumerator(this int number)
+	//	=> number <= 0 ? throw new ArgumentException($"{nameof(number)} must be a positive value greater than 0", nameof(number)) : new(new(0, number));
 	#endregion
 
-	#region Exception
-	public static string GetDeeperInnerMessage(this Exception me)
-	{
-		var inner = me;
-		while (inner.InnerException is not null) inner = inner.InnerException;
-		return inner.Message;
-	}
+	#region Exception - CONVERTED
+	//public static string GetDeeperInnerMessage(this Exception me)
+	//{
+	//	var inner = me;
+	//	while (inner.InnerException is not null) inner = inner.InnerException;
+	//	return inner.Message;
+	//}
 	#endregion
 }
 
-public struct CustomIntEnumerator
+public static class RangeExtensions
 {
-	readonly int _end;
-	public CustomIntEnumerator(Range range)
+	extension(Range me)
 	{
-		if (range.End.IsFromEnd) throw new NotSupportedException("You must specify a end for the range");
-		Current = range.Start.Value - 1;
-		_end = range.End.Value;
+		public CustomIntEnumerator GetEnumerator() => new(me);
 	}
-	public int Current { get; private set; }
-	public bool MoveNext()
+	extension(int number)
 	{
-		Current++;
-		return Current <= _end;
+		public CustomIntEnumerator GetEnumerator()
+			=> number <= 0 ? throw new ArgumentException($"{nameof(number)} must be a positive value greater than 0", nameof(number)) : new(new(0, number));
+	}
+	public struct CustomIntEnumerator
+	{
+		readonly int _end;
+		public CustomIntEnumerator(Range range)
+		{
+			if (range.End.IsFromEnd) throw new NotSupportedException("You must specify a end for the range");
+			Current = range.Start.Value - 1;
+			_end = range.End.Value;
+		}
+		public int Current { get; private set; }
+		public bool MoveNext()
+		{
+			Current++;
+			return Current <= _end;
+		}
 	}
 }
 
-public static class Extensions2
+public static class ComparableExtensions
 {
+	extension<TComparable>(TComparable me) where TComparable : IComparable
+	{
+		//public bool IsBetween(TComparable minimum, TComparable maximum) => me.CompareTo(minimum) >= 0 && me.CompareTo(maximum) <= 0;
+		public bool IsBetween(TComparable minimum, TComparable maximum) => me.IsBetween(false, minimum, false, maximum);
+		public bool IsBetween(bool minimumExclusive, TComparable minimum, TComparable maximum) => me.IsBetween(minimumExclusive, minimum, false, maximum);
+		public bool IsBetween(TComparable minimum, bool maximumExclusive, TComparable maximum) => me.IsBetween(false, minimum, maximumExclusive, maximum);
+		public bool IsBetween(bool minimumExclusive, TComparable minimum, bool maximumExclusive, TComparable maximum)
+		{
+			var minRes = me.CompareTo(minimum);
+			if (minRes < 0) return false;
+			if (minimumExclusive && minRes == 0) return false;
+			var maxRes = me.CompareTo(maximum);
+			if (maxRes > 0) return false;
+			if (maximumExclusive && maxRes == 0) return false;
+			return true;
+		}
+	}
+}
 
+public static class ExceptionExtensions
+{
+	extension(Exception me)
+	{
+		public string GetDeeperInnerMessage()
+		{
+			var inner = me;
+			while (inner.InnerException is not null) inner = inner.InnerException;
+			return inner.Message;
+		}
+	}
+}
+
+public static class TimeExtensions
+{
+	extension(TimeSpan me)
+	{
+		public string ToTimeString(int numberOfElements = 5, bool onlyLetters = false)
+		{
+			var res = "";
+			TimeSpan ts;
+			if (me.Ticks < 0)
+			{
+				res += "- ";
+				ts = me.Negate();
+			} else
+				ts = me;
+			var count = 0;
+			if (count >= numberOfElements) return res.Trim(',', ' ');
+			if (ts.Days > 0)
+			{
+				res += $"{ts.Days} {(onlyLetters ? "d" : ts.Days > 1 ? Strings.days : Strings.day)}{(onlyLetters ? "" : ",")} ";
+				count++;
+			}
+			if (count >= numberOfElements) return res.Trim(',', ' ');
+			if (ts.Hours > 0)
+			{
+				res += $"{ts.Hours} {(onlyLetters ? "h" : ts.Hours > 1 ? Strings.hours : Strings.hour)}{(onlyLetters ? "" : ",")} ";
+				count++;
+			}
+			if (count >= numberOfElements) return res.Trim(',', ' ');
+			if (ts.Minutes > 0)
+			{
+				res += $"{ts.Minutes} {(onlyLetters ? "m" : ts.Minutes > 1 ? Strings.minutes : Strings.minute)}{(onlyLetters ? "" : ",")} ";
+				count++;
+			}
+			if (count >= numberOfElements) return res.Trim(',', ' ');
+			if (ts.Seconds > 0)
+			{
+				res += $"{ts.Seconds} {(onlyLetters ? "s" : ts.Seconds > 1 ? Strings.seconds : Strings.second)}{(onlyLetters ? "" : ",")} ";
+				count++;
+			}
+			if (count >= numberOfElements) return res.Trim(',', ' ');
+			if (ts.Milliseconds > 0) res += $"{ts.Milliseconds} {(onlyLetters ? "ms" : ts.Milliseconds > 1 ? Strings.milliseconds : Strings.millisecond)}{(onlyLetters ? "" : ",")} ";
+			if (string.IsNullOrWhiteSpace(res)) res = "0";
+			return res.Trim(',', ' ');
+		}
+	}
+	extension(DateTime me)
+	{
+		public long ToEpoch(bool failIfPrior1970 = false)
+		{
+			var res = (long)(me - EpochStartTime).TotalSeconds;
+			if (res < 0)
+				if (failIfPrior1970)
+					throw new InvalidDataException("DateTime cannot be prior 1/1/1970 to be converted to EPOCH date");
+				else
+					return 0;
+			return res;
+		}
+	}
+	static readonly DateTime EpochStartTime = new(1970, 1, 1);
+	extension(int me)
+	{
+		public TimeSpan Ticks => TimeSpan.FromTicks(me);
+		public TimeSpan Milliseconds => TimeSpan.FromMilliseconds(me);
+		public TimeSpan Seconds => TimeSpan.FromSeconds(me);
+		public TimeSpan Minutes => TimeSpan.FromMinutes(me);
+		public TimeSpan Hours => TimeSpan.FromHours(me);
+		public TimeSpan Days => TimeSpan.FromDays(me);
+	}
+
+	extension(uint me)
+	{
+		public TimeSpan Ticks => TimeSpan.FromTicks(me);
+		public TimeSpan Milliseconds => TimeSpan.FromMilliseconds(me);
+		public TimeSpan Seconds => TimeSpan.FromSeconds(me);
+		public TimeSpan Minutes => TimeSpan.FromMinutes(me);
+		public TimeSpan Hours => TimeSpan.FromHours(me);
+		public TimeSpan Days => TimeSpan.FromDays(me);
+	}
+	extension(long me)
+	{
+		public TimeSpan Ticks => TimeSpan.FromTicks(me);
+		public TimeSpan Milliseconds => TimeSpan.FromMilliseconds(me);
+		public TimeSpan Seconds => TimeSpan.FromSeconds(me);
+		public TimeSpan Minutes => TimeSpan.FromMinutes(me);
+		public TimeSpan Hours => TimeSpan.FromHours(me);
+		public TimeSpan Days => TimeSpan.FromDays(me);
+
+		public DateTime ToEpochDateTime() => EpochStartTime.AddSeconds(me);
+	}
+	extension(ulong me)
+	{
+		public TimeSpan Milliseconds => TimeSpan.FromMilliseconds(me);
+		public TimeSpan Seconds => TimeSpan.FromSeconds(me);
+		public TimeSpan Minutes => TimeSpan.FromMinutes(me);
+		public TimeSpan Hours => TimeSpan.FromHours(me);
+		public TimeSpan Days => TimeSpan.FromDays(me);
+
+		public DateTime ToEpochDateTime() => EpochStartTime.AddSeconds(me);
+	}
+	extension(double me)
+	{
+		public TimeSpan Milliseconds => TimeSpan.FromMilliseconds(me);
+		public TimeSpan Seconds => TimeSpan.FromSeconds(me);
+		public TimeSpan Minutes => TimeSpan.FromMinutes(me);
+		public TimeSpan Hours => TimeSpan.FromHours(me);
+		public TimeSpan Days => TimeSpan.FromDays(me);
+
+		public DateTime ToEpochDateTime() => EpochStartTime.AddSeconds(me);
+	}
+	extension(IEnumerable<DateTime> me)
+	{
+		public DateTime AverageDateTime()
+		{
+			var list = me.ToList();
+			var temp = 0D;
+			for (var i = 0; i < list.Count; i++) temp += list[i].Ticks / (double)list.Count;
+			return new((long)temp);
+		}
+	}
+	extension(IEnumerable<DateTimeOffset> me)
+	{
+		public DateTimeOffset AverageDateTime()
+		{
+			var list = me.ToList();
+			var temp = 0D;
+			for (var i = 0; i < list.Count; i++) temp += list[i].Ticks / (double)list.Count;
+			return new(new((long)temp));
+		}
+	}
 }

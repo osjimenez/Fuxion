@@ -1,4 +1,4 @@
-﻿#if false
+#if false
 using System.Text;
 using System.Text.Json;
 using EventStore.Client;

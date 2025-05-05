@@ -22,17 +22,8 @@
 		</PackageReference>
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-		<PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
-	</ItemGroup>
-
 	<ItemGroup Condition="'$(TargetFramework)' == 'net472'">
 		<Reference Include="System.Web" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
-		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-		<PackageReference Include="System.Net.Http" Version="4.3.4" />
 	</ItemGroup>
 
 	<ItemGroup>

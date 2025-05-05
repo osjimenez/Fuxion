@@ -1,4 +1,3 @@
-﻿#if false
 using Microsoft.EntityFrameworkCore;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -12,4 +11,3 @@ public static class EntityFrameworkDIExtensions
 		return me;
 	}
 }
-#endif

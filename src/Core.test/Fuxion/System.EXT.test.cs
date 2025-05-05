@@ -97,11 +97,50 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 	[Fact(DisplayName = "IsBetween - First")]
 	public void IsBetween()
 	{
+		uint x = 2;
+		var t = x.Seconds;
+		// INTEGERS
 		IsTrue(3.IsBetween(2, 4)); // With margin
 		IsTrue(3.IsBetween(3, 4)); // Low limited
+		IsFalse(3.IsBetween(true, 3, 4)); // Low limited exclusive
 		IsTrue(3.IsBetween(3, 3)); // High limited
-		IsFalse(3.IsBetween(1, 2)); // Low out of range
-		IsFalse(3.IsBetween(4, 5)); // High out of range
+		IsFalse(3.IsBetween(1, true, 3)); // High limited exclusive
+		IsFalse(3.IsBetween(4, 5)); // Low out of range
+		IsFalse(3.IsBetween(1, 2)); // High out of range
+		
+		// DOUBLES
+		IsTrue(3D.IsBetween(2, 4)); // With margin
+		IsTrue(3D.IsBetween(3, 4)); // Low limited
+		IsTrue(3D.IsBetween(3, 3)); // High limited
+		IsFalse(3D.IsBetween(1, 2)); // Low out of range
+		IsFalse(3D.IsBetween(4, 5)); // High out of range
+		
+		// DECIMALS
+		IsTrue(3.1M.IsBetween(2, 4)); // With margin
+		IsTrue(3.1M.IsBetween(3.1M, 4M)); // Low limited
+		IsTrue(3.1M.IsBetween(3M, 3.1M)); // High limited
+		IsFalse(3.1M.IsBetween(3.2M, 4)); // Low out of range
+		IsFalse(3.1M.IsBetween(2, 3)); // High out of range
+
+		// TIMESPAN
+		IsTrue(3.Seconds.IsBetween(2.Seconds, 4.Seconds)); // With margin
+		IsTrue(3.Seconds.IsBetween(3.Seconds, 4.Seconds)); // Low limited
+		IsTrue(3.Seconds.IsBetween(3.Seconds, 3.Seconds)); // High limited
+		IsFalse(3.Seconds.IsBetween(1.Seconds, 2.Seconds)); // Low out of range
+		IsFalse(3.Seconds.IsBetween(4.Seconds, 5.Seconds)); // High out of range
+
+		// DATE
+		IsTrue(DateTime.Parse("2024/01/03 10:00:00")
+			.IsBetween(DateTime.Parse("2024/01/02 10:00:00"), DateTime.Parse("2024/01/04 10:00:00"))); // With margin
+		IsTrue(DateTime.Parse("2024/01/03 10:00:00")
+			.IsBetween(DateTime.Parse("2024/01/03 10:00:00"), DateTime.Parse("2024/01/04 10:00:00"))); // Low limited
+		IsTrue(DateTime.Parse("2024/01/03 10:00:00")
+			.IsBetween(DateTime.Parse("2024/01/03 10:00:00"), DateTime.Parse("2024/01/03 10:00:00"))); // High limited
+		IsFalse(DateTime.Parse("2024/01/03 10:00:00")
+			.IsBetween(DateTime.Parse("2024/01/01 10:00:00"), DateTime.Parse("2024/01/02 10:00:00"))); // Low out of range
+		IsFalse(DateTime.Parse("2024/01/03 10:00:00")
+			.IsBetween(DateTime.Parse("2024/01/04 10:00:00"), DateTime.Parse("2024/01/05 10:00:00"))); // High out of range
+
 	}
 	[Fact(DisplayName = "Object - IsNullOrDefault")]
 	public void IsNullOrDefaultTest()
@@ -246,6 +285,7 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 		Assert.DoesNotContain("123 ms", res);
 		res = TimeSpan.Parse("1.18:53:58.1234567").ToTimeString(6, true);
 		Output.WriteLine("ToTimeString (onlyLetters): " + res);
+		PrintVariable(3.Seconds);
 	}
 	[Fact(DisplayName = "Object - Transform")]
 	public async Task TransformTest()

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>net9.0-windows;net10.0-windows</TargetFrameworks>
@@ -17,7 +17,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Fuxion\Fuxion.csproj" />
+	  <ProjectReference Include="..\Fuxion\Fuxion.csproj" />
 	</ItemGroup>
 
 </Project>
