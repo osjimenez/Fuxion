@@ -18,14 +18,14 @@ namespace Fuxion.Pods;
  * 
  */
 
-public class UriKey2 : IEquatable<UriKey>
+public class UriKey2 : IEquatable<UriKey2>
 {
 	public Uri Key { get; } = null!;
-	public UriKey[] Bases { get; } = [];
-	public UriKey?[] Generics { get; } = [];
-	public UriKey[] Interfaces { get; } = [];
+	public IReadOnlyCollection<UriKey2> Bases { get; } = [];
+	public IReadOnlyCollection<UriKey2>? Generics { get; } = [];
+	public IReadOnlyCollection<UriKey2> Interfaces { get; } = [];
 	public SemanticVersion Version { get; } = null!;
-	public bool Equals(UriKey? other) => other is not null && Uri.Equals(Key, other.Key);
+	public bool Equals(UriKey2? other) => other is not null && Uri.Equals(Key, other.Key);
 	public override bool Equals(object? obj)
 	{
 		var identifier = obj as UriKey;

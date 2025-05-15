@@ -20,7 +20,7 @@ public static class ResponseExtensions
 		EntityTagHeaderValue? entityTag = null,
 		bool enableRangeProcessing = false)
 		where TPayload : Stream
-		=> ToApiResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+		=> ToApiResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
 	public static async Task<IResult> ToApiFileBytesResultAsync<TPayload>(
 		this Task<IResponse<TPayload>> me,
 		string? contentType = null,
@@ -29,7 +29,7 @@ public static class ResponseExtensions
 		EntityTagHeaderValue? entityTag = null,
 		bool enableRangeProcessing = false)
 		where TPayload : IEnumerable<byte>
-		=> ToApiResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+		=> ToApiResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
 	public static IResult ToApiFileStreamResult<TPayload>(
 		this IResponse<TPayload> me,
 		string? contentType = null,
@@ -38,7 +38,7 @@ public static class ResponseExtensions
 		EntityTagHeaderValue? entityTag = null,
 		bool enableRangeProcessing = false)
 		where TPayload : Stream
-		=> ToApiResult(me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+		=> ToApiResult(me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
 	public static IResult ToApiFileBytesResult<TPayload>(
 		this IResponse<TPayload> me,
 		string? contentType = null,
@@ -47,13 +47,13 @@ public static class ResponseExtensions
 		EntityTagHeaderValue? entityTag = null,
 		bool enableRangeProcessing = false)
 		where TPayload : IEnumerable<byte>
-		=> ToApiResult(me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
-	public static async Task<IResult> ToApiResultAsync(this Task<IResponse> me)
-		=> ToApiResult(await me);
+		=> ToApiResult(me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
+	public static async Task<IResult> ToApiResultAsync(this Task<IResponse> me, bool fullSerialization = false)
+		=> ToApiResult(await me, fullSerialization);
 	public static async Task<IResult> ToApiResultAsync<TPayload>(this Task<IResponse<TPayload>> me)
 		=> ToApiResult(await me);
-	public static IResult ToApiResult(this IResponse me) => ToApiResult(me, null, null, null, null, false);
-	public static IResult ToApiResult<TPayload>(this IResponse<TPayload> me) => ToApiResult(me, null, null, null, null, false);
+	public static IResult ToApiResult(this IResponse me, bool fullSerialization = false) => ToApiResult(me, null, null, null, null, false, fullSerialization);
+	public static IResult ToApiResult<TPayload>(this IResponse<TPayload> me) => ToApiResult(me, null, null, null, null, false, false);
 
 	static IResult ToApiResult(
 		this IResponse me,
@@ -61,7 +61,8 @@ public static class ResponseExtensions
 		string? fileDownloadName,
 		DateTimeOffset? lastModified,
 		EntityTagHeaderValue? entityTag,
-		bool enableRangeProcessing)
+		bool enableRangeProcessing,
+		bool fullSerialization)
 	{
 		if (me.IsSuccess)
 			if (me is IResponse<object?> me2 && me2.Payload is not null)
@@ -70,7 +71,7 @@ public static class ResponseExtensions
 				else if(me2.Payload is IEnumerable<byte> bytes)
 					return Results.File(bytes.ToArray(), contentType, fileDownloadName, enableRangeProcessing, lastModified, entityTag);
 				else
-					return Results.Ok(me2.Payload);
+					return Results.Ok(fullSerialization ? me2 : me2.Payload);
 			else if (me.Message is not null)
 				return Results.Content(me.Message);
 			else
@@ -110,7 +111,7 @@ public static class ResponseExtensions
 		EntityTagHeaderValue? entityTag = null,
 		bool enableRangeProcessing = false)
 		where TPayload : Stream
-		=> ToApiActionResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+		=> ToApiActionResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
 	public static async Task<IActionResult> ToApiFileBytesActionResultAsync<TPayload>(
 		this Task<IResponse<TPayload>> me,
 		string? contentType = null,
@@ -119,7 +120,7 @@ public static class ResponseExtensions
 		EntityTagHeaderValue? entityTag = null,
 		bool enableRangeProcessing = false)
 		where TPayload : IEnumerable<byte>
-		=> ToApiActionResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+		=> ToApiActionResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
 	public static IActionResult ToApiFileStreamActionResult<TPayload>(
 		this IResponse<TPayload> me,
 		string? contentType = null,
@@ -128,7 +129,7 @@ public static class ResponseExtensions
 		EntityTagHeaderValue? entityTag = null,
 		bool enableRangeProcessing = false)
 		where TPayload : Stream
-		=> me.ToApiActionResult(contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
+		=> me.ToApiActionResult(contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
 	public static IActionResult ToApiFileBytesActionResult<TPayload>(
 		this IResponse<TPayload> me,
 		string? contentType = null,
@@ -137,15 +138,15 @@ public static class ResponseExtensions
 		EntityTagHeaderValue? entityTag = null,
 		bool enableRangeProcessing = false)
 		where TPayload : IEnumerable<byte>
-		=> me.ToApiActionResult(contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
-	public static async Task<IActionResult> ToApiActionResultAsync(this Task<IResponse> me)
-		=> ToApiActionResult(await me);
+		=> me.ToApiActionResult(contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
+	public static async Task<IActionResult> ToApiActionResultAsync(this Task<IResponse> me, bool fullSerialization = false)
+		=> ToApiActionResult(await me, fullSerialization);
 	public static async Task<IActionResult> ToApiActionResultAsync<TPayload>(this Task<IResponse<TPayload>> me)
 		=> ToApiActionResult(await me);
-	public static IActionResult ToApiActionResult(this IResponse me)
-		=> me.ToApiActionResult(null, null, null, null, false);
+	public static IActionResult ToApiActionResult(this IResponse me, bool fullSerialization = false)
+		=> me.ToApiActionResult(null, null, null, null, false, fullSerialization);
 	public static IActionResult ToApiActionResult<TPayload>(this IResponse<TPayload> me)
-		=> me.ToApiActionResult(null, null, null, null, false);
+		=> me.ToApiActionResult(null, null, null, null, false, false);
 
 	static IActionResult ToApiActionResult(
 		this IResponse me,
@@ -153,7 +154,8 @@ public static class ResponseExtensions
 		string? fileDownloadName,
 		DateTimeOffset? lastModified,
 		EntityTagHeaderValue? entityTag,
-		bool enableRangeProcessing)
+		bool enableRangeProcessing,
+		bool fullSerialization)
 	{
 		if (me.IsSuccess)
 			if (me is IResponse<object?> me2 && me2.Payload is not null)
@@ -166,7 +168,7 @@ public static class ResponseExtensions
 						EnableRangeProcessing = enableRangeProcessing
 					};
 				else
-					return new OkObjectResult(me2.Payload);
+					return new OkObjectResult(fullSerialization ? me2 : me2.Payload);
 			else if (me.Message is not null)
 				return new ContentResult
 				{

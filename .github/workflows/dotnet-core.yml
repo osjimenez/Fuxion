@@ -54,8 +54,6 @@ jobs:
       run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false src/Infrastructure/AspNet/Fuxion.AspNet.csproj
     - name: Dependencies - AspNetCore
       run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false src/Infrastructure/AspNetCore/Fuxion.AspNetCore.csproj
-    # - name: Dependencies - AutoMapper
-    #   run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false src/Infrastructure/AutoMapper/Fuxion.AutoMapper.csproj
     - name: Dependencies - EntityFrameworkCore
       run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false src/Infrastructure/EntityFrameworkCore/Fuxion.EntityFrameworkCore.csproj
     - name: Dependencies - EntityFrameworkCore.InMemory
@@ -64,8 +62,6 @@ jobs:
       run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false src/Infrastructure/EntityFrameworkCore.SqlServer/Fuxion.EntityFrameworkCore.SqlServer.csproj
     - name: Dependencies - EventStore
       run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false src/Infrastructure/EventStore/Fuxion.EventStore.csproj
-    # - name: Dependencies - MassTransit
-    #   run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false src/Infrastructure/MassTransit/Fuxion.MassTransit.csproj
     - name: Dependencies - MongoDB
       run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false src/Infrastructure/MongoDB/Fuxion.MongoDB.csproj
     - name: Dependencies - Orleans
@@ -97,8 +93,6 @@ jobs:
       run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/AspNet/Fuxion.AspNet.csproj
     - name: Build - AspNetCore
       run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/AspNetCore/Fuxion.AspNetCore.csproj
-    # - name: Build - AutoMapper
-    #   run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/AutoMapper/Fuxion.AutoMapper.csproj
     - name: Build - EntityFrameworkCore
       run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/EntityFrameworkCore/Fuxion.EntityFrameworkCore.csproj
     - name: Build - EntityFrameworkCore.InMemory
@@ -107,8 +101,6 @@ jobs:
       run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/EntityFrameworkCore.SqlServer/Fuxion.EntityFrameworkCore.SqlServer.csproj
     - name: Build - EventStore
       run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/EventStore/Fuxion.EventStore.csproj
-    # - name: Build - MassTransit
-    #   run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/MassTransit/Fuxion.MassTransit.csproj
     - name: Build - MongoDB
       run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/MongoDB/Fuxion.MongoDB.csproj
     - name: Build - Orleans
@@ -153,8 +145,6 @@ jobs:
       run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/AspNet/Fuxion.AspNet.csproj
     - name: Create package - AspNetCore
       run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/AspNetCore/Fuxion.AspNetCore.csproj
-    # - name: Create package - AutoMapper
-    #   run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/AutoMapper/Fuxion.AutoMapper.csproj
     - name: Create package - EntityFrameworkCore
       run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/EntityFrameworkCore/Fuxion.EntityFrameworkCore.csproj
     - name: Create package - EntityFrameworkCore.InMemory
@@ -163,8 +153,6 @@ jobs:
       run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/EntityFrameworkCore.SqlServer/Fuxion.EntityFrameworkCore.SqlServer.csproj
     - name: Create package - EventStore
       run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/EventStore/Fuxion.EventStore.csproj
-    # - name: Create package - MassTransit
-    #   run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/MassTransit/Fuxion.MassTransit.csproj
     - name: Create package - MongoDB
       run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/MongoDB/Fuxion.MongoDB.csproj
     - name: Create package - Orleans

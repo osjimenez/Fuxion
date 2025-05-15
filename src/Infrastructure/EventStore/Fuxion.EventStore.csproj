@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+		<TargetFrameworks>$(CoreTargetFrameworks)</TargetFrameworks>
 		<Title>Fuxion EventStore</Title>
 		<PackageId>Fuxion.EventStore</PackageId>
 		<Description>Fuxion infrastructure for EventStore</Description>
@@ -12,8 +12,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="EventStore.Client.Grpc.Streams" Version="23.3.8" />
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+		<PackageReference Include="EventStore.Client.Grpc.Streams" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>

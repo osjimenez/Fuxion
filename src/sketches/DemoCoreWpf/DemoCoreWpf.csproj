@@ -11,6 +11,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="System.Drawing.Common" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\..\core\Drawing\Fuxion.Drawing.csproj"/>
 		<ProjectReference Include="..\..\Infrastructure\Windows\Fuxion.Windows.csproj"/>
 	</ItemGroup>
