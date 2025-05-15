@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.1;net472;net8;net9</TargetFrameworks>
+		<TargetFrameworks>$(CoreAndFrameworkTargetFrameworks)</TargetFrameworks>
 		<Title>Fuxion Entity Framework</Title>
 		<PackageId>Fuxion.EntityFramework</PackageId>
 		<Description>Fuxion library with extensions for EntityFramework.</Description>
@@ -12,8 +12,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="EntityFramework" Version="6.5.1"/>
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+		<PackageReference Include="EntityFramework"/>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>

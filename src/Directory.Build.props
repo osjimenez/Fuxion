@@ -20,17 +20,37 @@
 		<PackageProjectUrl>https://github.com/OsJimenez/Fuxion</PackageProjectUrl>
 		<PackageIcon>icon.png</PackageIcon>
 
-<!--		<PackageOutputPath>$(SolutionDir)..\..\PackOutput</PackageOutputPath>-->
+		<!--		<PackageOutputPath>$(SolutionDir)..\..\PackOutput</PackageOutputPath>-->
 		<PackageOutputPath>$(SolutionDir)..\nupkgs</PackageOutputPath>
 
 		<RepositoryUrl>https://github.com/OsJimenez/Fuxion.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 
 		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+		<!-- TARGET FRAMEWORKS -->
+		<FrameworkTargetFrameworks>net472</FrameworkTargetFrameworks>
+		<IsFrameworkTargetFrameworks Condition="'$(TargetFramework)' == 'net472'">true</IsFrameworkTargetFrameworks>
+		<CompatibilityTargetFrameworks>netstandard2.0</CompatibilityTargetFrameworks>
+		<IsCompatibilityTargetFrameworks Condition="'$(TargetFramework)' == 'netstandard2.0'">true</IsCompatibilityTargetFrameworks>
+		<CoreTargetFrameworks>net8.0;net9.0</CoreTargetFrameworks>
+		<IsCoreTargetFrameworks Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net9.0'">true</IsCoreTargetFrameworks>
+		<CoreWindowsTargetFrameworks>net8.0-windows;net9.0-windows</CoreWindowsTargetFrameworks>
+		<LatestCoreTargetFramework>net9.0</LatestCoreTargetFramework>
+
+		<!-- To bellow, only are variables, you don't need touch this -->
+
+		<IsCoreOrFrameworkTargetFrameworks Condition="'$(IsCoreTargetFrameworks)' == 'true' Or '$(IsFrameworkTargetFrameworks)' == 'true'">true</IsCoreOrFrameworkTargetFrameworks>
+		<IsCompatibilityOrFrameworkTargetFrameworks Condition="'$(IsCompatibilityTargetFrameworks)' == 'true' Or '$(IsFrameworkTargetFrameworks)' == 'true'">true</IsCompatibilityOrFrameworkTargetFrameworks>
+
+		<DefaultTargetFrameworks>$(CompatibilityTargetFrameworks);$(FrameworkTargetFrameworks);$(CoreTargetFrameworks)</DefaultTargetFrameworks>
+		<CoreAndFrameworkTargetFrameworks>$(FrameworkTargetFrameworks);$(CoreTargetFrameworks)</CoreAndFrameworkTargetFrameworks>
+		<WindowsTargetFrameworks>$(FrameworkTargetFrameworks);$(CoreWindowsTargetFrameworks)</WindowsTargetFrameworks>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<Using Remove="System.Net.Http"/>
 		<Using Include="Microsoft.Extensions.Logging"/>
 	</ItemGroup>
+
 </Project>

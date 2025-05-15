@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.0;net472;net8.0;net9.0</TargetFrameworks>
+		<TargetFrameworks>$(DefaultTargetFrameworks)</TargetFrameworks>
 		<Title>Fuxion Licensing</Title>
 		<PackageId>Fuxion.Licensing</PackageId>
 		<Description>Fuxion Licensing</Description>
@@ -12,7 +12,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>
