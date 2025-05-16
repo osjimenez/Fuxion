@@ -52,7 +52,8 @@ public static class ResponseExtensions
 		=> ToApiResult(await me, fullSerialization);
 	public static async Task<IResult> ToApiResultAsync<TPayload>(this Task<IResponse<TPayload>> me)
 		=> ToApiResult(await me);
-	public static IResult ToApiResult(this IResponse me, bool fullSerialization = false) => ToApiResult(me, null, null, null, null, false, fullSerialization);
+	public static IResult ToApiResult(this IResponse me, bool fullSerialization = false)
+		=> ToApiResult(me, null, null, null, null, false, fullSerialization);
 	public static IResult ToApiResult<TPayload>(this IResponse<TPayload> me) => ToApiResult(me, null, null, null, null, false, false);
 
 	static IResult ToApiResult(
