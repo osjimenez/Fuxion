@@ -1,5 +1,3 @@
-# Source = https://gitversion.net/docs/reference/configuration
-# This is TrunkBased/preview1 configuration
 assembly-versioning-scheme: MajorMinorPatch
 assembly-file-versioning-scheme: MajorMinorPatch
 tag-prefix: '[vV]?'
@@ -34,12 +32,12 @@ branches:
     pre-release-weight: 55000
   feature:
     mode: ContinuousDelivery
-    label: '{BranchName}'
+    label: 'feature-{BranchName}'
     increment: Minor
     prevent-increment:
       when-current-commit-tagged: false
     track-merge-message: true
-    regex: ^features?[/-](?<BranchName>.+)
+    regex: ^features?[\/-](?<BranchName>.+)
     source-branches:
     - main
     is-source-branch-for: []
@@ -47,11 +45,11 @@ branches:
     pre-release-weight: 30000
   hotfix:
     mode: ContinuousDelivery
-    label: '{BranchName}'
+    label: 'hotfix-{BranchName}'
     increment: Patch
     prevent-increment:
       when-current-commit-tagged: false
-    regex: ^hotfix(es)?[/-](?<BranchName>.+)
+    regex: ^hotfix(es)?[\/-](?<BranchName>.+)
     source-branches:
     - main
     is-source-branch-for: []
@@ -60,20 +58,29 @@ branches:
     pre-release-weight: 30000
   pull-request:
     mode: ContinuousDelivery
-    label: PullRequest
+    label: pull-{Number}
     increment: Inherit
     prevent-increment:
       of-merged-branch: true
       when-current-commit-tagged: false
-    label-number-pattern: '[/-](?<number>\d+)'
     track-merge-message: true
-    regex: ^(pull|pull\-requests|pr)[/-]
+    regex: ^(pull-requests|pull|pr)[\/-](?<Number>\d*)
     source-branches:
     - main
     - feature
     - hotfix
     is-source-branch-for: []
     pre-release-weight: 30000
+  develop:
+    increment: Patch
+    label: 'preview'
+    prevent-increment:
+      when-current-commit-tagged: false
+    regex: ^develop$
+    source-branches:
+    - main
+    is-source-branch-for: []
+    pre-release-weight: 30000    
   unknown:
     increment: Patch
     prevent-increment:
@@ -101,3 +108,9 @@ is-source-branch-for: []
 tracks-release-branches: false
 is-release-branch: false
 is-main-branch: false
+
+# The following is a list of ignored commits. These commits will not be included in the versioning process.
+# The SHA values are the commit hashes that will be ignored.
+#ignore:
+#  sha:
+#    - f59db8eee370f9140cf7eddef54bf664600fed3a
