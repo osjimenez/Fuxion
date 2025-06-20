@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>$(CoreWindowsTargetFrameworks)</TargetFrameworks>
+		<TargetFrameworks>$(CoreWindowsFrameworks)</TargetFrameworks>
 		<UseWpf>true</UseWpf>
 		<IsPackable>false</IsPackable>
 	</PropertyGroup>

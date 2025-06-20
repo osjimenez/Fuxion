@@ -469,7 +469,7 @@ public static partial class Extensions
 	{
 #if NET9_0_OR_GREATER
 		return Base64Url.EncodeToString(me);
-#endif
+#else
 		// TODO More efficient implementation
 		// https://github.com/dotnet/aspnetcore/blob/ec389c71560ceba39148831343ba8f20962e0228/src/Shared/WebEncoders/WebEncoders.cs#L367
 		// https://github.com/dotnet/aspnetcore/blob/main/src/Http/WebUtilities/src/Base64UrlTextEncoder.cs
@@ -478,13 +478,14 @@ public static partial class Extensions
 		s = s.Replace('+', '-'); // 62nd char of encoding
 		s = s.Replace('/', '_'); // 63rd char of encoding
 		return s;
+#endif
 	}
 	public static byte[] FromBase64String(this string me) => Convert.FromBase64String(me);
 	public static byte[] FromBase64UrlString(this string me)
 	{
 #if NET9_0_OR_GREATER
 		return Base64Url.DecodeFromChars(me);
-#endif
+#else
 		var s = me;
 		s = s.Replace('-', '+'); // 62nd char of encoding
 		s = s.Replace('_', '/'); // 63rd char of encoding
@@ -496,6 +497,7 @@ public static partial class Extensions
 			default: throw new("Illegal base64url string!");
 		}
 		return Convert.FromBase64String(s); // Standard base64 decoder
+#endif
 	}
 	#endregion
 

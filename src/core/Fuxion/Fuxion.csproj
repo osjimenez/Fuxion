@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>$(DefaultTargetFrameworks)</TargetFrameworks>
+		<TargetFrameworks>$(DefaultFrameworks)</TargetFrameworks>
 		<Title>Fuxion</Title>
 		<PackageId>Fuxion</PackageId>
 		<Description>Fuxion library</Description>
@@ -19,13 +19,9 @@
 		<PackageReference Include="System.Text.Json"/>
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(IsCompatibilityOrFrameworkTargetFrameworks)' == 'true'">
+	<ItemGroup Condition="'$(IsStandardOrOldFrameworks)' == 'true'">
 		<PackageReference Include="Microsoft.CSharp" />
 		<PackageReference Include="System.Net.Http" />
-		<PackageReference Include="PolySharp">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
 	</ItemGroup>
 
 	<ItemGroup>

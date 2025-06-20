@@ -70,7 +70,7 @@ public static class Extensions
 				{
 					problem = strContent.DeserializeFromJson<ResponseProblemDetails>(options: jsonOptions);
 					if (problem is not null) extensions.Add((InnerProblemKey, problem));
-				} catch (Exception ex)
+				} catch
 				{
 					// ignored
 				}

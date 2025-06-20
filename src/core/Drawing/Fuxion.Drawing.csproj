@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>$(WindowsTargetFrameworks)</TargetFrameworks>
+		<TargetFrameworks>$(WindowsFrameworks)</TargetFrameworks>
 		<Title>Fuxion Drawing</Title>
 		<PackageId>Fuxion.Drawing</PackageId>
 		<Description>Fuxion library for drawing</Description>

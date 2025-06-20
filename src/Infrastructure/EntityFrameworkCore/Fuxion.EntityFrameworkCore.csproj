@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>$(CoreTargetFrameworks)</TargetFrameworks>
+		<TargetFrameworks>$(CoreFrameworks)</TargetFrameworks>
 		<Title>Fuxion Entity Framework Core</Title>
 		<PackageId>Fuxion.EntityFrameworkCore</PackageId>
 		<Description>Fuxion library with extensions for Entity Framework Core.</Description>

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>$(DefaultTargetFrameworks)</TargetFrameworks>
+		<TargetFrameworks>$(DefaultFrameworks)</TargetFrameworks>
 		<Title>Fuxion Pods</Title>
 		<PackageId>Fuxion.Pods</PackageId>
 		<Description>Fuxion Pods library</Description>
@@ -15,14 +15,7 @@
 		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(IsCompatibilityOrFrameworkTargetFrameworks)' == 'true'">
-		<PackageReference Include="PolySharp">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(IsFrameworkTargetFrameworks)' == 'true'">
+	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">
 		<Reference Include="System.Web" />
 	</ItemGroup>
 

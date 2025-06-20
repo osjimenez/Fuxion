@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>$(LatestCoreTargetFramework)</TargetFramework>
+		<TargetFramework>$(LatestCoreFramework)</TargetFramework>
 		<IsPackable>false</IsPackable>
 	</PropertyGroup>
 

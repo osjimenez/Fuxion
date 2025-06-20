@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>$(LatestCoreTargetFramework)</TargetFramework>
+		<TargetFramework>$(LatestCoreFramework)</TargetFramework>
 		<Nullable>enable</Nullable>
 		<RootNamespace>Fuxion.Lab.Common</RootNamespace>
 	</PropertyGroup>

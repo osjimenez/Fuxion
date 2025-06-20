@@ -1,4 +1,6 @@
-﻿namespace Fuxion;
+using Fuxion.Logging;
+
+namespace Fuxion;
 
 public class AntiBackTimeProvider : ITimeProvider
 {
@@ -24,8 +26,9 @@ public class AntiBackTimeProvider : ITimeProvider
 		}).DefaultIfEmpty().Min();
 		if (stored == null) throw new NoStoredTimeValueException();
 		if (now.Add(MaximumRangeOfDeviation) < stored) throw new BackTimeException(stored.Value, now);
-		Logger?.LogInformation("now => " + now);
-		Logger?.LogInformation("stored => " + stored);
+		//if(Logger?.IsEnabled(LogLevel.Information) ?? false)
+		Logger?.LogInformation(() => "now => " + now);
+		Logger?.LogInformation(() => "stored => " + stored);
 		SetValue(now);
 		return now;
 	}

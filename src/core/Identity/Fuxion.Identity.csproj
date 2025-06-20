@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>$(DefaultTargetFrameworks)</TargetFrameworks>
+		<TargetFrameworks>$(DefaultFrameworks)</TargetFrameworks>
 		<Title>Fuxion Identity</Title>
 		<PackageId>Fuxion.Identity</PackageId>
 		<Description>Fuxion Identity</Description>
@@ -18,13 +18,6 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces"/>
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(IsCompatibilityOrFrameworkTargetFrameworks)' == 'true'">
-		<PackageReference Include="PolySharp">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
 	</ItemGroup>
 
 	<ItemGroup>

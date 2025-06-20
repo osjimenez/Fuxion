@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>$(CoreTargetFrameworks)</TargetFrameworks>
+		<TargetFrameworks>$(CoreFrameworks)</TargetFrameworks>
 		<Title>Fuxion Entity Framework Core in memory</Title>
 		<PackageId>Fuxion.EntityFrameworkCore.InMemory</PackageId>
 		<Description>Fuxion library with extensions for Entity Framework Core in memory.</Description>
