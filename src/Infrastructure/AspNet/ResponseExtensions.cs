@@ -35,6 +35,7 @@ public static class ResponseExtensions
 	static IHttpActionResult ToApiResult(this IResponse me, string? contentType, string? fileDownloadName, bool fullSerialization)
 	{
 		if (me.IsSuccess)
+			//if (me is IResponse<object?> me2 && (me2.Payload is not null || me2.Extensions.Any() || me2.Exception is not null))
 			if (me is IResponse<object?> { Payload: not null } me2)
 				if (me2.Payload is Stream stream)
 					return Factory.Ok(new StreamContent(stream)
@@ -75,7 +76,8 @@ public static class ResponseExtensions
 		var extensions = me.Extensions.ToDictionary(e => e.Key, e => e.Value);
 		extensions.Remove(StatusCodeKey);
 		extensions.Remove(ReasonPhraseKey);
-		if (me is IResponse<object?> { Payload: not null } me3) extensions[PayloadKey] = me3.Payload;
+		
+		if (me is IResponse<object?> { Payload: not null and not Stream } me3) extensions[PayloadKey] = me3.Payload;
 		if (IncludeException && me.Exception is not null)
 		{
 			var jsonOptions = JsonSerializerOptions is null
