@@ -1,6 +1,7 @@
 using Fuxion.Collections.Generic;
 using Fuxion.Resources;
 using Fuxion.Threading.Tasks;
+using Xunit.Sdk;
 
 namespace Fuxion.Test;
 
@@ -240,6 +241,41 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 		Assert.Equal("FD:2E:AC:14:00:00:00", value.ToHexadecimal(':'));
 		Assert.Equal("00000014AC2EFD", value.ToHexadecimal(asBigEndian: true));
 	}
+	[Fact(DisplayName = "String - SplitInLines")]
+	public void StringSplitInLines()
+	{
+		var str = "start\r\nline\r\n\r\n trim \r\nend";
+		var lines = str.SplitInLines(false);
+		Assert.Equal(5, lines.Length);
+		Assert.Equal("start", lines[0]);
+		Assert.Equal("line", lines[1]);
+		Assert.Equal("", lines[2]);
+		Assert.Equal(" trim ", lines[3]);
+		Assert.Equal("end", lines[4]);
+
+		lines = str.SplitInLines(true);
+		Assert.Equal(4, lines.Length);
+		Assert.Equal("start", lines[0]);
+		Assert.Equal("line", lines[1]);
+		Assert.Equal(" trim ", lines[2]);
+		Assert.Equal("end", lines[3]);
+#if !NET472 && !NETSTANDARD2_0
+		lines = str.SplitInLines(false, true);
+		Assert.Equal(5, lines.Length);
+		Assert.Equal("start", lines[0]);
+		Assert.Equal("line", lines[1]);
+		Assert.Equal("", lines[2]);
+		Assert.Equal("trim", lines[3]);
+		Assert.Equal("end", lines[4]);
+
+		lines = str.SplitInLines(true, true);
+		Assert.Equal(4, lines.Length);
+		Assert.Equal("start", lines[0]);
+		Assert.Equal("line", lines[1]);
+		Assert.Equal("trim", lines[2]);
+		Assert.Equal("end", lines[3]);
+#endif
+	}
 	[Fact(DisplayName = "TimeSpan - ToTimeString")]
 	public void TimeSpan_ToTimeString()
 	{
@@ -416,11 +452,34 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 			foreach (var i in -10) Logger.LogInformation($"\t{i}");
 		});
 	}
+	[Fact(DisplayName = "Enumerable<DateTime> - Average")]
+	public void DateTimeEnumerableAverage()
+	{
+		List<DateTime> list = [
+			DateTime.Parse("2025-01-01"),
+			DateTime.Parse("2025-01-10")
+		];
+		PrintVariable(list.AverageDateTime());
+	}
+	[Fact(DisplayName = "Enumerable<DateTimeOffset> - Average")]
+	public void DateTimeOffsetEnumerableAverage()
+	{
+		List<DateTimeOffset> list = [
+			DateTimeOffset.Parse("2025-01-01T10:00:00+2"),
+			DateTimeOffset.Parse("2025-01-10T10:00:00-2")
+		];
+		PrintVariable(list.AverageDateTime());
+		list = [
+			DateTimeOffset.Parse("2025-01-01T10:00:00+0"),
+			DateTimeOffset.Parse("2025-01-10T10:00:00+1")
+		];
+		PrintVariable(list.AverageDateTime());
+	}
 	[Fact(DisplayName = "Enumerable - DistributeAsPercentages")]
 	public void DistributeAsPercentages()
 	{
-		Assert.Throws<InvalidProgramException>(() => Do(100, [50, 60]));
-		Assert.Throws<InvalidDataException>(() => Do(1, [50, 50]));
+		Assert.Throws<TrueException>(() => Do(100, [50, 60]));
+		Assert.Throws<TrueException>(() => Do(1, [50, 50]));
 		Do(5, [0.1d, 9.9d, 20, 40, 30]);
 		Do(50, [0.1d, 9.9d, 20, 40, 30]);
 		Do(1000, [0.1d, 9.9d, 20, 40, 30]);

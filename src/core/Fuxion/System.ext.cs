@@ -510,11 +510,21 @@ public static partial class Extensions
 				res += me[i];
 		return res;
 	}
-	public static string[] SplitInLines(this string me, bool removeEmptyLines = false, bool trimEachLine = false)
-		=> me.Split(new[]
-		{
-			"\r\n", "\r", "\n"
-		}, removeEmptyLines ? StringSplitOptions.RemoveEmptyEntries : StringSplitOptions.None);
+	public static string[] SplitInLines(this string me, bool removeEmptyLines = false
+#if !NET472 && !NETSTANDARD2_0
+		, bool trimEachLine = false
+#endif
+		)
+		=> me.Split(["\r\n", "\r", "\n"],
+			(removeEmptyLines
+				? StringSplitOptions.RemoveEmptyEntries
+				: StringSplitOptions.None)
+#if !NET472 && !NETSTANDARD2_0
+			| (trimEachLine
+				? StringSplitOptions.TrimEntries
+				: StringSplitOptions.None)
+#endif
+			);
 	/// <summary>
 	///    Returns true if <paramref name="path" /> starts with the path <paramref name="baseDirPath" />.
 	///    The comparison is case-insensitive, handles / and \ slashes as folder separators and
@@ -634,7 +644,7 @@ public static partial class Extensions
 	public static string Format(this string me, params object?[] @params) => string.Format(me, @params);
 	public static bool IsNullOrEmpty([NotNullWhen(false)] this string? me) => string.IsNullOrEmpty(me);
 	public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? me) => string.IsNullOrWhiteSpace(me);
-	#endregion
+#endregion
 
 	#region IsBetween - CONVERTED
 	//public static bool IsBetween(this short me, short minimum, short maximum) => minimum <= me && me <= maximum;
@@ -911,22 +921,10 @@ public static class TimeExtensions
 	}
 	extension(IEnumerable<DateTime> me)
 	{
-		public DateTime AverageDateTime()
-		{
-			var list = me.ToList();
-			var temp = 0D;
-			for (var i = 0; i < list.Count; i++) temp += list[i].Ticks / (double)list.Count;
-			return new((long)temp);
-		}
+		public DateTime AverageDateTime() => new((long)me.Average(dt => dt.Ticks));
 	}
 	extension(IEnumerable<DateTimeOffset> me)
 	{
-		public DateTimeOffset AverageDateTime()
-		{
-			var list = me.ToList();
-			var temp = 0D;
-			for (var i = 0; i < list.Count; i++) temp += list[i].Ticks / (double)list.Count;
-			return new(new((long)temp));
-		}
+		public DateTime AverageDateTime() => new((long)me.Average(dto => dto.UtcTicks));
 	}
 }
