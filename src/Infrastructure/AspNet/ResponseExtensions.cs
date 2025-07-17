@@ -75,7 +75,8 @@ public static class ResponseExtensions
 		var extensions = me.Extensions.ToDictionary(e => e.Key, e => e.Value);
 		extensions.Remove(StatusCodeKey);
 		extensions.Remove(ReasonPhraseKey);
-		if (me is IResponse<object?> { Payload: not null } me3) extensions[PayloadKey] = me3.Payload;
+		
+		if (me is IResponse<object?> { Payload: not null and not Stream } me3) extensions[PayloadKey] = me3.Payload;
 		if (IncludeException && me.Exception is not null)
 		{
 			var jsonOptions = JsonSerializerOptions is null
