@@ -88,7 +88,7 @@ public class UriTest(ITestOutputHelper output) : BaseTest<UriKeyTest>(output)
 		// https://github.com/dotnet/runtime/issues/88265
 		// Assert.True(new Uri("https://user@domain.com").IsBaseOf(new("https://domain.com")));
 		// Not base if change UserInfo or Scheme
-#if NET9_0
+#if NET9_0_OR_GREATER
 		IsTrue(new Uri("https://fuxion.dev/one").IsBaseOf(new("https://userInfo@fuxion.dev/one")));
 #else
 		IsFalse(new Uri("https://fuxion.dev/one").IsBaseOf(new("https://userInfo@fuxion.dev/one")));

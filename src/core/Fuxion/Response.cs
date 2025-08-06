@@ -14,7 +14,7 @@ public interface IResponse
 	object? ErrorType { get; }
 	Exception? Exception { get; }
 	IDictionary<string, object?> Extensions { get; }
-	IResponse<T> AsPayload<T>();
+	//IResponse<T> AsPayload<T>();
 }
 
 public interface IResponse<out TPayload> : IResponse
@@ -49,15 +49,15 @@ public class Response(bool isSuccess, string? message = null, object? type = nul
 	[JsonExtensionData]
 	public IDictionary<string, object?> Extensions { get; init; } = new Dictionary<string, object?>(StringComparer.Ordinal);
 
-	public IResponse<T> AsPayload<T>()
-	{
-		if (this is IResponse<T> r) return r;
-		if (IsSuccess) throw new InvalidOperationException("Can't convert a success response to a different payload type.");
-		return new Response<T>(IsSuccess, default!, Message, ErrorType, Exception)
-		{
-			Extensions = Extensions
-		};
-	}
+	//public IResponse<T> AsPayload<T>()
+	//{
+	//	if (this is IResponse<T> r) return r;
+	//	if (IsSuccess) throw new InvalidOperationException("Can't convert a success response to a different payload type.");
+	//	return new Response<T>(IsSuccess, default!, Message, ErrorType, Exception)
+	//	{
+	//		Extensions = Extensions
+	//	};
+	//}
 	// Conversores implícitos con bool
 	public static implicit operator bool(Response response) => response.IsSuccess;
 	//public static implicit operator Response(bool isSuccess) => new(isSuccess);
@@ -154,6 +154,18 @@ public class ResponseProblemDetails
 
 public static class ResponseExtensions
 {
+	extension(IResponse me)
+	{
+		public IResponse<T> AsPayload<T>()
+		{
+			if (me is IResponse<T> r) return r;
+			if (me.IsSuccess) throw new InvalidOperationException("Can't convert a success response to a different payload type.");
+			return new Response<T>(me.IsSuccess, default!, me.Message, me.ErrorType, me.Exception)
+			{
+				Extensions = me.Extensions
+			};
+		}
+	}
 	extension(IEnumerable<IResponse> me)
 	{
 		public IResponse CombineResponses(string? message = null)

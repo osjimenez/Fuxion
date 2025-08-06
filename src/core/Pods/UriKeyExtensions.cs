@@ -102,7 +102,7 @@ public static class UriKeyExtensions
 				// Create uris
 				results.Add(((list.Where(t => t.Bypass == null)
 					.Select(t => t.Uri)
-					.RemoveNulls()
+					.WhereNotNull()
 					.Aggregate((a, c) => new(a, c)), list.Last()
 					.Type), (list.First()
 					.Uri!, list.First()

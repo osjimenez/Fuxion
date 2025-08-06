@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using Fuxion.Collections.Generic;
 
 namespace Fuxion.Identity.Test.Dao;
@@ -85,7 +85,7 @@ public class StateDao : LocationDao
 	protected override IEnumerable<LocationDao> GetLocationExclusions() =>
 		new[] {
 			Country
-		}.RemoveNulls();
+		}.WhereNotNull();
 	protected override IEnumerable<LocationDao> GetLocationInclusions() => Cities.Cast<LocationDao>().ToList();
 }
 
@@ -119,7 +119,7 @@ public class CityDao : LocationDao
 	protected override IEnumerable<LocationDao> GetLocationExclusions() =>
 		new[] {
 			State
-		}.RemoveNulls();
+		}.WhereNotNull();
 	protected override IEnumerable<LocationDao> GetLocationInclusions() =>
 		new LocationDao[]
 			{ };
@@ -147,7 +147,7 @@ public class CategoryDao : DiscriminatorDao
 	protected override IEnumerable<DiscriminatorDao> GetExclusions() =>
 		new[] {
 			Parent
-		}.RemoveNulls();
+		}.WhereNotNull();
 }
 
 [Table("TAG")]

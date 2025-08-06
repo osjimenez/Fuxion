@@ -1,4 +1,4 @@
-﻿using Fuxion.Collections.Generic;
+using Fuxion.Collections.Generic;
 
 namespace Fuxion.Identity.Test.Dto;
 
@@ -84,7 +84,7 @@ public class CategoryDto : DiscriminatorDto
 	protected override IEnumerable<DiscriminatorDto> GetExclusions() =>
 		new[] {
 			Parent
-		}.RemoveNulls();
+		}.WhereNotNull();
 }
 
 public class TagDto : DiscriminatorDto

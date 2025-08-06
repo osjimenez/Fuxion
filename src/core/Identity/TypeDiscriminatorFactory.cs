@@ -110,7 +110,7 @@ public class TypeDiscriminatorFactory
 		{
 			foreach (var ent in entries)
 			{
-				List<TypeDiscriminator> Search(IEnumerable<string> source) => entries.Where(e => source?.RemoveNulls().Contains(e.Id) ?? false).Select(e => e.Discriminator).ToList();
+				List<TypeDiscriminator> Search(IEnumerable<string> source) => entries.Where(e => source?.WhereNotNull().Contains(e.Id) ?? false).Select(e => e.Discriminator).ToList();
 				// EXPLICITS
 				{
 					// Inclusions
@@ -122,7 +122,7 @@ public class TypeDiscriminatorFactory
 						{ })).Transform(res =>
 						res.Count > 0
 							? res
-							: ent.Discriminator.Exclusions = ent.Types?.Select(t => t.DeepBaseType?.Entry.Discriminator).RemoveNulls().ToList() ?? Enumerable.Empty<TypeDiscriminator>().ToList());
+							: ent.Discriminator.Exclusions = ent.Types?.Select(t => t.DeepBaseType?.Entry.Discriminator).WhereNotNull().ToList() ?? Enumerable.Empty<TypeDiscriminator>().ToList());
 				}
 				// ADDED
 				{
@@ -170,13 +170,13 @@ public class TypeDiscriminatorFactory
 		{
 			//if (ent == null) continue;
 			// Comprobar incongruencias en el Mode
-			if (ent.Types?.Select(t => t.Attribute?.DisableMode).RemoveNulls().Distinct().Count() > 1)
+			if (ent.Types?.Select(t => t.Attribute?.DisableMode).WhereNotNull().Distinct().Count() > 1)
 				errors.Add(new($"The type discriminator '{ent.Discriminator.Name}' has incongruence on Mode definition"));
 			// ................
 			// Comprobar que al deshabilitar todo el arbol de herencia no se han especificado ningún otro parámetro
 			var types = ent.Types;
 			if (types == null) continue;
-			foreach (var att in types.Select(t => t.Attribute).RemoveNulls().Where(a => a.DisableMode != null))
+			foreach (var att in types.Select(t => t.Attribute).WhereNotNull().Where(a => a.DisableMode != null))
 			{
 				if (att.AdditionalExclusions != null)
 					errors.Add(new($"The type discriminator '{ent.Discriminator.Name}' define '{nameof(att.DisableMode)}' property "
@@ -245,7 +245,7 @@ public class TypeDiscriminatorFactory
 	public void Register(params Type[] types)
 	{
 		if (initialized) throw new InvalidOperationException("Cannot do registers after obtain discriminators, please, do all registers before use");
-		types = types.RemoveNulls();
+		types = types.WhereNotNull().ToArray();
 		foreach (var type in types)
 		{
 			var att = type.GetTypeInfo().GetCustomAttribute<TypeDiscriminatedAttribute>(false, false, true);

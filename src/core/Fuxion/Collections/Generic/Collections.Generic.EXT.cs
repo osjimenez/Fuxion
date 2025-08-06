@@ -1,9 +1,89 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 
 namespace Fuxion.Collections.Generic;
 
 public static class Extensions
 {
+	extension<T>(IEnumerable<T?> me) where T : class
+	{
+		public IEnumerable<T> WhereNotNull()
+			=> me.Where(i => i is not null).Select(i => i!);
+	}
+	extension(IEnumerable<string?> me)
+	{
+		public IEnumerable<string> RemoveNullsEmptiesAndWhiteSpaces()
+			=> me.Where(i => !i.IsNullOrWhiteSpace()).Select(i => i!);
+	}
+	extension<T>(IEnumerable<T?> me) where T : struct
+	{
+		public IEnumerable<T> WhereNotNull()
+			=> me.Where(i => i.HasValue).Select(i => i!.Value);
+
+		public IEnumerable<T> RemoveNullsAndDefaults()
+			=> me.Where(i => i.HasValue && !i.Value.Equals(default(T))).Select(i => i!.Value);
+	}
+
+	extension<T>(IQueryable<T?> me) where T : class
+	{
+		public IQueryable<T> WhereNotNull()
+			=> me.Where(i => i != null).Select(i => i!);
+	}
+	extension(IQueryable<string?> me)
+	{
+		public IQueryable<string> RemoveNullsEmptiesAndWhiteSpaces()
+			=> me.Where(i => !i.IsNullOrWhiteSpace()).Select(i => i!);
+	}
+
+	extension<T>(IQueryable<T?> me) where T : struct
+	{
+		public IQueryable<T> WhereNotNull()
+			=> me.Where(i => i.HasValue).Select(i => i!.Value);
+
+		public IQueryable<T> RemoveNullsAndDefaults()
+			=> me.Where(i => i.HasValue && !i.Value.Equals(default(T))).Select(i => i!.Value);
+	}
+
+	//extension<T>(ICollection<T?> me) where T : class
+	//{
+	//	public ICollection<T> RemoveNulls()
+	//		=> me.Where(i => i is not null).Select(i => i!).ToList();
+	//}
+	//extension(ICollection<string?> me)
+	//{
+	//	public ICollection<string> RemoveNullsEmptiesAndWhiteSpaces()
+	//		=> me.Where(i => !i.IsNullOrWhiteSpace()).Select(i => i!).ToList();
+	//}
+
+	//extension<T>(ICollection<T?> me) where T : struct
+	//{
+	//	public ICollection<T> RemoveNulls()
+	//		=> me.Where(i => i.HasValue).Select(i => i!.Value).ToList();
+
+	//	public ICollection<T> RemoveNullsAndDefaults()
+	//		=> me.Where(i => i.HasValue && !i.Value.Equals(default(T))).Select(i => i!.Value).ToList();
+	//}
+
+	//extension<T>(T?[] me) where T : class
+	//{
+	//	public T[] RemoveNulls()
+	//		=> me.Where(i => i is not null).Select(i => i!).ToArray();
+	//}
+	//extension(string?[] me)
+	//{
+	//	public string[] RemoveNullsEmptiesAndWhiteSpaces()
+	//		=> me.Where(i => !i.IsNullOrWhiteSpace()).Select(i => i!).ToArray();
+	//}
+
+	//extension<T>(T?[] me) where T : struct
+	//{
+	//	public T[] RemoveNulls()
+	//		=> me.Where(i => i.HasValue).Select(i => i!.Value).ToArray();
+
+	//	public T[] RemoveNullsAndDefaults()
+	//		=> me.Where(i => i.HasValue && !i.Value.Equals(default(T))).Select(i => i!.Value).ToArray();
+	//}
+
 	public static List<T> TakeRandomly<T>(this IEnumerable<T> me, int count)
 	{
 		var list = me.ToList();
@@ -28,39 +108,8 @@ public static class Extensions
 		}
 		return res;
 	}
-	public static bool IsNullOrEmpty<T>(this IEnumerable<T> me) => me == null || !me.Any();
-	// TODO - Eliminado
-	//public static IEnumerable<T> RemoveNulls<T>(this IEnumerable<T?> me) where T : class => me.Where(i => i != null).Cast<T>();
-	public static IEnumerable<T> RemoveNulls<T>(this IEnumerable<T?> me)
-		where T : class
-		=> me.OfType<T>();
-	public static IEnumerable<T> RemoveNulls<T>(this IEnumerable<T?> me)
-		where T : struct
-		=> me.Where(i => i != null)
-			.Cast<T>();
-	public static IQueryable<T> RemoveNulls<T>(this IQueryable<T?> me)
-		where T : class
-		=> me.Where(i => i != null)
-			.Cast<T>();
-	public static IQueryable<T> RemoveNulls<T>(this IQueryable<T?> me)
-		where T : struct
-		=> me.Where(i => i != null)
-			.Cast<T>();
-	public static ICollection<T> RemoveNulls<T>(this ICollection<T?> me)
-		where T : class
-		=> me.Where(i => i != null)
-			.Cast<T>()
-			.ToList();
-	public static ICollection<T> RemoveNulls<T>(this ICollection<T?> me)
-		where T : struct
-		=> me.Where(i => i != null)
-			.Cast<T>()
-			.ToList();
-	public static T[] RemoveNulls<T>(this T?[] me)
-		where T : class
-		=> me.Where(i => i != null)
-			.Cast<T>()
-			.ToArray();
+	public static bool IsNullOrEmpty<T>(this IEnumerable<T>? me) => me == null || !me.Any();
+
 	public static IList<T> RemoveIf<T>(this IList<T> me, Func<T, bool> predicate)
 	{
 		var res = new List<T>();
@@ -175,16 +224,16 @@ public static class Extensions
 				.AsPayload<IEnumerable<(double Percentage, int Rounded, double Exact)>>();
 		var ordered = percentages.OrderBy(x => x);
 		var quantities = ordered.Select(value => new
-			{
-				Percentage = value,
-				Rounded = (int)System.Math.Floor(amountOfItems * (value / 100d)),
-				Exact = amountOfItems * (value / 100d)
-			})
+		{
+			Percentage = value,
+			Rounded = (int)System.Math.Floor(amountOfItems * (value / 100d)),
+			Exact = amountOfItems * (value / 100d)
+		})
 			.ToList();
 		quantities = quantities.Select(x => x with
-			{
-				Rounded = x.Rounded == 0 ? 1 : x.Rounded
-			})
+		{
+			Rounded = x.Rounded == 0 ? 1 : x.Rounded
+		})
 			.ToList();
 		while (quantities.Sum(x => x.Rounded) > amountOfItems)
 		{
@@ -211,17 +260,17 @@ public static class Extensions
 				.AsPayload<IDictionary<string, (double Percentage, int Rounded, double Exact)>>();
 		var ordered = percentages.OrderBy(x => x.Percentage);
 		var quantities = ordered.Select(value => new
-			{
-				value.Label,
-				value.Percentage,
-				Rounded = (int)System.Math.Floor(amountOfItems * (value.Percentage / 100d)),
-				Exact = amountOfItems * (value.Percentage / 100d)
-			})
+		{
+			value.Label,
+			value.Percentage,
+			Rounded = (int)System.Math.Floor(amountOfItems * (value.Percentage / 100d)),
+			Exact = amountOfItems * (value.Percentage / 100d)
+		})
 			.ToList();
 		quantities = quantities.Select(x => x with
-			{
-				Rounded = x.Rounded == 0 ? 1 : x.Rounded
-			})
+		{
+			Rounded = x.Rounded == 0 ? 1 : x.Rounded
+		})
 			.ToList();
 		while (quantities.Sum(x => x.Rounded) > amountOfItems)
 		{

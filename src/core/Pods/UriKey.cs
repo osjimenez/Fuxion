@@ -126,7 +126,7 @@ public class UriKey : IEquatable<UriKey>, IComparable, IComparable<UriKey>
 		UriBuilder ub = new(currentUri);
 		// Create key Uri
 		Dictionary<string,string?> newQuery = new();
-		foreach (var key in pars.AllKeys.RemoveNulls().Where(k => !k.StartsWith(RequiredParameterPrefix)))
+		foreach (var key in pars.AllKeys.WhereNotNull().Where(k => !k.StartsWith(RequiredParameterPrefix)))
 		{
 			newQuery[key] = pars[key];
 		}
@@ -136,7 +136,7 @@ public class UriKey : IEquatable<UriKey>, IComparable, IComparable<UriKey>
 		{
 			// // Create key Uri
 			// Dictionary<string,string?> newQuery = new();
-			// foreach (var key in pars.AllKeys.RemoveNulls().Where(k => !k.StartsWith(RequiredParameterPrefix)))
+			// foreach (var key in pars.AllKeys.WhereNotNull().Where(k => !k.StartsWith(RequiredParameterPrefix)))
 			// {
 			// 	newQuery[key] = pars[key];
 			// }

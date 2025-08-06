@@ -130,14 +130,17 @@ public static class Extensions
 			if (deserializedBody is TPayload payload)
 				return Response.SuccessPayload(payload, extensions: extensions);
 			if (extensions.Any(e => e.Item1 == JsonContentKey))
-				return Response.InvalidData($"The content of the response isn't '{typeof(TPayload).GetSignature()}' type.", extensions: extensions)
+				return Response
+					.InvalidData($"The content of the response isn't '{typeof(TPayload).GetSignature()}' type.", extensions: extensions)
 					.AsPayload<TPayload>();
-			return Response.InvalidData("The content of the response isn't a valid json.", extensions: extensions)
+			return Response
+				.InvalidData("The content of the response isn't a valid json.", extensions: extensions)
 				.AsPayload<TPayload>();
 		}
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
-		return Response.ErrorMessage(problem?.Detail ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions)
+		return Response
+			.ErrorMessage(problem?.Detail ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions)
 			.AsPayload<TPayload>();
 	}
 	static ErrorType HttpStatusCodeToErrorType(HttpStatusCode statusCode)

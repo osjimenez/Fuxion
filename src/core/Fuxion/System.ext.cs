@@ -809,7 +809,6 @@ public static class ExceptionExtensions
 		}
 	}
 }
-
 public static class TimeExtensions
 {
 	extension(TimeSpan me)

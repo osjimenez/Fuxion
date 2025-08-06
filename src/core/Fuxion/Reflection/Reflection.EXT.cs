@@ -50,6 +50,7 @@ public static partial class Extensions
 		bool fullNamesOnlyInMethodName = false,
 		bool includeParameters = true,
 		bool includeParametersNames = false,
+		// PEND convert in a Delegate, declaring their params with names and documentation
 		Func<bool, bool, MethodBase, object?, string>? parametersFunction = null,
 		object? parametersFunctionArguments = null)
 	{
