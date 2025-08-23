@@ -17,7 +17,13 @@ public static class ResponseExtensions
 	public static async Task<IHttpActionResult> ToApiFileStreamResultAsync<TPayload>(this Task<IResponse<TPayload>> me, string? contentType = null, string? fileDownloadName = null)
 		where TPayload : Stream
 		=> ToApiResult(await me, contentType, fileDownloadName, false);
+	public static async Task<IHttpActionResult> ToApiFileStreamResultAsync<TPayload>(this Task<Response<TPayload>> me, string? contentType = null, string? fileDownloadName = null)
+		where TPayload : Stream
+		=> ToApiResult(await me, contentType, fileDownloadName, false);
 	public static async Task<IHttpActionResult> ToApiFileBytesResultAsync<TPayload>(this Task<IResponse<TPayload>> me, string? contentType = null, string? fileDownloadName = null)
+		where TPayload : IEnumerable<byte>
+		=> ToApiResult(await me, contentType, fileDownloadName, false);
+	public static async Task<IHttpActionResult> ToApiFileBytesResultAsync<TPayload>(this Task<Response<TPayload>> me, string? contentType = null, string? fileDownloadName = null)
 		where TPayload : IEnumerable<byte>
 		=> ToApiResult(await me, contentType, fileDownloadName, false);
 	public static IHttpActionResult ToApiFileStreamResult<TPayload>(this IResponse<TPayload> me, string? contentType = null, string? fileDownloadName = null)
@@ -28,7 +34,11 @@ public static class ResponseExtensions
 		=> me.ToApiResult(contentType, fileDownloadName, false);
 	public static async Task<IHttpActionResult> ToApiResultAsync<TPayload>(this Task<IResponse<TPayload>> me, bool fullSerialization = false)
 		=> ToApiResult(await me, fullSerialization: fullSerialization);
+	public static async Task<IHttpActionResult> ToApiResultAsync<TPayload>(this Task<Response<TPayload>> me, bool fullSerialization = false)
+		=> ToApiResult(await me, fullSerialization: fullSerialization);
 	public static async Task<IHttpActionResult> ToApiResultAsync(this Task<IResponse> me, bool fullSerialization = false)
+		=> ToApiResult(await me, fullSerialization: fullSerialization);
+	public static async Task<IHttpActionResult> ToApiResultAsync(this Task<Response> me, bool fullSerialization = false)
 		=> ToApiResult(await me, fullSerialization: fullSerialization);
 	public static IHttpActionResult ToApiResult(this IResponse me, bool fullSerialization = false)
 		=> me.ToApiResult(null, null, fullSerialization);

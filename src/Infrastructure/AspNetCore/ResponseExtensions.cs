@@ -21,8 +21,26 @@ public static class ResponseExtensions
 		bool enableRangeProcessing = false)
 		where TPayload : Stream
 		=> ToApiResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
+	public static async Task<IResult> ToApiFileStreamResultAsync<TPayload>(
+		this Task<Response<TPayload>> me,
+		string? contentType = null,
+		string? fileDownloadName = null,
+		DateTimeOffset? lastModified = null,
+		EntityTagHeaderValue? entityTag = null,
+		bool enableRangeProcessing = false)
+		where TPayload : Stream
+		=> ToApiResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
 	public static async Task<IResult> ToApiFileBytesResultAsync<TPayload>(
 		this Task<IResponse<TPayload>> me,
+		string? contentType = null,
+		string? fileDownloadName = null,
+		DateTimeOffset? lastModified = null,
+		EntityTagHeaderValue? entityTag = null,
+		bool enableRangeProcessing = false)
+		where TPayload : IEnumerable<byte>
+		=> ToApiResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
+	public static async Task<IResult> ToApiFileBytesResultAsync<TPayload>(
+		this Task<Response<TPayload>> me,
 		string? contentType = null,
 		string? fileDownloadName = null,
 		DateTimeOffset? lastModified = null,
@@ -50,7 +68,11 @@ public static class ResponseExtensions
 		=> ToApiResult(me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
 	public static async Task<IResult> ToApiResultAsync(this Task<IResponse> me, bool fullSerialization = false)
 		=> ToApiResult(await me, fullSerialization);
+	public static async Task<IResult> ToApiResultAsync(this Task<Response> me, bool fullSerialization = false)
+		=> ToApiResult(await me, fullSerialization);
 	public static async Task<IResult> ToApiResultAsync<TPayload>(this Task<IResponse<TPayload>> me)
+		=> ToApiResult(await me);
+	public static async Task<IResult> ToApiResultAsync<TPayload>(this Task<Response<TPayload>> me)
 		=> ToApiResult(await me);
 	public static IResult ToApiResult(this IResponse me, bool fullSerialization = false)
 		=> ToApiResult(me, null, null, null, null, false, fullSerialization);
@@ -115,8 +137,26 @@ public static class ResponseExtensions
 		bool enableRangeProcessing = false)
 		where TPayload : Stream
 		=> ToApiActionResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
+	public static async Task<IActionResult> ToApiFileStreamActionResultAsync<TPayload>(
+		this Task<Response<TPayload>> me,
+		string? contentType = null,
+		string? fileDownloadName = null,
+		DateTimeOffset? lastModified = null,
+		EntityTagHeaderValue? entityTag = null,
+		bool enableRangeProcessing = false)
+		where TPayload : Stream
+		=> ToApiActionResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
 	public static async Task<IActionResult> ToApiFileBytesActionResultAsync<TPayload>(
 		this Task<IResponse<TPayload>> me,
+		string? contentType = null,
+		string? fileDownloadName = null,
+		DateTimeOffset? lastModified = null,
+		EntityTagHeaderValue? entityTag = null,
+		bool enableRangeProcessing = false)
+		where TPayload : IEnumerable<byte>
+		=> ToApiActionResult(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
+	public static async Task<IActionResult> ToApiFileBytesActionResultAsync<TPayload>(
+		this Task<Response<TPayload>> me,
 		string? contentType = null,
 		string? fileDownloadName = null,
 		DateTimeOffset? lastModified = null,
@@ -144,7 +184,11 @@ public static class ResponseExtensions
 		=> me.ToApiActionResult(contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
 	public static async Task<IActionResult> ToApiActionResultAsync(this Task<IResponse> me, bool fullSerialization = false)
 		=> ToApiActionResult(await me, fullSerialization);
+	public static async Task<IActionResult> ToApiActionResultAsync(this Task<Response> me, bool fullSerialization = false)
+		=> ToApiActionResult(await me, fullSerialization);
 	public static async Task<IActionResult> ToApiActionResultAsync<TPayload>(this Task<IResponse<TPayload>> me)
+		=> ToApiActionResult(await me);
+	public static async Task<IActionResult> ToApiActionResultAsync<TPayload>(this Task<Response<TPayload>> me)
 		=> ToApiActionResult(await me);
 	public static IActionResult ToApiActionResult(this IResponse me, bool fullSerialization = false)
 		=> me.ToApiActionResult(null, null, null, null, false, fullSerialization);
