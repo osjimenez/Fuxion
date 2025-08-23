@@ -19,8 +19,6 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/OsJimenez/Fuxion</PackageProjectUrl>
 		<PackageIcon>icon.png</PackageIcon>
-
-		<!--		<PackageOutputPath>$(SolutionDir)..\..\PackOutput</PackageOutputPath>-->
 		<PackageOutputPath>$(SolutionDir)..\nupkgs</PackageOutputPath>
 
 		<RepositoryUrl>https://github.com/OsJimenez/Fuxion.git</RepositoryUrl>
@@ -29,28 +27,43 @@
 		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
 		<!-- TARGET FRAMEWORKS -->
-		<FrameworkTargetFrameworks>net472</FrameworkTargetFrameworks>
-		<IsFrameworkTargetFrameworks Condition="'$(TargetFramework)' == 'net472'">true</IsFrameworkTargetFrameworks>
-		<CompatibilityTargetFrameworks>netstandard2.0</CompatibilityTargetFrameworks>
-		<IsCompatibilityTargetFrameworks Condition="'$(TargetFramework)' == 'netstandard2.0'">true</IsCompatibilityTargetFrameworks>
-		<CoreTargetFrameworks>net8.0;net9.0</CoreTargetFrameworks>
-		<IsCoreTargetFrameworks Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net9.0'">true</IsCoreTargetFrameworks>
-		<CoreWindowsTargetFrameworks>net8.0-windows;net9.0-windows</CoreWindowsTargetFrameworks>
-		<LatestCoreTargetFramework>net9.0</LatestCoreTargetFramework>
+		<OldFrameworks>net472</OldFrameworks>
+		<IsOldFrameworks Condition="'$(TargetFramework)' == 'net472'">true</IsOldFrameworks>
+		<StandardFrameworks>netstandard2.0</StandardFrameworks>
+		<IsStandardFrameworks Condition="'$(TargetFramework)' == 'netstandard2.0'">true</IsStandardFrameworks>
+		<CoreFrameworks>net8.0;net9.0;net10.0</CoreFrameworks>
+		<IsCoreFrameworks Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net9.0' Or '$(TargetFramework)' == 'net10.0'">true</IsCoreFrameworks>
+		<CoreWindowsFrameworks>net8.0-windows;net9.0-windows;net10.0-windows</CoreWindowsFrameworks>
+		<LatestCoreFramework>net10.0</LatestCoreFramework>
+		<LatestCoreWindowsFramework>net10.0-windows</LatestCoreWindowsFramework>
 
 		<!-- To bellow, only are variables, you don't need touch this -->
 
-		<IsCoreOrFrameworkTargetFrameworks Condition="'$(IsCoreTargetFrameworks)' == 'true' Or '$(IsFrameworkTargetFrameworks)' == 'true'">true</IsCoreOrFrameworkTargetFrameworks>
-		<IsCompatibilityOrFrameworkTargetFrameworks Condition="'$(IsCompatibilityTargetFrameworks)' == 'true' Or '$(IsFrameworkTargetFrameworks)' == 'true'">true</IsCompatibilityOrFrameworkTargetFrameworks>
+		<IsCoreOrOldFrameworks Condition="'$(IsCoreFrameworks)' == 'true' Or '$(IsOldFrameworks)' == 'true'">true</IsCoreOrOldFrameworks>
+		<IsStandardOrOldFrameworks Condition="'$(IsStandardFrameworks)' == 'true' Or '$(IsOldFrameworks)' == 'true'">true</IsStandardOrOldFrameworks>
 
-		<DefaultTargetFrameworks>$(CompatibilityTargetFrameworks);$(FrameworkTargetFrameworks);$(CoreTargetFrameworks)</DefaultTargetFrameworks>
-		<CoreAndFrameworkTargetFrameworks>$(FrameworkTargetFrameworks);$(CoreTargetFrameworks)</CoreAndFrameworkTargetFrameworks>
-		<WindowsTargetFrameworks>$(FrameworkTargetFrameworks);$(CoreWindowsTargetFrameworks)</WindowsTargetFrameworks>
+		<DefaultFrameworks>$(StandardFrameworks);$(OldFrameworks);$(CoreFrameworks)</DefaultFrameworks>
+		<CoreAndOldFrameworks>$(OldFrameworks);$(CoreFrameworks)</CoreAndOldFrameworks>
+		<WindowsFrameworks>$(OldFrameworks);$(CoreWindowsFrameworks)</WindowsFrameworks>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(IsOldFrameworks)' == 'true'">
+		<DefineConstants>$(DefineConstants);OLD_FRAMEWORKS</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(IsStandardOrOldFrameworks)' == 'true'">
+		<DefineConstants>$(DefineConstants);STANDARD_OR_OLD_FRAMEWORKS</DefineConstants>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<Using Remove="System.Net.Http"/>
 		<Using Include="Microsoft.Extensions.Logging"/>
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(IsStandardOrOldFrameworks)' == 'true'">
+		<PackageReference Include="PolySharp">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 	</ItemGroup>
 
 </Project>

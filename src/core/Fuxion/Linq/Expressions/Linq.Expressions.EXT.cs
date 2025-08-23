@@ -29,9 +29,9 @@ public static class Extensions
 			if (mem is PropertyInfo pro) return pro;
 			throw new ArgumentException("La expresión lambda no hace referencia a un miembro de propiedad.");
 		}
-		if (expression.Body is UnaryExpression)
+		if (expression.Body is UnaryExpression unaryExpression)
 		{
-			var mem = ((MemberExpression)((UnaryExpression)expression.Body).Operand).Member;
+			var mem = ((MemberExpression)unaryExpression.Operand).Member;
 			if (mem is PropertyInfo pro) return pro;
 			throw new ArgumentException("La expresión lambda no hace referencia a un miembro de propiedad.");
 		}

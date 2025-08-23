@@ -35,7 +35,7 @@ public static partial class Extensions
 		=> member.GetCustomAttribute<TAttribute>(inherit, false, exceptionIfMoreThanOne) is not null;
 	const string AsyncMethodRegexPattern2 = @"<(?<method>.+?)>d__\d+";
 	const string AsyncMethodRegexPattern = @"<(?<method>.+?)>d__\d+`*(?<num_args>\d+)*";
-#if NETSTANDARD2_0 || NET472
+#if STANDARD_OR_OLD_FRAMEWORKS
 	internal static Regex AsyncMethodRegex() => new(AsyncMethodRegexPattern);
 #else
 	[GeneratedRegex(AsyncMethodRegexPattern)]
@@ -50,6 +50,7 @@ public static partial class Extensions
 		bool fullNamesOnlyInMethodName = false,
 		bool includeParameters = true,
 		bool includeParametersNames = false,
+		// PEND convert in a Delegate, declaring their params with names and documentation
 		Func<bool, bool, MethodBase, object?, string>? parametersFunction = null,
 		object? parametersFunctionArguments = null)
 	{

@@ -48,7 +48,7 @@ public class UriKeyPodTest : BaseTest<UriKeyPodTest>
 				Age = 12,
 				Name = "header.name",
 				Nick = "header.nick",
-#if NET472
+#if OLD_FRAMEWORKS
 				Birthdate = DateTime.Parse("12/12/2012"),
 #else
 				Birthdate = DateOnly.Parse("12/12/2012"),
@@ -126,7 +126,7 @@ public class UriKeyPodTest : BaseTest<UriKeyPodTest>
 			Age = 12,
 			Name = "header.name",
 			Nick = "header.nick",
-#if NET472
+#if OLD_FRAMEWORKS
 			Birthdate = DateTime.Parse("12/12/2012"),
 #else
 				Birthdate = DateOnly.Parse("12/12/2012"),
@@ -137,7 +137,7 @@ public class UriKeyPodTest : BaseTest<UriKeyPodTest>
 			Age = 12,
 			Name = "header.name",
 			Nick = "header.nick",
-#if NET472
+#if OLD_FRAMEWORKS
 			Birthdate = DateTime.Parse("12/12/2012"),
 #else
 				Birthdate = DateOnly.Parse("12/12/2012"),
@@ -151,7 +151,7 @@ public class UriKeyPodTest : BaseTest<UriKeyPodTest>
 				Age = 12,
 				Name = "header.name",
 				Nick = "header.nick",
-#if NET472
+#if OLD_FRAMEWORKS
 				Birthdate = DateTime.Parse("12/12/2012"),
 #else
 					Birthdate = DateOnly.Parse("12/12/2012"),
@@ -168,7 +168,7 @@ public class UriKeyPodTest : BaseTest<UriKeyPodTest>
 			Age = 12,
 			Name = "header.name",
 			Nick = "header.nick",
-#if NET472
+#if OLD_FRAMEWORKS
 			Birthdate = DateTime.Parse("12/12/2012"),
 #else
 				Birthdate = DateOnly.Parse("12/12/2012"),
@@ -179,7 +179,7 @@ public class UriKeyPodTest : BaseTest<UriKeyPodTest>
 			Age = 12,
 			Name = "header.name",
 			Nick = "header.nick",
-#if NET472
+#if OLD_FRAMEWORKS
 			Birthdate = DateTime.Parse("12/12/2012"),
 #else
 				Birthdate = DateOnly.Parse("12/12/2012"),
@@ -208,7 +208,7 @@ public class UriKeyPodTest : BaseTest<UriKeyPodTest>
 			Name = "payload.name",
 			Age = 23,
 			Nick = "payload.nick",
-#if NET472
+#if OLD_FRAMEWORKS
 			Birthdate = DateTime.Parse("12/12/2012"),
 #else
 			Birthdate = DateOnly.Parse("12/12/2012"),
@@ -222,7 +222,7 @@ public class UriKeyPodTest : BaseTest<UriKeyPodTest>
 				Age = 12,
 				Name = "header.name",
 				Nick = "header.nick",
-#if NET472
+#if OLD_FRAMEWORKS
 				Birthdate = DateTime.Parse("12/12/2012"),
 #else
 				Birthdate = DateOnly.Parse("12/12/2012"),
@@ -258,7 +258,7 @@ file class TestPayloadDerived : TestPayload, ITestPayload
 {
 	public required string Nick { get; set; }
 	[JsonPropertyName("Birthdate-custom")]
-#if NET472
+#if OLD_FRAMEWORKS
 	// PEND https://www.nuget.org/packages/Portable.System.DateTimeOnly#readme-body-tab
 	public DateTime Birthdate { get; set; }
 #else

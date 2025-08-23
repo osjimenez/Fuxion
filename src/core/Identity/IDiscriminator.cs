@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Fuxion.Collections.Generic;
 using Fuxion.Identity.Helpers;
 
@@ -66,7 +66,7 @@ public static class DiscriminatorExtensions
 				var maxId = me.Select(s => s.Id?.ToString()?.Length ?? 0).Union(new[] {
 					"ID".Length, "null".Length
 				}).Max();
-				var maxName = me.Select(s => s.Name?.Length).RemoveNulls().Union(new[] {
+				var maxName = me.Select(s => s.Name?.Length).WhereNotNull().Union(new[] {
 					"NAME".Length, "null".Length
 				}).Max();
 				Printer.WriteLine("┌" + "".PadRight(maxTypeId, '─') + "┬" + "".PadRight(maxTypeName, '─') + "┬" + "".PadRight(maxId, '─') + "┬" + "".PadRight(maxName, '─') + "┐");

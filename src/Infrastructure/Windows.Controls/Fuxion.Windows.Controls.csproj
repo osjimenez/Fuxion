@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>$(WindowsTargetFrameworks)</TargetFrameworks>
+		<TargetFrameworks>$(WindowsFrameworks)</TargetFrameworks>
 		<UseWpf>True</UseWpf>
 		<IsPackable>false</IsPackable>
 		<Title>Fuxion Windows Controls</Title>
@@ -17,7 +17,7 @@
 		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(IsFrameworkTargetFrameworks)' == 'true'">
+	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">
 		<Reference Include="System.Security" />
 	</ItemGroup>
 

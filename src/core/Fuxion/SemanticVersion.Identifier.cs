@@ -22,7 +22,7 @@ public class SemanticVersionIdentifier : IComparable, IComparable<SemanticVersio
 	public static bool operator !=(SemanticVersionIdentifier identifier1, SemanticVersionIdentifier identifier2) => !(identifier1 == identifier2);
 	public static bool operator < (SemanticVersionIdentifier identifier1, SemanticVersionIdentifier identifier2)
 	{
-#if NETSTANDARD2_0 || NET472
+#if STANDARD_OR_OLD_FRAMEWORKS
 		if(identifier1 is null) throw new ArgumentException(nameof(identifier1));
 #else
 		ArgumentNullException.ThrowIfNull(identifier1);
@@ -32,7 +32,7 @@ public class SemanticVersionIdentifier : IComparable, IComparable<SemanticVersio
 	public static bool operator <=(SemanticVersionIdentifier identifier1, SemanticVersionIdentifier identifier2) => identifier1 == identifier2 || identifier1 < identifier2;
 	public static bool operator > (SemanticVersionIdentifier identifier1, SemanticVersionIdentifier identifier2)
 	{
-#if NETSTANDARD2_0 || NET472
+#if STANDARD_OR_OLD_FRAMEWORKS
 		if(identifier1 is null) throw new ArgumentException(nameof(identifier1));
 #else
 		ArgumentNullException.ThrowIfNull(identifier1);

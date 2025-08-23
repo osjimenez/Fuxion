@@ -90,7 +90,7 @@ public class RolTest : BaseTest<RolTest>
 				Scopes = new[] {
 					new ScopeDao("", "", Categories.Purchases, ScopePropagation.ToMe),
 					new ScopeDao("", "", pro.GetRequiredService<TypeDiscriminatorFactory>().FromType<BaseDao>(true)
-#if NETSTABDARD2_0 || NET472
+#if STANDARD_OR_OLD_FRAMEWORKS
 						?? throw new NullReferenceException()
 #endif
 						, ScopePropagation.ToMe | ScopePropagation.ToInclusions)

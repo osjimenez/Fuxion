@@ -19,12 +19,12 @@ public partial class SemanticVersion : IComparable, IComparable<SemanticVersion>
 		Major = uint.Parse(major.Value);
 		Minor = uint.Parse(minor.Value);
 		Patch = uint.Parse(patch.Value);
-		PreRelease = string.IsNullOrWhiteSpace(preRelease.Value)
+		PreRelease = preRelease.Value.IsNullOrWhiteSpace()
 			? new([])
 			: new(preRelease.Value.Split('.')
 				.Select(i => new SemanticVersionIdentifier(i))
 				.ToArray());
-		BuildMetadata = string.IsNullOrWhiteSpace(buildMetadata.Value)
+		BuildMetadata = buildMetadata.Value.IsNullOrWhiteSpace()
 			? new([])
 			: new(buildMetadata.Value.Split('.')
 				.Select(i => new SemanticVersionIdentifier(i))
@@ -64,7 +64,7 @@ public partial class SemanticVersion : IComparable, IComparable<SemanticVersion>
 	// Official regex must be adapted to work in c# by removing 'P' before each group name
 	// You can try with this regex on https://regex101.com/r/P3smVG/1
 	const string RegexPattern = @"^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$";
-#if NETSTANDARD2_0 || NET472
+#if STANDARD_OR_OLD_FRAMEWORKS
 	internal static Regex SemanticVersionRegex() => new(RegexPattern);
 #else
 	[GeneratedRegex(RegexPattern)]
@@ -90,7 +90,7 @@ public partial class SemanticVersion : IComparable, IComparable<SemanticVersion>
 	public static bool operator !=(SemanticVersion version1, SemanticVersion version2) => !(version1 == version2);
 	public static bool operator <(SemanticVersion version1, SemanticVersion version2)
 	{
-#if NETSTANDARD2_0 || NET472
+#if STANDARD_OR_OLD_FRAMEWORKS
 		if (version1 is null) throw new ArgumentException(nameof(version1));
 #else
 		ArgumentNullException.ThrowIfNull(version1);
@@ -100,7 +100,7 @@ public partial class SemanticVersion : IComparable, IComparable<SemanticVersion>
 	public static bool operator <=(SemanticVersion version1, SemanticVersion version2) => version1 == version2 || version1 < version2;
 	public static bool operator >(SemanticVersion version1, SemanticVersion version2)
 	{
-#if NETSTANDARD2_0 || NET472
+#if STANDARD_OR_OLD_FRAMEWORKS
 		if (version1 is null) throw new ArgumentException(nameof(version1));
 #else
 		ArgumentNullException.ThrowIfNull(version1);

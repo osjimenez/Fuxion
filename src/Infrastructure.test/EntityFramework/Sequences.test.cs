@@ -14,7 +14,7 @@ public class Sequences : BaseTest<Sequences>, IDisposable
 	public Sequences(ITestOutputHelper output) : base(output)
 	{
 		// https://devblogs.microsoft.com/dotnet/announcing-entity-framework-6-3-preview-with-net-core-support/
-#if !NET472
+#if !OLD_FRAMEWORKS
 		DbProviderFactories.RegisterFactory("System.Data.SqlClient", SqlClientFactory.Instance);
 #endif
 		con = new();

@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Windows;
 using Fuxion.Collections.Generic;
 
@@ -14,13 +14,13 @@ public class IntegerToVisibilityConverter : GenericConverter<int, Visibility>
 		VisibleValuesCommaSeparated?.Split(',').Select(v => {
 			if (int.TryParse(v, out var res)) return res;
 			return (int?)null;
-		}).RemoveNulls().Contains(source) ?? false ? Visibility.Visible :
+		}).WhereNotNull().Contains(source) ?? false ? Visibility.Visible :
 		CollapsedValuesCommaSeparated?.Split(',').Select(v => {
 			if (int.TryParse(v, out var res)) return res;
 			return (int?)null;
-		}).RemoveNulls().Contains(source) ?? false ? Visibility.Collapsed :
+		}).WhereNotNull().Contains(source) ?? false ? Visibility.Collapsed :
 		HiddenValuesCommaSeparated?.Split(',').Select(v => {
 			if (int.TryParse(v, out var res)) return res;
 			return (int?)null;
-		}).RemoveNulls().Contains(source) ?? false ? Visibility.Hidden : NonDeclaredValue;
+		}).WhereNotNull().Contains(source) ?? false ? Visibility.Hidden : NonDeclaredValue;
 }

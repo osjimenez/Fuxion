@@ -16,7 +16,6 @@ public class Printer
 	public static IPrinter GetOrCreate(Action<string>? writeLineAction = null, object? key = null)
 	{
 		if (key is null && writeLineAction is null) return Default;
-		IPrinter res;
 		if (key is not null)
 		{
 			if (factories.TryGetValue(key, out var printer))

@@ -66,7 +66,6 @@ public static class ResponseExtensions
 		bool fullSerialization)
 	{
 		if (me.IsSuccess)
-			//if (me is IResponse<object?> me2 && (me2.Payload is not null || me2.Extensions.Any() || me2.Exception is not null))
 			if (me is IResponse<object?> { Payload: not null } me2)
 				if (me2.Payload is Stream stream)
 					return Results.File(stream, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing);
@@ -101,6 +100,8 @@ public static class ResponseExtensions
 			ErrorType.Conflict => Results.Problem(me.Message, statusCode: StatusCodes.Status409Conflict, title: "Conflict", extensions: extensions),
 			ErrorType.Critical => Results.Problem(me.Message, statusCode: StatusCodes.Status500InternalServerError, title: "Internal server error", extensions: extensions),
 			ErrorType.NotSupported => Results.Problem(me.Message, statusCode: StatusCodes.Status501NotImplemented, title: "Not implemented", extensions: extensions),
+			ErrorType.Unavailable => Results.Problem(me.Message, statusCode: StatusCodes.Status503ServiceUnavailable, title: "Service unavailable", extensions: extensions),
+			ErrorType.Timeout => Results.Problem(me.Message, statusCode: StatusCodes.Status408RequestTimeout, title: "Request timeout", extensions: extensions),
 			var _ => Results.Problem(me.Message, statusCode: StatusCodes.Status500InternalServerError, title: "Internal server error", extensions: extensions)
 		};
 	}

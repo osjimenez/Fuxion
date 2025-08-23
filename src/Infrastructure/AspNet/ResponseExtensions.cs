@@ -35,7 +35,6 @@ public static class ResponseExtensions
 	static IHttpActionResult ToApiResult(this IResponse me, string? contentType, string? fileDownloadName, bool fullSerialization)
 	{
 		if (me.IsSuccess)
-			//if (me is IResponse<object?> me2 && (me2.Payload is not null || me2.Extensions.Any() || me2.Exception is not null))
 			if (me is IResponse<object?> { Payload: not null } me2)
 				if (me2.Payload is Stream stream)
 					return Factory.Ok(new StreamContent(stream)
@@ -106,6 +105,7 @@ public static class ResponseExtensions
 			ErrorType.Critical => Factory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error", extensions),
 			ErrorType.NotSupported => Factory.Problem(me.Message, HttpStatusCode.NotImplemented, "Not implemented", extensions),
 			ErrorType.Unavailable => Factory.Problem(me.Message, HttpStatusCode.ServiceUnavailable, "Service unavailable", extensions),
+			ErrorType.Timeout => Factory.Problem(me.Message, HttpStatusCode.RequestTimeout, "Request timeout", extensions),
 			var _ => Factory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error", extensions)
 		};
 	}

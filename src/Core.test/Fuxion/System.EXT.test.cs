@@ -1,6 +1,7 @@
 using Fuxion.Collections.Generic;
 using Fuxion.Resources;
 using Fuxion.Threading.Tasks;
+using Xunit.Sdk;
 
 namespace Fuxion.Test;
 
@@ -97,11 +98,50 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 	[Fact(DisplayName = "IsBetween - First")]
 	public void IsBetween()
 	{
+		uint x = 2;
+		var t = x.Seconds;
+		// INTEGERS
 		IsTrue(3.IsBetween(2, 4)); // With margin
 		IsTrue(3.IsBetween(3, 4)); // Low limited
+		IsFalse(3.IsBetween(true, 3, 4)); // Low limited exclusive
 		IsTrue(3.IsBetween(3, 3)); // High limited
-		IsFalse(3.IsBetween(1, 2)); // Low out of range
-		IsFalse(3.IsBetween(4, 5)); // High out of range
+		IsFalse(3.IsBetween(1, true, 3)); // High limited exclusive
+		IsFalse(3.IsBetween(4, 5)); // Low out of range
+		IsFalse(3.IsBetween(1, 2)); // High out of range
+		
+		// DOUBLES
+		IsTrue(3D.IsBetween(2, 4)); // With margin
+		IsTrue(3D.IsBetween(3, 4)); // Low limited
+		IsTrue(3D.IsBetween(3, 3)); // High limited
+		IsFalse(3D.IsBetween(1, 2)); // Low out of range
+		IsFalse(3D.IsBetween(4, 5)); // High out of range
+		
+		// DECIMALS
+		IsTrue(3.1M.IsBetween(2, 4)); // With margin
+		IsTrue(3.1M.IsBetween(3.1M, 4M)); // Low limited
+		IsTrue(3.1M.IsBetween(3M, 3.1M)); // High limited
+		IsFalse(3.1M.IsBetween(3.2M, 4)); // Low out of range
+		IsFalse(3.1M.IsBetween(2, 3)); // High out of range
+
+		// TIMESPAN
+		IsTrue(3.Seconds.IsBetween(2.Seconds, 4.Seconds)); // With margin
+		IsTrue(3.Seconds.IsBetween(3.Seconds, 4.Seconds)); // Low limited
+		IsTrue(3.Seconds.IsBetween(3.Seconds, 3.Seconds)); // High limited
+		IsFalse(3.Seconds.IsBetween(1.Seconds, 2.Seconds)); // Low out of range
+		IsFalse(3.Seconds.IsBetween(4.Seconds, 5.Seconds)); // High out of range
+
+		// DATE
+		IsTrue(DateTime.Parse("2024/01/03 10:00:00")
+			.IsBetween(DateTime.Parse("2024/01/02 10:00:00"), DateTime.Parse("2024/01/04 10:00:00"))); // With margin
+		IsTrue(DateTime.Parse("2024/01/03 10:00:00")
+			.IsBetween(DateTime.Parse("2024/01/03 10:00:00"), DateTime.Parse("2024/01/04 10:00:00"))); // Low limited
+		IsTrue(DateTime.Parse("2024/01/03 10:00:00")
+			.IsBetween(DateTime.Parse("2024/01/03 10:00:00"), DateTime.Parse("2024/01/03 10:00:00"))); // High limited
+		IsFalse(DateTime.Parse("2024/01/03 10:00:00")
+			.IsBetween(DateTime.Parse("2024/01/01 10:00:00"), DateTime.Parse("2024/01/02 10:00:00"))); // Low out of range
+		IsFalse(DateTime.Parse("2024/01/03 10:00:00")
+			.IsBetween(DateTime.Parse("2024/01/04 10:00:00"), DateTime.Parse("2024/01/05 10:00:00"))); // High out of range
+
 	}
 	[Fact(DisplayName = "Object - IsNullOrDefault")]
 	public void IsNullOrDefaultTest()
@@ -201,6 +241,73 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 		Assert.Equal("FD:2E:AC:14:00:00:00", value.ToHexadecimal(':'));
 		Assert.Equal("00000014AC2EFD", value.ToHexadecimal(asBigEndian: true));
 	}
+	[Fact(DisplayName = "String - SplitInLines")]
+	public void StringSplitInLines()
+	{
+		var str = "start\r\nline\r\n\r\n trim \r\nend";
+		var lines = str.SplitInLines(false);
+		Assert.Equal(5, lines.Length);
+		Assert.Equal("start", lines[0]);
+		Assert.Equal("line", lines[1]);
+		Assert.Equal("", lines[2]);
+		Assert.Equal(" trim ", lines[3]);
+		Assert.Equal("end", lines[4]);
+
+		lines = str.SplitInLines(true);
+		Assert.Equal(4, lines.Length);
+		Assert.Equal("start", lines[0]);
+		Assert.Equal("line", lines[1]);
+		Assert.Equal(" trim ", lines[2]);
+		Assert.Equal("end", lines[3]);
+#if !STANDARD_OR_OLD_FRAMEWORKS
+		lines = str.SplitInLines(false, true);
+		Assert.Equal(5, lines.Length);
+		Assert.Equal("start", lines[0]);
+		Assert.Equal("line", lines[1]);
+		Assert.Equal("", lines[2]);
+		Assert.Equal("trim", lines[3]);
+		Assert.Equal("end", lines[4]);
+
+		lines = str.SplitInLines(true, true);
+		Assert.Equal(4, lines.Length);
+		Assert.Equal("start", lines[0]);
+		Assert.Equal("line", lines[1]);
+		Assert.Equal("trim", lines[2]);
+		Assert.Equal("end", lines[3]);
+#endif
+	}
+	[Fact(DisplayName = "String - IsNullOrWhiteSpace")]
+	public void StringIsNullOrWhiteSpace()
+	{
+		string? test = null;
+		Output.WriteLine("test = null");
+		IsTrue(test.IsNullOrEmpty());
+		IsTrue(test.IsNullOrWhiteSpace());
+		IsTrue(test.IsNullOrDefault());
+		IsFalse(test.IsNeitherNullNorEmpty());
+		IsFalse(test.IsNeitherNullNorWhiteSpace());
+		test = "";
+		Output.WriteLine("test = \"\"");
+		IsTrue(test.IsNullOrEmpty());
+		IsTrue(test.IsNullOrWhiteSpace());
+		IsFalse(test.IsNullOrDefault());
+		IsFalse(test.IsNeitherNullNorEmpty());
+		IsFalse(test.IsNeitherNullNorWhiteSpace());
+		test = " ";
+		Output.WriteLine("test = \" \"");
+		IsFalse(test.IsNullOrEmpty());
+		IsTrue(test.IsNullOrWhiteSpace());
+		IsFalse(test.IsNullOrDefault());
+		IsTrue(test.IsNeitherNullNorEmpty());
+		IsFalse(test.IsNeitherNullNorWhiteSpace());
+		test = "a";
+		Output.WriteLine("test = \"a\"");
+		IsFalse(test.IsNullOrEmpty());
+		IsFalse(test.IsNullOrWhiteSpace());
+		IsFalse(test.IsNullOrDefault());
+		IsTrue(test.IsNeitherNullNorEmpty());
+		IsTrue(test.IsNeitherNullNorWhiteSpace());
+	}
 	[Fact(DisplayName = "TimeSpan - ToTimeString")]
 	public void TimeSpan_ToTimeString()
 	{
@@ -246,6 +353,7 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 		Assert.DoesNotContain("123 ms", res);
 		res = TimeSpan.Parse("1.18:53:58.1234567").ToTimeString(6, true);
 		Output.WriteLine("ToTimeString (onlyLetters): " + res);
+		PrintVariable(3.Seconds);
 	}
 	[Fact(DisplayName = "Object - Transform")]
 	public async Task TransformTest()
@@ -360,7 +468,7 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 	[Fact(DisplayName = "Range - Custom integer enumerator")]
 	public void CustomIntEnumerator()
 	{
-#if !NET472
+#if !OLD_FRAMEWORKS
 		// TODO hacer que funcione en net472
 		Logger.LogInformation($"Enumerate with range:");
 		foreach (var i in 0..10) Logger.LogInformation($"\t{i}");
@@ -376,11 +484,34 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 			foreach (var i in -10) Logger.LogInformation($"\t{i}");
 		});
 	}
+	[Fact(DisplayName = "Enumerable<DateTime> - Average")]
+	public void DateTimeEnumerableAverage()
+	{
+		List<DateTime> list = [
+			DateTime.Parse("2025-01-01"),
+			DateTime.Parse("2025-01-10")
+		];
+		PrintVariable(list.AverageDateTime());
+	}
+	[Fact(DisplayName = "Enumerable<DateTimeOffset> - Average")]
+	public void DateTimeOffsetEnumerableAverage()
+	{
+		List<DateTimeOffset> list = [
+			DateTimeOffset.Parse("2025-01-01T10:00:00+2"),
+			DateTimeOffset.Parse("2025-01-10T10:00:00-2")
+		];
+		PrintVariable(list.AverageDateTime());
+		list = [
+			DateTimeOffset.Parse("2025-01-01T10:00:00+0"),
+			DateTimeOffset.Parse("2025-01-10T10:00:00+1")
+		];
+		PrintVariable(list.AverageDateTime());
+	}
 	[Fact(DisplayName = "Enumerable - DistributeAsPercentages")]
 	public void DistributeAsPercentages()
 	{
-		Assert.Throws<InvalidProgramException>(() => Do(100, [50, 60]));
-		Assert.Throws<InvalidDataException>(() => Do(1, [50, 50]));
+		Assert.Throws<TrueException>(() => Do(100, [50, 60]));
+		Assert.Throws<TrueException>(() => Do(1, [50, 50]));
 		Do(5, [0.1d, 9.9d, 20, 40, 30]);
 		Do(50, [0.1d, 9.9d, 20, 40, 30]);
 		Do(1000, [0.1d, 9.9d, 20, 40, 30]);

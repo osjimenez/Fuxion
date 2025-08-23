@@ -1,7 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>$(WindowsTargetFrameworks)</TargetFrameworks>
+		<TargetFrameworks>$(WindowsFrameworks)</TargetFrameworks>
 		<UseWPF>true</UseWPF>
 		<Title>Fuxion Windows</Title>
 		<PackageId>Fuxion.Windows</PackageId>
@@ -26,7 +26,7 @@
 		<PackageReference Include="System.Management" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(IsFrameworkTargetFrameworks)' == 'true'">
+	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">
 		<Reference Include="System.Security" />
 	</ItemGroup>
 

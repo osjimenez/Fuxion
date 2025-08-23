@@ -1,4 +1,4 @@
-﻿using Fuxion.Collections.Generic;
+using Fuxion.Collections.Generic;
 
 namespace Fuxion.Identity.Test.Dvo;
 
@@ -73,7 +73,7 @@ public class CategoryDvo : DiscriminatorDvo<CategoryDvo>
 	protected override IEnumerable<IDiscriminator<string, string>> GetExclusions() =>
 		new[] {
 			Parent
-		}.RemoveNulls();
+		}.WhereNotNull();
 	protected override IEnumerable<IDiscriminator<string, string>> GetInclusions() => Children;
 }
 

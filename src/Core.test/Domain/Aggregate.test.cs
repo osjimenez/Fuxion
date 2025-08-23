@@ -20,19 +20,13 @@ public class AggregateTest
 	}
 }
 
-public
-#if NET472
-	class
-#else
-	record
-#endif
-TestedEvent : Fuxion.Domain.Event
+public record TestedEvent : Fuxion.Domain.Event
 {
 	public TestedEvent(Guid aggregateId) : base(aggregateId) { }
 }
 
-public class MockAggregate :
-#if NET472
+public record MockAggregate :
+#if OLD_FRAMEWORKS
 	Featurizable<MockAggregate>,
 #endif
 	IAggregate
@@ -43,30 +37,28 @@ public class MockAggregate :
 	public Guid Id
 	{
 		get;
-#if !NET472
 		init;
-#endif
 	}
-#if NET472
+#if OLD_FRAMEWORKS
 		= Guid.NewGuid();
 #endif
 	IFeatureCollection<IAggregate> IFeaturizable<IAggregate>.Features { get; } =
-#if NET472
+#if OLD_FRAMEWORKS
 		new FeatureCollection<IAggregate>();
 #else
 		IFeatureCollection<IAggregate>.Create();
 #endif
 }
 
-public class User : 
-#if NET472
+public record User :
+#if OLD_FRAMEWORKS
 	Featurizable<User>,
 #endif
 	IAggregate
 {
 	
-	public IFeatureCollection<IAggregate> Features { get; } = 
-#if NET472
+	public IFeatureCollection<IAggregate> Features { get; } =
+#if OLD_FRAMEWORKS
 		new FeatureCollection<IAggregate>();
 #else
 		IFeatureCollection<IAggregate>.Create();
@@ -74,11 +66,11 @@ public class User :
 	public Guid Id
 	{
 		get;
-#if !NET472
+#if !OLD_FRAMEWORKS
 		init;
 #endif
 	}
-#if NET472
+#if OLD_FRAMEWORKS
 		= Guid.NewGuid();
 #endif
 	public DateTime BirthdayDate { get; private set; }

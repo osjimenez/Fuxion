@@ -1,7 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>$(CoreAndFrameworkTargetFrameworks)</TargetFrameworks>
+		<TargetFrameworks>$(CoreAndOldFrameworks)</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 
@@ -19,7 +19,7 @@
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(IsFrameworkTargetFrameworks)' == 'true'">
+	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">
 		<Reference Include="System.Web" />
 	</ItemGroup>
 

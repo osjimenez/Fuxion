@@ -1,7 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>$(DefaultTargetFrameworks)</TargetFrameworks>
+		<TargetFrameworks>$(DefaultFrameworks)</TargetFrameworks>
 		<Title>FuxionRabbitMQ</Title>
 		<PackageId>Fuxion.RabbitMQ</PackageId>
 		<Description>Fuxion infrastructure for RabbitMQ</Description>

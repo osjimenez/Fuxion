@@ -23,9 +23,9 @@ public class EventsAggregateFeature : IFeature<IAggregate>
 					&& typeof(Event).IsAssignableFrom(m.GetParameters().First().ParameterType)).ToDictionary(m => m.GetParameters().First().ParameterType), (_, __) => __);
 		eventHandlerCache = aggregateEventHandlerCache[aggregateType].ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 	}
-	#if NETSTANDARD2_0 || NET472
+#if STANDARD_OR_OLD_FRAMEWORKS
 	public void OnDetach(IAggregate aggregate) { }
-	#endif
+#endif
 	public event EventHandler<EventArgs<Event>>? Applying;
 	public event EventHandler<EventArgs<Event>>? Validated;
 	public event EventHandler<EventArgs<Event>>? Handled;

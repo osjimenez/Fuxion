@@ -10,7 +10,7 @@ public interface IUriKeyResolver
 	Type this[UriKey key] { get; }
 	UriKey this[Type type] { get; }
 	bool ContainsKey(UriKey key);
-	bool ContainsKey(Type type);
+	bool ContainsType(Type type);
 	UriKey? GetFullKey(UriKey key);
 }
 
@@ -23,29 +23,17 @@ public class UriKeyDirectory : IUriKeyResolver
 		SystemRegister = new(this);
 	}
 	readonly Dictionary<UriKey, Type> _keyToTypeDictionary = new();
-	readonly Dictionary<Type, UriKey> _typeToKeyDictionary = new(
-#if !NETSTANDARD2_0 && !NET472
-		ReferenceEqualityComparer.Instance
-#endif
-		);
+	readonly Dictionary<Type, UriKey> _typeToKeyDictionary = new();
 	public Type this[UriKey key]
-	{
-		get
-		{
-			if (_keyToTypeDictionary.TryGetValue(key, out var value)) return value;
-			throw new UriKeyNotFoundException($"Key '{key}' not found in '{nameof(UriKeyDirectory)}'");
-		}
-	}
+		=> _keyToTypeDictionary.TryGetValue(key, out var value)
+			? value
+			: throw new UriKeyNotFoundException($"Key '{key}' not found in '{nameof(UriKeyDirectory)}'");
 	public UriKey this[Type type]
-	{
-		get
-		{
-			if (_typeToKeyDictionary.TryGetValue(type, out var value)) return value;
-			throw new UriKeyNotFoundException($"Type '{type}' not found in '{nameof(UriKeyDirectory)}'");
-		}
-	}
+		=> _typeToKeyDictionary.TryGetValue(type, out var value)
+			? value
+			: throw new UriKeyNotFoundException($"Type '{type}' not found in '{nameof(UriKeyDirectory)}'");
 	public bool ContainsKey(UriKey key) => _keyToTypeDictionary.ContainsKey(key);
-	public bool ContainsKey(Type type) => _typeToKeyDictionary.ContainsKey(type);
+	public bool ContainsType(Type type) => _typeToKeyDictionary.ContainsKey(type);
 	public UriKey? GetFullKey(UriKey key) => _keyToTypeDictionary.Keys.FirstOrDefault(k => k.Equals(key));
 
 	public void RegisterAssemblyOf(Type type, Func<(Type Type, UriKeyAttribute? Attribute), bool>? predicate = null) =>
@@ -120,7 +108,7 @@ public class UriKeyDirectory : IUriKeyResolver
 			// Additional types
 			DateTime();
 			DateTimeArray();
-#if !NETSTANDARD2_0 && !NET472
+#if !STANDARD_OR_OLD_FRAMEWORKS
 			DateOnly();
 			DateOnlyArray();
 			TimeOnly();
@@ -196,7 +184,7 @@ public class UriKeyDirectory : IUriKeyResolver
 		#region DateTime, DateOnly, TimeOnly
 		public void DateTime() => directory.Register<DateTime>(SystemUriKeys.DateTime);
 		public void DateTimeArray() => directory.Register<DateTime[]>(SystemUriKeys.DateTimeArray);
-#if !NETSTANDARD2_0 && !NET472
+#if !STANDARD_OR_OLD_FRAMEWORKS
 		public void DateOnly() => directory.Register<DateOnly>(SystemUriKeys.DateOnly);
 		public void DateOnlyArray() => directory.Register<DateOnly[]>(SystemUriKeys.DateOnlyArray);
 		public void TimeOnly() => directory.Register<TimeOnly>(SystemUriKeys.TimeOnly);
@@ -255,7 +243,7 @@ public static class SystemUriKeys
 		// Dic.Add(typeof(dynamic[]), DynamicArray);
 		Dic.Add(typeof(DateTime), DateTime);
 		Dic.Add(typeof(DateTime[]), DateTimeArray);
-#if !NETSTANDARD2_0 && !NET472
+#if !STANDARD_OR_OLD_FRAMEWORKS
 		Dic.Add(typeof(DateOnly), DateOnly);
 		Dic.Add(typeof(DateOnly[]), DateOnlyArray);
 		Dic.Add(typeof(TimeOnly), TimeOnly);

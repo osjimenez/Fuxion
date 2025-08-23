@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -26,7 +26,7 @@ static class IdentityExtensions
 	{
 		using (var res = Printer.CallResult<IPermission[]>())
 		{
-			discriminators = discriminators.RemoveNulls();
+			discriminators = discriminators.WhereNotNull().ToArray();
 			using (Printer.Indent("Inpupt Prameters"))
 			{
 				Printer.WriteLine($"Rol: {me.Name}");
@@ -140,7 +140,7 @@ static class IdentityExtensions
 			if (value != null) val = p.PropertyInfo.GetValue(value);
 			if (val == null) return Discriminator.Empty(p.DiscriminatorType);
 			return Discriminator.ForId(p.DiscriminatorType, val);
-		}).RemoveNulls();
+		}).WhereNotNull();
 	internal static Expression<Func<TEntity, bool>> FilterExpression<TEntity>(this IRol me, IFunction[] functions)
 	{
 		using (var res = Printer.CallResult<Expression<Func<TEntity, bool>>>())

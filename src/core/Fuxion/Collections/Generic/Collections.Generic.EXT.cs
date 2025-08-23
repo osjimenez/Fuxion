@@ -1,9 +1,89 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 
 namespace Fuxion.Collections.Generic;
 
 public static class Extensions
 {
+	extension<T>(IEnumerable<T?> me) where T : class
+	{
+		public IEnumerable<T> WhereNotNull()
+			=> me.Where(i => i is not null).Select(i => i!);
+	}
+	extension(IEnumerable<string?> me)
+	{
+		public IEnumerable<string> RemoveNullsEmptiesAndWhiteSpaces()
+			=> me.Where(i => !i.IsNullOrWhiteSpace()).Select(i => i!);
+	}
+	extension<T>(IEnumerable<T?> me) where T : struct
+	{
+		public IEnumerable<T> WhereNotNull()
+			=> me.Where(i => i.HasValue).Select(i => i!.Value);
+
+		public IEnumerable<T> RemoveNullsAndDefaults()
+			=> me.Where(i => i.HasValue && !i.Value.Equals(default(T))).Select(i => i!.Value);
+	}
+
+	extension<T>(IQueryable<T?> me) where T : class
+	{
+		public IQueryable<T> WhereNotNull()
+			=> me.Where(i => i != null).Select(i => i!);
+	}
+	extension(IQueryable<string?> me)
+	{
+		public IQueryable<string> RemoveNullsEmptiesAndWhiteSpaces()
+			=> me.Where(i => !i.IsNullOrWhiteSpace()).Select(i => i!);
+	}
+
+	extension<T>(IQueryable<T?> me) where T : struct
+	{
+		public IQueryable<T> WhereNotNull()
+			=> me.Where(i => i.HasValue).Select(i => i!.Value);
+
+		public IQueryable<T> RemoveNullsAndDefaults()
+			=> me.Where(i => i.HasValue && !i.Value.Equals(default(T))).Select(i => i!.Value);
+	}
+
+	//extension<T>(ICollection<T?> me) where T : class
+	//{
+	//	public ICollection<T> RemoveNulls()
+	//		=> me.Where(i => i is not null).Select(i => i!).ToList();
+	//}
+	//extension(ICollection<string?> me)
+	//{
+	//	public ICollection<string> RemoveNullsEmptiesAndWhiteSpaces()
+	//		=> me.Where(i => !i.IsNullOrWhiteSpace()).Select(i => i!).ToList();
+	//}
+
+	//extension<T>(ICollection<T?> me) where T : struct
+	//{
+	//	public ICollection<T> RemoveNulls()
+	//		=> me.Where(i => i.HasValue).Select(i => i!.Value).ToList();
+
+	//	public ICollection<T> RemoveNullsAndDefaults()
+	//		=> me.Where(i => i.HasValue && !i.Value.Equals(default(T))).Select(i => i!.Value).ToList();
+	//}
+
+	//extension<T>(T?[] me) where T : class
+	//{
+	//	public T[] RemoveNulls()
+	//		=> me.Where(i => i is not null).Select(i => i!).ToArray();
+	//}
+	//extension(string?[] me)
+	//{
+	//	public string[] RemoveNullsEmptiesAndWhiteSpaces()
+	//		=> me.Where(i => !i.IsNullOrWhiteSpace()).Select(i => i!).ToArray();
+	//}
+
+	//extension<T>(T?[] me) where T : struct
+	//{
+	//	public T[] RemoveNulls()
+	//		=> me.Where(i => i.HasValue).Select(i => i!.Value).ToArray();
+
+	//	public T[] RemoveNullsAndDefaults()
+	//		=> me.Where(i => i.HasValue && !i.Value.Equals(default(T))).Select(i => i!.Value).ToArray();
+	//}
+
 	public static List<T> TakeRandomly<T>(this IEnumerable<T> me, int count)
 	{
 		var list = me.ToList();
@@ -14,7 +94,7 @@ public static class Extensions
 		List<T> res = new();
 		for (var i = 0; i < count; i++)
 		{
-#if NETSTANDARD2_0 || NET472
+#if STANDARD_OR_OLD_FRAMEWORKS
 			var ran = new Random(Guid.NewGuid()
 				.GetHashCode());
 			var actual = ran.Next(0, list.Count);
@@ -28,39 +108,8 @@ public static class Extensions
 		}
 		return res;
 	}
-	public static bool IsNullOrEmpty<T>(this IEnumerable<T> me) => me == null || !me.Any();
-	// TODO - Eliminado
-	//public static IEnumerable<T> RemoveNulls<T>(this IEnumerable<T?> me) where T : class => me.Where(i => i != null).Cast<T>();
-	public static IEnumerable<T> RemoveNulls<T>(this IEnumerable<T?> me)
-		where T : class
-		=> me.OfType<T>();
-	public static IEnumerable<T> RemoveNulls<T>(this IEnumerable<T?> me)
-		where T : struct
-		=> me.Where(i => i != null)
-			.Cast<T>();
-	public static IQueryable<T> RemoveNulls<T>(this IQueryable<T?> me)
-		where T : class
-		=> me.Where(i => i != null)
-			.Cast<T>();
-	public static IQueryable<T> RemoveNulls<T>(this IQueryable<T?> me)
-		where T : struct
-		=> me.Where(i => i != null)
-			.Cast<T>();
-	public static ICollection<T> RemoveNulls<T>(this ICollection<T?> me)
-		where T : class
-		=> me.Where(i => i != null)
-			.Cast<T>()
-			.ToList();
-	public static ICollection<T> RemoveNulls<T>(this ICollection<T?> me)
-		where T : struct
-		=> me.Where(i => i != null)
-			.Cast<T>()
-			.ToList();
-	public static T[] RemoveNulls<T>(this T?[] me)
-		where T : class
-		=> me.Where(i => i != null)
-			.Cast<T>()
-			.ToArray();
+	public static bool IsNullOrEmpty<T>(this IEnumerable<T>? me) => me == null || !me.Any();
+
 	public static IList<T> RemoveIf<T>(this IList<T> me, Func<T, bool> predicate)
 	{
 		var res = new List<T>();
@@ -163,34 +212,34 @@ public static class Extensions
 		foreach (var i in res) outputConsole?.Invoke("  - " + i);
 		return res;
 	}
-	public static IResponse<IEnumerable<(double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(this IEnumerable<double> percentages, int amountOfItems)
+	public static Response<IEnumerable<(double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(this IEnumerable<double> percentages, int amountOfItems)
 	{
 		var count = percentages.Count();
 		if (count > amountOfItems)
-			return Response.Get.Error.InvalidData($"{nameof(percentages)}.Count ({count}) must be less than {nameof(amountOfItems)} ({amountOfItems})")
+			return Response.InvalidData($"{nameof(percentages)}.Count ({count}) must be less than {nameof(amountOfItems)} ({amountOfItems})")
 				.AsPayload<IEnumerable<(double Percentage, int Rounded, double Exact)>>();
 		var sum = percentages.Sum();
 		if (sum != 100)
-			return Response.Get.Error.InvalidData($"Percentages must sum 100, but sum {sum}")
+			return Response.InvalidData($"Percentages must sum 100, but sum {sum}")
 				.AsPayload<IEnumerable<(double Percentage, int Rounded, double Exact)>>();
 		var ordered = percentages.OrderBy(x => x);
 		var quantities = ordered.Select(value => new
-			{
-				Percentage = value,
-				Rounded = (int)System.Math.Floor(amountOfItems * (value / 100d)),
-				Exact = amountOfItems * (value / 100d)
-			})
+		{
+			Percentage = value,
+			Rounded = (int)System.Math.Floor(amountOfItems * (value / 100d)),
+			Exact = amountOfItems * (value / 100d)
+		})
 			.ToList();
 		quantities = quantities.Select(x => x with
-			{
-				Rounded = x.Rounded == 0 ? 1 : x.Rounded
-			})
+		{
+			Rounded = x.Rounded == 0 ? 1 : x.Rounded
+		})
 			.ToList();
 		while (quantities.Sum(x => x.Rounded) > amountOfItems)
 		{
 			var quantity = quantities.MaxBy(_ => _.Rounded);
 			if (quantity is null)
-				return Response.Get.Error.Critical($"{nameof(quantity)} cannot be null")
+				return Response.Critical($"{nameof(quantity)} cannot be null")
 					.AsPayload<IEnumerable<(double Percentage, int Rounded, double Exact)>>();
 			var index = quantities.IndexOf(quantity);
 			quantities.Remove(quantity);
@@ -199,37 +248,37 @@ public static class Extensions
 				Rounded = quantity.Rounded - 1
 			});
 		}
-		return Response.Get.SuccessPayload(quantities.Select(x => (x.Percentage, x.Rounded, x.Exact)));
+		return Response.SuccessPayload(quantities.Select(x => (x.Percentage, x.Rounded, x.Exact)));
 	}
-	public static IResponse<IDictionary<string, (double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(this IList<(string Label, double Percentage)> percentages, int amountOfItems)
+	public static Response<Dictionary<string, (double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(this IList<(string Label, double Percentage)> percentages, int amountOfItems)
 	{
 		if (percentages.Count > amountOfItems)
-			return Response.Get.Error.InvalidData($"{nameof(percentages)}.Count ({percentages.Count}) must be less than {nameof(amountOfItems)} ({amountOfItems})")
-				.AsPayload<IDictionary<string, (double Percentage, int Rounded, double Exact)>>();
-		if (percentages.Sum(x => x.Percentage) != 100)
-			return Response.Get.Error.InvalidData($"Percentages must sum 100, but sum {percentages.Sum(x => x.Percentage)}")
-				.AsPayload<IDictionary<string, (double Percentage, int Rounded, double Exact)>>();
+			return Response.InvalidData($"{nameof(percentages)}.Count ({percentages.Count}) must be less than {nameof(amountOfItems)} ({amountOfItems})")
+				.AsPayload<Dictionary<string, (double Percentage, int Rounded, double Exact)>>();
+		if (percentages.Sum(x => x.Percentage) != 100d)
+			return Response.InvalidData($"Percentages must sum 100, but sum {percentages.Sum(x => x.Percentage)}")
+				.AsPayload<Dictionary<string, (double Percentage, int Rounded, double Exact)>>();
 		var ordered = percentages.OrderBy(x => x.Percentage);
 		var quantities = ordered.Select(value => new
-			{
-				value.Label,
-				value.Percentage,
-				Rounded = (int)System.Math.Floor(amountOfItems * (value.Percentage / 100d)),
-				Exact = amountOfItems * (value.Percentage / 100d)
-			})
+		{
+			value.Label,
+			value.Percentage,
+			Rounded = (int)System.Math.Floor(amountOfItems * (value.Percentage / 100d)),
+			Exact = amountOfItems * (value.Percentage / 100d)
+		})
 			.ToList();
 		quantities = quantities.Select(x => x with
-			{
-				Rounded = x.Rounded == 0 ? 1 : x.Rounded
-			})
+		{
+			Rounded = x.Rounded == 0 ? 1 : x.Rounded
+		})
 			.ToList();
 		while (quantities.Sum(x => x.Rounded) > amountOfItems)
 		{
 			var quantity = quantities.OrderByDescending(x => x.Rounded)
 				.MaxBy(y => y.Exact);
 			if (quantity is null)
-				return Response.Get.Error.Critical($"{nameof(quantity)} cannot be null")
-					.AsPayload<IDictionary<string, (double Percentage, int Rounded, double Exact)>>();
+				return Response.Critical($"{nameof(quantity)} cannot be null")
+					.AsPayload<Dictionary<string, (double Percentage, int Rounded, double Exact)>>();
 			var index = quantities.IndexOf(quantity);
 			quantities.Remove(quantity);
 			quantities.Insert(index, quantity with
@@ -243,8 +292,8 @@ public static class Extensions
 			var quantity = quantities.OrderBy(x => x.Rounded)
 				.MaxBy(y => y.Exact);
 			if (quantity is null)
-				return Response.Get.Error.Critical($"{nameof(quantity)} cannot be null")
-					.AsPayload<IDictionary<string, (double Percentage, int Rounded, double Exact)>>();
+				return Response.Critical($"{nameof(quantity)} cannot be null")
+					.AsPayload<Dictionary<string, (double Percentage, int Rounded, double Exact)>>();
 			var index = quantities.IndexOf(quantity);
 			quantities.Remove(quantity);
 			quantities.Insert(index, quantity with
@@ -253,7 +302,7 @@ public static class Extensions
 			});
 		}
 
-		return Response.Get.SuccessPayload(quantities.Select(x => (x.Label, x.Percentage, x.Rounded, x.Exact))
+		return Response.SuccessPayload(quantities.Select(x => (x.Label, x.Percentage, x.Rounded, x.Exact))
 			.ToDictionary(x => x.Label, x => (x.Percentage, x.Rounded, x.Exact)));
 	}
 }

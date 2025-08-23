@@ -39,8 +39,8 @@ public class AggregateFeature : IFeature<IAggregate>
 	public void OnDetach(IAggregate featurizable) { }
 }
 
-public class MockUser : 
-#if NET472
+public record MockUser :
+#if OLD_FRAMEWORKS
 	Featurizable<MockAggregate>,
 #endif
 	IAggregate, IFeaturizable<MockUser>
@@ -51,8 +51,8 @@ public class MockUser :
 	}
 	public bool Attached { get; set; }
 	//IFeatureCollection<IAggregate> IFeaturizable<IAggregate>.Features => ((IFeaturizable<MockUser>)this).Features;
-	IFeatureCollection<IAggregate> IFeaturizable<IAggregate>.Features { get; } = 
-#if NET472
+	IFeatureCollection<IAggregate> IFeaturizable<IAggregate>.Features { get; } =
+#if OLD_FRAMEWORKS
 		new FeatureCollection<IAggregate>();
 #else
 		IFeatureCollection<IAggregate>.Create();
@@ -62,11 +62,9 @@ public class MockUser :
 	public Guid Id
 	{
 		get;
-#if !NET472
 		init;
-#endif
 	}
-#if NET472
+#if OLD_FRAMEWORKS
 		= Guid.NewGuid();
 #endif
 }
@@ -78,8 +76,8 @@ public class MockUserFeature : IFeature<MockUser>
 }
 
 
-public class MockGroup : 
-#if NET472
+public record MockGroup :
+#if OLD_FRAMEWORKS
 	Featurizable<MockAggregate>,
 #endif
 	IAggregate
@@ -88,18 +86,18 @@ public class MockGroup :
 	{
 		Id = id;
 	}
-	IFeatureCollection<IAggregate> IFeaturizable<IAggregate>.Features { get; } = 
-#if NET472
+	IFeatureCollection<IAggregate> IFeaturizable<IAggregate>.Features { get; } =
+#if OLD_FRAMEWORKS
 		new FeatureCollection<IAggregate>();
 #else
 		IFeatureCollection<IAggregate>.Create();
 #endif
-	public Guid Id { get; 
-#if !NET472
+	public Guid Id { get;
+#if !OLD_FRAMEWORKS
 		init;
 #endif
 	}
-#if NET472
+#if OLD_FRAMEWORKS
 		= Guid.NewGuid();
 #endif
 }

@@ -45,7 +45,7 @@ public class UriKey : IEquatable<UriKey>, IComparable, IComparable<UriKey>
 	public const string FuxionSystemTypesBaseUri = FuxionBaseUri + "system/";
 
 	public UriKey(
-#if !NETSTANDARD2_0 && !NET472
+#if !STANDARD_OR_OLD_FRAMEWORKS
 		[ConstantExpected]
 #endif
 		string key) : this(new(key),false) { }
@@ -126,7 +126,7 @@ public class UriKey : IEquatable<UriKey>, IComparable, IComparable<UriKey>
 		UriBuilder ub = new(currentUri);
 		// Create key Uri
 		Dictionary<string,string?> newQuery = new();
-		foreach (var key in pars.AllKeys.RemoveNulls().Where(k => !k.StartsWith(RequiredParameterPrefix)))
+		foreach (var key in pars.AllKeys.WhereNotNull().Where(k => !k.StartsWith(RequiredParameterPrefix)))
 		{
 			newQuery[key] = pars[key];
 		}
@@ -136,7 +136,7 @@ public class UriKey : IEquatable<UriKey>, IComparable, IComparable<UriKey>
 		{
 			// // Create key Uri
 			// Dictionary<string,string?> newQuery = new();
-			// foreach (var key in pars.AllKeys.RemoveNulls().Where(k => !k.StartsWith(RequiredParameterPrefix)))
+			// foreach (var key in pars.AllKeys.WhereNotNull().Where(k => !k.StartsWith(RequiredParameterPrefix)))
 			// {
 			// 	newQuery[key] = pars[key];
 			// }
@@ -170,20 +170,20 @@ public class UriKey : IEquatable<UriKey>, IComparable, IComparable<UriKey>
 	public static bool operator !=(UriKey identifier1, UriKey identifier2) => !(identifier1 == identifier2);
 	public static bool operator <(UriKey identifier1, UriKey identifier2)
 	{
-#if !NETSTANDARD2_0 && !NET472
+#if !STANDARD_OR_OLD_FRAMEWORKS
 		ArgumentNullException.ThrowIfNull(identifier1);
 #else
-		if(identifier1 is null) throw new ArgumentException(nameof(identifier1));
+		if (identifier1 is null) throw new ArgumentException(nameof(identifier1));
 #endif
 		return identifier1.CompareTo(identifier2) < 0;
 	}
 	public static bool operator <=(UriKey identifier1, UriKey identifier2) => identifier1 == identifier2 || identifier1 < identifier2;
 	public static bool operator >(UriKey identifier1, UriKey identifier2)
 	{
-#if !NETSTANDARD2_0 && !NET472
+#if !STANDARD_OR_OLD_FRAMEWORKS
 		ArgumentNullException.ThrowIfNull(identifier1);
 #else
-		if(identifier1 is null) throw new ArgumentException(nameof(identifier1));
+		if (identifier1 is null) throw new ArgumentException(nameof(identifier1));
 #endif
 		return identifier2 < identifier1;
 	}

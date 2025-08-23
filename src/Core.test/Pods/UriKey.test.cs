@@ -188,26 +188,19 @@ public class UriKeyTest(ITestOutputHelper output) : BaseTest<UriKeyTest>(output)
 	{
 		PrintVariable(new Uri("https://fuxion.dev/folder/1.0.0").SerializeToJson());
 		PrintVariable(new UriKey("https://fuxion.dev/folder/1.0.0").SerializeToJson());
-		PrintVariable(typeof(Chain9Reset_Echelon1).GetUriKey()
-			.SerializeToJson());
+		PrintVariable(typeof(Chain9Reset_Echelon1).GetUriKey().SerializeToJson());
 	}
 	[Fact(DisplayName = "Validate UriKey properties")]
 	public void ValidateProperties()
 	{
 		var i1 = "https://fuxion.dev/interface-1/1.0.0";
-		var i1b64 = Encoding.UTF8.GetBytes(i1)
-			.ToBase64UrlString();
+		var i1b64 = Encoding.UTF8.GetBytes(i1).ToBase64UrlString();
 		var i2 = "https://fuxion.dev/interface-2/1.0.0";
-		var i2b64 = Encoding.UTF8.GetBytes(i2)
-			.ToBase64UrlString();
-		var g1 = "https://fuxion.dev/generic-1/1.0.0"u8.ToArray()
-			.ToBase64UrlString();
-		var g2 = "https://fuxion.dev/generic-2/1.0.0"u8.ToArray()
-			.ToBase64UrlString();
-		var c1 = "https://fuxion.dev/chain-1/1.0.0"u8.ToArray()
-			.ToBase64UrlString();
-		var c2 = "https://fuxion.dev/chain-2/1.0.0"u8.ToArray()
-			.ToBase64UrlString();
+		var i2b64 = Encoding.UTF8.GetBytes(i2).ToBase64UrlString();
+		var g1 = "https://fuxion.dev/generic-1/1.0.0"u8.ToArray().ToBase64UrlString();
+		var g2 = "https://fuxion.dev/generic-2/1.0.0"u8.ToArray().ToBase64UrlString();
+		var c1 = "https://fuxion.dev/chain-1/1.0.0"u8.ToArray().ToBase64UrlString();
+		var c2 = "https://fuxion.dev/chain-2/1.0.0"u8.ToArray().ToBase64UrlString();
 		// var u1 = new UriKey(new ($"https://fuxion.dev/1.0.0?__interfaces={i1}-{i2}"),true);
 		UriBuilder ub1 = new("https://fuxion.dev/1.0.0");
 		var query = HttpUtility.ParseQueryString(ub1.Query);
@@ -215,10 +208,8 @@ public class UriKeyTest(ITestOutputHelper output) : BaseTest<UriKeyTest>(output)
 		ub1.Query += query;
 		var u1 = new UriKey(ub1.Uri, true);
 		AnalyseUriKey(u1);
-		Assert.Equal(i1, u1.Interfaces.First()
-			.ToString());
-		Assert.Equal(i2, u1.Interfaces.Last()
-			.ToString());
+		Assert.Equal(i1, u1.Interfaces.First().ToString());
+		Assert.Equal(i2, u1.Interfaces.Last().ToString());
 	}
 	[Fact(DisplayName = "Validate UriKeyAttribute")]
 	public void ValidateUriKeyAttribute()
