@@ -54,6 +54,8 @@ jobs:
       run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false src/Infrastructure/AspNet/Fuxion.AspNet.csproj
     - name: Dependencies - AspNetCore
       run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false src/Infrastructure/AspNetCore/Fuxion.AspNetCore.csproj
+    - name: Dependencies - EntityFramework
+      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false src/Infrastructure/EntityFramework/Fuxion.EntityFramework.csproj
     - name: Dependencies - EntityFrameworkCore
       run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false src/Infrastructure/EntityFrameworkCore/Fuxion.EntityFrameworkCore.csproj
     - name: Dependencies - EntityFrameworkCore.InMemory
@@ -93,6 +95,8 @@ jobs:
       run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/AspNet/Fuxion.AspNet.csproj
     - name: Build - AspNetCore
       run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/AspNetCore/Fuxion.AspNetCore.csproj
+    - name: Build - EntityFramework
+      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/EntityFramework/Fuxion.EntityFramework.csproj
     - name: Build - EntityFrameworkCore
       run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/EntityFrameworkCore/Fuxion.EntityFrameworkCore.csproj
     - name: Build - EntityFrameworkCore.InMemory
@@ -145,6 +149,8 @@ jobs:
       run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/AspNet/Fuxion.AspNet.csproj
     - name: Create package - AspNetCore
       run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/AspNetCore/Fuxion.AspNetCore.csproj
+    - name: Create package - EntityFramework
+      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/EntityFramework/Fuxion.EntityFramework.csproj
     - name: Create package - EntityFrameworkCore
       run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} src/Infrastructure/EntityFrameworkCore/Fuxion.EntityFrameworkCore.csproj
     - name: Create package - EntityFrameworkCore.InMemory
