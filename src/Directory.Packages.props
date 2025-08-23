@@ -34,7 +34,7 @@
 	<PropertyGroup>
 		<NetStableVersion>9.0.8</NetStableVersion>
 	</PropertyGroup>
-	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0' Or '$(TargetFramework)' == 'net9.0-windows' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
+		<ItemGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net8.0-windows' Or '$(TargetFramework)' == 'net9.0' Or '$(TargetFramework)' == 'net9.0-windows' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
 		<PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(NetStableVersion)" />
 		<PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(NetStableVersion)" />
 		<PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="$(NetStableVersion)" />
