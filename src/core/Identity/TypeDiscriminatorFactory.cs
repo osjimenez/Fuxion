@@ -14,21 +14,13 @@ public class TypeDiscriminatorFactory
 	public string DiscriminatorTypeName { get; set; } = TypeDiscriminator.TypeDiscriminatorId;
 	public bool AllowMoreThanOneTypeByDiscriminator { get; set; }
 	public Func<Type, TypeDiscriminatedAttribute?, string> GetIdFunction { get; set; } = (type, att) => {
-		if (att != null && !string.IsNullOrWhiteSpace(att.Id)) 
-#if NETSTANDARD2_0 || NET472
-			return att?.Id ?? "";
-#else
+		if (att != null && att.Id.IsNeitherNullNorWhiteSpace())
 			return att.Id;
-#endif
 		return type.GetSignature(true);
 	};
 	public Func<Type, TypeDiscriminatedAttribute?, string> GetNameFunction { get; set; } = (type, att) => {
-		if (att != null && !string.IsNullOrWhiteSpace(att.Name)) 
-#if NETSTANDARD2_0 || NET472
-			return att?.Name ?? "";
-#else
+		if (att != null && att.Name.IsNeitherNullNorWhiteSpace())
 			return att.Name;
-#endif
 		return type.Name;
 	};
 	public Func<string, string> GetVirtualNameFunction { get; set; } = virtualId => virtualId;

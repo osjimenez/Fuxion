@@ -3,18 +3,22 @@
 		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 	</PropertyGroup>
+
 	<!-- Packages that not have preview version -->
 	<ItemGroup>
+		<PackageVersion Include="coverlet.collector" Version="6.0.4" />
 		<PackageVersion Include="EntityFramework" Version="6.5.1" />
 		<PackageVersion Include="EventStore.Client.Grpc.Streams" Version="23.3.9" />
 		<PackageVersion Include="Microsoft.AspNet.WebApi.Core" Version="5.3.0" />
 		<PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
+		<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
 		<PackageVersion Include="Microsoft.Orleans.EventSourcing" Version="9.2.1" />
 		<PackageVersion Include="Microsoft.Orleans.Sdk" Version="9.2.1" />
+		<PackageVersion Include="Microsoft.Reactive.Testing" Version="6.0.1" />
 		<PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
 		<PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1"/>
 		<PackageVersion Include="MQTTnet" Version="5.0.1.1416" />
-		<PackageVersion Include="Polly" Version="8.6.2" />
+		<PackageVersion Include="Polly" Version="8.6.3" />
 		<PackageVersion Include="PolySharp" Version="1.15.0" />
 		<PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
 		<PackageVersion Include="ReactiveUI.WPF" Version="20.4.1" />
@@ -22,51 +26,53 @@
 		<PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
 		<PackageVersion Include="System.Net.Http" Version="4.3.4" />
 		<PackageVersion Include="System.Reactive" Version="6.0.1" />
-	</ItemGroup>
-	<!-- Packages in preview version -->
-	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0' Or '$(TargetFramework)' == 'net10.0-windows'">
-		<PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="System.Drawing.Common" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="System.Management" Version="10.0.0-preview.6.25358.103" />
-		<PackageVersion Include="System.Text.Json" Version="10.0.0-preview.6.25358.103" />
-	</ItemGroup>
-	<!-- Packages in latest stable version -->
-	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0' Or '$(TargetFramework)' == 'net9.0-windows' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
-		<PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.7" />
-		<PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.7" />
-		<PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.7" />
-		<PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.7" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.7" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.7" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.7" />
-		<PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.7" />
-		<PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7" />
-		<PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.7" />
-		<PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.7" />
-		<PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="9.0.7" />
-		<PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="9.0.7" />
-		<PackageVersion Include="System.Drawing.Common" Version="9.0.7" />
-		<PackageVersion Include="System.Management" Version="9.0.7" />
-		<PackageVersion Include="System.Text.Json" Version="9.0.7" />
-	</ItemGroup>
-	<!-- TEST -->
-	<ItemGroup>
-		<PackageVersion Include="coverlet.collector" Version="6.0.4" />
 		<PackageVersion Include="xunit" Version="2.9.3" />
-		<PackageVersion Include="xunit.runner.visualstudio" Version="3.1.3" />
-		<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-		<PackageVersion Include="Microsoft.Reactive.Testing" Version="6.0.1" />
+		<PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+	</ItemGroup>
+
+	<!-- Packages in latest stable version -->
+	<PropertyGroup>
+		<NetStableVersion>9.0.8</NetStableVersion>
+	</PropertyGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0' Or '$(TargetFramework)' == 'net9.0-windows' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
+		<PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(NetStableVersion)" />
+		<PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(NetStableVersion)" />
+		<PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="$(NetStableVersion)" />
+		<PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="$(NetStableVersion)" />
+		<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(NetStableVersion)" />
+		<PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(NetStableVersion)" />
+		<PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(NetStableVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="$(NetStableVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(NetStableVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(NetStableVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(NetStableVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="$(NetStableVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="$(NetStableVersion)" />
+		<PackageVersion Include="System.Drawing.Common" Version="$(NetStableVersion)" />
+		<PackageVersion Include="System.Management" Version="$(NetStableVersion)" />
+		<PackageVersion Include="System.Text.Json" Version="$(NetStableVersion)" />
+	</ItemGroup>
+
+	<!-- Packages in preview version -->
+	<PropertyGroup>
+		<NetPreviewVersion>10.0.0-preview.7.25380.108</NetPreviewVersion>
+	</PropertyGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0' Or '$(TargetFramework)' == 'net10.0-windows'">
+		<PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="System.Drawing.Common" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="System.Management" Version="$(NetPreviewVersion)" />
+		<PackageVersion Include="System.Text.Json" Version="$(NetPreviewVersion)" />
 	</ItemGroup>
 </Project>

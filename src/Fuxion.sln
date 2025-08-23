@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{291B05EE-78EA-412F-9449-5EC4D5E0FC9C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sketches", "Sketches", "{D73E328B-68C4-499C-9532-A7D9ACC4F186}"
+	ProjectSection(SolutionItems) = preProject
+		sketches\OneFile.cs = sketches\OneFile.cs
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fuxion", "core\Fuxion\Fuxion.csproj", "{0F5CB7BF-7FF8-447D-9DEC-8CD0D946D208}"
 EndProject

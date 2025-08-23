@@ -10,7 +10,7 @@ public class PasswordProvider : IPasswordProvider
 	public PasswordHashAlgorithm Algorithm { get; set; } = PasswordHashAlgorithm.SHA256;
 	public void Generate(string password, out byte[] salt, out byte[] hash)
 	{
-#if NETSTANDARD2_0 || NET472
+#if STANDARD_OR_OLD_FRAMEWORKS
 		var data = new byte[SaltBytesLenght];
 		Random ran = new(Guid.NewGuid()
 			.GetHashCode());

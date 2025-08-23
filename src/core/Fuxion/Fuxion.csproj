@@ -34,15 +34,30 @@
 			<Generator>PublicResXFileCodeGenerator</Generator>
 			<LastGenOutput>Strings.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
-		<Compile Update="SemanticVersionException.cs">
+
+		<Compile Update="Response.INT.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.ProblemDetails.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.Extensions.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.ErrorType.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+
+		<Compile Update="SemanticVersion.Exception.cs">
 			<DependentUpon>SemanticVersion.cs</DependentUpon>
 		</Compile>
-		<Compile Update="SemanticVersionIdentifier.cs">
+		<Compile Update="SemanticVersion.Identifier.cs">
 			<DependentUpon>SemanticVersion.cs</DependentUpon>
 		</Compile>
-		<Compile Update="SemanticVersionIdentifierCollection.cs">
+		<Compile Update="SemanticVersion.IdentifierCollection.cs">
 			<DependentUpon>SemanticVersion.cs</DependentUpon>
 		</Compile>
+
 		<Compile Update="AntiBackTimeProvider.cs">
 			<DependentUpon>ITimeProvider.cs</DependentUpon>
 		</Compile>

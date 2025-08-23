@@ -2,31 +2,31 @@ namespace Fuxion.Test;
 
 public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(output)
 {
-	public IResponse GetSuccess() => Response.Success();
-	public IResponse GetSuccessMessage() => Response.SuccessMessage("message");
-	public IResponse GetSuccessMessageWithExtensions() => Response.SuccessMessage("message", [("Extension", 123.456)]);
-	public IResponse GetSuccessWithPayload() => Response.SuccessPayload(123);
-	public IResponse GetSuccessWithPayloadAndExtensions()
+	public Response GetSuccess() => Response.Success();
+	public Response GetSuccessMessage() => Response.SuccessMessage("message");
+	public Response GetSuccessMessageWithExtensions() => Response.SuccessMessage("message", [("Extension", 123.456)]);
+	public Response<int> GetSuccessWithPayload() => Response.SuccessPayload(123);
+	public Response<int> GetSuccessWithPayloadAndExtensions()
 		=> Response.SuccessPayload(123, extensions: [("Extension", 123.456)]);
-	public IResponse GetError() => Response.ErrorMessage("message");
-	public IResponse GetErrorWithPayload() => Response.ErrorPayload(123, "message");
-	public IResponse GetNotFound() => Response.NotFound("message");
-	public IResponse GetNotFoundWithPayload() => Response.NotFound("message", 123);
-	public IResponse GetNotFoundWithPayloadAndExtensions() => Response.NotFound("message", 123, extensions: [("Extension", 123.456)]);
-	public IResponse GetCustomError() => Response.Custom("message", "customData");
-	//[Fact]
-	//public void ImplicitConversion()
-	//{
-	//	Assert.Equal(123, OkInt());
-	//	Assert.Equal(456, ErrorInt());
-	//	int val = OkResponse();
-	//	Assert.Equal(123, val);
+	public Response GetError() => Response.ErrorMessage("message");
+	public Response<int> GetErrorWithPayload() => Response.ErrorPayload(123, "message");
+	public Response GetNotFound() => Response.NotFound("message");
+	public Response<int> GetNotFoundWithPayload() => Response.NotFound("message", 123);
+	public Response<int> GetNotFoundWithPayloadAndExtensions() => Response.NotFound("message", 123, extensions: [("Extension", 123.456)]);
+	public CustomError GetCustomError() => Response.Custom("message", "customData");
+	[Fact]
+	public void ImplicitConversion()
+	{
+		Assert.Equal(123, OkInt());
+		Assert.Equal(456, ErrorInt());
+		int val = OkResponse();
+		Assert.Equal(123, val);
 
-	//	return;
-	//	int OkInt() => Response.Get.SuccessPayload(123);
-	//	int ErrorInt() => Response.Get.Error("message", 456);
-	//	Response<int> OkResponse() => 123;
-	//}
+		return;
+		int OkInt() => Response.SuccessPayload(123);
+		int ErrorInt() => Response.ErrorPayload<int>(456, "message");
+		Response<int> OkResponse() => 123;
+	}
 	[Fact]
 	public void Success()
 	{
@@ -84,7 +84,7 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 		PrintVariable(res.SerializeToJson(true));
 
 		return;
-		IResponse<int> Do()
+		Response<int> Do()
 		{
 			try
 			{
@@ -95,16 +95,49 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 				return Response.Critical("Exception", exception: ex).AsPayload<int>();
 			}
 		}
-		IResponse<int> Do2()
+		Response<int> Do2()
 		{
 			return Response.SuccessPayload(dic[1]);
 		}
+	}
+	[Fact]
+	public void AsPayload()
+	{
+		Throws<InvalidOperationException>(()=>Do(1));
+		Throws<InvalidOperationException>(() => Do(2));
+		int res = Do(3);
+		Assert.Equal(123, res);
+		IsTrue(Do(4).IsError);
+
+		IsTrue(Do2(1).IsSuccess);
+		IsTrue(Do2(2).IsSuccess);
+		int res2 = Do2(3).AsPayload<int>();
+		Assert.Equal(123, res2);
+		IsTrue(Do2(4).IsError);
+
+
+		Response<int> Do(int val)
+			=> val switch
+			{
+				1 => Response.Success().AsPayload<int>(),
+				2 => Response.SuccessMessage("message").AsPayload<int>(),
+				3 => Response.SuccessPayload(123),
+				var _ => Response.Critical("").AsPayload<int>()
+			};
+		Response Do2(int val)
+			=> val switch
+			{
+				1 => Response.Success(),
+				2 => Response.SuccessMessage("message"),
+				3 => Response.SuccessPayload(123),
+				var _ => Response.Critical("")
+			};
 	}
 }
 
 file record Payload(string Name, int Age);
 
-file class CustomError(string message, string customData) : Response(false, message)
+public class CustomError(string message, string customData) : Response(false, message)
 {
 	public string CustomData { get; } = customData;
 }

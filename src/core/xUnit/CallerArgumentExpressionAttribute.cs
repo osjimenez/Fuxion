@@ -1,7 +1,7 @@
 // This is class is a substitute for legacy frameworks
 // https://stackoverflow.com/a/70034587/3459458
 
-#if NET472
+#if OLD_FRAMEWORKS
 namespace System.Runtime.CompilerServices;
 
 [AttributeUsage(AttributeTargets.Parameter)]

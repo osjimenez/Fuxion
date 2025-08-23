@@ -47,6 +47,13 @@
 		<WindowsFrameworks>$(OldFrameworks);$(CoreWindowsFrameworks)</WindowsFrameworks>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(IsOldFrameworks)' == 'true'">
+		<DefineConstants>$(DefineConstants);OLD_FRAMEWORKS</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(IsStandardOrOldFrameworks)' == 'true'">
+		<DefineConstants>$(DefineConstants);STANDARD_OR_OLD_FRAMEWORKS</DefineConstants>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<Using Remove="System.Net.Http"/>
 		<Using Include="Microsoft.Extensions.Logging"/>

@@ -259,7 +259,7 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 		Assert.Equal("line", lines[1]);
 		Assert.Equal(" trim ", lines[2]);
 		Assert.Equal("end", lines[3]);
-#if !NET472 && !NETSTANDARD2_0
+#if !STANDARD_OR_OLD_FRAMEWORKS
 		lines = str.SplitInLines(false, true);
 		Assert.Equal(5, lines.Length);
 		Assert.Equal("start", lines[0]);
@@ -275,6 +275,38 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 		Assert.Equal("trim", lines[2]);
 		Assert.Equal("end", lines[3]);
 #endif
+	}
+	[Fact(DisplayName = "String - IsNullOrWhiteSpace")]
+	public void StringIsNullOrWhiteSpace()
+	{
+		string? test = null;
+		Output.WriteLine("test = null");
+		IsTrue(test.IsNullOrEmpty());
+		IsTrue(test.IsNullOrWhiteSpace());
+		IsTrue(test.IsNullOrDefault());
+		IsFalse(test.IsNeitherNullNorEmpty());
+		IsFalse(test.IsNeitherNullNorWhiteSpace());
+		test = "";
+		Output.WriteLine("test = \"\"");
+		IsTrue(test.IsNullOrEmpty());
+		IsTrue(test.IsNullOrWhiteSpace());
+		IsFalse(test.IsNullOrDefault());
+		IsFalse(test.IsNeitherNullNorEmpty());
+		IsFalse(test.IsNeitherNullNorWhiteSpace());
+		test = " ";
+		Output.WriteLine("test = \" \"");
+		IsFalse(test.IsNullOrEmpty());
+		IsTrue(test.IsNullOrWhiteSpace());
+		IsFalse(test.IsNullOrDefault());
+		IsTrue(test.IsNeitherNullNorEmpty());
+		IsFalse(test.IsNeitherNullNorWhiteSpace());
+		test = "a";
+		Output.WriteLine("test = \"a\"");
+		IsFalse(test.IsNullOrEmpty());
+		IsFalse(test.IsNullOrWhiteSpace());
+		IsFalse(test.IsNullOrDefault());
+		IsTrue(test.IsNeitherNullNorEmpty());
+		IsTrue(test.IsNeitherNullNorWhiteSpace());
 	}
 	[Fact(DisplayName = "TimeSpan - ToTimeString")]
 	public void TimeSpan_ToTimeString()
@@ -436,7 +468,7 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 	[Fact(DisplayName = "Range - Custom integer enumerator")]
 	public void CustomIntEnumerator()
 	{
-#if !NET472
+#if !OLD_FRAMEWORKS
 		// TODO hacer que funcione en net472
 		Logger.LogInformation($"Enumerate with range:");
 		foreach (var i in 0..10) Logger.LogInformation($"\t{i}");

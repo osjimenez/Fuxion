@@ -94,7 +94,7 @@ public static class Extensions
 		List<T> res = new();
 		for (var i = 0; i < count; i++)
 		{
-#if NETSTANDARD2_0 || NET472
+#if STANDARD_OR_OLD_FRAMEWORKS
 			var ran = new Random(Guid.NewGuid()
 				.GetHashCode());
 			var actual = ran.Next(0, list.Count);
@@ -212,7 +212,7 @@ public static class Extensions
 		foreach (var i in res) outputConsole?.Invoke("  - " + i);
 		return res;
 	}
-	public static IResponse<IEnumerable<(double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(this IEnumerable<double> percentages, int amountOfItems)
+	public static Response<IEnumerable<(double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(this IEnumerable<double> percentages, int amountOfItems)
 	{
 		var count = percentages.Count();
 		if (count > amountOfItems)
@@ -250,14 +250,14 @@ public static class Extensions
 		}
 		return Response.SuccessPayload(quantities.Select(x => (x.Percentage, x.Rounded, x.Exact)));
 	}
-	public static IResponse<IDictionary<string, (double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(this IList<(string Label, double Percentage)> percentages, int amountOfItems)
+	public static Response<Dictionary<string, (double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(this IList<(string Label, double Percentage)> percentages, int amountOfItems)
 	{
 		if (percentages.Count > amountOfItems)
 			return Response.InvalidData($"{nameof(percentages)}.Count ({percentages.Count}) must be less than {nameof(amountOfItems)} ({amountOfItems})")
-				.AsPayload<IDictionary<string, (double Percentage, int Rounded, double Exact)>>();
-		if (percentages.Sum(x => x.Percentage) != 100)
+				.AsPayload<Dictionary<string, (double Percentage, int Rounded, double Exact)>>();
+		if (percentages.Sum(x => x.Percentage) != 100d)
 			return Response.InvalidData($"Percentages must sum 100, but sum {percentages.Sum(x => x.Percentage)}")
-				.AsPayload<IDictionary<string, (double Percentage, int Rounded, double Exact)>>();
+				.AsPayload<Dictionary<string, (double Percentage, int Rounded, double Exact)>>();
 		var ordered = percentages.OrderBy(x => x.Percentage);
 		var quantities = ordered.Select(value => new
 		{
@@ -278,7 +278,7 @@ public static class Extensions
 				.MaxBy(y => y.Exact);
 			if (quantity is null)
 				return Response.Critical($"{nameof(quantity)} cannot be null")
-					.AsPayload<IDictionary<string, (double Percentage, int Rounded, double Exact)>>();
+					.AsPayload<Dictionary<string, (double Percentage, int Rounded, double Exact)>>();
 			var index = quantities.IndexOf(quantity);
 			quantities.Remove(quantity);
 			quantities.Insert(index, quantity with
@@ -293,7 +293,7 @@ public static class Extensions
 				.MaxBy(y => y.Exact);
 			if (quantity is null)
 				return Response.Critical($"{nameof(quantity)} cannot be null")
-					.AsPayload<IDictionary<string, (double Percentage, int Rounded, double Exact)>>();
+					.AsPayload<Dictionary<string, (double Percentage, int Rounded, double Exact)>>();
 			var index = quantities.IndexOf(quantity);
 			quantities.Remove(quantity);
 			quantities.Insert(index, quantity with

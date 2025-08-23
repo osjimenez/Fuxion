@@ -253,14 +253,14 @@ public static partial class Extensions
 			: null;
 	public static string GetFullNameWithAssemblyName(this Type me) => $"{me.AssemblyQualifiedName?.Split(',').Take(2).Aggregate("", (a, n) => a + ", " + n, a => a.Trim(' ', ','))}";
 	const string FileScopeClassNameRegexPattern = "^(.*)<[a-zA-Z_]+>[A-F0-9]+__(.*)$";
-#if !NET472 && !NETSTANDARD2_0
+#if !STANDARD_OR_OLD_FRAMEWORKS
 	[GeneratedRegex(FileScopeClassNameRegexPattern)]
 	private static partial Regex FileScopeClassNameRegex();
 #endif
 	public static string GetSignature(this Type type, bool useFullNames = false)
 	{
 		var regex =
-#if NET472 || NETSTANDARD2_0
+#if STANDARD_OR_OLD_FRAMEWORKS
 		new Regex(FileScopeClassNameRegexPattern);
 #else
 			FileScopeClassNameRegex();
@@ -511,7 +511,7 @@ public static partial class Extensions
 		return res;
 	}
 	public static string[] SplitInLines(this string me, bool removeEmptyLines = false
-#if !NET472 && !NETSTANDARD2_0
+#if !STANDARD_OR_OLD_FRAMEWORKS
 		, bool trimEachLine = false
 #endif
 		)
@@ -519,7 +519,7 @@ public static partial class Extensions
 			(removeEmptyLines
 				? StringSplitOptions.RemoveEmptyEntries
 				: StringSplitOptions.None)
-#if !NET472 && !NETSTANDARD2_0
+#if !STANDARD_OR_OLD_FRAMEWORKS
 			| (trimEachLine
 				? StringSplitOptions.TrimEntries
 				: StringSplitOptions.None)
@@ -568,13 +568,13 @@ public static partial class Extensions
 	public static string RandomString(
 		this string me,
 		int length
-#if NETSTANDARD2_0 || NET472 || NET7_0
+#if !NET8_0_OR_GREATER
 		, Random? ran = null
 #endif
 	)
 	{
 		const string defaultStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-#if NETSTANDARD2_0 || NET472 || NET7_0
+#if !NET8_0_OR_GREATER
 		ran ??= new(Guid.NewGuid().GetHashCode());
 		var str = string.IsNullOrWhiteSpace(me) ? defaultStr : me;
 		return new(Enumerable.Repeat(str, length)
@@ -643,8 +643,10 @@ public static partial class Extensions
 	}
 	public static string Format(this string me, params object?[] @params) => string.Format(me, @params);
 	public static bool IsNullOrEmpty([NotNullWhen(false)] this string? me) => string.IsNullOrEmpty(me);
+	public static bool IsNeitherNullNorEmpty([NotNullWhen(true)] this string? me) => !string.IsNullOrEmpty(me);
 	public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? me) => string.IsNullOrWhiteSpace(me);
-#endregion
+	public static bool IsNeitherNullNorWhiteSpace([NotNullWhen(true)] this string? me) => !string.IsNullOrWhiteSpace(me);
+	#endregion
 
 	#region IsBetween - CONVERTED
 	//public static bool IsBetween(this short me, short minimum, short maximum) => minimum <= me && me <= maximum;

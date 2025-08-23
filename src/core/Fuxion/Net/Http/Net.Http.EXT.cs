@@ -39,7 +39,7 @@ public static class Extensions
 			extensions.Add((ContentTypeKey, res.Content.Headers.ContentType?.MediaType));
 			extensions.Add((FileNameKey, res.Content.Headers.ContentDisposition?.FileName));
 			return (extensions, problem, await res.Content.ReadAsStreamAsync(
-#if !NETSTANDARD2_0 && !NET472
+#if !STANDARD_OR_OLD_FRAMEWORKS
 				ct
 #endif
 			));
@@ -51,14 +51,14 @@ public static class Extensions
 			extensions.Add((ContentTypeKey, res.Content.Headers.ContentType?.MediaType));
 			extensions.Add((FileNameKey, res.Content.Headers.ContentDisposition?.FileName));
 			return (extensions, problem, await res.Content.ReadAsByteArrayAsync(
-#if !NETSTANDARD2_0 && !NET472
+#if !STANDARD_OR_OLD_FRAMEWORKS
 				ct
 #endif
 			));
 		}
 
 		var strContent = await res.Content.ReadAsStringAsync(
-#if !NETSTANDARD2_0 && !NET472
+#if !STANDARD_OR_OLD_FRAMEWORKS
 			ct
 #endif
 		);
@@ -102,9 +102,9 @@ public static class Extensions
 		}
 		return (extensions, problem, deserializedBody);
 	}
-	public static async Task<IResponse> AsResponseAsync(this Task<HttpResponseMessage> me, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+	public static async Task<Response> AsResponseAsync(this Task<HttpResponseMessage> me, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 		=> await AsResponseAsync(await me, jsonOptions, ct);
-	public static async Task<IResponse> AsResponseAsync(this HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+	public static async Task<Response> AsResponseAsync(this HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 	{
 		var (extensions, problem, _) = await DoAsResponse(res, null, jsonOptions, ct);
 
@@ -119,9 +119,9 @@ public static class Extensions
 
 		return Response.ErrorMessage(problem?.Detail ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions);
 	}
-	public static async Task<IResponse<TPayload>> AsResponseAsync<TPayload>(this Task<HttpResponseMessage> me, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+	public static async Task<Response<TPayload>> AsResponseAsync<TPayload>(this Task<HttpResponseMessage> me, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 		=> await AsResponseAsync<TPayload>(await me, jsonOptions, ct);
-	public static async Task<IResponse<TPayload>> AsResponseAsync<TPayload>(this HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+	public static async Task<Response<TPayload>> AsResponseAsync<TPayload>(this HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 	{
 		var (extensions, problem, deserializedBody) = await DoAsResponse(res, typeof(TPayload), jsonOptions, ct);
 
@@ -182,7 +182,7 @@ public static class Extensions
 			HttpStatusCode.RequestedRangeNotSatisfiable => ErrorType.InvalidData,
 			// 417 - Indicates that an expectation given in an Expect header could not be met by the server.
 			HttpStatusCode.ExpectationFailed => ErrorType.InvalidData,
-#if !NETSTANDARD2_0 && !NET472
+#if !STANDARD_OR_OLD_FRAMEWORKS
 			// 421 - Indicates that the request was directed at a server that is not able to produce a response.
 			HttpStatusCode.MisdirectedRequest => ErrorType.Unavailable,
 			// 422 - Indicates that the request was well-formed but was unable to be followed due to semantic errors.
@@ -198,7 +198,7 @@ public static class Extensions
 #endif
 			// 426 - Indicates that the client should switch to a different protocol such as TLS/1.0.
 			HttpStatusCode.UpgradeRequired => ErrorType.NotSupported,
-#if !NETSTANDARD2_0 && !NET472
+#if !STANDARD_OR_OLD_FRAMEWORKS
 			// 428 - Indicates that the server requires the request to be conditional.
 			HttpStatusCode.PreconditionRequired => ErrorType.InvalidData,
 			// 429 - Indicates that the user has sent too many requests in a given amount of time.
@@ -220,7 +220,7 @@ public static class Extensions
 			HttpStatusCode.GatewayTimeout => ErrorType.Timeout,
 			// 505 - Indicates that the requested HTTP version is not supported by the server.
 			HttpStatusCode.HttpVersionNotSupported => ErrorType.NotSupported,
-#if !NETSTANDARD2_0 && !NET472
+#if !STANDARD_OR_OLD_FRAMEWORKS
 			// 506 - Indicates that the chosen variant resource is configured to engage in transparent content negotiation itself and, therefore, isn't a proper endpoint in the negotiation process.
 			HttpStatusCode.VariantAlsoNegotiates => ErrorType.NotSupported,
 			// 507 - Indicates that the server is unable to store the representation needed to complete the request.

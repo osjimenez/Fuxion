@@ -17,7 +17,7 @@ public class JsonPodTest : BaseTest<JsonPodTest>
 			Name = "payload.Name",
 			Age = 23,
 			Nick = "payload.Nick",
-#if NET472
+#if OLD_FRAMEWORKS
 			Birthdate = DateTime.Parse("12/12/2012")
 #else
 			Birthdate = DateOnly.Parse("12/12/2012")
@@ -33,7 +33,7 @@ public class JsonPodTest : BaseTest<JsonPodTest>
 					Name = "testPod.header.payload.Name",
 					Age = 15,
 					Nick = "testPod.header.payload.Nick",
-#if NET472
+#if OLD_FRAMEWORKS
 					Birthdate = DateTime.Parse("12/12/2012")
 #else
 					Birthdate = DateOnly.Parse("12/12/2012")
@@ -69,7 +69,7 @@ public class JsonPodTest : BaseTest<JsonPodTest>
 					Name = "testPod.header.payload.Name",
 					Age = 15,
 					Nick = "testPod.header.payload.Nick",
-#if NET472
+#if OLD_FRAMEWORKS
 					Birthdate = DateTime.Parse("12/12/2012")
 #else
 					Birthdate = DateOnly.Parse("12/12/2012")
@@ -153,8 +153,8 @@ public class JsonPodTest : BaseTest<JsonPodTest>
 				Name = "value1",
 				Nick = "Nick",
 				Age = 12,
-#if NET472
-				Birthdate = DateTime.Parse("12/12/2012")
+#if OLD_FRAMEWORKS
+			Birthdate = DateTime.Parse("12/12/2012")
 #else
 				Birthdate = DateOnly.Parse("12/12/2012")
 #endif
@@ -221,7 +221,7 @@ file class TestPayloadDerived : TestPayload
 {
 	public required string Nick { get; set; }
 	[JsonPropertyName("Birthdate-custom")]
-#if NET472
+#if OLD_FRAMEWORKS
 	public DateTime Birthdate { get; set; }
 #else
 	public DateOnly Birthdate { get; set; }
