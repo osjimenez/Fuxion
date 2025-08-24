@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(DefaultFrameworks)</TargetFrameworks>
+		<Title>Fuxion Pods</Title>
+		<PackageId>Fuxion.Pods</PackageId>
+		<Description>Fuxion Pods library</Description>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">
+		<Reference Include="System.Web" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Fuxion\Fuxion.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="UriKeyAttribute.cs">
+			<DependentUpon>UriKey.cs</DependentUpon>
+		</Compile>
+		<Compile Update="UriKeyException.cs">
+			<DependentUpon>UriKey.cs</DependentUpon>
+		</Compile>
+		<Compile Update="UriKeyExtensions.cs">
+			<DependentUpon>UriKey.cs</DependentUpon>
+		</Compile>
+		<Compile Update="UriKeyJsonConverter.cs">
+			<DependentUpon>UriKey.cs</DependentUpon>
+		</Compile>
+		<Compile Update="PodBuilder.cs">
+			<DependentUpon>Pod.cs</DependentUpon>
+		</Compile>
+		<Compile Update="PodBuilderExtensions.cs">
+			<DependentUpon>Pod.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Json\JsonNodePodExtensions.cs">
+			<DependentUpon>JsonNodePod.cs</DependentUpon>
+		</Compile>
+	</ItemGroup>
+</Project>

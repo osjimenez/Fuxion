@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(CoreWindowsFrameworks)</TargetFrameworks>
+		<UseWpf>true</UseWpf>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\Xunit\Fuxion.Xunit.csproj" />
+		<ProjectReference Include="..\..\src\Windows\Fuxion.Windows.csproj" />
+	</ItemGroup>
+
+</Project>

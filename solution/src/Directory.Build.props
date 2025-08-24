@@ -1,0 +1,40 @@
+<Project>
+	<!-- Importa el props de la raíz para obtener DefaultFrameworks y demás -->
+	<Import Project="..\\Directory.Build.props" Condition="Exists('..\\Directory.Build.props')" />
+
+	<PropertyGroup>
+
+		<Title>Fuxion</Title>
+		<Authors>Oscar Jimenez</Authors>
+
+		<Product>Fuxion</Product>
+		<ProductName>Fuxion</ProductName>
+
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+
+		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/OsJimenez/Fuxion</PackageProjectUrl>
+		<PackageIcon>icon.png</PackageIcon>
+		<PackageOutputPath>$(SolutionDir)..\nupkgs</PackageOutputPath>
+
+		<RepositoryUrl>https://github.com/OsJimenez/Fuxion.git</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+
+		<SourceLinkCreate>true</SourceLinkCreate>
+		<SourceLinkOriginUrl>https://github.com/osjimenez/Fuxion</SourceLinkOriginUrl>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All"/>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="../icon.png" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+</Project>

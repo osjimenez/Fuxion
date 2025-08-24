@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(DefaultFrameworks)</TargetFrameworks>
+		<Title>Fuxion MongoDB</Title>
+		<PackageId>Fuxion.MongoDB</PackageId>
+		<Description>Fuxion infrastructure for MongoDB</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Fuxion\Fuxion.csproj"/>
+	</ItemGroup>
+
+</Project>

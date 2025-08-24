@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(WindowsFrameworks)</TargetFrameworks>
+		<Title>Fuxion Drawing</Title>
+		<PackageId>Fuxion.Drawing</PackageId>
+		<Description>Fuxion library for drawing</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="System.Drawing.Common" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Fuxion\Fuxion.csproj" />
+	</ItemGroup>
+
+</Project>

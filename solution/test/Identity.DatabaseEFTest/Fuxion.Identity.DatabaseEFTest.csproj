@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(CoreAndOldFrameworks)</TargetFrameworks>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="EntityFramework" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\Identity\Fuxion.Identity.csproj" />
+		<ProjectReference Include="..\..\src\xUnit\Fuxion.Xunit.csproj" />
+		<ProjectReference Include="..\..\src\EntityFramework\Fuxion.EntityFramework.csproj" />
+		<ProjectReference Include="..\Identity\Fuxion.Identity.Test.csproj" />
+	</ItemGroup>
+
+</Project>

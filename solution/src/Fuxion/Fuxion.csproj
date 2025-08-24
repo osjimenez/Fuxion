@@ -1,0 +1,78 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(DefaultFrameworks)</TargetFrameworks>
+		<Title>Fuxion</Title>
+		<PackageId>Fuxion</PackageId>
+		<Description>Fuxion library</Description>
+		<!--<UpdateAssemblyInfo>true</UpdateAssemblyInfo>
+		<GitVersionTargetFramework>net8.0</GitVersionTargetFramework>-->
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Logging.Configuration"/>
+		<PackageReference Include="System.Text.Json"/>
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(IsStandardOrOldFrameworks)' == 'true'">
+		<PackageReference Include="Microsoft.CSharp" />
+		<PackageReference Include="System.Net.Http" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="Resources\Strings.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Strings.resx</DependentUpon>
+		</Compile>
+		<EmbeddedResource Update="Resources\Strings.resx">
+			<Generator>PublicResXFileCodeGenerator</Generator>
+			<LastGenOutput>Strings.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+
+		<Compile Update="Response.INT.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.ProblemDetails.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.Extensions.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.ErrorType.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+
+		<Compile Update="SemanticVersion.Exception.cs">
+			<DependentUpon>SemanticVersion.cs</DependentUpon>
+		</Compile>
+		<Compile Update="SemanticVersion.Identifier.cs">
+			<DependentUpon>SemanticVersion.cs</DependentUpon>
+		</Compile>
+		<Compile Update="SemanticVersion.IdentifierCollection.cs">
+			<DependentUpon>SemanticVersion.cs</DependentUpon>
+		</Compile>
+
+		<Compile Update="AntiBackTimeProvider.cs">
+			<DependentUpon>ITimeProvider.cs</DependentUpon>
+		</Compile>
+		<Compile Update="AverageTimeProvider.cs">
+			<DependentUpon>ITimeProvider.cs</DependentUpon>
+		</Compile>
+		<Compile Update="CachedTimeProvider.cs">
+			<DependentUpon>ITimeProvider.cs</DependentUpon>
+		</Compile>
+		<Compile Update="FileSystemStorageTimeProvider.cs">
+			<DependentUpon>ITimeProvider.cs</DependentUpon>
+		</Compile>
+		<Compile Update="InternetTimeProvider.cs">
+			<DependentUpon>ITimeProvider.cs</DependentUpon>
+		</Compile>
+		<Compile Update="LocalMachineTimeProvider.cs">
+			<DependentUpon>ITimeProvider.cs</DependentUpon>
+		</Compile>
+		<Compile Update="StoredTimeProvider.cs">
+			<DependentUpon>ITimeProvider.cs</DependentUpon>
+		</Compile>
+	</ItemGroup>
+</Project>

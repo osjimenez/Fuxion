@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(OldFrameworks)</TargetFrameworks>
+		<Title>Fuxion Asp.Net</Title>
+		<PackageId>Fuxion.AspNet</PackageId>
+		<Description>Fuxion library for Asp.Net</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNet.WebApi.Core" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Fuxion\Fuxion.csproj" />
+	</ItemGroup>
+
+</Project>

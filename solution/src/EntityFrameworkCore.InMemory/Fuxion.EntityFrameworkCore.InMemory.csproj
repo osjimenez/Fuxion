@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(CoreFrameworks)</TargetFrameworks>
+		<Title>Fuxion Entity Framework Core for Sql Server</Title>
+		<PackageId>Fuxion.EntityFrameworkCore.SqlServer</PackageId>
+		<Description>Fuxion library with extensions for Entity Framework Core for Sql Server.</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EntityFrameworkCore\Fuxion.EntityFrameworkCore.csproj" />
+	</ItemGroup>
+
+</Project>

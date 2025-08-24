@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(DefaultFrameworks)</TargetFrameworks>
+		<Title>Fuxion Licensing</Title>
+		<PackageId>Fuxion.Licensing</PackageId>
+		<Description>Fuxion Licensing</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Fuxion\Fuxion.csproj"/>
+	</ItemGroup>
+
+</Project>

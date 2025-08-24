@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(CoreFrameworks)</TargetFrameworks>
+		<Title>Fuxion EventStore</Title>
+		<PackageId>Fuxion.EventStore</PackageId>
+		<Description>Fuxion infrastructure for EventStore</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="EventStore.Client.Grpc.Streams" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Application\Fuxion.Application.csproj" />
+	</ItemGroup>
+
+</Project>

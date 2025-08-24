@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(WindowsFrameworks)</TargetFrameworks>
+		<UseWpf>True</UseWpf>
+		<IsPackable>false</IsPackable>
+		<Title>Fuxion Windows Controls</Title>
+		<PackageId>Fuxion.Windows.Controls</PackageId>
+		<Description>Fuxion Windows Controls</Description>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">
+		<Reference Include="System.Security" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Fuxion\Fuxion.csproj"/>
+		<ProjectReference Include="..\Windows\Fuxion.Windows.csproj"/>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Page Update="UnhandledExceptionWindow.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+		<Compile Update="UnhandledExceptionWindow.xaml.cs">
+			<DependentUpon>UnhandledExceptionWindow.xaml</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+</Project>

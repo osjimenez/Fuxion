@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(CoreFrameworks)</TargetFrameworks>
+		<Title>Fuxion Entity Framework Core</Title>
+		<PackageId>Fuxion.EntityFrameworkCore</PackageId>
+		<Description>Fuxion library with extensions for Entity Framework Core.</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.EntityFrameworkCore" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Application\Fuxion.Application.csproj" />
+	</ItemGroup>
+
+</Project>
