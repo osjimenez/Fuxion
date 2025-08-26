@@ -74,8 +74,8 @@ public static class ResponseExtensions
 					});
 				else
 					return Factory.Ok(fullSerialization
-							? new StringContent(me2.SerializeToJson(true, JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
-							: new StringContent(me2.Payload.SerializeToJson(true, JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
+							? new StringContent(me2.SerializeToJson(JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
+							: new StringContent(me2.Payload.SerializeToJson(JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
 					);
 			else if (me.Message is not null)
 				return Factory.Ok(new StringContent(me.Message));
@@ -133,7 +133,7 @@ file class Factory(Func<CancellationToken, Task<HttpResponseMessage>> func) : IH
 			Title = title,
 			Detail = detail,
 			Extensions = extensions ?? new(StringComparer.Ordinal)
-		}.SerializeToJson(true, ResponseExtensions.JsonSerializerOptions != null ? new(ResponseExtensions.JsonSerializerOptions) : null), Encoding.UTF8, "application/problem+json"));
+		}.SerializeToJson(ResponseExtensions.JsonSerializerOptions != null ? new(ResponseExtensions.JsonSerializerOptions) : null), Encoding.UTF8, "application/problem+json"));
 	static Factory Create(HttpStatusCode status, HttpContent? content = null)
 		=> new(_ =>
 		{

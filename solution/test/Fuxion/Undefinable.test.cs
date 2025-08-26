@@ -108,13 +108,15 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 		{
 			AllowTrailingCommas = true,
 			ReadCommentHandling = JsonCommentHandling.Skip,
+			IndentCharacter = '\t',
+			IndentSize = 1,
 			WriteIndented = true
 		};
-		var definedJson = JsonSerializer.Serialize(definedSample, options);
+		var definedJson = definedSample.SerializeToJson(true);//JsonSerializer.Serialize(definedSample, options);
 		var undefinedJson = JsonSerializer.Serialize(undefinedSample, options);
 
 		Output.WriteLine(definedJson);
-		Output.WriteLine(undefinedJson);
+		//Output.WriteLine(undefinedJson);
 	}
 
 	[Fact(DisplayName = "Nullables")]

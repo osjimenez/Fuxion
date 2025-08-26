@@ -4,14 +4,10 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
-using System.Runtime.Serialization;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
-using Fuxion.Json;
 using Fuxion.Resources;
-using Fuxion.Text.Json.Serialization;
 
 namespace Fuxion;
 
@@ -28,47 +24,6 @@ public static partial class Extensions
 	public static DisposableEnvelope<T> AsDisposableAsync<T>(this T me, Func<T, ValueTask>? functionOnDispose = null)
 		where T : notnull
 		=> new(me, functionOnDispose);
-	#endregion
-
-	#region Json
-	public static string SerializeToJson(this object? me, bool? indented = null, JsonSerializerOptions? options = null)
-	{
-		if (options is not null && indented is not null) options.WriteIndented = indented.Value;
-		if (options is null && indented is not null)
-			options = new()
-			{
-				WriteIndented = indented.Value
-			};
-		return JsonSerializer.Serialize(me, me?.GetType() ?? typeof(object), options);
-	}
-	public static string SerializeToJson(this Exception me, bool? indented = null, JsonSerializerOptions? options = null)
-	{
-		if (options is not null && indented is not null) options.WriteIndented = indented.Value;
-		if (options is null && indented is not null)
-			options = new()
-			{
-				WriteIndented = indented.Value
-			};
-		options ??= new();
-		if (!options.Converters.Any(c => c.GetType()
-			.IsSubclassOf(typeof(ExceptionConverter))))
-			options.Converters.Add(new ExceptionConverter());
-		return JsonSerializer.Serialize(me, options);
-	}
-	public static T? DeserializeFromJson<T>(this string me, [DoesNotReturnIf(true)] bool exceptionIfNull = false, JsonSerializerOptions? options = null, bool usePrivateConstructor = true)
-		=> (T?)DeserializeFromJson(me, typeof(T), exceptionIfNull, options, usePrivateConstructor);
-	public static object? DeserializeFromJson(this string me, Type type, [DoesNotReturnIf(true)] bool exceptionIfNull = false, JsonSerializerOptions? options = null, bool usePrivateConstructor = true)
-	{
-		if (usePrivateConstructor)
-			options ??= new()
-			{
-				TypeInfoResolver = new PrivateConstructorContractResolver()
-			};
-		var res = JsonSerializer.Deserialize(me, type, options);
-		if (exceptionIfNull && res is null) throw new SerializationException($"The string cannot be deserialized as '{type.GetSignature()}':\r\n{me}");
-		return res;
-	}
-	public static T CloneWithJson<T>(this T me) => (T)(DeserializeFromJson(me?.SerializeToJson() ?? throw new InvalidDataException(), me?.GetType() ?? throw new InvalidDataException()) ?? default!);
 	#endregion
 
 	#region Transform
@@ -647,107 +602,8 @@ public static partial class Extensions
 	public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? me) => string.IsNullOrWhiteSpace(me);
 	public static bool IsNeitherNullNorWhiteSpace([NotNullWhen(true)] this string? me) => !string.IsNullOrWhiteSpace(me);
 	#endregion
-
-	#region IsBetween - CONVERTED
-	//public static bool IsBetween(this short me, short minimum, short maximum) => minimum <= me && me <= maximum;
-	//public static bool IsBetween(this ushort me, ushort minimum, ushort maximum) => minimum <= me && me <= maximum;
-	//public static bool IsBetween(this int me, int minimum, int maximum) => minimum <= me && me <= maximum;
-	//public static bool IsBetween(this uint me, uint minimum, uint maximum) => minimum <= me && me <= maximum;
-	//public static bool IsBetween(this long me, long minimum, long maximum) => minimum <= me && me <= maximum;
-	//public static bool IsBetween(this ulong me, ulong minimum, ulong maximum) => minimum <= me && me <= maximum;
-	//public static bool IsBetween(this decimal me, decimal minimum, decimal maximum) => minimum <= me && me <= maximum;
-	//public static bool IsBetween(this double me, double minimum, double maximum) => minimum <= me && me <= maximum;
-	//public static bool IsBetween(this float me, float minimum, float maximum) => minimum <= me && me <= maximum;
-	//public static bool IsBetween(this DateTime me, DateTime minimum, DateTime maximum) => minimum <= me && me <= maximum;
-	//public static bool IsBetween(this TimeSpan me, TimeSpan minimum, TimeSpan maximum) => minimum <= me && me <= maximum;
-	#endregion
-
-	#region Time - CONVERTED
-	//public static string ToTimeString(this TimeSpan me, int numberOfElements = 5, bool onlyLetters = false)
-	//{
-	//	var res = "";
-	//	TimeSpan ts;
-	//	if (me.Ticks < 0)
-	//	{
-	//		res += "- ";
-	//		ts = me.Negate();
-	//	} else
-	//		ts = me;
-	//	var count = 0;
-	//	if (count >= numberOfElements) return res.Trim(',', ' ');
-	//	if (ts.Days > 0)
-	//	{
-	//		res += $"{ts.Days} {(onlyLetters ? "d" : ts.Days > 1 ? Strings.days : Strings.day)}{(onlyLetters ? "" : ",")} ";
-	//		count++;
-	//	}
-	//	if (count >= numberOfElements) return res.Trim(',', ' ');
-	//	if (ts.Hours > 0)
-	//	{
-	//		res += $"{ts.Hours} {(onlyLetters ? "h" : ts.Hours > 1 ? Strings.hours : Strings.hour)}{(onlyLetters ? "" : ",")} ";
-	//		count++;
-	//	}
-	//	if (count >= numberOfElements) return res.Trim(',', ' ');
-	//	if (ts.Minutes > 0)
-	//	{
-	//		res += $"{ts.Minutes} {(onlyLetters ? "m" : ts.Minutes > 1 ? Strings.minutes : Strings.minute)}{(onlyLetters ? "" : ",")} ";
-	//		count++;
-	//	}
-	//	if (count >= numberOfElements) return res.Trim(',', ' ');
-	//	if (ts.Seconds > 0)
-	//	{
-	//		res += $"{ts.Seconds} {(onlyLetters ? "s" : ts.Seconds > 1 ? Strings.seconds : Strings.second)}{(onlyLetters ? "" : ",")} ";
-	//		count++;
-	//	}
-	//	if (count >= numberOfElements) return res.Trim(',', ' ');
-	//	if (ts.Milliseconds > 0) res += $"{ts.Milliseconds} {(onlyLetters ? "ms" : ts.Milliseconds > 1 ? Strings.milliseconds : Strings.millisecond)}{(onlyLetters ? "" : ",")} ";
-	//	if (string.IsNullOrWhiteSpace(res)) res = "0";
-	//	return res.Trim(',', ' ');
-	//}
-	//public static DateTime AverageDateTime(this IEnumerable<DateTime> me)
-	//{
-	//	var list = me.ToList();
-	//	var temp = 0D;
-	//	for (var i = 0; i < list.Count; i++) temp += list[i].Ticks / (double)list.Count;
-	//	return new((long)temp);
-	//}
-	//public static DateTimeOffset AverageDateTime(this IEnumerable<DateTimeOffset> me)
-	//{
-	//	var list = me.ToList();
-	//	var temp = 0D;
-	//	for (var i = 0; i < list.Count; i++) temp += list[i].Ticks / (double)list.Count;
-	//	return new(new((long)temp));
-	//}
-	//static readonly DateTime EpochStartTime = new(1970, 1, 1);
-	//public static long ToEpoch(this DateTime dt, bool failIfPrior1970 = false)
-	//{
-	//	var res = (long)(dt - EpochStartTime).TotalSeconds;
-	//	if (res < 0)
-	//		if (failIfPrior1970)
-	//			throw new InvalidDataException("DateTime cannot be prior 1/1/1970 to be converted to EPOCH date");
-	//		else
-	//			return 0;
-	//	return res;
-	//}
-	//public static DateTime ToEpochDateTime(this long me) => EpochStartTime.AddSeconds(me);
-	//public static DateTime ToEpochDateTime(this double me) => EpochStartTime.AddSeconds(me);
-	//public static TimeSpan Seconds(this int me) => TimeSpan.FromSeconds(me);
-	#endregion
-
-	#region Range - CONVERTED
-	//public static CustomIntEnumerator GetEnumerator(this Range range) => new(range);
-	//public static CustomIntEnumerator GetEnumerator(this int number)
-	//	=> number <= 0 ? throw new ArgumentException($"{nameof(number)} must be a positive value greater than 0", nameof(number)) : new(new(0, number));
-	#endregion
-
-	#region Exception - CONVERTED
-	//public static string GetDeeperInnerMessage(this Exception me)
-	//{
-	//	var inner = me;
-	//	while (inner.InnerException is not null) inner = inner.InnerException;
-	//	return inner.Message;
-	//}
-	#endregion
 }
+
 
 public static class RangeExtensions
 {

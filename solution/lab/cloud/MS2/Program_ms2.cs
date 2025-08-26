@@ -6,17 +6,20 @@ using RabbitMQ.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 // Add services to the container.
-builder.Services.AddControllers();
+//builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+//builder.Services.AddSwaggerGen();
 
 // CONFIGURATION
-builder.Configuration.AddJsonFile("rabbitsettings.json");
-builder.Configuration.AddJsonFile("mqttsettings.json");
-builder.Services.Configure<RabbitSettings>(builder.Configuration.GetSection("Rabbit"));
-builder.Services.Configure<MqttSettings>(builder.Configuration.GetSection("Mqtt"));
+builder.AddRabbitMQClient(connectionName: "rabbit");
+//builder.Configuration.AddJsonFile("rabbitsettings.json");
+//builder.Configuration.AddJsonFile("mqttsettings.json");
+//builder.Services.Configure<RabbitSettings>(builder.Configuration.GetSection("Rabbit"));
+//builder.Services.Configure<MqttSettings>(builder.Configuration.GetSection("Mqtt"));
 
 // RABBIT
 // var rabbitSettings = builder.Configuration.GetSection("Rabbit").Get<RabbitSettings>()
@@ -41,8 +44,8 @@ builder.Services.Configure<MqttSettings>(builder.Configuration.GetSection("Mqtt"
 // APP
 var app = builder.Build();
 
-var node = app.Services.GetRequiredService<INexus>();
-await node.Initialize();
+//var node = app.Services.GetRequiredService<INexus>();
+//await node.Initialize();
 
 // MAPS
 app.MapGet("/instance", () => $"MS2 - Instance = {StaticInstance.Id}");
@@ -50,12 +53,12 @@ app.MapGet("/send/rabbit", async (IRabbitMQPersistentConnection persistentConnec
 app.MapGet("/send/mqtt", async () => await MqttHostedService.Publish("MS1-topic", "Hola Mundo desde MS2"));
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-	app.UseSwagger();
-	app.UseSwaggerUI();
-}
+//if (app.Environment.IsDevelopment())
+//{
+//	app.UseSwagger();
+//	app.UseSwaggerUI();
+//}
 app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
+//app.UseAuthorization();
+//app.MapControllers();
 app.Run();

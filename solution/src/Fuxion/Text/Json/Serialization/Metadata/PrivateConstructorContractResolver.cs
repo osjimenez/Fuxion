@@ -2,9 +2,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
-namespace Fuxion.Json;
+namespace Fuxion.Text.Json.Serialization.Metadata;
 
-public class PrivateConstructorContractResolver : DefaultJsonTypeInfoResolver
+public class PrivateConstructorJsonTypeInfoResolver : DefaultJsonTypeInfoResolver
 {
 	public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
 	{

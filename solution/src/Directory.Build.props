@@ -1,5 +1,5 @@
 <Project>
-	<!-- Importa el props de la raíz para obtener DefaultFrameworks y demás -->
+
 	<Import Project="..\\Directory.Build.props" Condition="Exists('..\\Directory.Build.props')" />
 
 	<PropertyGroup>

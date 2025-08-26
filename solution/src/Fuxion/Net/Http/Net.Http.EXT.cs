@@ -68,7 +68,7 @@ public static class Extensions
 			{
 				try
 				{
-					problem = strContent.DeserializeFromJson<ResponseProblemDetails>(options: jsonOptions);
+					problem = strContent.DeserializeFromJson<ResponseProblemDetails>(jsonOptions);
 					if (problem is not null) extensions.Add((InnerProblemKey, problem));
 				} catch
 				{
@@ -84,7 +84,7 @@ public static class Extensions
 						deserializedBody = JsonSerializer.Deserialize(strContent, deserializationType, jsonOptions);
 					} catch (Exception ex)
 					{
-						extensions.Add((JsonErrorKey, JsonNode.Parse(ex.SerializeToJson())));
+						extensions.Add((JsonErrorKey, JsonNode.Parse(ex.SerializeToJson(options: jsonOptions))));
 					}
 				}
 				if (deserializedBody is null)

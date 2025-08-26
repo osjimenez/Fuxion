@@ -5,7 +5,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Fuxion;
 using Fuxion.Domain;
-using Fuxion.Json;
 using Fuxion.Lab.Cloud.MS1;
 using Fuxion.Lab.Common;
 using Fuxion.Pods;
@@ -19,17 +18,20 @@ using RabbitMQ.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 // Add services to the container.
-builder.Services.AddControllers();
+//builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+//builder.Services.AddSwaggerGen();
 
 // CONFIGURATION
-builder.Configuration.AddJsonFile("rabbitsettings.json");
-builder.Configuration.AddJsonFile("mqttsettings.json");
-builder.Services.Configure<RabbitSettings>(builder.Configuration.GetSection("Rabbit"));
-builder.Services.Configure<MqttSettings>(builder.Configuration.GetSection("Mqtt"));
+builder.AddRabbitMQClient(connectionName: "rabbit");
+//builder.Configuration.AddJsonFile("rabbitsettings.json");
+//builder.Configuration.AddJsonFile("mqttsettings.json");
+//builder.Services.Configure<RabbitSettings>(builder.Configuration.GetSection("Rabbit"));
+//builder.Services.Configure<MqttSettings>(builder.Configuration.GetSection("Mqtt"));
 
 // RABBIT
 // var rabbitSettings = builder.Configuration.GetSection("Rabbit")
@@ -79,14 +81,14 @@ builder.Services.AddScoped<INexus>(sp =>
 	
 	// TODO Todo lo que llega no se tiene que enviar a rabbit, deberia haber un RoutePublisher o algo asi
 	// que decida por donde se envia en funcion del destino
-	nexus.RouteDirectory.AddPublisher<IUriKeyPod<object>>(new(""), pod => pod.TryGetHeader<TestDestination>(out var _), async pod =>
+	nexus.RouteDirectory.AddPublisher<IUriKeyPod<object>>(new(""), pod => pod.TryGetHeader<TestDestination>(out _), async pod =>
 	{
-		var bytesPod = pod.RebuildUriKeyPod<object, IUriKeyPod<object>>()
-			.ToJsonNode()
-			.ToUtf8Bytes()
-			.Pod;
 		if (pod.TryGetHeader<TestDestination>(out var destination))
 		{
+			var bytesPod = pod.RebuildUriKeyPod<object, IUriKeyPod<object>>()
+				.ToJsonNode()
+				.ToUtf8Bytes()
+				.Pod;
 			// TODO aqui se decide, en funcion del nombre de destino, que se enviará por Rabbit
 			// Esto deberia mejorarse
 			if (destination.Destination == "fuxion-lab-CL1-MS1")
@@ -100,7 +102,7 @@ builder.Services.AddScoped<INexus>(sp =>
 		}
 		throw new InvalidOperationException($"You must specify destination");
 	});
-	nexus.RouteDirectory.AddPublisher<IUriKeyPod<object>>(new(""),pod => !pod.TryGetHeader<TestDestination>(out var _), async pod =>
+	nexus.RouteDirectory.AddPublisher<IUriKeyPod<object>>(new(""),pod => !pod.TryGetHeader<TestDestination>(out _), async pod =>
 	{
 		// TODO Aqui es donde se decide la ruta/destino del mensaje
 		// En este caso, simplemente si es del tipo TestMessage se envia a CL1-MS1
@@ -137,14 +139,14 @@ builder.Services.AddHostedService<Service>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-	app.UseSwagger();
-	app.UseSwaggerUI();
-}
+//if (app.Environment.IsDevelopment())
+//{
+//	app.UseSwagger();
+//	app.UseSwaggerUI();
+//}
 app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
+//app.UseAuthorization();
+//app.MapControllers();
 
 // MAPS
 app.MapEndpoints();

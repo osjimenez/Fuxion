@@ -43,7 +43,9 @@
     <Project Path="test/Windows/Fuxion.Windows.Test.csproj" />
   </Folder>
   <Folder Name="/lab/">
+    <Project Path="lab/AppHost/Fuxion.Lab.AppHost.csproj" />
     <Project Path="lab/Common/Fuxion.Lab.Common.csproj" />
+    <Project Path="lab/ServiceDefaults/Fuxion.Lab.ServiceDefaults.csproj" />
     <Project Path="lab/Test/Fuxion.Lab.Test.csproj" />
   </Folder>
   <Folder Name="/lab/cloud/">

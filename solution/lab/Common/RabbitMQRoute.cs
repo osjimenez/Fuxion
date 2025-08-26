@@ -4,7 +4,6 @@ using System.Runtime.Serialization;
 using System.Text;
 using Fuxion.Domain;
 using Fuxion.Domain.Plugin;
-using Fuxion.Json;
 using Fuxion.Reflection;
 using Fuxion.Threading;
 using Fuxion.Threading.Tasks;
@@ -132,24 +131,18 @@ public class RabbitMQSubscriber(
 		});
 }
 
-public class RabbitMQConnection : IDisposable
+public class RabbitMQConnection(IOptions<RabbitSettings> settings, ILogger<RabbitMQConnection> logger, IConnection connection)
+	: IDisposable
 {
-	readonly IOptions<RabbitSettings> _settings;
-	ILogger<RabbitMQConnection> _logger;
-	IConnection? _connection;
+	//IConnection? _connection;
 	readonly object _sync_root = new();
 	int _retryCount = 5;
-	public RabbitMQConnection(IOptions<RabbitSettings> settings, ILogger<RabbitMQConnection> logger)
-	{
-		_settings = settings;
-		_logger = logger;
-		Receive = null!;
-	}
+
 	public async Task Initialize()
 	{
-		_connection = await Connect();
+		//_connection = await Connect();
 	}
-	public Func<RabbitMQReceive, Task> Receive { get; set; }
+	public Func<RabbitMQReceive, Task> Receive { get; set; } = null!;
 	bool _disposed;
 	public void Dispose()
 	{
@@ -157,29 +150,29 @@ public class RabbitMQConnection : IDisposable
 		_disposed = true;
 		try
 		{
-			_connection?.Dispose();
+			connection?.Dispose();
 		} catch (IOException ex)
 		{
-			_logger.LogCritical(ex, ex.Message);
+			logger.LogCritical(ex, ex.Message);
 		}
 	}
 	async Task<IConnection> Connect()
 	{
 		lock (_sync_root)
 		{
-			if (_connection is { IsOpen: true } && !_disposed) return _connection;
-			_logger.LogInformation("RabbitMQ Client is trying to connect");
+			if (connection is { IsOpen: true } && !_disposed) return connection;
+			logger.LogInformation("RabbitMQ Client is trying to connect");
 			var policy = Policy.Handle<SocketException>()
 				.Or<BrokerUnreachableException>()
 				.WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(System.Math.Pow(2, retryAttempt)),
-					(ex, time) => _logger.LogWarning(ex, $"Error connecting RabbitMQ '{ex.Message}', retrying ..."));
-			var settings = _settings.Value;
+					(ex, time) => logger.LogWarning(ex, $"Error connecting RabbitMQ '{ex.Message}', retrying ..."));
+			var settings1 = settings.Value;
 			IConnection? res = null;
 			policy.Execute(() => { 
 				res = new ConnectionFactory
 				{
-					HostName = settings.Host,
-					Port = settings.Port
+					HostName = settings1.Host,
+					Port = settings1.Port
 				}.CreateConnectionAsync().Result;
 			});
 			if (res is { IsOpen: true })
@@ -187,43 +180,43 @@ public class RabbitMQConnection : IDisposable
 				res.ConnectionShutdownAsync += async (s, e) =>
 				{
 					if (_disposed) return;
-					_logger.LogWarning("A RabbitMQ connection is on shutdown. Trying to re-connect...");
-					_connection = await Connect();
+					logger.LogWarning("A RabbitMQ connection is on shutdown. Trying to re-connect...");
+					connection = await Connect();
 				};
 				res.CallbackExceptionAsync += async (s, e) =>
 				{
 					if (_disposed) return;
-					_logger.LogWarning($"A RabbitMQ connection throw '{e.Exception.GetType().Name}'. Trying to re-connect...");
-					_connection = await Connect();
+					logger.LogWarning($"A RabbitMQ connection throw '{e.Exception.GetType().Name}'. Trying to re-connect...");
+					connection = await Connect();
 				};
 				res.ConnectionBlockedAsync += async (s, e) =>
 				{
 					if (_disposed) return;
-					_logger.LogWarning("A RabbitMQ connection was blocked. Trying to re-connect...");
-					_connection = await Connect();
+					logger.LogWarning("A RabbitMQ connection was blocked. Trying to re-connect...");
+					connection = await Connect();
 				};
-				_logger.LogInformation($"RabbitMQ persistent connection acquired a connection '{res.Endpoint.HostName}' and is subscribed to failure events");
+				logger.LogInformation($"RabbitMQ persistent connection acquired a connection '{res.Endpoint.HostName}' and is subscribed to failure events");
 				return res;
 			}
-			_logger.LogCritical("FATAL ERROR: RabbitMQ connections could not be created and opened");
+			logger.LogCritical("FATAL ERROR: RabbitMQ connections could not be created and opened");
 			// TODO Change by RabbitMQConnectionException in Fuxion.RabbitMQ project
 			throw new Exception("RabbitMQ connection failed");
 		}
 	}
 	public async ValueTask DoWithConnection(Func<IConnection, Task> action)
 	{
-		if (_connection is { IsOpen: true } && !_disposed) await action(_connection);
+		if (connection is { IsOpen: true } && !_disposed) await action(connection);
 		else
 		{
-			_connection = await Connect();
-			await action(_connection);
+			connection = await Connect();
+			await action(connection);
 		}
 	}
 	public async ValueTask<TResult> DoWithConnection<TResult>(Func<IConnection, Task<TResult>> function)
 	{
-		if (_connection is { IsOpen: true } && !_disposed) return await function(_connection);
-		_connection = await Connect();
-		return await function(_connection);
+		if (connection is { IsOpen: true } && !_disposed) return await function(connection);
+		connection = await Connect();
+		return await function(connection);
 	}
 }
 //public class RabbitMQRoute : IRoute<RabbitMQSend ,RabbitMQReceive>, IDisposable

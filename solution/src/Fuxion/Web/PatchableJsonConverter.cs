@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Fuxion.Json;
+using Fuxion.Text.Json.Serialization.Metadata;
 
 namespace Fuxion.Web;
 
@@ -22,7 +22,7 @@ public class PatchableJsonConverter<T> : JsonConverter<Patchable<T>> where T : c
 			if (prop is null) throw new InvalidProgramException($"The property '{propertyName}' is not present in type '{typeof(T)}'");
 			var ele = JsonDocument.ParseValue(ref reader).RootElement;
 			var val = ele.Deserialize(prop.PropertyType, new JsonSerializerOptions {
-				TypeInfoResolver = new PrivateConstructorContractResolver()
+				TypeInfoResolver = new PrivateConstructorJsonTypeInfoResolver()
 			});
 			patchable.Properties.Add(propertyName, (prop, val));
 		}

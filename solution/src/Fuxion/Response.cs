@@ -1,9 +1,11 @@
+using Fuxion.Text.Json.Serialization;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
-using Fuxion.Text.Json.Serialization;
 
 namespace Fuxion;
 
+[DebuggerDisplay("{IsSuccess} - {Message}")]
 public class Response(bool isSuccess, string? message = null, object? type = null, Exception? exception = null) : IResponse
 {
 	public bool IsSuccess { get; protected init; } = isSuccess;
@@ -27,6 +29,7 @@ public class Response(bool isSuccess, string? message = null, object? type = nul
 #endif
 }
 
+[DebuggerDisplay("{IsSuccess} - {Message}")]
 public class Response<TPayload>(bool isSuccess, TPayload payload, string? message = null, object? type = null, Exception? exception = null)
 	: Response(isSuccess, message, type, exception), IResponse<TPayload>
 {

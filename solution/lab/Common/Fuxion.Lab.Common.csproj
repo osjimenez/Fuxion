@@ -2,8 +2,6 @@
 
 	<PropertyGroup>
 		<TargetFramework>$(LatestCoreFramework)</TargetFramework>
-		<Nullable>enable</Nullable>
-		<RootNamespace>Fuxion.Lab.Common</RootNamespace>
 	</PropertyGroup>
 
 	<ItemGroup>

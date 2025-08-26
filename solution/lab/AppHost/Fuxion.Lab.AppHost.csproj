@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<Sdk Name="Aspire.AppHost.Sdk" Version="9.4.1" />
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>$(LatestCoreFramework)</TargetFramework>
+		<UserSecretsId>0e0b7ec1-c7c2-45b0-b0f0-30eb9a067d95</UserSecretsId>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Aspire.Hosting.AppHost" />
+		<PackageReference Include="Aspire.Hosting.RabbitMQ" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\cloud\GATE\Fuxion.Lab.Cloud.GATE.csproj" />
+		<ProjectReference Include="..\cloud\MS1\Fuxion.Lab.Cloud.MS1.csproj" />
+		<ProjectReference Include="..\cloud\MS2\Fuxion.Lab.Cloud.MS2.csproj" />
+	</ItemGroup>
+
+</Project>

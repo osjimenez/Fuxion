@@ -1,7 +1,6 @@
 ﻿using Fuxion.Application.Commands;
 using Fuxion.Application.Events;
 using Fuxion.Domain;
-using Fuxion.Json;
 using Fuxion.Reflection;
 using Fuxion.Xunit;
 using Xunit.Abstractions;

@@ -22,7 +22,7 @@ public static class JsonNodePodExtensions
 		JsonSerializerOptions options = new();
 		options.PropertyNameCaseInsensitive = true;
 		options.Converters.Add(new IPodConverterFactory());
-		return new PodBuilder<TDiscriminator, JsonNode, JsonNodePod<TDiscriminator>>(me.Pod.Payload.DeserializeFromJson<JsonNodePod<TDiscriminator>>(options: options)
+		return new PodBuilder<TDiscriminator, JsonNode, JsonNodePod<TDiscriminator>>(me.Pod.Payload.DeserializeFromJson<JsonNodePod<TDiscriminator>>(options)
 			?? throw new SerializationException("string couldn't be deserialized"));
 	}
 	public static IPodBuilder<TDiscriminator, JsonNode, JsonNodePod<TDiscriminator>> FromJsonNode<TDiscriminator>(this IPodPreBuilder<string> me)

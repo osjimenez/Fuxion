@@ -51,8 +51,8 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 	{
 		Base b = new Derived();
 		var res = b.CloneWithJson();
-		Output.WriteLine("res.GetType() = " + res.GetType().Name);
-		Assert.Equal(nameof(Derived), res.GetType().Name);
+		Output.WriteLine("res.GetType() = " + res?.GetType().Name);
+		Assert.Equal(nameof(Derived), res?.GetType().Name);
 	}
 	[Fact(DisplayName = "Exception - ToJson")]
 	public void ExceptionToJson()

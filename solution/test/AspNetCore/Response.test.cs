@@ -40,7 +40,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			PrintVariable(res.StatusCode);
 			Assert.Equal(HttpStatusCode.OK, res.StatusCode);
 			var str = await res.Content.ReadAsStringAsync();
-			var payload = str.DeserializeFromJson<TestPayload>(options: jsonOptions);
+			var payload = str.DeserializeFromJson<TestPayload>(jsonOptions);
 			Assert.Equal("Test name", payload?.FirstName);
 			Assert.Equal(123, payload?.Age);
 		}
@@ -51,7 +51,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			PrintVariable(res.StatusCode);
 			Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
 			var str = await res.Content.ReadAsStringAsync();
-			var problem = str.DeserializeFromJson<ProblemDetails>(options: jsonOptions);
+			var problem = str.DeserializeFromJson<ProblemDetails>(jsonOptions);
 			Assert.Equal("Error message", problem?.Detail);
 		}
 		{
@@ -59,7 +59,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			PrintVariable(res.StatusCode);
 			Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
 			var str = await res.Content.ReadAsStringAsync();
-			var problem = str.DeserializeFromJson<ProblemDetails>(options: jsonOptions);
+			var problem = str.DeserializeFromJson<ProblemDetails>(jsonOptions);
 			Assert.Equal("Error message", problem?.Detail);
 			var payload = ((JsonElement)problem?.Extensions[PayloadKey]!).Deserialize<TestPayload>(jsonOptions);
 			Assert.Equal("Test name", payload?.FirstName);
@@ -72,7 +72,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			PrintVariable(res.StatusCode);
 			Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
 			var str = await res.Content.ReadAsStringAsync();
-			var problem = str.DeserializeFromJson<ProblemDetails>(options: jsonOptions);
+			var problem = str.DeserializeFromJson<ProblemDetails>(jsonOptions);
 			Assert.Equal("Error message", problem?.Detail);
 		}
 		{
@@ -80,7 +80,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			PrintVariable(res.StatusCode);
 			Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
 			var str = await res.Content.ReadAsStringAsync();
-			var problem = str.DeserializeFromJson<ProblemDetails>(options: jsonOptions);
+			var problem = str.DeserializeFromJson<ProblemDetails>(jsonOptions);
 			Assert.Equal("Error message", problem?.Detail);
 			var payload = ((JsonElement)problem?.Extensions[PayloadKey]!).Deserialize<TestPayload>(jsonOptions);
 			Assert.Equal("Test name", payload?.FirstName);
@@ -94,7 +94,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
 			var str = await res.Content.ReadAsStringAsync();
 			PrintVariable(str);
-			var problem = str.DeserializeFromJson<ProblemDetails>(options: jsonOptions);
+			var problem = str.DeserializeFromJson<ProblemDetails>(jsonOptions);
 			var exception = (JsonElement)problem?.Extensions[ExceptionKey]!;
 			Assert.Equal("Not implemented", exception.GetProperty("Message").GetString());
 		}

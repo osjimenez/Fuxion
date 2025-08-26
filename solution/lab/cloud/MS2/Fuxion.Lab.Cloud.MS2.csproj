@@ -10,12 +10,14 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Aspire.RabbitMQ.Client.v7" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" />
 		<PackageReference Include="Swashbuckle.AspNetCore" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\..\Common\Fuxion.Lab.Common.csproj" />
+	  <ProjectReference Include="..\..\ServiceDefaults\Fuxion.Lab.ServiceDefaults.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
