@@ -23,42 +23,42 @@ public class IEnumerableExtensionsTest : BaseTest<IEnumerableExtensionsTest>
 		// IEnumerable<ref>
 		IEnumerable<string?> ieRef = ["", " ", "uno", null];
 		Assert.Equal(3, ieRef.WhereNotNull().Count());
-		Assert.Single(ieRef.RemoveNullsEmptiesAndWhiteSpaces());
+		Assert.Single(ieRef.WhereNeitherNullNorWhiteSpace());
 
 		// IEnumerable<value>
 		IEnumerable<int?> ieValue = [0, 1, null];
 		Assert.Equal(2, ieValue.WhereNotNull().Count());
-		Assert.Single(ieValue.RemoveNullsAndDefaults());
+		Assert.Single(ieValue.WhereNeitherNullNorDefault());
 
 		// IQueryable<ref>
 		IQueryable<string?> queRef = new List<string?>(["", " ", "uno", null]).AsQueryable();
 		Assert.Equal(3, queRef.WhereNotNull().Count());
-		Assert.Single(queRef.RemoveNullsEmptiesAndWhiteSpaces());
+		Assert.Single(queRef.WhereNeitherNullNorWhiteSpace());
 
 		// IQueryable<value>
 		IQueryable<int?> queValue = new List<int?>([0, 1, null]).AsQueryable();
 		Assert.Equal(2, queValue.WhereNotNull().Count());
-		Assert.Single(queValue.RemoveNullsAndDefaults());
+		Assert.Single(queValue.WhereNeitherNullNorDefault());
 
 		// ICollection<ref>
 		ICollection<string?> colRef = ["", " ", "uno", null];
 		Assert.Equal(3, colRef.WhereNotNull().Count());
-		Assert.Single(colRef.RemoveNullsEmptiesAndWhiteSpaces());
+		Assert.Single(colRef.WhereNeitherNullNorWhiteSpace());
 
 		// ICollection<value>
 		ICollection<int?> colValue = [0, 1, null];
 		Assert.Equal(2, colValue.WhereNotNull().Count());
-		Assert.Single(colValue.RemoveNullsAndDefaults());
+		Assert.Single(colValue.WhereNeitherNullNorDefault());
 
 		// Array<ref>
 		string?[] arrRef = ["", " ", "uno", null];
 		Assert.Equal(3, arrRef.WhereNotNull().Count());
-		Assert.Single(arrRef.RemoveNullsEmptiesAndWhiteSpaces());
+		Assert.Single(arrRef.WhereNeitherNullNorWhiteSpace());
 
 		// Array<value>
 		int?[] arrValue = [0, 1, null];
 		Assert.Equal(2, arrValue.WhereNotNull().Count());
-		Assert.Single(arrValue.RemoveNullsAndDefaults());
+		Assert.Single(arrValue.WhereNeitherNullNorDefault());
 	}
 	[Fact(DisplayName = "IEnumerableExtensions - RemoveOutliers")]
 	public void RemoveOutliersTest()

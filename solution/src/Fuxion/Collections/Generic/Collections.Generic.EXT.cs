@@ -12,7 +12,7 @@ public static class Extensions
 	}
 	extension(IEnumerable<string?> me)
 	{
-		public IEnumerable<string> RemoveNullsEmptiesAndWhiteSpaces()
+		public IEnumerable<string> WhereNeitherNullNorWhiteSpace()
 			=> me.Where(i => !i.IsNullOrWhiteSpace()).Select(i => i!);
 	}
 	extension<T>(IEnumerable<T?> me) where T : struct
@@ -20,7 +20,7 @@ public static class Extensions
 		public IEnumerable<T> WhereNotNull()
 			=> me.Where(i => i.HasValue).Select(i => i!.Value);
 
-		public IEnumerable<T> RemoveNullsAndDefaults()
+		public IEnumerable<T> WhereNeitherNullNorDefault()
 			=> me.Where(i => i.HasValue && !i.Value.Equals(default(T))).Select(i => i!.Value);
 	}
 
@@ -31,7 +31,7 @@ public static class Extensions
 	}
 	extension(IQueryable<string?> me)
 	{
-		public IQueryable<string> RemoveNullsEmptiesAndWhiteSpaces()
+		public IQueryable<string> WhereNeitherNullNorWhiteSpace()
 			=> me.Where(i => !i.IsNullOrWhiteSpace()).Select(i => i!);
 	}
 
@@ -40,7 +40,7 @@ public static class Extensions
 		public IQueryable<T> WhereNotNull()
 			=> me.Where(i => i.HasValue).Select(i => i!.Value);
 
-		public IQueryable<T> RemoveNullsAndDefaults()
+		public IQueryable<T> WhereNeitherNullNorDefault()
 			=> me.Where(i => i.HasValue && !i.Value.Equals(default(T))).Select(i => i!.Value);
 	}
 
@@ -109,23 +109,7 @@ public static class Extensions
 		return res;
 	}
 	public static bool IsNullOrEmpty<T>(this IEnumerable<T>? me) => me == null || !me.Any();
-
-	public static IList<T> RemoveIf<T>(this IList<T> me, Func<T, bool> predicate)
-	{
-		var res = new List<T>();
-		for (var i = 0; i < me.Count; i++)
-		{
-			var item = me.ElementAt(i);
-			if (predicate(item))
-			{
-				me.RemoveAt(i);
-				res.Add(item);
-				i--;
-			}
-		}
-		return res;
-	}
-
+	
 	// Remove outliers: http://www.ehow.com/how_5201412_calculate-outliers.html
 	public static IEnumerable<int> RemoveOutliers(this IEnumerable<int> list, Action<string>? outputConsole = null)
 		=> list.Select(i => (long)i)
