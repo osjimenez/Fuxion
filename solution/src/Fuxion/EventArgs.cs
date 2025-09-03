@@ -1,4 +1,6 @@
-﻿namespace Fuxion;
+﻿using System;
+
+namespace Fuxion;
 
 /// <summary>
 ///    Clase para implementar argumentos de eventos de un determinado tipo.

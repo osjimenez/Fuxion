@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(CoreAndOldFrameworks)</TargetFrameworks>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(IsCoreFrameworks)' == 'true'">
+		<PackageReference Include="Microsoft.EntityFrameworkCore" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">
+		<PackageReference Include="EntityFramework" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\Linq\Fuxion.Linq.csproj" />
+		<ProjectReference Include="..\..\src\Xunit\Fuxion.Xunit.csproj" />
+		<ProjectReference Include="..\..\src\Linq.CodeGenerator\Fuxion.Linq.CodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="NewFolder\" />
+	</ItemGroup>
+
+</Project>

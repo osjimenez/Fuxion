@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Identity;
+﻿using System;
+
+namespace Fuxion.Identity;
 
 /// <summary>
 ///    Mark a class to define how will be discrimined by its type

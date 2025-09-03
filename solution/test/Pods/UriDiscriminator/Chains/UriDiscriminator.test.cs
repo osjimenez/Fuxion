@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace Fuxion.Pods.Test.UriDiscriminator.Chains;
 
 public class UriDiscriminatorTest(ITestOutputHelper output) : BaseTest<UriDiscriminatorTest>(output)
@@ -5,6 +7,22 @@ public class UriDiscriminatorTest(ITestOutputHelper output) : BaseTest<UriDiscri
 	[Fact(DisplayName = "UriDiscriminator")]
 	public void test()
 	{
+		bool[] aa = [];
+		
+		PrintVariable(aa.GetType().GetSignature());
+		PrintVariable(aa.GetType().FullName);
+		PrintVariable(aa.GetType().IsGenericType);
+		PrintVariable(aa.GetType().IsGenericTypeDefinition);
+		PrintVariable(aa.GetType().IsArray);
+		PrintVariable(aa.GetType().GetElementType()?.FullName);
+		PrintVariable(aa.GetType().GetArrayRank());
+		PrintVariable(aa is Array);
+		PrintVariable(aa is IEnumerable<bool>);
+		PrintVariable(aa is IList<bool>);
+		PrintVariable(aa is List<bool>);
+		PrintVariable(aa is ICollection<bool>);
+		PrintVariable(aa is Collection<bool>);
+
 		UriDiscriminatorDirectory dir = new();
 		var res = dir.GetOrRegisterType(typeof(Chain1_Echelon0));
 		IsTrue(res.IsSuccess);

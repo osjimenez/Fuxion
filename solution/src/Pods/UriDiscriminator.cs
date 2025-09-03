@@ -1,4 +1,9 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using Fuxion.Reflection;
@@ -23,16 +28,25 @@ namespace Fuxion.Pods;
 
 public class UriDiscriminator
 {
+	private string? _base64Url;
+
+	private Uri? _full;
 	public required Uri Key { get; init; }
 	public required SemanticVersion Version { get; init; }
 	public IReadOnlyCollection<UriDiscriminatorChain> Bases { get; init; } = [];
 	public IReadOnlyCollection<UriDiscriminator?> Generics { get; init; } = [];
 	public IReadOnlyCollection<UriDiscriminator> Interfaces { get; init; } = [];
-	public ReadOnlyDictionary<string, string> Parameters { get; init; } = new(new Dictionary<string, string>());
+	public IReadOnlyDictionary<string, string> Parameters { get; init; } = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>());
 	public Type? Type { get; init; } = null;
 	public required UriDiscriminatorChain Chain { get; init; }
-	Uri? full;
-	Uri BuildFull()
+	public Uri Full => _full ?? BuildFull();
+	public string Base64Url => _base64Url ?? BuildBase64Url();
+
+	internal bool IsReset { get; init; }
+
+	internal SealMode SealMode { get; init; }
+
+	private Uri BuildFull()
 	{
 		UriBuilder ub = new(Key);
 		// Bases
@@ -48,6 +62,7 @@ public class UriDiscriminator
 				ub.Query += "&";
 			ub.Query += "generics" + "=" + genericsValue;
 		}
+
 		// Interfaces
 		var interfacesValue = string.Join(".", Interfaces.Select(x => x.Base64Url));
 		if (interfacesValue.IsNeitherNullNorWhiteSpace())
@@ -58,6 +73,7 @@ public class UriDiscriminator
 				ub.Query += "&";
 			ub.Query += "interfaces" + "=" + interfacesValue;
 		}
+
 		// Parameters
 		if (Parameters.Count > 0)
 		{
@@ -67,55 +83,64 @@ public class UriDiscriminator
 				ub.Query += "&";
 			ub.Query += string.Join("&", Parameters.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value)}"));
 		}
-		full = ub.Uri;
-		return full;
+
+		_full = ub.Uri;
+		return _full;
 	}
-	public Uri Full => full ?? BuildFull();
-	string? base64Url;
-	string BuildBase64Url()
+
+	private string BuildBase64Url()
 	{
-		base64Url = Encoding.UTF8.GetBytes(Key.ToString()).ToBase64UrlString();
-		return base64Url;
+		_base64Url = Encoding.UTF8.GetBytes(Key.ToString()).ToBase64UrlString();
+		return _base64Url;
 	}
-	public string Base64Url => base64Url ?? BuildBase64Url();
-	internal bool IsReset { get; init; }
-	internal SealMode SealMode { get; init; }
 }
 
-public class UriDiscriminatorChain
+public class UriDiscriminatorChain : IReadOnlyCollection<UriDiscriminator>
 {
+	private readonly List<UriDiscriminator> _list = [];
+
 	public required Uri BaseKey { get; init; }
-	public required IReadOnlyCollection<UriDiscriminator> Echelons { get; init; }
+
+	public IEnumerator<UriDiscriminator> GetEnumerator() => _list.GetEnumerator();
+	IEnumerator IEnumerable.GetEnumerator() => _list.GetEnumerator();
+	public int Count => _list.Count;
 }
 
 public class UriDiscriminatorDirectory
 {
-	readonly Dictionary<Uri, UriDiscriminator> uriDic = new();
-	readonly Dictionary<string, UriDiscriminator> base64UrlDic = new();
-	readonly Dictionary<Type, UriDiscriminator> typeDic = new();
-	public UriDiscriminator? this[Uri key] => uriDic.TryGetValue(key, out var x) ? x : null;
-	public UriDiscriminator? this[string base64Url] => base64UrlDic.TryGetValue(base64Url, out var x) ? x : null;
-	public UriDiscriminator? this[Type type] => typeDic.TryGetValue(type, out var x) ? x : null;
+	private readonly Dictionary<string, UriDiscriminator> _base64UrlDic = new();
+	private readonly Dictionary<Type, UriDiscriminator> _typeDic = new();
+	private readonly Dictionary<Uri, UriDiscriminator> _uriDic = new();
+	public UriDiscriminator? this[Uri key] => _uriDic.TryGetValue(key, out var x) ? x : null;
+	public UriDiscriminator? this[string base64Url] => _base64UrlDic.TryGetValue(base64Url, out var x) ? x : null;
+	public UriDiscriminator? this[Type type] => _typeDic.TryGetValue(type, out var x) ? x : null;
+
 	public void Add(UriDiscriminator dis)
 	{
-		uriDic.Add(dis.Key, dis);
-		base64UrlDic.Add(dis.Base64Url, dis);
-		if (dis.Type is not null) typeDic.Add(dis.Type, dis);
+		_uriDic.Add(dis.Key, dis);
+		_base64UrlDic.Add(dis.Base64Url, dis);
+		if (dis.Type is not null) _typeDic.Add(dis.Type, dis);
 	}
+
 	public Response<UriDiscriminator> GetOrRegisterType(Type type)
 	{
 		// If already registered, return the existing UriDiscriminator
-		if (typeDic.TryGetValue(type, out var existedDiscriminator)) return Response.SuccessPayload(existedDiscriminator);
+		if (_typeDic.TryGetValue(type, out var existedDiscriminator)) return Response.SuccessPayload(existedDiscriminator);
 
 		// Return error if type is not adorned with UriDiscriminatorAttribute
 		var att = type.GetCustomAttribute<UriDiscriminatorAttribute>(false, false, true);
-		if (att is null)
-			return Response.ErrorMessage($"Type '{type.GetSignature()}' is not adorned with '{nameof(UriDiscriminatorAttribute)}' and cannot be registered.", UriDiscriminatorErrorType.AttributeNotFound).AsPayload<UriDiscriminator>();
+		if (att is null && !_explicitAttributes.TryGetValue(type, out att))
+			return Response
+				.ErrorMessage(
+					$"Type '{type.GetSignature()}' is not adorned with '{nameof(UriDiscriminatorAttribute)}' and cannot be registered.",
+					UriDiscriminatorErrorType.AttributeNotFound).AsPayload<UriDiscriminator>();
 
 		// Return error if type is bypassed
 		var bypassAtt = type.GetCustomAttribute<UriDiscriminatorBypassAttribute>(false, false, true);
 		if (bypassAtt is not null)
-			return Response.ErrorMessage($"Type '{type.GetSignature()}' is bypassed and cannot been registered.", UriDiscriminatorErrorType.Bypassed).AsPayload<UriDiscriminator>();
+			return Response
+				.ErrorMessage($"Type '{type.GetSignature()}' is bypassed and cannot been registered.",
+					UriDiscriminatorErrorType.Bypassed).AsPayload<UriDiscriminator>();
 
 		// Process inheritance
 		List<UriDiscriminatorChain> bases = [];
@@ -126,7 +151,6 @@ public class UriDiscriminatorDirectory
 		{
 			var res = GetOrRegisterType(currentType);
 			if (res.IsError)
-			{
 				switch ((UriDiscriminatorErrorType?)res.ErrorType)
 				{
 					// If type isn't adorned with UriDiscriminatorAttribute, set brokenType (if now is null) and continue
@@ -142,11 +166,13 @@ public class UriDiscriminatorDirectory
 					case null:
 					default: return res;
 				}
-			}
 
 			// If chain was broken previously, return error
 			if (brokenType is not null)
-				return Response.ErrorMessage($"The chain was broken by type '{brokenType.GetSignature()}' and derived type '{currentType.GetSignature()}' is adorned with '{nameof(UriDiscriminatorAttribute)}'.", UriDiscriminatorErrorType.Broken).AsPayload<UriDiscriminator>();
+				return Response
+					.ErrorMessage(
+						$"The chain was broken by type '{brokenType.GetSignature()}' and derived type '{currentType.GetSignature()}' is adorned with '{nameof(UriDiscriminatorAttribute)}'.",
+						UriDiscriminatorErrorType.Broken).AsPayload<UriDiscriminator>();
 
 			// If discriminator is sealed, ...
 
@@ -156,6 +182,7 @@ public class UriDiscriminatorDirectory
 			echelons.Add(res.Payload);
 			currentType = currentType.BaseType;
 		}
+
 		echelons.Reverse();
 
 		// Compute key
@@ -179,16 +206,38 @@ public class UriDiscriminatorDirectory
 			Chain = new()
 			{
 				BaseKey = echelons.Last().Key,
-				Echelons = echelons
+				//Echelons = echelons
 			},
 			IsReset = att.IsReset,
 			SealMode = att.SealMode
 		});
 	}
+
+	private readonly Dictionary<Type, UriDiscriminatorAttribute> _explicitAttributes = [];
+
+	public Response AddExplicitAttribute(Type type, UriDiscriminatorAttribute attribute)
+	{
+		if (_explicitAttributes.ContainsKey(type))
+			return Response.ErrorMessage($"Type '{type.GetSignature()}' already has an explicit '{nameof(UriDiscriminatorAttribute)}' registered.");
+		_explicitAttributes[type] = attribute;
+		return Response.Success();
+	}
+}
+
+public static class SystemUriDiscriminatorAttributes
+{
+	private static readonly Dictionary<Type, UriDiscriminatorAttribute> Dic = new();
+	public static UriDiscriminatorAttribute Bool { get; } = new(UriKey.FuxionSystemTypesBaseUri + "bool/1.0.0");
+	public static UriDiscriminatorAttribute BoolArray { get; } = new(UriKey.FuxionSystemTypesBaseUri + "bool[]/1.0.0");
+	public static bool TryGetFor(Type type, [MaybeNullWhen(returnValue: false)] out UriDiscriminatorAttribute uriKey) => Dic.TryGetValue(type, out uriKey);
+	public static bool TryGetFor<T>([MaybeNullWhen(returnValue: false)] out UriDiscriminatorAttribute uriKey) => TryGetFor(typeof(T), out uriKey);
+	public static UriDiscriminatorAttribute GetFor(Type type) => Dic.TryGetValue(type, out var uriKey) ? uriKey : throw new InvalidOperationException("Only system types are allowed as generic types");
+	public static UriDiscriminatorAttribute GetFor<T>() => GetFor(typeof(T));
 }
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, Inherited = false)]
-public class UriDiscriminatorAttribute(string key, SealMode sealMode = SealMode.NoSealed, bool isReset = false) : Attribute
+public class UriDiscriminatorAttribute(string key, SealMode sealMode = SealMode.NoSealed, bool isReset = false)
+	: Attribute
 {
 	public string Key { get; } = key;
 	public SealMode SealMode { get; } = sealMode;

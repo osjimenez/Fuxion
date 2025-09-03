@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Repositories;
+﻿using System.Threading.Tasks;
+
+namespace Fuxion.Repositories;
 
 public interface IAsyncKeyValueRepository<TKey, TValue>
 {

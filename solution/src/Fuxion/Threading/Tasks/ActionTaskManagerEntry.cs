@@ -1,3 +1,6 @@
+using System;
+using System.Threading.Tasks;
+
 namespace Fuxion.Threading.Tasks;
 
 class ActionTaskManagerEntry : TaskManagerEntry

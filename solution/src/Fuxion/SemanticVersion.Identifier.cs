@@ -1,3 +1,5 @@
+using System;
+
 namespace Fuxion;
 
 public class SemanticVersionIdentifier : IComparable, IComparable<SemanticVersionIdentifier>, IEquatable<SemanticVersionIdentifier>

@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System;
+using System.Collections.Generic;
+using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Telerik.Windows.Controls;
 

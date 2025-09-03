@@ -1,4 +1,5 @@
-﻿using Fuxion.Identity.Test.Dao;
+﻿using System.Collections.Generic;
+using Fuxion.Identity.Test.Dao;
 using Fuxion.Identity.Test.Mocks;
 
 namespace Fuxion.Identity.Test;

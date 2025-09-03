@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using Fuxion.Collections.Generic;
 
 namespace Fuxion.Identity.Test.Dao;

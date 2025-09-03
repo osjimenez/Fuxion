@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Linq;
 using Fuxion.Collections;
 
 namespace Fuxion.Test.Collections;

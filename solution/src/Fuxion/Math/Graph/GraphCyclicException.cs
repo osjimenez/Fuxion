@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Math.Graph;
+﻿using System;
+
+namespace Fuxion.Math.Graph;
 
 public class GraphCyclicException : FuxionException
 {

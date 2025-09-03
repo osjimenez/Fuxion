@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Application.Events;
+﻿using System;
+
+namespace Fuxion.Application.Events;
 
 public class EventSubscription
 {

@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(DefaultFrameworks)</TargetFrameworks>
+		<Title>Fuxion Linq</Title>
+		<PackageId>Fuxion.Linq</PackageId>
+		<Description>Fuxion library for Linq</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Fuxion\Fuxion.csproj" />
+	  <ProjectReference Include="..\Linq.CodeGenerator\Fuxion.Linq.CodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+</Project>

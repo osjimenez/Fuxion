@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Fuxion;
 
 public static class ResponseExtensions
@@ -132,7 +136,7 @@ public static class ResponseExtensions
 		public bool IsTimeout() => me.IsErrorType(ErrorType.Timeout);
 	}
 
-#if STANDARD_OR_OLD_FRAMEWORKS
+//#if STANDARD_OR_OLD_FRAMEWORKS
 	public class ResponseGetExtensions;
 
 	extension(ResponseGetExtensions me)
@@ -179,5 +183,5 @@ public static class ResponseExtensions
 		public Response<TPayload> Timeout<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
 			=> Response.Timeout(message, payload, exception, extensions);
 	}
-#endif
+//#endif
 }

@@ -1,3 +1,4 @@
+using System;
 using Fuxion.AspNetCore.Service.Endpoints;
 using Microsoft.AspNetCore.Mvc;
 

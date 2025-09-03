@@ -1,4 +1,8 @@
-﻿using System.Data.Entity;
+﻿using System;
+using System.Collections.Generic;
+using System.Data.Entity;
+using System.Linq;
+using System.Threading.Tasks;
 using Fuxion.Identity.Test;
 using Fuxion.Identity.Test.Dao;
 using Fuxion.Repositories;

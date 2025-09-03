@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Security.Cryptography;
 
 namespace Fuxion.Collections.Generic;
@@ -13,7 +16,7 @@ public static class Extensions
 	extension(IEnumerable<string?> me)
 	{
 		public IEnumerable<string> WhereNeitherNullNorWhiteSpace()
-			=> me.Where(i => !i.IsNullOrWhiteSpace()).Select(i => i!);
+			=> me.Where(i => i.IsNeitherNullNorWhiteSpace()).Select(i => i!);
 	}
 	extension<T>(IEnumerable<T?> me) where T : struct
 	{
@@ -32,7 +35,7 @@ public static class Extensions
 	extension(IQueryable<string?> me)
 	{
 		public IQueryable<string> WhereNeitherNullNorWhiteSpace()
-			=> me.Where(i => !i.IsNullOrWhiteSpace()).Select(i => i!);
+			=> me.Where(i => i.IsNeitherNullNorWhiteSpace()).Select(i => i!);
 	}
 
 	extension<T>(IQueryable<T?> me) where T : struct
@@ -43,46 +46,6 @@ public static class Extensions
 		public IQueryable<T> WhereNeitherNullNorDefault()
 			=> me.Where(i => i.HasValue && !i.Value.Equals(default(T))).Select(i => i!.Value);
 	}
-
-	//extension<T>(ICollection<T?> me) where T : class
-	//{
-	//	public ICollection<T> RemoveNulls()
-	//		=> me.Where(i => i is not null).Select(i => i!).ToList();
-	//}
-	//extension(ICollection<string?> me)
-	//{
-	//	public ICollection<string> RemoveNullsEmptiesAndWhiteSpaces()
-	//		=> me.Where(i => !i.IsNullOrWhiteSpace()).Select(i => i!).ToList();
-	//}
-
-	//extension<T>(ICollection<T?> me) where T : struct
-	//{
-	//	public ICollection<T> RemoveNulls()
-	//		=> me.Where(i => i.HasValue).Select(i => i!.Value).ToList();
-
-	//	public ICollection<T> RemoveNullsAndDefaults()
-	//		=> me.Where(i => i.HasValue && !i.Value.Equals(default(T))).Select(i => i!.Value).ToList();
-	//}
-
-	//extension<T>(T?[] me) where T : class
-	//{
-	//	public T[] RemoveNulls()
-	//		=> me.Where(i => i is not null).Select(i => i!).ToArray();
-	//}
-	//extension(string?[] me)
-	//{
-	//	public string[] RemoveNullsEmptiesAndWhiteSpaces()
-	//		=> me.Where(i => !i.IsNullOrWhiteSpace()).Select(i => i!).ToArray();
-	//}
-
-	//extension<T>(T?[] me) where T : struct
-	//{
-	//	public T[] RemoveNulls()
-	//		=> me.Where(i => i.HasValue).Select(i => i!.Value).ToArray();
-
-	//	public T[] RemoveNullsAndDefaults()
-	//		=> me.Where(i => i.HasValue && !i.Value.Equals(default(T))).Select(i => i!.Value).ToArray();
-	//}
 
 	public static List<T> TakeRandomly<T>(this IEnumerable<T> me, int count)
 	{

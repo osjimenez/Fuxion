@@ -1,4 +1,5 @@
-﻿using Fuxion.Xunit;
+﻿using System;
+using Fuxion.Xunit;
 using Xunit.Abstractions;
 
 namespace Fuxion.Application.Test.Events;

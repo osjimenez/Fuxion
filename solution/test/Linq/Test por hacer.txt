@@ -1,0 +1,257 @@
+BATERIA DE TESTS PARA FILTER OPERATIONS (ASIGNACIÓN DE PROPIEDADES)
+=============================================================
+
+OBJETIVO
+--------
+Validar para cada tipo soportado que TODAS las operaciones expuestas por la interfaz generada funcionan según lo previsto.
+Se usarán SIEMPRE asignaciones de propiedades (filter.Prop.Equal = 10) y NO métodos.
+
+ESTILO / FORMATO (NUEVO)
+------------------------
+- Usar un using por línea.
+- Una clase por bloque claramente separado con línea en blanco antes y después.
+- Indentación con tabulador o 4 espacios (consistente con el repo actual).
+- Llaves de apertura en la misma línea de la declaración (estilo K&R) como en el resto del código.
+- Un método de test (Fact) con espacios y saltos de línea legibles (NO todo en una sola línea).
+- No más de una sentencia por línea.
+- Orden recomendado en cada archivo: DAO, Filter, Test class.
+
+TIPOS A CUBRIR (1 archivo .cs por tipo - no nullables)
+------------------------------------------------------
+int
+uint
+short
+ushort
+long
+ulong
+decimal
+float
+double
+
+string
+bool
+DateTime
+TimeSpan
+Guid
+char
+byte
+sbyte
+
+TIPOS NULLABLE (nueva batería adicional)
+----------------------------------------
+Se crearán archivos adicionales para cada tipo valor anterior en su versión nullable:
+int?  => TestNullableInt.cs
+uint? => TestNullableUInt.cs
+... etc. (mismo patrón para short?, ushort?, long?, ulong?, decimal?, float?, double?, DateTime?, TimeSpan?, Guid?, char?, byte?, sbyte?)
+
+En estos tests se añaden y validan específicamente IsNull / IsNotNull y la interacción con el resto de operaciones.
+
+NOMBRE DE ARCHIVOS
+------------------
+TestInt.cs, TestUInt.cs, ... TestString.cs
+TestNullableInt.cs, TestNullableUInt.cs, ... TestNullableDateTime.cs, etc.
+
+ESTRUCTURA DE CADA ARCHIVO (NO NULLABLE)
+---------------------------------------
+1. using necesarios (System, System.Linq, System.Collections.Generic, Xunit, Fuxion.Linq)
+2. Clase Dao con una única propiedad:
+   public class <Tipo>Dao { public <Tipo> Property { get; set; } }
+3. Filtro parcial + schema:
+   [FilterSchema(nameof(Fields))]
+   public partial class <Tipo>Filter { public static readonly IFilterDescriptor<<Tipo>Dao>[] Fields = FilterBuilder.For<<Tipo>Dao>().Property(d => d.Property).Build(); }
+4. Clase de test Test<Tipo> con un Fact por operación soportada.
+5. Helper opcional para construir IQueryable:
+   IQueryable<<Tipo>Dao> GetQueryable(params <Tipo>[] values) => values.Select(v => new <Tipo>Dao { Property = v }).AsQueryable();
+
+ESTRUCTURA DE CADA ARCHIVO (NULLABLE)
+------------------------------------
+Similar a la versión no nullable pero:
+1. Dao: public <Tipo?> Property { get; set; }
+2. Tests adicionales:
+   - IsNull (Property.IsNull = true) devuelve solo elementos con null.
+   - IsNotNull (Property.IsNotNull = true) devuelve solo elementos con valor.
+   - IsNull + otras operaciones (Equal / GreaterThan) => Equal / relacionales se ignoran si el valor buscado es no null y IsNull = true (el resultado debe ser solo null).
+   - Equal = null (comportamiento: equivalente a IsNull = true). Crear test específico.
+   - In con null dentro del conjunto (p.ej. In = { 5, null }) verifica que incluya valores 5 y nulos (si se decide soportar; si no, documentar y excluir). *Primera versión: NO incluir null en In, test que si se incluye se ignora.*
+   - Between con límite inferior o superior y valores null en origen (los null deben excluirse a menos que IsNull = true también esté activo y se verifique su conjunción lógica correcta).
+
+OPERACIONES POR TIPO (NO NULLABLE)
+----------------------------------
+(COMUNES = Equal, NotEqual, In)
+
+Tipos numéricos y comparables (int, uint, short, ushort, long, ulong, decimal, float, double, DateTime, TimeSpan, Guid, char, byte, sbyte):
+  - Equal
+  - NotEqual
+  - In
+  - GreaterThan
+  - GreaterOrEqual
+  - LessThan
+  - LessOrEqual
+  - Between (BetweenFrom + BetweenTo)  (No aplica a bool)
+
+string:
+  - Equal
+  - NotEqual
+  - In
+  - Contains
+  - StartsWith
+  - EndsWith
+  - Empty
+  - NotEmpty
+  - CaseInsensitive
+  - IsNull
+  - IsNotNull
+  - (Opcional) combinar CaseInsensitive con Contains / StartsWith / EndsWith
+
+bool:
+  - Equal
+  - NotEqual
+  - In (lista de valores permitidos)
+  - (NO relacionales, NO Between, NO Contains, etc.)
+
+OPERACIONES ADICIONALES EN NULLABLE
+-----------------------------------
+Todas las anteriores que tengan sentido + IsNull + IsNotNull + Equal = null (alias de IsNull=true).
+
+EXCEPCIONES / REGLAS ESPECIALES
+-------------------------------
+1. Interacción Equal con otras operaciones: se aplican de forma conjuntiva. Si se vuelve contradictorio => resultado vacío.
+2. In vacío NO marca HasAny() => no se crea condición. Test que verifique que In = new T[0] => se devuelven todos.
+3. Between es inclusivo (>= From y <= To). Test con límites exactos.
+4. Sólo BetweenFrom => >= From. Sólo BetweenTo => <= To.
+5. CaseInsensitive: pruebas con mayúsculas/minúsculas para Equal/Contains/StartsWith/EndsWith.
+6. Guid: relacionales se prueban pero se documenta que uso típico es Equal / In.
+7. Float / double: valores sencillos (evitar confusión de precisión).
+8. Nullable:
+   - IsNull = true AND cualquier operación que requiera valor (GreaterThan, LessThan, Between*, In de sólo valores, Equal con valor no null) => resultado vacío.
+   - Equal = null equivalente a IsNull = true.
+   - Equal = null combinado con IsNotNull = true => resultado vacío.
+   - In con null (primera ronda: ignorar null en la colección In; si sólo hay null => se ignora In y se verifica comportamiento con otros flags).
+
+PLANTILLA DE TEST (EJEMPLO INT)
+-------------------------------
+[Fact]
+public void Equal()
+{
+    var q = GetQueryable(5, 7, 5);
+    var f = new IntFilter();
+    f.Property.Equal = 5;
+    var r = q.Filter(f).Select(x => x.Property).OrderBy(x=>x).ToList();
+    Assert.Equal(new[]{5,5}, r);
+}
+
+[Fact]
+public void GreaterThan()
+{
+    var q = GetQueryable(1, 5, 8);
+    var f = new IntFilter();
+    f.Property.GreaterThan = 5;
+    var r = q.Filter(f).Select(x => x.Property).ToList();
+    Assert.Equal(new[]{8}, r);
+}
+
+[Fact]
+public void Between()
+{
+    var q = GetQueryable(1,5,7,10);
+    var f = new IntFilter();
+    f.Property.BetweenFrom = 5;
+    f.Property.BetweenTo = 9;
+    var r = q.Filter(f).Select(x=>x.Property).OrderBy(x=>x).ToList();
+    Assert.Equal(new[]{5,7}, r);
+}
+
+[Fact]
+public void Between_OpenUpper()
+{
+    var q = GetQueryable(1,5,7,10);
+    var f = new IntFilter();
+    f.Property.BetweenFrom = 7; // solo From
+    var r = q.Filter(f).Select(x=>x.Property).OrderBy(x=>x).ToList();
+    Assert.Equal(new[]{7,10}, r);
+}
+
+[Fact]
+public void In()
+{
+    var q = GetQueryable(1,2,3,4);
+    var f = new IntFilter();
+    f.Property.In = new[]{2,4};
+    var r = q.Filter(f).Select(x=>x.Property).OrderBy(x=>x).ToList();
+    Assert.Equal(new[]{2,4}, r);
+}
+
+[Fact]
+public void EqualOverridesOthers()
+{
+    var q = GetQueryable(1,2,3,2);
+    var f = new IntFilter();
+    f.Property.Equal = 2;
+    f.Property.GreaterThan = 1; // debe ignorarse
+    var r = q.Filter(f).Select(x=>x.Property).OrderBy(x=>x).ToList();
+    Assert.Equal(new[]{2,2}, r);
+}
+
+PLANTILLA NULLABLE (EJEMPLO INT?)
+---------------------------------
+[Fact]
+public void IsNull()
+{
+    var q = GetQueryable(5, null, 7, null);
+    var f = new NullableIntFilter();
+    f.Property.IsNull = true;
+    var r = q.Filter(f).Select(x=>x.Property).ToList();
+    Assert.Equal(2, r.Count);
+    Assert.All(r, v => Assert.Null(v));
+}
+
+[Fact]
+public void Equal_Null_Alias_IsNull()
+{
+    var q = GetQueryable(5, null, 7);
+    var f = new NullableIntFilter();
+    f.Property.Equal = null;
+    var r = q.Filter(f).Select(x=>x.Property).ToList();
+    Assert.Single(r);
+    Assert.Null(r[0]);
+}
+
+STRING EXTRA (EJEMPLOS)
+-----------------------
+[Fact]
+public void Contains_CaseInsensitive()
+{
+    var q = GetQueryable("Alpha","beta","ALPHANUM");
+    var f = new StringFilter();
+    f.Property.Contains = "alpha";
+    f.Property.CaseInsensitive = true;
+    var r = q.Filter(f).Select(x=>x.Property).OrderBy(x=>x).ToList();
+    Assert.Equal(new[]{"ALPHANUM","Alpha"}, r);
+}
+
+BOOL EJEMPLO
+------------
+[Fact]
+public void Bool_In()
+{
+    var q = new[]{ true,false,true }.Select(b=> new BoolDao{ Property=b}).AsQueryable();
+    var f = new BoolFilter();
+    f.Property.In = new[]{ true };
+    var r = q.Filter(f).Select(x=>x.Property).ToList();
+    Assert.Equal(new[]{ true,true }, r);
+}
+
+CRITERIOS DE ACEPTACIÓN
+-----------------------
+- Todos los tests (no nullables + nullables) compilan y pasan.
+- Sin duplicación de nombres de métodos.
+- Cobertura: al menos un test por operación listada y casos de interacción clave (Equal + relacional, Between parcial, In vacío, nullable alias Equal=null).
+- Código claro y conciso.
+
+NOTAS FUTURAS (NO EN ESTA RONDA)
+--------------------------------
+- Combos complejos múltiples (Equal + In + Between) con validación de resultado.
+- Serialización específica por tipo y nullable.
+- Navegaciones anidadas avanzadas.
+
+FIN

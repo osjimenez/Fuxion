@@ -1,4 +1,7 @@
-﻿namespace Fuxion.Licensing;
+﻿using System;
+using System.Linq;
+
+namespace Fuxion.Licensing;
 
 public interface ILicenseStore
 {

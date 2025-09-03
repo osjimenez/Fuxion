@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 #if STANDARD_OR_OLD_FRAMEWORKS
 
 namespace Fuxion

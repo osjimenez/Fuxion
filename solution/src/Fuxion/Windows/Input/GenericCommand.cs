@@ -1,4 +1,6 @@
-﻿using System.Windows.Input;
+﻿using System;
+using System.Threading.Tasks;
+using System.Windows.Input;
 using Fuxion.Windows.Threading;
 
 namespace Fuxion.Windows.Input;

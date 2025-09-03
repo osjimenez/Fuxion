@@ -1,4 +1,5 @@
-﻿using Fuxion.Threading;
+﻿using System.Threading.Tasks;
+using Fuxion.Threading;
 
 namespace Fuxion.Test.Threading;
 

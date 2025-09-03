@@ -3,7 +3,7 @@
 		<LangVersion>preview</LangVersion>
 		<Nullable>enable</Nullable>
 		<WarningsAsErrors>Nullable;CA1857</WarningsAsErrors>
-		<ImplicitUsings>enable</ImplicitUsings>
+		<ImplicitUsings>disable</ImplicitUsings>
 
 		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
@@ -34,11 +34,6 @@
 	<PropertyGroup Condition="'$(IsStandardOrOldFrameworks)' == 'true'">
 		<DefineConstants>$(DefineConstants);STANDARD_OR_OLD_FRAMEWORKS</DefineConstants>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<Using Remove="System.Net.Http"/>
-		<Using Include="Microsoft.Extensions.Logging"/>
-	</ItemGroup>
 
 	<ItemGroup Condition="'$(IsStandardOrOldFrameworks)' == 'true'">
 		<PackageReference Include="PolySharp">

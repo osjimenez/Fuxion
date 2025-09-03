@@ -1,4 +1,7 @@
-﻿namespace Fuxion.Licensing;
+﻿using System;
+using Microsoft.Extensions.Logging;
+
+namespace Fuxion.Licensing;
 
 /// <summary>
 ///    TO DO

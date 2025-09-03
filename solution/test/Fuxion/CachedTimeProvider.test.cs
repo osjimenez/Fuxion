@@ -1,4 +1,7 @@
-﻿namespace Fuxion.Test;
+﻿using System;
+using System.Threading;
+
+namespace Fuxion.Test;
 
 public class CachedTimeProviderTest : BaseTest<CachedTimeProviderTest>
 {

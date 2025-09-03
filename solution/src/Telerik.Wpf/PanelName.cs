@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Telerik_.Wpf;
+﻿using System;
+
+namespace Fuxion.Telerik_.Wpf;
 
 public struct PanelName
 {

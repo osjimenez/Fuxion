@@ -1,4 +1,7 @@
-﻿using Fuxion.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Fuxion.Collections.Generic;
 using Fuxion.Identity.Helpers;
 
 namespace Fuxion.Identity;

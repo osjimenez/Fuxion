@@ -1,4 +1,6 @@
-﻿namespace Fuxion;
+﻿using System;
+
+namespace Fuxion;
 
 public class FileSystemStoredTimeProvider : StoredTimeProvider
 {

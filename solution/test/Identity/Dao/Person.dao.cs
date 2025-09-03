@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Identity.Test.Dao;
+﻿using System.Collections.Generic;
+
+namespace Fuxion.Identity.Test.Dao;
 
 using static Helpers.TypeDiscriminatorIds;
 

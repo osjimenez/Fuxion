@@ -1,4 +1,7 @@
-﻿namespace Fuxion;
+﻿using System;
+using System.Collections.Generic;
+
+namespace Fuxion;
 
 public class FuxionException : Exception
 {

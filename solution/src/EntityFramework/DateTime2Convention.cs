@@ -1,4 +1,5 @@
-﻿using System.Data.Entity.ModelConfiguration.Conventions;
+﻿using System;
+using System.Data.Entity.ModelConfiguration.Conventions;
 
 namespace Fuxion.EntityFramework;
 

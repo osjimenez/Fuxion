@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Licensing.Test;
+﻿using System;
+
+namespace Fuxion.Licensing.Test;
 
 public class MockTimeProvider : ITimeProvider
 {

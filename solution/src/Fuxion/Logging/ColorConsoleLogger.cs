@@ -1,4 +1,7 @@
-﻿namespace Fuxion.Logging;
+﻿using System;
+using Microsoft.Extensions.Logging;
+
+namespace Fuxion.Logging;
 
 using static ConsoleTools;
 

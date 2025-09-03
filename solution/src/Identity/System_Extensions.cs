@@ -1,4 +1,5 @@
-﻿using Fuxion;
+﻿using System.Linq;
+using Fuxion;
 using Fuxion.Identity;
 
 namespace System.Collections.Generic;

@@ -1,4 +1,7 @@
-﻿namespace Fuxion.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+
+namespace Fuxion.Collections.Generic;
 
 public class GenericComparer<T>(Func<T?, T?, int> comparisonFunction) : Comparer<T>
 {

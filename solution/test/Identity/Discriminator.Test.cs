@@ -1,4 +1,5 @@
-﻿using Fuxion.Identity.Test.Mocks;
+﻿using System;
+using Fuxion.Identity.Test.Mocks;
 using Fuxion.Xunit;
 using Xunit;
 using Xunit.Abstractions;

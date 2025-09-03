@@ -1,4 +1,6 @@
-﻿using System.Windows.Threading;
+﻿using System;
+using System.Threading.Tasks;
+using System.Windows.Threading;
 
 namespace Fuxion.Windows.Threading;
 

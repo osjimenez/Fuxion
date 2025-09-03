@@ -1,4 +1,8 @@
-﻿namespace Fuxion.Threading.Tasks;
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Fuxion.Threading.Tasks;
 
 interface ITaskManagerEntry
 {

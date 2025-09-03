@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Identity;
+﻿using System;
+
+namespace Fuxion.Identity;
 
 public interface ICurrentUserNameProvider
 {

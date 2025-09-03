@@ -1,4 +1,6 @@
-﻿namespace Fuxion.EntityFramework;
+﻿using System;
+
+namespace Fuxion.EntityFramework;
 
 [AttributeUsage(AttributeTargets.Class)]
 public class TrackDisabledAttribute : ColumnAnnotationAttribute { }

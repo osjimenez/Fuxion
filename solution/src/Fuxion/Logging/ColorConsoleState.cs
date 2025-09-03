@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Logging;
+﻿using System;
+
+namespace Fuxion.Logging;
 
 public sealed class ColorConsoleState
 {

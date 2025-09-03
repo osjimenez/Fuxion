@@ -1,3 +1,5 @@
+using System;
+
 namespace Fuxion.Domain;
 
 public abstract record Command(Guid aggregateId) :

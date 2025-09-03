@@ -1,4 +1,7 @@
-﻿using System.IO;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Xml.Linq;
 using Fuxion.Telerik_.Wpf.Messages;
 using ReactiveUI;

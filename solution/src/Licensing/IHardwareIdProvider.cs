@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Licensing;
+﻿using System;
+
+namespace Fuxion.Licensing;
 
 public interface IHardwareIdProvider
 {

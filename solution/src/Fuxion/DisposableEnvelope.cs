@@ -1,3 +1,6 @@
+using System;
+using System.Threading.Tasks;
+
 namespace Fuxion;
 
 public class DisposableEnvelope<T> : IDisposable, IAsyncDisposable where T : notnull

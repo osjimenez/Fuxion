@@ -1,4 +1,7 @@
+using System;
+using System.Linq;
 using Fuxion.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Fuxion;
 

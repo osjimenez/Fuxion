@@ -1,4 +1,5 @@
-﻿using System.Data.SqlTypes;
+﻿using System;
+using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reactive;
@@ -6,12 +7,16 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Reactive.Threading.Tasks;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 using Fuxion.Xunit;
 using Microsoft.Reactive.Testing;
 using Xunit;
 using Xunit.Abstractions;
+using Console = System.Console;
 using Timer = System.Threading.Timer;
+using TimeSpan = System.TimeSpan;
 
 namespace Fuxion.Domain.Test;
 
@@ -32,7 +37,7 @@ public class ReactiveTest : BaseTest<ReactiveTest>
 	{
 		//Takes an IObservable<string> as its parameter. 
 		//Subject<string> implements this interface.
-		void WriteSequenceToConsole(IObservable<string> sequence)
+		void WriteSequenceToConsole(System.IObservable<string> sequence)
 		{
 			//The next two lines are equivalent.
 			//sequence.Subscribe(value=>Console.WriteLine(value));

@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Windows;
 using Fuxion;
 using Fuxion.Pods;

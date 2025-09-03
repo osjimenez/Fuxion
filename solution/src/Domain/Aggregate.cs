@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Domain;
+﻿using System;
+
+namespace Fuxion.Domain;
 
 // public abstract class Aggregate
 // {

@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Telerik_.Wpf.ViewModels;
+﻿using Microsoft.Extensions.Logging;
+
+namespace Fuxion.Telerik_.Wpf.ViewModels;
 
 public class ShellWindowViewModel : ShellViewModel
 {

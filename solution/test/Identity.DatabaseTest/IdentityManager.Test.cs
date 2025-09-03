@@ -1,4 +1,5 @@
-﻿using Fuxion.Identity.Test;
+﻿using System.Linq;
+using Fuxion.Identity.Test;
 using Fuxion.Identity.Test.Dao;
 using Fuxion.Identity.Test.Mocks;
 using Xunit;

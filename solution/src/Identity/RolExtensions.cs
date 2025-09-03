@@ -1,4 +1,8 @@
-﻿namespace Fuxion.Identity;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Fuxion.Identity;
 
 public static class RolExtensions
 {

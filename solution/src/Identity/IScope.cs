@@ -1,4 +1,7 @@
-﻿namespace Fuxion.Identity;
+﻿using System.Collections.Generic;
+using System.Linq;
+
+namespace Fuxion.Identity;
 
 public interface IScope
 {

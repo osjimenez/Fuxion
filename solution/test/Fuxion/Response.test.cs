@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace Fuxion.Test;
 
 public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(output)

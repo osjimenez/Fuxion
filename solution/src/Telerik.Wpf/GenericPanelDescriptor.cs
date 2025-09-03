@@ -1,3 +1,5 @@
+using System;
+
 namespace Fuxion.Telerik_.Wpf;
 
 class GenericPanelDescriptor(string name, Type viewType, PanelPosition defaultPosition, bool removeOnHide, bool isPinned) : IPanelDescriptor

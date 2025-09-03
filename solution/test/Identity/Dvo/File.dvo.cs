@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Identity.Test.Dvo;
+﻿using System.Collections.Generic;
+
+namespace Fuxion.Identity.Test.Dvo;
 
 using static Helpers.TypeDiscriminatorIds;
 

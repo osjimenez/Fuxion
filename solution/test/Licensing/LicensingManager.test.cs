@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Fuxion.Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;

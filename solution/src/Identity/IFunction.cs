@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Identity;
+﻿using System.Collections.Generic;
+
+namespace Fuxion.Identity;
 
 public interface IInclusive<T>
 {

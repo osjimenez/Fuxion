@@ -1,3 +1,5 @@
-﻿namespace Fuxion.Threading.Tasks;
+﻿using System.Threading.Tasks;
+
+namespace Fuxion.Threading.Tasks;
 
 public class TaskCanceledByConcurrencyException : TaskCanceledException { }

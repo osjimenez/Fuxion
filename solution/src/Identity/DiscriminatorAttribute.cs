@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Identity;
+﻿using System;
+
+namespace Fuxion.Identity;
 
 /// <summary>
 ///    Mark a class to be a discriminator for other classes

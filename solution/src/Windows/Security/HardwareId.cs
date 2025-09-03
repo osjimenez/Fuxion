@@ -1,4 +1,6 @@
-﻿using System.Management;
+﻿using System;
+using System.Collections.Generic;
+using System.Management;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Win32;

@@ -1,3 +1,4 @@
+using System;
 using Fuxion.Domain;
 
 namespace Fuxion.Application.Events;

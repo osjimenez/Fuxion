@@ -1,4 +1,6 @@
-﻿using Fuxion.Xunit;
+﻿using System;
+using System.Linq;
+using Fuxion.Xunit;
 using Xunit;
 using Xunit.Abstractions;
 

@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Xunit;
+﻿using System;
+
+namespace Fuxion.Xunit;
 
 public class XunitScope : IDisposable
 {

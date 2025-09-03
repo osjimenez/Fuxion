@@ -1,4 +1,5 @@
-﻿using Fuxion.Xunit;
+﻿using System;
+using Fuxion.Xunit;
 using Fuxion.Windows.Security;
 using Xunit;
 using Xunit.Abstractions;

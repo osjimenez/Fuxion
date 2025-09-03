@@ -1,4 +1,5 @@
-﻿using Fuxion.Identity.Helpers;
+﻿using System;
+using Fuxion.Identity.Helpers;
 using Fuxion.Xunit;
 using Xunit;
 using Xunit.Abstractions;

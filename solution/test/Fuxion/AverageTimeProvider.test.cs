@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Test;
+﻿using System;
+
+namespace Fuxion.Test;
 
 public class AverageTimeProviderTest : BaseTest<AverageTimeProviderTest>
 {

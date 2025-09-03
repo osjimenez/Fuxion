@@ -1,3 +1,6 @@
+using System;
+using Microsoft.Extensions.Logging;
+
 namespace Fuxion.Logging;
 
 public static class Logging

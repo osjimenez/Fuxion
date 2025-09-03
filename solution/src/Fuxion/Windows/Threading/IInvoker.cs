@@ -1,4 +1,7 @@
-﻿namespace Fuxion.Windows.Threading;
+﻿using System;
+using System.Threading.Tasks;
+
+namespace Fuxion.Windows.Threading;
 
 public interface IInvokable
 {

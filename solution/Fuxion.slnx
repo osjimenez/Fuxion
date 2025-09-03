@@ -21,6 +21,8 @@
     <Project Path="src/EntityFrameworkCore.SqlServer/Fuxion.EntityFrameworkCore.SqlServer.csproj" />
     <Project Path="src/EntityFrameworkCore/Fuxion.EntityFrameworkCore.csproj" />
     <Project Path="src/EventStore/Fuxion.EventStore.csproj" />
+    <Project Path="src/Linq.CodeGenerator/Fuxion.Linq.CodeGenerator.csproj" />
+    <Project Path="src/Linq/Fuxion.Linq.csproj" />
     <Project Path="src/MongoDB/Fuxion.MongoDB.csproj" />
     <Project Path="src/Orleans/Fuxion.Orleans.csproj" />
     <Project Path="src/RabbitMQ/Fuxion.RabbitMQ.csproj" />
@@ -36,6 +38,7 @@
     <Project Path="test/Identity.DatabaseTest/Fuxion.Identity.DatabaseTest.csproj" />
     <Project Path="test/Identity/Fuxion.Identity.Test.csproj" />
     <Project Path="test/Licensing/Fuxion.Licensing.Test.csproj" />
+    <Project Path="test/Linq/Fuxion.Linq.Test.csproj" />
     <Project Path="test/Pods/Fuxion.Pods.Test.csproj" />
     <Project Path="test/AspNetCore.Service/Fuxion.AspNetCore.Service.csproj" />
     <Project Path="test/AspNetCore/Fuxion.AspNetCore.Test.csproj" />

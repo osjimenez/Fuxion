@@ -1,4 +1,6 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
+using System.Threading;
 using Fuxion.Xunit;
 using Fuxion.Windows.Data;
 using Fuxion.Windows.Resources;

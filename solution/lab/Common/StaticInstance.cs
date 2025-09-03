@@ -1,3 +1,5 @@
+using System;
+
 namespace Fuxion.Lab.Common;
 
 public static class StaticInstance

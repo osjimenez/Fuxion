@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Identity.Test.Mocks;
+﻿using System;
+
+namespace Fuxion.Identity.Test.Mocks;
 
 public class CurrentUserNameProviderMock : ICurrentUserNameProvider
 {

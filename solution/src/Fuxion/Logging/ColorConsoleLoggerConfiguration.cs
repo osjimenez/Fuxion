@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
+
 namespace Fuxion.Logging;
 
 using static ConsoleTools;

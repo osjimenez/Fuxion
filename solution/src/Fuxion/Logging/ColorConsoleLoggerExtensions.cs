@@ -1,7 +1,9 @@
-﻿using Fuxion;
+﻿using System;
+using Fuxion;
 using Fuxion.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Configuration;
 
 namespace Fuxion.Logging;

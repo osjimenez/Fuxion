@@ -1,5 +1,8 @@
+using System;
 using System.Diagnostics;
+using System.IO;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 using Polly;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;

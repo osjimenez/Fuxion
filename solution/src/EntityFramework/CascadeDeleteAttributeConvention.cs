@@ -1,6 +1,8 @@
-﻿using System.Data.Entity.Core.Metadata.Edm;
+﻿using System;
+using System.Data.Entity.Core.Metadata.Edm;
 using System.Data.Entity.Infrastructure;
 using System.Data.Entity.ModelConfiguration.Conventions;
+using System.Linq;
 using System.Reflection;
 
 namespace Fuxion.EntityFramework;

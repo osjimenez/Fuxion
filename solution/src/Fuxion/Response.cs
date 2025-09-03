@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Fuxion.Text.Json.Serialization;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -24,9 +26,9 @@ public class Response(bool isSuccess, string? message = null, object? type = nul
 	// Conversores implícitos con bool
 	public static implicit operator bool(Response response) => response.IsSuccess;
 	//public static implicit operator Response(bool isSuccess) => new(isSuccess);
-#if STANDARD_OR_OLD_FRAMEWORKS
+//#if STANDARD_OR_OLD_FRAMEWORKS
 	public static ResponseExtensions.ResponseGetExtensions Get { get; } = new();
-#endif
+//#endif
 }
 
 [DebuggerDisplay("{IsSuccess} - {Message}")]

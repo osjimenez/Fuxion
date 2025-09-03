@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Domain;
+﻿using System;
+
+namespace Fuxion.Domain;
 
 [AttributeUsage(AttributeTargets.Method)]
 public class AggregateEventHandlerAttribute : Attribute { }
