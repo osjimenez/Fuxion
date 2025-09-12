@@ -1,4 +1,6 @@
-﻿namespace Fuxion.Test;
+﻿using Xunit;
+
+namespace Fuxion.Test;
 
 public static class ITimeProviderExtensions
 {

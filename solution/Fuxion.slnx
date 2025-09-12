@@ -31,6 +31,7 @@
     <Project Path="src/Windows/Fuxion.Windows.csproj" />
   </Folder>
   <Folder Name="/test/">
+    <File Path="test/Directory.Build.props" />
     <Project Path="test/Application/Fuxion.Application.Test.csproj" />
     <Project Path="test/Domain/Fuxion.Domain.Test.csproj" />
     <Project Path="test/Fuxion/Fuxion.Test.csproj" />
@@ -38,6 +39,9 @@
     <Project Path="test/Identity.DatabaseTest/Fuxion.Identity.DatabaseTest.csproj" />
     <Project Path="test/Identity/Fuxion.Identity.Test.csproj" />
     <Project Path="test/Licensing/Fuxion.Licensing.Test.csproj" />
+    <Project Path="test/Linq.Data/Fuxion.Linq.Test.Data.csproj" />
+    <Project Path="test/Linq.EntityFramework/Fuxion.Linq.Test.EntityFramework.csproj" />
+    <Project Path="test/Linq.EntityFrameworkCore/Fuxion.Linq.Test.EntityFrameworkCore.csproj" />
     <Project Path="test/Linq/Fuxion.Linq.Test.csproj" />
     <Project Path="test/Pods/Fuxion.Pods.Test.csproj" />
     <Project Path="test/AspNetCore.Service/Fuxion.AspNetCore.Service.csproj" />

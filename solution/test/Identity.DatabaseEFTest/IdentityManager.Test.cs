@@ -5,7 +5,6 @@ using Fuxion.Identity.Test;
 using Fuxion.Identity.Test.Dao;
 using Fuxion.Identity.Test.Mocks;
 using Xunit;
-using Xunit.Abstractions;
 using Type = System.Type;
 
 namespace Fuxion.Identity.DatabaseEFTest;

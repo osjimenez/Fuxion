@@ -3,13 +3,12 @@ using System.Windows;
 using Fuxion.Xunit;
 using Fuxion.Windows.Data;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Windows.Test.Data;
 
-public class BooleanToVisibilityMultiConverterTest : BaseTest<BooleanToVisibilityMultiConverterTest>
+public class BooleanToVisibilityMultiConverterTest(ITestOutputHelper output)
+	: BaseTest<BooleanToVisibilityMultiConverterTest>(output)
 {
-	public BooleanToVisibilityMultiConverterTest(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "BooleanToVisibilityMultiConverter - AllFalse")]
 	public void BooleanToVisibilityMultiConverter_AllFalse()
 	{

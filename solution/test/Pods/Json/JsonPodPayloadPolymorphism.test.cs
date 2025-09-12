@@ -2,6 +2,8 @@ using System.Text.Json;
 using Fuxion.Pods.Json;
 using Fuxion.Pods.Json.Serialization;
 using Fuxion.Pods.Test.Compression;
+using Fuxion.Xunit;
+using Xunit;
 
 namespace Fuxion.Pods.Test.Json;
 // var jsonString = """

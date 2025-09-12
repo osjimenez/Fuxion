@@ -5,7 +5,6 @@ using System.Data.SqlClient;
 using Fuxion.EntityFramework.Test.Migrations;
 using Fuxion.Xunit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.EntityFramework.Test;
 

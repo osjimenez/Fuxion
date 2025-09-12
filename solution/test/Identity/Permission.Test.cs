@@ -2,7 +2,6 @@
 using Fuxion.Identity.Test.Dao;
 using Fuxion.Xunit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Identity.Test;
 

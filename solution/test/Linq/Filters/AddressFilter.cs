@@ -1,4 +1,4 @@
-using Fuxion.Linq.Test.Daos;
+using Fuxion.Linq.Test.Data.Daos;
 
 namespace Fuxion.Linq.Test.Filters;
 

@@ -2,13 +2,11 @@
 using Fuxion.Identity.Test.Mocks;
 using Fuxion.Xunit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Identity.Test;
 
-public class DiscriminatorTest : BaseTest<DiscriminatorTest>
+public class DiscriminatorTest(ITestOutputHelper helper) : BaseTest<DiscriminatorTest>(helper)
 {
-	public DiscriminatorTest(ITestOutputHelper helper) : base(helper) { }
 	[Fact(DisplayName = "Discriminator - Compare guid type")]
 	public void Compare_GuidDiscriminator()
 	{

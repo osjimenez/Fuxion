@@ -9,20 +9,19 @@
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(IsCoreFrameworks)' == 'true'">
-		<PackageReference Include="Microsoft.EntityFrameworkCore" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">
-		<PackageReference Include="EntityFramework" />
-	</ItemGroup>
-
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\Linq\Fuxion.Linq.csproj" />
 		<ProjectReference Include="..\..\src\Xunit\Fuxion.Xunit.csproj" />
 		<ProjectReference Include="..\..\src\Linq.CodeGenerator\Fuxion.Linq.CodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\Linq.Data\Fuxion.Linq.Test.Data.csproj" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(IsCoreFrameworks)' == 'true'">
+		<ProjectReference Include="..\Linq.EntityFrameworkCore\Fuxion.Linq.Test.EntityFrameworkCore.csproj" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">
+		<ProjectReference Include="..\Linq.EntityFramework\Fuxion.Linq.Test.EntityFramework.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

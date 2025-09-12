@@ -13,16 +13,14 @@ using System.Timers;
 using Fuxion.Xunit;
 using Microsoft.Reactive.Testing;
 using Xunit;
-using Xunit.Abstractions;
 using Console = System.Console;
 using Timer = System.Threading.Timer;
 using TimeSpan = System.TimeSpan;
 
 namespace Fuxion.Domain.Test;
 
-public class ReactiveTest : BaseTest<ReactiveTest>
+public class ReactiveTest(ITestOutputHelper output) : BaseTest<ReactiveTest>(output)
 {
-	public ReactiveTest(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "Reactive first")]
 	public void First()
 	{
@@ -415,7 +413,7 @@ public class MyConsoleObserver<T> : IObserver<T>
 	}
 	public void OnNext(T value)
 	{
-		_output.WriteLine("Received value {0}", value);
+		_output.WriteLine("Received value {0}", value?.ToString() ?? "null");
 	}
 	public void OnError(Exception error)
 	{

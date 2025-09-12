@@ -1,4 +1,6 @@
 ﻿using System;
+using Fuxion.Xunit;
+using Xunit;
 
 namespace Fuxion.Test;
 

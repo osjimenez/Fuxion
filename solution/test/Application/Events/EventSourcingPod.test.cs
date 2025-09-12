@@ -3,14 +3,12 @@ using Fuxion.Application.Events;
 using Fuxion.Domain;
 using Fuxion.Reflection;
 using Fuxion.Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Application.Test.Events;
 
-public class EventSourcingPodTest : BaseTest<EventSourcingPodTest>
+public class EventSourcingPodTest(ITestOutputHelper output) : BaseTest<EventSourcingPodTest>(output)
 {
-	public EventSourcingPodTest(ITestOutputHelper output) : base(output) { }
-// 	[Fact(DisplayName = "EventSourcingPod - FromJson")]
+	// 	[Fact(DisplayName = "EventSourcingPod - FromJson")]
 // 	public void FromJson()
 // 	{
 // 		var tkr = new TypeKeyDirectory();

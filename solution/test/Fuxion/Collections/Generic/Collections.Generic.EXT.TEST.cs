@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Fuxion.Collections.Generic;
+using Fuxion.Xunit;
+using Xunit;
 
 namespace Fuxion.Test.Collections.Generic;
 

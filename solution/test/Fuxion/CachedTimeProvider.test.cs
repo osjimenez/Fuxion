@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading;
+using Fuxion.Xunit;
+using Xunit;
 
 namespace Fuxion.Test;
 

@@ -4,13 +4,11 @@ using System.Windows.Data;
 using Fuxion.Xunit;
 using Fuxion.Windows.Data;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Windows.Test.Data;
 
-public class NullToVisibilityConverterTest : BaseTest<NullToVisibilityConverterTest>
+public class NullToVisibilityConverterTest(ITestOutputHelper output) : BaseTest<NullToVisibilityConverterTest>(output)
 {
-	public NullToVisibilityConverterTest(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "NullToVisibilityConverter - Enum value")]
 	public void NullToVisibilityConverter_DisplayValue()
 	{

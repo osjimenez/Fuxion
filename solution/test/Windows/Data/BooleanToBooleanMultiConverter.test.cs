@@ -2,7 +2,6 @@ using System.Globalization;
 using Fuxion.Xunit;
 using Fuxion.Windows.Data;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Windows.Test.Data;
 

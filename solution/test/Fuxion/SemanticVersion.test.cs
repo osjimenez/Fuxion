@@ -1,5 +1,7 @@
 using System.Linq;
 using System.Text.RegularExpressions;
+using Fuxion.Xunit;
+using Xunit;
 
 namespace Fuxion.Test;
 

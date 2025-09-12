@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Fuxion.Reflection;
+using Fuxion.Xunit;
+using Xunit;
 
 namespace Fuxion.Test.Reflection;
 public class ReflectionExtensionTest(ITestOutputHelper output) : BaseTest<SystemExtensionsTest>(output)

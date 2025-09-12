@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
@@ -8,9 +8,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="xunit.v3.assert" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\..\src\Fuxion\Fuxion.csproj"/>
 		<ProjectReference Include="..\..\src\Licensing\Fuxion.Licensing.csproj"/>
-		<ProjectReference Include="..\..\src\xUnit\Fuxion.Xunit.csproj" />
 	</ItemGroup>
 
 </Project>

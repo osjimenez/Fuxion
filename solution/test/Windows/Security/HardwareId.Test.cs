@@ -2,13 +2,11 @@
 using Fuxion.Xunit;
 using Fuxion.Windows.Security;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Windows.Test.Security;
 
-public class HardwareIdTest : BaseTest<HardwareIdTest>
+public class HardwareIdTest(ITestOutputHelper output) : BaseTest<HardwareIdTest>(output)
 {
-	public HardwareIdTest(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "HardwareId - Printable version of ids")]
 	public void PrintableVersion()
 	{

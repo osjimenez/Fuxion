@@ -2,14 +2,12 @@
 using System.Threading;
 using Fuxion.Xunit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Licensing.Test;
 
 [Collection("Licensing")]
-public class LicenseContainerTest : BaseTest<LicenseContainerTest>
+public class LicenseContainerTest(ITestOutputHelper output) : BaseTest<LicenseContainerTest>(output)
 {
-	public LicenseContainerTest(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "LicenseContainer - Comment")]
 	public void LicenseContainer_Comment()
 	{

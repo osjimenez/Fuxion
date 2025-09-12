@@ -1,8 +1,10 @@
+using Fuxion.Xunit;
 using System.Web;
+using Xunit;
 
 namespace Fuxion.Pods.Test;
 
-public class UriTest(ITestOutputHelper output) : BaseTest<UriKeyTest>(output)
+public class UriTest(ITestOutputHelper output) : BaseTest<UriTest>(output)
 {
 	void PrintUri(Uri uri)
 	{

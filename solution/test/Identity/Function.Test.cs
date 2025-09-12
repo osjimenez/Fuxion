@@ -5,15 +5,13 @@ using Fuxion.Identity.Test.Mocks;
 using Fuxion.Math.Graph;
 using Fuxion.Xunit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Identity.Test;
 
 using static Functions;
 
-public class FunctionTest : BaseTest<FunctionTest>
+public class FunctionTest(ITestOutputHelper output) : BaseTest<FunctionTest>(output)
 {
-	public FunctionTest(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "Function - Create custom function")]
 	public void CustomFunction()
 	{

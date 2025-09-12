@@ -1,4 +1,6 @@
+using Fuxion.Xunit;
 using System.Collections.ObjectModel;
+using Xunit;
 
 namespace Fuxion.Pods.Test.UriDiscriminator.Chains;
 

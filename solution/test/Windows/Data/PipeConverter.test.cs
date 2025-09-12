@@ -3,13 +3,11 @@ using System.Windows;
 using Fuxion.Xunit;
 using Fuxion.Windows.Data;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Windows.Test.Data;
 
-public class PipeConverterTest : BaseTest<PipeConverterTest>
+public class PipeConverterTest(ITestOutputHelper output) : BaseTest<PipeConverterTest>(output)
 {
-	public PipeConverterTest(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "PipeConverter - First")]
 	public void First()
 	{

@@ -14,6 +14,8 @@ using Fuxion.Text.Json;
 */
 using Fuxion.Pods;
 using Fuxion.Text.Json;
+using Fuxion.Xunit;
+using Xunit;
 using static Fuxion.Pods.Test.UriKeyTest;
 
 namespace Fuxion.Pods.Test;

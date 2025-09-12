@@ -3,14 +3,12 @@ using Fuxion.Application.Events;
 using Fuxion.Domain;
 using Fuxion.Reflection;
 using Fuxion.Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Application.Test.Commands;
 
-public class CommandPodTest : BaseTest<CommandPodTest>
+public class CommandPodTest(ITestOutputHelper output) : BaseTest<CommandPodTest>(output)
 {
-	public CommandPodTest(ITestOutputHelper output) : base(output) { }
-// 	[Fact(DisplayName = "CommandPodTest - FromJson")]
+	// 	[Fact(DisplayName = "CommandPodTest - FromJson")]
 // 	public void FromJson()
 // 	{
 // 		var tkd = new TypeKeyDirectory();

@@ -2,13 +2,11 @@
 using System.Linq;
 using Fuxion.Xunit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Licensing.Test;
 
-public class AntiTamperedTimeProviderTest : BaseTest<AntiTamperedTimeProviderTest>
+public class AntiTamperedTimeProviderTest(ITestOutputHelper output) : BaseTest<AntiTamperedTimeProviderTest>(output)
 {
-	public AntiTamperedTimeProviderTest(ITestOutputHelper output) : base(output) { }
 	string[] WebServersAddresses { get; } = {
 		"http://www.google.com", "http://www.google.es",
 		//"http://www.ooooooo-youtube.com",

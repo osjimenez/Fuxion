@@ -5,13 +5,11 @@ using System.Windows.Data;
 using Fuxion.Xunit;
 using Fuxion.Windows.Data;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Windows.Test.Data;
 
-public class GenericMultiConverterTest : BaseTest<GenericMultiConverterTest>
+public class GenericMultiConverterTest(ITestOutputHelper output) : BaseTest<GenericMultiConverterTest>(output)
 {
-	public GenericMultiConverterTest(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "GenericMultiConverterTest - UnsetValues")]
 	public void GenericMultiConverterTest_UnsetValues()
 	{

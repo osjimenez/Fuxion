@@ -3,6 +3,8 @@ using System.Text.Json.Serialization;
 using Fuxion.Pods.Json;
 using static Fuxion.Pods.Json.Serialization.IPodConverter<Fuxion.Pods.IPod<int,int>,int,int>;
 using Fuxion.Text.Json;
+using Fuxion.Xunit;
+using Xunit;
 
 namespace Fuxion.Pods.Test.Json;
 

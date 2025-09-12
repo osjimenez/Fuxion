@@ -5,13 +5,12 @@ using System.Windows.Data;
 using Fuxion.Xunit;
 using Fuxion.Windows.Data;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Windows.Test.Data;
 
-public class EnumToNamedEnumValueConverterTest : BaseTest<EnumToNamedEnumValueConverterTest>
+public class EnumToNamedEnumValueConverterTest(ITestOutputHelper output)
+	: BaseTest<EnumToNamedEnumValueConverterTest>(output)
 {
-	public EnumToNamedEnumValueConverterTest(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "EnumToNamedEnumValueConverter - Display value")]
 	public void EnumToNamedEnumValueConverter_DisplayValue()
 	{

@@ -5,7 +5,6 @@ using Fuxion.Xunit;
 using Fuxion.Windows.Data;
 using Fuxion.Windows.Resources;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Windows.Test.Data;
 

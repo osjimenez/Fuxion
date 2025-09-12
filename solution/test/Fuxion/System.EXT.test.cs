@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 using Fuxion.Collections.Generic;
 using Fuxion.Resources;
 using Fuxion.Threading.Tasks;
+using Fuxion.Xunit;
 using Microsoft.Extensions.Logging;
+using Xunit;
 using Xunit.Sdk;
 
 namespace Fuxion.Test;
@@ -159,6 +161,10 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 		Assert.True(i.IsNullOrDefault());
 		i = 1;
 		Assert.False(i.IsNullOrDefault());
+		decimal? d = 0M;
+		Assert.True(d.IsNullOrDefault());
+		d = 1M;
+		Assert.False(d.IsNullOrDefault());
 		var g = Guid.Empty;
 		Assert.True(g.IsNullOrDefault());
 		g = Guid.NewGuid();

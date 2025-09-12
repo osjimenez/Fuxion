@@ -1,19 +1,11 @@
 ﻿using Fuxion.Xunit;
 using Fuxion.Windows.Data;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Windows.Test.Data;
 
-public class ConverterTest : BaseTest<ConverterTest>
+public class TimeSpanToLongConverterTest(ITestOutputHelper output) : BaseTest<TimeSpanToLongConverterTest>(output)
 {
-	public ConverterTest(ITestOutputHelper output) : base(output) { }
-	protected void Convert() { }
-}
-
-public class TimeSpanToLongConverterTest : BaseTest<TimeSpanToLongConverterTest>
-{
-	public TimeSpanToLongConverterTest(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "TimeSpanToLongConverter - ConvertToSeconds")]
 	public void ConvertToSeconds()
 	{

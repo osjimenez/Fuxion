@@ -4,13 +4,12 @@ using System.Windows.Data;
 using Fuxion.Xunit;
 using Fuxion.Windows.Data;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Windows.Test.Data;
 
-public class IntegerToVisibilityConverterTest : BaseTest<IntegerToVisibilityConverterTest>
+public class IntegerToVisibilityConverterTest(ITestOutputHelper output)
+	: BaseTest<IntegerToVisibilityConverterTest>(output)
 {
-	public IntegerToVisibilityConverterTest(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "IntegerToVisibilityConverter - Convert")]
 	public void IntegerToVisibilityConverter_Convert()
 	{

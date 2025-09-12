@@ -10,13 +10,11 @@ using System.Windows.Markup;
 using Fuxion.Xunit;
 using Fuxion.Windows.Markup;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Windows.Test.Markup;
 
-public class DisplayExtensionTest : BaseTest<DisplayExtensionTest>
+public class DisplayExtensionTest(ITestOutputHelper output) : BaseTest<DisplayExtensionTest>(output)
 {
-	public DisplayExtensionTest(ITestOutputHelper output) : base(output) { }
 	static Task StartSTATask(Action action)
 	{
 		var tcs = new TaskCompletionSource<object>();

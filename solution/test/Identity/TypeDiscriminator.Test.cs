@@ -5,7 +5,6 @@ using Fuxion.Identity.Test.Dto;
 using Fuxion.Identity.Test.Dvo;
 using Fuxion.Xunit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Identity.Test;
 
@@ -18,9 +17,8 @@ static class TypeDiscriminatorFactoryExtensions
 	}
 }
 
-public class TypeDiscriminatorTetst : BaseTest<TypeDiscriminatorTetst>
+public class TypeDiscriminatorTest(ITestOutputHelper output) : BaseTest<TypeDiscriminatorTest>(output)
 {
-	public TypeDiscriminatorTetst(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "TypeDiscriminator - Allow more than one type by discriminator")]
 	public void AllowMoreThanOneTypeByDiscriminator()
 	{

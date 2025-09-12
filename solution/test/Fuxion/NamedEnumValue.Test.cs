@@ -1,4 +1,7 @@
-﻿namespace Fuxion.Test;
+﻿using Fuxion.Xunit;
+using Xunit;
+
+namespace Fuxion.Test;
 
 public class NamedEnumValueTest : BaseTest<NamedEnumValueTest>
 {

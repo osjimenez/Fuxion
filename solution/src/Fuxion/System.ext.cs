@@ -21,6 +21,7 @@ public static partial class Extensions
 {
 	#region IsNullOrDefault
 	public static bool IsNullOrDefault<T>(this T me) => EqualityComparer<T>.Default.Equals(me, default!);
+	public static bool IsNullOrDefault<T>(this T? me) where T : struct => me == null || EqualityComparer<T>.Default.Equals(me.Value, default!);
 	#endregion
 
 	#region Disposable

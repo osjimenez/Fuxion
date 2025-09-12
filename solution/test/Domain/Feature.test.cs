@@ -3,13 +3,11 @@ using Fuxion.Pods;
 using Fuxion.Reflection;
 using Fuxion.Xunit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Domain.Test;
 
-public class FeatureTest : BaseTest<FeatureTest>
+public class FeatureTest(ITestOutputHelper output) : BaseTest<FeatureTest>(output)
 {
-	public FeatureTest(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "TryGet")]
 	public void TryGet()
 	{

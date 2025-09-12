@@ -2,6 +2,8 @@ using System.Text.Json.Serialization;
 using Fuxion.Pods.Compression;
 using Fuxion.Pods.Json;
 using Fuxion.Text.Json;
+using Fuxion.Xunit;
+using Xunit;
 
 namespace Fuxion.Pods.Test.Compression;
 

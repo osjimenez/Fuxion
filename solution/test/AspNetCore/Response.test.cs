@@ -9,7 +9,6 @@ using Fuxion.Xunit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
-using Xunit.Abstractions;
 using static Fuxion.Net.Http.Extensions;
 
 namespace Fuxion.AspNetCore.Test;

@@ -1,4 +1,5 @@
 ﻿using Fuxion.Collections.Generic;
+using Xunit;
 
 namespace Fuxion.Test.Collections.Generic;
 

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(OldFrameworks)</TargetFrameworks>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="EntityFramework" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\Xunit\Fuxion.Xunit.csproj" />
+		<ProjectReference Include="..\Linq.Data\Fuxion.Linq.Test.Data.csproj" />
+	</ItemGroup>
+
+</Project>

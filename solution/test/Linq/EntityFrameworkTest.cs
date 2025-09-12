@@ -1,0 +1,179 @@
+﻿using System;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Threading;
+using System.Threading.Tasks;
+using Fuxion.Linq.Test.Data;
+using Fuxion.Linq.Test.Data.Daos;
+using Fuxion.Linq.Test.Filters;
+using Fuxion.Xunit;
+using Xunit;
+#if STANDARD_OR_OLD_FRAMEWORKS
+using Fuxion.Linq.Test.EntityFramework;
+using System.Data.Entity;
+#else
+using Fuxion.Linq.Test.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.SqlServer;
+#endif
+
+namespace Fuxion.Linq.Test;
+
+public class EntityFrameworkTest : BaseTest<EntityFrameworkTest>
+{
+	public EntityFrameworkTest(ITestOutputHelper output) : base(output)
+	{
+#if STANDARD_OR_OLD_FRAMEWORKS
+		var db = new EntityFrameworkDbContext(
+			"Server=host.docker.internal;Database=LinqTestEF;User Id=sa;Password=Scoring123456;MultipleActiveResultSets=true");
+		db.Database.Delete();
+		db.Database.CreateIfNotExists();
+		data = db;
+#else
+		DbContextOptionsBuilder<EntityFrameworkCoreDbContext> builder = new();
+		builder.UseSqlServer("Server=host.docker.internal;Database=LinqTestEFC;Trust Server Certificate=true;User Id=sa;Password=Scoring123456;MultipleActiveResultSets=true");
+		var db = new EntityFrameworkCoreDbContext(builder.Options);
+		db.Database.EnsureDeleted();
+		db.Database.EnsureCreated();
+		data = db;
+#endif
+		foreach(var country in DataSeed.Countries) data.AddCountry(country.Value);
+		foreach (var state in DataSeed.States) data.AddState(state.Value);
+		foreach (var city in DataSeed.Cities) data.AddCity(city.Value);
+		foreach (var address in DataSeed.Addresses) data.AddAddress(address.Value);
+		foreach(var user in DataSeed.Users) data.AddUser(user.Value);
+		foreach(var invoice in DataSeed.Invoices) data.AddInvoice(invoice.Value);
+
+		data.SaveChanges();
+	}
+
+	private readonly IDataContext data;
+
+	[Fact]
+	public void Test()
+	{
+		var filter1 = new UserFilter();
+		filter1.FirstName.Equal = "Bob";
+		var filtered1 = data.GetUsers().Filter(filter1);
+		IsTrue(filtered1.Count() == 1);
+
+		var filter2 = new UserFilter();
+		filter2.Age.GreaterThan = (365 * 31).Days.Ticks;
+		var filtered2 = data.GetUsers().Filter(filter2);
+		IsTrue(filtered2.Count() == 2);
+
+		var filter3 = new UserFilter();
+		filter3.Address.Street.StartsWith = "Calle";
+		var filtered3 = data.GetUsers().Filter(filter3);
+		IsTrue(filtered3.Count() == 1);
+	}
+
+	[Fact(DisplayName = "TimeSpan to database")]
+	public void TimeSpanToDatabase()
+	{
+		var filter = new UserFilter();
+		filter.SessionTimeout.Equal = 2.Hours;
+		var res = data.GetUsers().Filter(filter).ToList();
+		Assert.Equal(1, res.Count);
+	}
+	
+	[Fact(DisplayName = "Scalar collection (Any - And)")]
+	public void ScalarCollection_AnyAnd()
+	{
+		var filter = new UserFilter();
+		filter.Phones.Any(p => p.Equal = "+12125551212");
+		var res = data.GetUsers().Filter(filter).ToList();
+		Assert.Equal(2, res.Count);
+	}
+
+	[Fact(DisplayName = "Scalar collection (Any - Or)")]
+	public async Task ScalarCollection_AnyOr()
+	{
+		var filter = new UserFilter();
+		filter.Phones.Any(or: [p => p.Equal = "+34657890123"]);
+		PrintVariable(filter.Predicate);
+		var filterCount = await data.GetUsers().Filter(filter).CountAsync();
+		var linqCount = await data.GetUsers().Where(u => u.Phones.Any(p => p == "+34657890123")).CountAsync();
+		PrintVariable(filterCount);
+		Assert.Equal(linqCount, filterCount);
+	}
+
+	[Fact(DisplayName = "Scalar collection (All - And)")]
+	public async Task ScalarCollection_AllAnd()
+	{
+		var filter = new UserFilter();
+		filter.Phones.All(p => p.Equal = "+34657890123");
+		PrintVariable(filter.Predicate);
+		var filterCount = await data.GetUsers().Filter(filter).CountAsync();
+		var linqCount = await data.GetUsers().Where(u => u.Phones.All(p => p == "+34657890123")).CountAsync();
+		PrintVariable(filterCount);
+		Assert.Equal(linqCount, filterCount);
+	}
+
+	[Fact(DisplayName = "Scalar collection (All - Or)")]
+	public async Task ScalarCollection_AllOr()
+	{
+		var filter = new UserFilter();
+		filter.Phones.All(or: [p => p.Equal = "+34657890123", p => p.Equal = "+12125551212"]);
+		PrintVariable(filter.Predicate);
+		var filterCount = await data.GetUsers().Filter(filter).CountAsync();
+		Expression<Func<UserDao, bool>>
+			linqPredicate = u => u.Phones.All(p => p == "+34657890123" || p == "+12125551212");
+		var linqCount = await data.GetUsers().Where(linqPredicate).CountAsync();
+		PrintVariable(linqPredicate);
+		PrintVariable(filterCount);
+		Assert.Equal(linqCount, filterCount);
+	}
+
+	[Fact(DisplayName = "Navigation collection (Any - And)")]
+	public void NavigationCollection_AnyAnd()
+	{
+		var filter = new UserFilter();
+		filter.Invoices.Any(
+			a => a.InvoiceSerie.Equal = "A",
+			a => a.InvoiceCode.Equal = "0001",
+			a => a.ExpirationTimes.Any(e => e.Equal = 2.Hours));
+		PrintVariable(filter.Predicate);
+		var res = data.GetUsers().Filter(filter).ToList();
+		Assert.Equal(1, res.Count);
+	}
+	[Fact(DisplayName = "Navigation collection (Any - Or)")]
+	public void NavigationCollection_AnyOr()
+	{
+		var filter = new UserFilter();
+		filter.Invoices.Any(or: [a => a.InvoiceSerie.Equal = "A", a => a.InvoiceCode.Equal = "0001"]);
+		PrintVariable(filter.Predicate);
+		var res = data.GetUsers().Filter(filter).ToList();
+		Assert.Equal(1, res.Count);
+	}
+	[Fact(DisplayName = "Navigation collection (All - And)")]
+	public void NavigationCollection_AllAnd()
+	{
+		var filter = new UserFilter();
+		filter.Invoices.All(a => a.InvoiceSerie.Equal = "A");
+		PrintVariable(filter.Predicate);
+		var res = data.GetUsers().Filter(filter).ToList();
+		Assert.Equal(1, res.Count);
+	}
+	[Fact(DisplayName = "Navigation collection (All - Or)")]
+	public async Task NavigationCollection_AllOr()
+	{
+		var filter = new UserFilter();
+		filter.Invoices.All(or: [a => a.InvoiceSerie.StartsWith = "A", a => a.InvoiceCode.StartsWith = "00"]);
+		PrintVariable(filter.Predicate);
+		Expression<Func<UserDao, bool>> linqPredicate = x =>
+			x.Invoices != null &&
+			x.Invoices.All(ce => ce.InvoiceSerie.StartsWith("A") || ce.InvoiceCode.StartsWith("00"));
+		PrintVariable(linqPredicate);
+
+		Assert.Equal(filter.Predicate.ToString(), linqPredicate.ToString());
+		
+		
+
+		//var filterCount = await data.GetUsers().Filter(filter).CountAsync(TestContext.Current.CancellationToken);
+		//var linqCount = await data.GetUsers().Where(u =>
+		//	u.Invoices != null &&
+		//	u.Invoices.All(i => i.InvoiceSerie.StartsWith("A") || i.InvoiceCode.StartsWith("00"))).CountAsync(TestContext.Current.CancellationToken);
+		//Assert.Equal(linqCount, filterCount);
+	}
+}

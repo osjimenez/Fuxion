@@ -2,13 +2,12 @@
 using Fuxion.Xunit;
 using Fuxion.Windows.Data;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Windows.Test.Data;
 
-public class StringToCapitalizedStringConverterTest : BaseTest<StringToCapitalizedStringConverterTest>
+public class StringToCapitalizedStringConverterTest(ITestOutputHelper output)
+	: BaseTest<StringToCapitalizedStringConverterTest>(output)
 {
-	public StringToCapitalizedStringConverterTest(ITestOutputHelper output) : base(output) { }
 	readonly string[] testCases = {
 		"test string", "test String", "test StRing", "test stRing", "TEST STRING"
 	};

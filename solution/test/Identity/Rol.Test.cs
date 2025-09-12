@@ -8,7 +8,6 @@ using Fuxion.Repositories;
 using Fuxion.Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Identity.Test.Rol;
 

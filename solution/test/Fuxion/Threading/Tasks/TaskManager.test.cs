@@ -8,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Fuxion.Reflection;
 using Fuxion.Threading.Tasks;
+using Fuxion.Xunit;
+using Xunit;
 
 namespace Fuxion.Test.Threading.Tasks;
 

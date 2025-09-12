@@ -2,13 +2,11 @@
 using Fuxion.Identity.Helpers;
 using Fuxion.Xunit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Fuxion.Identity.Test.Helpers;
 
-public class PasswordProviderTest : BaseTest<PasswordProviderTest>
+public class PasswordProviderTest(ITestOutputHelper output) : BaseTest<PasswordProviderTest>(output)
 {
-	public PasswordProviderTest(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "PasswordProvider - Generate")]
 	public void Generate()
 	{

@@ -1,6 +1,8 @@
 ﻿using System.Collections.ObjectModel;
 using System.Linq;
 using Fuxion.Collections;
+using Fuxion.Xunit;
+using Xunit;
 
 namespace Fuxion.Test.Collections;
 
