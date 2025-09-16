@@ -84,7 +84,9 @@ public static class ResponseExtensions
 							: new StringContent(me2.Payload.SerializeToJson(JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
 					);
 			else if (me.Message is not null)
-				return Factory.Ok(new StringContent(me.Message));
+				return Factory.Ok(fullSerialization
+					? new StringContent(me.SerializeToJson(JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
+					: new StringContent(me.Message));
 			else
 				return Factory.NoContent();
 

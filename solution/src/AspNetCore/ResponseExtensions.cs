@@ -101,7 +101,9 @@ public static class ResponseExtensions
 				else
 					return Results.Ok(fullSerialization ? me2 : me2.Payload);
 			else if (me.Message is not null)
-				return Results.Content(me.Message);
+				return fullSerialization
+					? Results.Ok(me)
+					: Results.Content(me.Message);
 			else
 				return Results.NoContent();
 
@@ -222,11 +224,13 @@ public static class ResponseExtensions
 				else
 					return new OkObjectResult(fullSerialization ? me2 : me2.Payload);
 			else if (me.Message is not null)
-				return new ContentResult
-				{
-					Content = me.Message,
-					ContentType = "text/plain"
-				};
+				return fullSerialization
+					? new OkObjectResult(me)
+					: new ContentResult
+					{
+						Content = me.Message,
+						ContentType = "text/plain"
+					};
 			else
 				return new NoContentResult();
 
