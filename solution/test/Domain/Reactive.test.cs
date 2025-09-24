@@ -181,21 +181,21 @@ public class ReactiveTest(ITestOutputHelper output) : BaseTest<ReactiveTest>(out
 				};
 			});
 		var subscription = ob.Subscribe(Output.WriteLine);
-		await Task.Delay(1000);
+		await Task.Delay(1000, TestContext.Current.CancellationToken);
 		subscription.Dispose();
 		Output.WriteLine("===========================");
 		var interval = Observable.Interval(TimeSpan.FromMilliseconds(250));
 		dis = interval.Subscribe(
 			_ => Output.WriteLine(_.ToString()),
 			() => Output.WriteLine("completed"));
-		await Task.Delay(1000);
+		await Task.Delay(1000, TestContext.Current.CancellationToken);
 		dis.Dispose();
 		Output.WriteLine("===========================");
 		var timer = Observable.Timer(TimeSpan.Zero, TimeSpan.FromMilliseconds(250));//,DateTimeOffset.Now.AddMilliseconds(500));//TimeSpan.FromMilliseconds(500));
 		dis = timer.Subscribe(
 			_ => Output.WriteLine(_.ToString()),
 			() => Output.WriteLine("completed"));
-		await Task.Delay(1000);
+		await Task.Delay(1000, TestContext.Current.CancellationToken);
 		dis.Dispose();
 		Output.WriteLine("===========================");
 		var start = Observable.Start(() =>
@@ -210,7 +210,7 @@ public class ReactiveTest(ITestOutputHelper output) : BaseTest<ReactiveTest>(out
 		dis = start.Subscribe(
 			unit => Output.WriteLine("Unit published"), 
 			() => Output.WriteLine("Action completed"));
-		await Task.Delay(1000);
+		await Task.Delay(1000, TestContext.Current.CancellationToken);
 		dis.Dispose();
 		Output.WriteLine("===========================");
 		var t = Task.Factory.StartNew(()=>"Test");

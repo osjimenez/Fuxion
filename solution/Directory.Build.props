@@ -4,7 +4,7 @@
 		<Nullable>enable</Nullable>
 		<WarningsAsErrors>Nullable;CA1857</WarningsAsErrors>
 		<ImplicitUsings>disable</ImplicitUsings>
-
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
 		<!-- TARGET FRAMEWORKS -->

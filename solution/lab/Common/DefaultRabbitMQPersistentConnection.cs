@@ -75,20 +75,20 @@ public class DefaultRabbitMQPersistentConnection : IRabbitMQPersistentConnection
 		if (_disposed) return;
 		Debug.WriteLine("A RabbitMQ connection is shutdown. Trying to re-connect...");
 		//_logger.LogWarning("A RabbitMQ connection is shutdown. Trying to re-connect...");
-		TryConnect();
+		await TryConnect();
 	}
 	async Task OnCallbackException(object? sender, CallbackExceptionEventArgs e)
 	{
 		if (_disposed) return;
 		Debug.WriteLine("A RabbitMQ connection throw exception. Trying to re-connect...");
 		//_logger.LogWarning("A RabbitMQ connection throw exception. Trying to re-connect...");
-		TryConnect();
+		await TryConnect();
 	}
 	async Task OnConnectionShutdown(object? sender, ShutdownEventArgs reason)
 	{
 		if (_disposed) return;
 		Debug.WriteLine("A RabbitMQ connection is on shutdown. Trying to re-connect...");
 		//_logger.LogWarning("A RabbitMQ connection is on shutdown. Trying to re-connect...");
-		TryConnect();
+		await TryConnect();
 	}
 }

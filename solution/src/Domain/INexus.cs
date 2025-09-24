@@ -48,7 +48,7 @@ public class Receipt<TData>(TData data, IServiceProvider serviceProvider) : IRec
 {
 	public TData Data { get; } = data;
 	public IServiceProvider ServiceProvider { get; } = serviceProvider;
-	public IReceipt<TNewData> WithData<TNewData>(TNewData data) => new Receipt<TNewData>(data, serviceProvider);
+	public IReceipt<TNewData> WithData<TNewData>(TNewData data) => new Receipt<TNewData>(data, ServiceProvider);
 }
 public interface IInitializable
 {
@@ -68,11 +68,12 @@ public class DefaultNexus : INexus
 		// foreach(var route in Routes)
 		// 	route.Attach(this);
 	}
-	public async Task Initialize()
+	public Task Initialize()
 	{
 		// await Producer.Initialize();
 		// await Consumer.Initialize();
 		// foreach (var route in Routes) await route.Initialize();
+		return Task.CompletedTask;
 	}
 	public string NodeType { get; } = "";
 	public string DeployId { get; set; }

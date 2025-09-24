@@ -29,7 +29,7 @@ public class SignalRServerPublisher(IHubContext<NexusHub,INexuxHubClient> hub) :
 	public Task Publish(object message) => hub.Clients.All.SendToClient(message);
 }
 
-public class SignalRServerSubscriber(IHubContext<NexusHub, INexuxHubClient> hub) : ISubscriber<object>
+public class SignalRServerSubscriber() : ISubscriber<object>
 {
 	List<Action<IReceipt<object>>> receivers = new();
 	public Task Initialize() => Task.CompletedTask;

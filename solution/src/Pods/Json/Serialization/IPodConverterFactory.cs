@@ -58,7 +58,7 @@ public class IPodJsonConverterFactoryAttribute : JsonConverterAttribute
 		if (disType is null || payType is null) throw new ApplicationException($"Cannot determine types for discriminator and payload of type '{typeToConvert.GetSignature()}'");
 		var converterType = typeof(IPodConverter<,,>).MakeGenericType(typeToConvert, disType, payType);
 		return (JsonConverter)(Activator.CreateInstance(converterType, (IUriKeyResolver?)null) ?? throw new InvalidCastException($"'{converterType.GetSignature()}' can not be created"));
-		return new IPodConverterFactory();
+		//return new IPodConverterFactory();
 		//return (JsonConverter)Activator.CreateInstance(ConverterType, ConverterArguments)!;
 	}
 }

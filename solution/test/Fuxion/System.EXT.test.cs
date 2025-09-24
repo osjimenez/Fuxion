@@ -367,7 +367,7 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 		PrintVariable(3.Seconds);
 	}
 	[Fact(DisplayName = "Object - Transform")]
-	public async Task TransformTest()
+	public void TransformTest()
 	{
 		var source = new TransformationSource(0, "test");
 
@@ -382,14 +382,14 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 	{
 		var sourceTask = TaskManager.StartNew(() => new TransformationSource(0, "test"));
 
-		var source = await sourceTask.ThenTransform(s => { s.Integer = 123; });
+		var source = await sourceTask.ThenTransform(s => { s.Integer = 123; }, TestContext.Current.CancellationToken);
 		Assert.Equal(123, source.Integer);
 
-		var res = await sourceTask.ThenTransform(s => s.Integer);
+		var res = await sourceTask.ThenTransform(s => s.Integer, TestContext.Current.CancellationToken);
 		Assert.Equal(123, res);
 	}
 	[Fact(DisplayName = "Object - TransformIfNotNull")]
-	public async Task TransformIfNotNullTest()
+	public void TransformIfNotNullTest()
 	{
 		TransformationSource? source = null;
 
@@ -419,9 +419,9 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 		var source = await sourceTask.ThenTransformIfNotNull(s =>
 		{
 			s.String = "changed";
-		});
+		}, TestContext.Current.CancellationToken);
 		Assert.Null(source);
-		var res = await sourceTask.ThenTransformIfNotNull(s => s?.String);
+		var res = await sourceTask.ThenTransformIfNotNull(s => s?.String, TestContext.Current.CancellationToken);
 		Assert.Null(res);
 
 		sourceTask = TaskManager.StartNew(() => (TransformationSource?)new TransformationSource(0, "test"));
@@ -429,9 +429,9 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 		source = await sourceTask.ThenTransformIfNotNull(s =>
 		{
 			s.String = "changed";
-		});
+		}, TestContext.Current.CancellationToken);
 		Assert.Equal("changed", source?.String);
-		res = await sourceTask.ThenTransformIfNotNull(s => s?.String);
+		res = await sourceTask.ThenTransformIfNotNull(s => s?.String, TestContext.Current.CancellationToken);
 		Assert.Equal("changed", res);
 	}
 	[Fact(DisplayName = "Type - IsNullable")]

@@ -21,9 +21,7 @@ public class UriDiscriminatorTest(ITestOutputHelper output) : BaseTest<UriDiscri
 		PrintVariable(aa is Array);
 		PrintVariable(aa is IEnumerable<bool>);
 		PrintVariable(aa is IList<bool>);
-		PrintVariable(aa is List<bool>);
 		PrintVariable(aa is ICollection<bool>);
-		PrintVariable(aa is Collection<bool>);
 
 		UriDiscriminatorDirectory dir = new();
 		var res = dir.GetOrRegisterType(typeof(Chain1_Echelon0));

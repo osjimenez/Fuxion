@@ -12,7 +12,9 @@ public class ColorConsoleLoggerConfiguration
 	public int EventId { get; set; }
 	public string Title
 	{
+#pragma warning disable CA1416
 		get => Console.Title;
+#pragma warning restore CA1416
 		set => Console.Title = value;
 	}
 	public Func<string> SingleLinePrefix

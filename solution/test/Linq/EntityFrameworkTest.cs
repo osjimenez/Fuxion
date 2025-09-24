@@ -69,21 +69,21 @@ public class EntityFrameworkTest : BaseTest<EntityFrameworkTest>
 	}
 
 	[Fact(DisplayName = "TimeSpan to database")]
-	public void TimeSpanToDatabase()
+	public async Task TimeSpanToDatabase()
 	{
 		var filter = new UserFilter();
 		filter.SessionTimeout.Equal = 2.Hours;
-		var res = data.GetUsers().Filter(filter).ToList();
-		Assert.Equal(1, res.Count);
+		var res = await data.GetUsers().Filter(filter).CountAsync(TestContext.Current.CancellationToken);
+		Assert.Equal(1, res);
 	}
 	
 	[Fact(DisplayName = "Scalar collection (Any - And)")]
-	public void ScalarCollection_AnyAnd()
+	public async Task ScalarCollection_AnyAnd()
 	{
 		var filter = new UserFilter();
 		filter.Phones.Any(p => p.Equal = "+12125551212");
-		var res = data.GetUsers().Filter(filter).ToList();
-		Assert.Equal(2, res.Count);
+		var res = await data.GetUsers().Filter(filter).CountAsync(TestContext.Current.CancellationToken);
+		Assert.Equal(2, res);
 	}
 
 	[Fact(DisplayName = "Scalar collection (Any - Or)")]
@@ -92,8 +92,8 @@ public class EntityFrameworkTest : BaseTest<EntityFrameworkTest>
 		var filter = new UserFilter();
 		filter.Phones.Any(or: [p => p.Equal = "+34657890123"]);
 		PrintVariable(filter.Predicate);
-		var filterCount = await data.GetUsers().Filter(filter).CountAsync();
-		var linqCount = await data.GetUsers().Where(u => u.Phones.Any(p => p == "+34657890123")).CountAsync();
+		var filterCount = await data.GetUsers().Filter(filter).CountAsync(TestContext.Current.CancellationToken);
+		var linqCount = await data.GetUsers().Where(u => u.Phones.Any(p => p == "+34657890123")).CountAsync(TestContext.Current.CancellationToken);
 		PrintVariable(filterCount);
 		Assert.Equal(linqCount, filterCount);
 	}
@@ -104,8 +104,8 @@ public class EntityFrameworkTest : BaseTest<EntityFrameworkTest>
 		var filter = new UserFilter();
 		filter.Phones.All(p => p.Equal = "+34657890123");
 		PrintVariable(filter.Predicate);
-		var filterCount = await data.GetUsers().Filter(filter).CountAsync();
-		var linqCount = await data.GetUsers().Where(u => u.Phones.All(p => p == "+34657890123")).CountAsync();
+		var filterCount = await data.GetUsers().Filter(filter).CountAsync(TestContext.Current.CancellationToken);
+		var linqCount = await data.GetUsers().Where(u => u.Phones.All(p => p == "+34657890123")).CountAsync(TestContext.Current.CancellationToken);
 		PrintVariable(filterCount);
 		Assert.Equal(linqCount, filterCount);
 	}
@@ -116,17 +116,17 @@ public class EntityFrameworkTest : BaseTest<EntityFrameworkTest>
 		var filter = new UserFilter();
 		filter.Phones.All(or: [p => p.Equal = "+34657890123", p => p.Equal = "+12125551212"]);
 		PrintVariable(filter.Predicate);
-		var filterCount = await data.GetUsers().Filter(filter).CountAsync();
+		var filterCount = await data.GetUsers().Filter(filter).CountAsync(TestContext.Current.CancellationToken);
 		Expression<Func<UserDao, bool>>
 			linqPredicate = u => u.Phones.All(p => p == "+34657890123" || p == "+12125551212");
-		var linqCount = await data.GetUsers().Where(linqPredicate).CountAsync();
+		var linqCount = await data.GetUsers().Where(linqPredicate).CountAsync(TestContext.Current.CancellationToken);
 		PrintVariable(linqPredicate);
 		PrintVariable(filterCount);
 		Assert.Equal(linqCount, filterCount);
 	}
 
 	[Fact(DisplayName = "Navigation collection (Any - And)")]
-	public void NavigationCollection_AnyAnd()
+	public async Task NavigationCollection_AnyAnd()
 	{
 		var filter = new UserFilter();
 		filter.Invoices.Any(
@@ -134,26 +134,26 @@ public class EntityFrameworkTest : BaseTest<EntityFrameworkTest>
 			a => a.InvoiceCode.Equal = "0001",
 			a => a.ExpirationTimes.Any(e => e.Equal = 2.Hours));
 		PrintVariable(filter.Predicate);
-		var res = data.GetUsers().Filter(filter).ToList();
-		Assert.Equal(1, res.Count);
+		var res = await data.GetUsers().Filter(filter).CountAsync(TestContext.Current.CancellationToken);
+		Assert.Equal(1, res);
 	}
 	[Fact(DisplayName = "Navigation collection (Any - Or)")]
-	public void NavigationCollection_AnyOr()
+	public async Task NavigationCollection_AnyOr()
 	{
 		var filter = new UserFilter();
 		filter.Invoices.Any(or: [a => a.InvoiceSerie.Equal = "A", a => a.InvoiceCode.Equal = "0001"]);
 		PrintVariable(filter.Predicate);
-		var res = data.GetUsers().Filter(filter).ToList();
-		Assert.Equal(1, res.Count);
+		var res = await data.GetUsers().Filter(filter).CountAsync(TestContext.Current.CancellationToken);
+		Assert.Equal(1, res);
 	}
 	[Fact(DisplayName = "Navigation collection (All - And)")]
-	public void NavigationCollection_AllAnd()
+	public async Task NavigationCollection_AllAnd()
 	{
 		var filter = new UserFilter();
 		filter.Invoices.All(a => a.InvoiceSerie.Equal = "A");
 		PrintVariable(filter.Predicate);
-		var res = data.GetUsers().Filter(filter).ToList();
-		Assert.Equal(1, res.Count);
+		var res = await data.GetUsers().Filter(filter).CountAsync(TestContext.Current.CancellationToken);
+		Assert.Equal(1, res);
 	}
 	[Fact(DisplayName = "Navigation collection (All - Or)")]
 	public async Task NavigationCollection_AllOr()
@@ -168,12 +168,8 @@ public class EntityFrameworkTest : BaseTest<EntityFrameworkTest>
 
 		Assert.Equal(filter.Predicate.ToString(), linqPredicate.ToString());
 		
-		
-
-		//var filterCount = await data.GetUsers().Filter(filter).CountAsync(TestContext.Current.CancellationToken);
-		//var linqCount = await data.GetUsers().Where(u =>
-		//	u.Invoices != null &&
-		//	u.Invoices.All(i => i.InvoiceSerie.StartsWith("A") || i.InvoiceCode.StartsWith("00"))).CountAsync(TestContext.Current.CancellationToken);
-		//Assert.Equal(linqCount, filterCount);
+		var filterCount = await data.GetUsers().Filter(filter).CountAsync(TestContext.Current.CancellationToken);
+		var linqCount = await data.GetUsers().Where(linqPredicate).CountAsync(TestContext.Current.CancellationToken);
+		Assert.Equal(linqCount, filterCount);
 	}
 }

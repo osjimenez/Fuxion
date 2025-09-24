@@ -23,16 +23,12 @@ namespace Fuxion.Licensing;
 ///    - Optional providers - Check all these providers but only a customizable number of these must get me a valid value
 ///    - Randomly optional providers - Check a customizable number of these providers but only a customizable number of these must get me a valid value
 /// </summary>
-public class AntiTamperedTimeProvider : ITimeProvider
+public class AntiTamperedTimeProvider(ITimeProvider reliableTimeProvider, AntiBackTimeProvider antiBackTimeProvider)
+	: ITimeProvider
 {
-	public AntiTamperedTimeProvider(ITimeProvider reliableTimeProvider, AntiBackTimeProvider antiBackTimeProvider)
-	{
-		ReliableTimeProvider = reliableTimeProvider;
-		AntiBackTimeProvider = antiBackTimeProvider;
-	}
 	public ILogger? Logger { get; set; }
-	public ITimeProvider ReliableTimeProvider { get; set; }
-	public AntiBackTimeProvider AntiBackTimeProvider { get; set; }
+	public ITimeProvider ReliableTimeProvider { get; } = reliableTimeProvider;
+	public AntiBackTimeProvider AntiBackTimeProvider { get; } = antiBackTimeProvider;
 	public DateTime Now() => GetUtc().ToLocalTime();
 	public DateTimeOffset NowOffsetted() => GetUtc().ToLocalTime();
 	public DateTime UtcNow() => GetUtc();
@@ -69,7 +65,4 @@ public class AntiTamperedTimeProvider : ITimeProvider
 	}
 }
 
-public class TamperedTimeException : FuxionException
-{
-	public TamperedTimeException(Exception innerException) : base(innerException.Message, innerException) { }
-}
+public class TamperedTimeException(Exception innerException) : FuxionException(innerException.Message, innerException);

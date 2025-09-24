@@ -206,7 +206,7 @@ public class UriKey : IEquatable<UriKey>, IComparable, IComparable<UriKey>
 			// 3. If major versions are equals, the greater echelon is the greater
 			(true, true, false) => 1, // Isn't 1 because must be a greater or equal version,
 			(true, false, true) => -1,
-			
+			_ => throw new NotImplementedException()
 		};
 		//return baseCheck != 0 ? baseCheck : 0;
 	}

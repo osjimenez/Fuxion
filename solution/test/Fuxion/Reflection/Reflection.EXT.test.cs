@@ -121,54 +121,54 @@ public class ReflectionExtensionTest(ITestOutputHelper output) : BaseTest<System
 
 public class Methods
 {
-	public async Task MethodAsync()
+	public Task MethodAsync()
 	{
 		throw new Exception("Test");
 	}
-	public async Task MethodAsync(int one)
+	public Task MethodAsync(int one)
 	{
 		throw new Exception("Test");
 	}
-	public async Task MethodAsync(int one, int two)
+	public Task MethodAsync(int one, int two)
 	{
 		throw new Exception("Test");
 	}
-	public async Task MethodAsync(int one, string two)
+	public Task MethodAsync(int one, string two)
 	{
 		throw new Exception("Test");
 	}
-	public async Task MethodAsync(string one, int two)
-	{
-		throw new Exception("Test");
-	}
-
-	public async Task MethodAsync<T>()
-	{
-		throw new Exception("Test");
-	}
-	public async Task MethodAsync<T>(int one)
-	{
-		throw new Exception("Test");
-	}
-	public async Task MethodAsync<T>(int one, int two)
+	public Task MethodAsync(string one, int two)
 	{
 		throw new Exception("Test");
 	}
 
-	public async Task MethodAsync<T, U>()
+	public Task MethodAsync<T>()
 	{
 		throw new Exception("Test");
 	}
-	public async Task MethodAsync<T, U>(int one)
+	public Task MethodAsync<T>(int one)
 	{
 		throw new Exception("Test");
 	}
-	public async Task MethodAsync<T, U>(int one, int two)
+	public Task MethodAsync<T>(int one, int two)
 	{
 		throw new Exception("Test");
 	}
 
-	public async Task MethodAsync2<T>()
+	public Task MethodAsync<T, U>()
+	{
+		throw new Exception("Test");
+	}
+	public Task MethodAsync<T, U>(int one)
+	{
+		throw new Exception("Test");
+	}
+	public Task MethodAsync<T, U>(int one, int two)
+	{
+		throw new Exception("Test");
+	}
+
+	public Task MethodAsync2<T>()
 	{
 		throw new Exception("Test");
 	}

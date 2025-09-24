@@ -208,4 +208,12 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 		await DoToResponse("endpoint-");
 		await DoToResponse("controller/");
 	}
+
+	[Fact]
+	public void Serialization()
+	{
+		//var res = Response.PermissionDenied("You don't have permissions");
+		var res = Response.SuccessMessage("Was done");
+		PrintVariable(res.SerializeToJson());
+	}
 }

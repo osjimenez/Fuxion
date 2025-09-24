@@ -27,7 +27,7 @@ public class RabbitHostedService : IHostedService
 	async Task<IChannel> CreateConsumerChannel()
 	{
 		Console.WriteLine("============= CREATING CONSUMER CHANNEL ===============================");
-		if (!_persistentConnection.IsConnected) _persistentConnection.TryConnect();
+		if (!_persistentConnection.IsConnected) await _persistentConnection.TryConnect();
 		var channel = await _persistentConnection.CreateModel();
 		await channel.ExchangeDeclareAsync("test-exchange", ExchangeType.Direct);
 		await channel.QueueDeclareAsync(_queueName, true, false, false, null);
@@ -66,7 +66,7 @@ public class RabbitHostedService : IHostedService
 
 	public static async Task Send(IRabbitMQPersistentConnection persistentConnection, string rountingKey, string message)
 	{
-		if (!persistentConnection.IsConnected) persistentConnection.TryConnect();
+		if (!persistentConnection.IsConnected) await persistentConnection.TryConnect();
 		var policy = Policy.Handle<BrokerUnreachableException>().Or<SocketException>().WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(System.Math.Pow(2, retryAttempt)),
 			(ex, time) => {
 				Console.WriteLine(ex.ToString());

@@ -651,7 +651,7 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 	{
 		var dt = DateTime.Now;
 		var task = TaskManager.StartNew(() => { TaskManager.Current?.Sleep(TimeSpan.FromMilliseconds(2500)); });
-		return task.ContinueWith(_ => { Assert.True(dt.AddSeconds(2) < DateTime.Now); });
+		return task.ContinueWith(_ => { Assert.True(dt.AddSeconds(2) < DateTime.Now); }, TestContext.Current.CancellationToken);
 	}
 	[Fact(DisplayName = "TaskManager - SleepCancelation")]
 	public void TaskManager_SleepCancelation()

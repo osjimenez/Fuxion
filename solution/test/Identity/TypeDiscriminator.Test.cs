@@ -74,7 +74,8 @@ public class TypeDiscriminatorTest(ITestOutputHelper output) : BaseTest<TypeDisc
 		fac.RegisterTree(typeof(BaseDvo<>));
 		var d2 = fac.FromType(typeof(BaseDvo<>), true);
 		Assert.NotNull(d2);
-		Assert.Single(d2.Inclusions.Where(d => d.Name == "Person"));
+		var res = d2.Inclusions.Where(d => d.Name == "Person");
+		Assert.Single(res);
 	}
 	[Fact(DisplayName = "TypeDiscriminator - New test")]
 	public void NewTest()

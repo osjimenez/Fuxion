@@ -5,19 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Fuxion.Domain.Demos;
 
-public class a
-{
-	public a()
-	{
-		EventFactory<MyEvent> fac = new();
-		var evt = fac.Create();
-
-		IServiceProvider sp = default!;
-		AggregateFactory<MyAggregate> fac2 = new(sp);
-		var agg = fac2.Create();
-	}
-}
-
 public abstract class Factory<TFeaturizable> : IFeaturizable<Factory<TFeaturizable>> where TFeaturizable : IFeaturizable<TFeaturizable>
 {
 	public abstract TFeaturizable Create();

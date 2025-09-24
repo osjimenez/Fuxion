@@ -47,7 +47,7 @@ public class IdentityManagerTest
 	[InlineData("Password wrong, must fail", scenarios, "root", "wrong", false)]
 	[InlineData("Username wrong, must fail", scenarios, "wrong", "root", false)]
 	[InlineData("Must be success", scenarios, "root", "root", true)]
-	public void Login(string _, string scenarios, string username, string password, bool expected)
+	public void Login(string _, string scenarios, string? username, string? password, bool expected)
 	{
 		//foreach (var scenario in scenarios.Split('·'))
 		//{

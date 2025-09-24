@@ -25,6 +25,8 @@ public static class Extensions
 	public const string ContentLengthKey = "content-length";
 	public const string ContentTypeKey = "content-type";
 	public const string FileNameKey = "file-name";
+
+	// Internal helper that performs the heavy lifting
 	static async Task<(List<(string, object?)> Extensions, ResponseProblemDetails? Problem, object? deserializedBody)> DoAsResponse(
 		HttpResponseMessage res,
 		Type? deserializationType = null,
@@ -76,7 +78,8 @@ public static class Extensions
 				{
 					problem = strContent.DeserializeFromJson<ResponseProblemDetails>(jsonOptions);
 					if (problem is not null) extensions.Add((InnerProblemKey, problem));
-				} catch
+				}
+				catch
 				{
 					// ignored
 				}
@@ -88,7 +91,8 @@ public static class Extensions
 					try
 					{
 						deserializedBody = JsonSerializer.Deserialize(strContent, deserializationType, jsonOptions);
-					} catch (Exception ex)
+					}
+					catch (Exception ex)
 					{
 						extensions.Add((JsonErrorKey, JsonNode.Parse(ex.SerializeToJson(options: jsonOptions))));
 					}
@@ -99,7 +103,8 @@ public static class Extensions
 					{
 						var jsonContent = JsonNode.Parse(strContent);
 						if (jsonContent is not null) extensions.Add((JsonContentKey, jsonContent));
-					} catch
+					}
+					catch
 					{
 						extensions.Add((StringContentKey, strContent));
 					}
@@ -108,9 +113,9 @@ public static class Extensions
 		}
 		return (extensions, problem, deserializedBody);
 	}
-	public static async Task<Response> AsResponseAsync(this Task<HttpResponseMessage> me, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
-		=> await AsResponseAsync(await me, jsonOptions, ct);
-	public static async Task<Response> AsResponseAsync(this HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+
+	// Core wrappers to produce Response objects from an HttpResponseMessage
+	static async Task<Response> AsResponseFromMessageAsync(HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 	{
 		var (extensions, problem, _) = await DoAsResponse(res, null, jsonOptions, ct);
 
@@ -125,9 +130,8 @@ public static class Extensions
 
 		return Response.ErrorMessage(problem?.Detail ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions);
 	}
-	public static async Task<Response<TPayload>> AsResponseAsync<TPayload>(this Task<HttpResponseMessage> me, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
-		=> await AsResponseAsync<TPayload>(await me, jsonOptions, ct);
-	public static async Task<Response<TPayload>> AsResponseAsync<TPayload>(this HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+
+	static async Task<Response<TPayload>> AsResponseFromMessageAsync<TPayload>(HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 	{
 		var (extensions, problem, deserializedBody) = await DoAsResponse(res, typeof(TPayload), jsonOptions, ct);
 
@@ -149,6 +153,7 @@ public static class Extensions
 			.ErrorMessage(problem?.Detail ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions)
 			.AsPayload<TPayload>();
 	}
+
 	static ErrorType HttpStatusCodeToErrorType(HttpStatusCode statusCode)
 		=> statusCode switch
 		{
@@ -240,30 +245,63 @@ public static class Extensions
 #endif
 			var _ => ErrorType.Critical
 		};
-	public static bool TryGetProblemDetails(this IResponse me, [NotNullWhen(true)] out ResponseProblemDetails? problem)
+
+	// New C# 14 extension syntax blocks
+
+	// Task<HttpResponseMessage> receivers
+	extension(Task<HttpResponseMessage> me)
 	{
-		if (me.Extensions.TryGetValue(InnerProblemKey, out var obj) && obj is ResponseProblemDetails res)
-		{
-			problem = res;
-			return true;
-		}
-		problem = null;
-		return false;
+		public async Task<Response> AsResponseAsync(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+			=> await Extensions.AsResponseFromMessageAsync(await me, jsonOptions, ct);
+
+		public async Task<Response<TPayload>> AsResponseAsync<TPayload>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+			=> await Extensions.AsResponseFromMessageAsync<TPayload>(await me, jsonOptions, ct);
 	}
-	public static bool TryGetPayload<TPayload>(this ResponseProblemDetails problem, [NotNullWhen(true)] out TPayload? payload, JsonSerializerOptions? jsonOptions = null)
+
+	// HttpResponseMessage receivers
+	extension(HttpResponseMessage res)
 	{
-		if (problem.Extensions.TryGetValue(PayloadKey, out var obj) && obj is JsonElement jsonElement)
+		public async Task<Response> AsResponseAsync(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+			=> await Extensions.AsResponseFromMessageAsync(res, jsonOptions, ct);
+
+		public async Task<Response<TPayload>> AsResponseAsync<TPayload>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+			=> await Extensions.AsResponseFromMessageAsync<TPayload>(res, jsonOptions, ct);
+	}
+
+	// IResponse receivers
+	extension(IResponse me)
+	{
+		public bool TryGetProblemDetails([NotNullWhen(true)] out ResponseProblemDetails? problem)
 		{
-			try
+			if (me.Extensions.TryGetValue(InnerProblemKey, out var obj) && obj is ResponseProblemDetails res)
 			{
-				payload = jsonElement.Deserialize<TPayload>(jsonOptions);
-				if (payload is not null) return true;
-			} catch
-			{
-				// ignored
+				problem = res;
+				return true;
 			}
+			problem = null;
+			return false;
 		}
-		payload = default;
-		return false;
+	}
+
+	// ResponseProblemDetails receivers
+	extension(ResponseProblemDetails problem)
+	{
+		public bool TryGetPayload<TPayload>([NotNullWhen(true)] out TPayload? payload, JsonSerializerOptions? jsonOptions = null)
+		{
+			if (problem.Extensions.TryGetValue(PayloadKey, out var obj) && obj is JsonElement jsonElement)
+			{
+				try
+				{
+					payload = jsonElement.Deserialize<TPayload>(jsonOptions);
+					if (payload is not null) return true;
+				}
+				catch
+				{
+					// ignored
+				}
+			}
+			payload = default;
+			return false;
+		}
 	}
 }

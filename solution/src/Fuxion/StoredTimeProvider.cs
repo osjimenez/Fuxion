@@ -15,7 +15,7 @@ public abstract class StoredTimeProvider : ITimeProvider
 
 public class MemoryStoredTimeProvider : StoredTimeProvider
 {
-	DateTime dt = DateTime.UtcNow;
-	public override DateTime GetUtcTime() => dt;
-	public override void SaveUtcTime(DateTime time) => dt = time;
+	private DateTime _dt = DateTime.UtcNow;
+	public override DateTime GetUtcTime() => _dt;
+	public override void SaveUtcTime(DateTime time) => _dt = time;
 }

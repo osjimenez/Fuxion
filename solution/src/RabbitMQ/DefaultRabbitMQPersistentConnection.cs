@@ -4,6 +4,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Fuxion.Threading;
 using Polly;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -23,7 +24,7 @@ public class DefaultRabbitMQPersistentConnection : IRabbitMQPersistentConnection
 	readonly IConnectionFactory _connectionFactory;
 	//private readonly ILogger<DefaultRabbitMQPersistentConnection> _logger;
 	readonly int _retryCount;
-	readonly object sync_root = new();
+	readonly Locker<object> sync_root = new("");
 	IConnection? _connection;
 	bool _disposed;
 	public bool IsConnected => _connection is { IsOpen: true } && !_disposed;
@@ -49,15 +50,16 @@ public class DefaultRabbitMQPersistentConnection : IRabbitMQPersistentConnection
 	{
 		Debug.WriteLine("RabbitMQ Client is trying to connect");
 		//_logger.LogInformation("RabbitMQ Client is trying to connect");
-		lock (sync_root)
+		return await sync_root.WriteAsync(async _ =>
 		{
 			var policy = Policy.Handle<SocketException>().Or<BrokerUnreachableException>()
-				.WaitAndRetry(_retryCount, retryAttempt => TimeSpan.FromSeconds(System.Math.Pow(2, retryAttempt)),
-				(ex, time) => {
+				.WaitAndRetryAsync(_retryCount, retryAttempt => TimeSpan.FromSeconds(System.Math.Pow(2, retryAttempt)),
+				(ex, time) =>
+				{
 					Debug.WriteLine(ex.ToString());
 					//_logger.LogWarning(ex.ToString());
 				});
-			policy.Execute(async () => { _connection = await _connectionFactory.CreateConnectionAsync(); }).Wait();
+			await policy.ExecuteAsync(async () => { _connection = await _connectionFactory.CreateConnectionAsync(); });
 			if (IsConnected)
 			{
 				_connection!.ConnectionShutdownAsync += OnConnectionShutdown;
@@ -70,7 +72,7 @@ public class DefaultRabbitMQPersistentConnection : IRabbitMQPersistentConnection
 			Debug.WriteLine("FATAL ERROR: RabbitMQ connections could not be created and opened");
 			//_logger.LogCritical("FATAL ERROR: RabbitMQ connections could not be created and opened");
 			return false;
-		}
+		});
 	}
 	async Task OnConnectionBlocked(object? sender, ConnectionBlockedEventArgs e)
 	{

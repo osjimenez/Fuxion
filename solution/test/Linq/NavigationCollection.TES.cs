@@ -55,7 +55,7 @@ public class NavigationCollection : BaseTest<NavigationCollection>
 		x.Invoices.All(ce => ce.InvoiceSerie.StartsWith("A") || ce.InvoiceCode.StartsWith("00"));
 	
 	[Fact(DisplayName = "Predicate => All - Or")]
-	public async Task Predicate_All_Or()
+	public void Predicate_All_Or()
 	{
 		PrintVariable(filter_all_or.Predicate);
 		PrintVariable(predicate_all_or);

@@ -8,7 +8,7 @@ namespace Fuxion.Pods.Test;
 
 public class UriKeyTest(ITestOutputHelper output) : BaseTest<UriKeyTest>(output)
 {
-	public static void AnalyseUriKey(UriKey uriKey, string title = "=== Analysing UriKey ===")
+	internal static void AnalyseUriKey(UriKey uriKey, string title = "=== Analysing UriKey ===")
 	{
 		using (Printer.Indent(title))
 		{

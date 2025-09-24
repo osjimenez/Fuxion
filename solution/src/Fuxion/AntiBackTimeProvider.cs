@@ -5,10 +5,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Fuxion;
 
-public class AntiBackTimeProvider : ITimeProvider
+public class AntiBackTimeProvider(params StoredTimeProvider[] storedProviders) : ITimeProvider
 {
-	public AntiBackTimeProvider(params StoredTimeProvider[] storedProviders) => providers = storedProviders;
-	readonly StoredTimeProvider[] providers;
 	public ILogger? Logger { get; set; }
 	public ITimeProvider TimeProvider { get; set; } = new LocalMachineTimeProvider();
 	public TimeSpan MaximumRangeOfDeviation { get; set; } = TimeSpan.FromMinutes(1);
@@ -18,7 +16,7 @@ public class AntiBackTimeProvider : ITimeProvider
 	DateTime GetUtc()
 	{
 		var now = TimeProvider.UtcNow();
-		var stored = providers.Select(s => {
+		var stored = storedProviders.Select(s => {
 			try
 			{
 				return (DateTime?)s.UtcNow();
@@ -37,7 +35,7 @@ public class AntiBackTimeProvider : ITimeProvider
 	}
 	public void SetValue(DateTime value)
 	{
-		foreach (var s in providers)
+		foreach (var s in storedProviders)
 			try
 			{
 				s.SaveUtcTime(value);
@@ -49,18 +47,11 @@ public class AntiBackTimeProvider : ITimeProvider
 	}
 }
 
-public class BackTimeException : FuxionException
+public class BackTimeException(DateTime storedTime, DateTime currentTime)
+	: FuxionException($"Time stored '{storedTime}' is most recent that current time '{currentTime}'")
 {
-	public BackTimeException(DateTime storedTime, DateTime currentTime) : base($"Time stored '{storedTime}' is most recent that current time '{currentTime}'")
-	{
-		StoredTime = storedTime;
-		CurrentTime = currentTime;
-	}
-	public DateTime StoredTime { get; set; }
-	public DateTime CurrentTime { get; set; }
+	public DateTime StoredTime { get; set; } = storedTime;
+	public DateTime CurrentTime { get; set; } = currentTime;
 }
 
-public class NoStoredTimeValueException : FuxionException
-{
-	public NoStoredTimeValueException() : base("No value was found in the stored time providers") { }
-}
+public class NoStoredTimeValueException() : FuxionException("No value was found in the stored time providers");

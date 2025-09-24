@@ -16,10 +16,10 @@ public class IdentityManager
 	public IPasswordProvider PasswordProvider { get; }
 	public IKeyValueRepository<string, IIdentity> Repository { get; }
 	public IIdentity? GetCurrent() => Repository.Find(CurrentUserNameProvider.GetCurrentUserName());
-	public bool CheckCredentials(string username, string password)
+	public bool CheckCredentials(string? username, string? password)
 	{
 		Printer.WriteLine($"Validando credenciales\r\n   Usuario: {username}\r\n   Contraseña: {password}\r\n");
-		if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+		if (username.IsNullOrWhiteSpace() || password.IsNullOrWhiteSpace())
 		{
 			Printer.WriteLine("Resultado: NO VALIDO - El nombre de usuario o la contraseña es NULL");
 			return false;

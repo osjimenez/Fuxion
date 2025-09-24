@@ -7,22 +7,19 @@ using Xunit;
 
 namespace Fuxion.Test.Text.Json.Serialization;
 
-public class FallbackConverterTest : BaseTest<FallbackConverterTest>
+public class FallbackConverterTest(ITestOutputHelper output) : BaseTest<FallbackConverterTest>(output)
 {
-	public FallbackConverterTest(ITestOutputHelper output) : base(output) { }
 	[Fact(DisplayName = "FallbackConverter - Serialize")]
-	public void FallbackConverter_Serialize()
+	public async Task FallbackConverter_Serialize()
 	{
 		try
 		{
 			try
 			{
-				Task.Run(() => {
+				await Task.Run(() => {
 					InvalidProgramException ipex = new("InvalidProgramException message");
 					throw ipex;
-#pragma warning disable xUnit1031
-				}).Wait();
-#pragma warning restore xUnit1031
+				}, TestContext.Current.CancellationToken);
 			} catch (Exception ex)
 			{
 				InvalidOperationException ioex = new("InvalidOperationException message", ex);
@@ -36,13 +33,13 @@ public class FallbackConverterTest : BaseTest<FallbackConverterTest>
 		}
 	}
 	[Fact(DisplayName = "FallbackConverter - Serialize loop")]
-	public void FallbackConverter_Serialize_Loop()
+	public async Task FallbackConverter_Serialize_Loop()
 	{
 		try
 		{
 			try
 			{
-				Task.Run(() =>
+				await Task.Run(() =>
 				{
 					Loop loop = new("Loop name");
 					loop.Data = loop;
@@ -51,9 +48,7 @@ public class FallbackConverterTest : BaseTest<FallbackConverterTest>
 						Loop = loop
 					};
 					throw ipex;
-#pragma warning disable xUnit1031
-				}).Wait();
-#pragma warning restore xUnit1031
+				}, TestContext.Current.CancellationToken);
 			} catch (Exception ex)
 			{
 				InvalidOperationException ioex = new("InvalidOperationException message", ex);

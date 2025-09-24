@@ -20,35 +20,13 @@ public static class ResponseExtensions
 {
 	public static bool IncludeException { get; set; } = true;
 	public static JsonSerializerOptions? JsonSerializerOptions { get; set; }
-	public static async Task<IHttpActionResult> ToApiFileStreamResultAsync<TPayload>(this Task<IResponse<TPayload>> me, string? contentType = null, string? fileDownloadName = null)
-		where TPayload : Stream
-		=> ToApiResult(await me, contentType, fileDownloadName, false);
-	public static async Task<IHttpActionResult> ToApiFileStreamResultAsync<TPayload>(this Task<Response<TPayload>> me, string? contentType = null, string? fileDownloadName = null)
-		where TPayload : Stream
-		=> ToApiResult(await me, contentType, fileDownloadName, false);
-	public static async Task<IHttpActionResult> ToApiFileBytesResultAsync<TPayload>(this Task<IResponse<TPayload>> me, string? contentType = null, string? fileDownloadName = null)
-		where TPayload : IEnumerable<byte>
-		=> ToApiResult(await me, contentType, fileDownloadName, false);
-	public static async Task<IHttpActionResult> ToApiFileBytesResultAsync<TPayload>(this Task<Response<TPayload>> me, string? contentType = null, string? fileDownloadName = null)
-		where TPayload : IEnumerable<byte>
-		=> ToApiResult(await me, contentType, fileDownloadName, false);
-	public static IHttpActionResult ToApiFileStreamResult<TPayload>(this IResponse<TPayload> me, string? contentType = null, string? fileDownloadName = null)
-		where TPayload : Stream
-		=> me.ToApiResult(contentType, fileDownloadName, false);
-	public static IHttpActionResult ToApiFileBytesResult<TPayload>(this IResponse<TPayload> me, string? contentType = null, string? fileDownloadName = null)
-		where TPayload : IEnumerable<byte>
-		=> me.ToApiResult(contentType, fileDownloadName, false);
-	public static async Task<IHttpActionResult> ToApiResultAsync<TPayload>(this Task<IResponse<TPayload>> me, bool fullSerialization = false)
-		=> ToApiResult(await me, fullSerialization: fullSerialization);
-	public static async Task<IHttpActionResult> ToApiResultAsync<TPayload>(this Task<Response<TPayload>> me, bool fullSerialization = false)
-		=> ToApiResult(await me, fullSerialization: fullSerialization);
-	public static async Task<IHttpActionResult> ToApiResultAsync(this Task<IResponse> me, bool fullSerialization = false)
-		=> ToApiResult(await me, fullSerialization: fullSerialization);
-	public static async Task<IHttpActionResult> ToApiResultAsync(this Task<Response> me, bool fullSerialization = false)
-		=> ToApiResult(await me, fullSerialization: fullSerialization);
-	public static IHttpActionResult ToApiResult(this IResponse me, bool fullSerialization = false)
-		=> me.ToApiResult(null, null, fullSerialization);
-	static IHttpActionResult ToApiResult(this IResponse me, string? contentType, string? fileDownloadName, bool fullSerialization)
+
+	// Core helper used by all extensions
+	static IHttpActionResult ToApiResultCore(
+		IResponse me,
+		string? contentType,
+		string? fileDownloadName,
+		bool fullSerialization)
 	{
 		if (me.IsSuccess)
 			if (me is IResponse<object?> { Payload: not null } me2)
@@ -80,8 +58,8 @@ public static class ResponseExtensions
 					});
 				else
 					return Factory.Ok(fullSerialization
-							? new StringContent(me2.SerializeToJson(JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
-							: new StringContent(me2.Payload.SerializeToJson(JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
+						? new StringContent(me2.SerializeToJson(JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
+						: new StringContent(me2.Payload.SerializeToJson(JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
 					);
 			else if (me.Message is not null)
 				return Factory.Ok(fullSerialization
@@ -93,7 +71,7 @@ public static class ResponseExtensions
 		var extensions = me.Extensions.ToDictionary(e => e.Key, e => e.Value);
 		extensions.Remove(StatusCodeKey);
 		extensions.Remove(ReasonPhraseKey);
-		
+
 		if (me is IResponse<object?> { Payload: not null and not Stream } me3) extensions[PayloadKey] = me3.Payload;
 		if (IncludeException && me.Exception is not null)
 		{
@@ -126,6 +104,72 @@ public static class ResponseExtensions
 			ErrorType.Timeout => Factory.Problem(me.Message, HttpStatusCode.RequestTimeout, "Request timeout", extensions),
 			var _ => Factory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error", extensions)
 		};
+	}
+
+	// New C# 14 extension syntax blocks
+
+	// Task<IResponse<TPayload>> receivers (general)
+	extension<TPayload>(Task<IResponse<TPayload>> me)
+	{
+		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false)
+			=> ToApiResultCore(await me, null, null, fullSerialization);
+	}
+	// Task<Response<TPayload>> receivers (general)
+	extension<TPayload>(Task<Response<TPayload>> me)
+	{
+		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false)
+			=> ToApiResultCore(await me, null, null, fullSerialization);
+	}
+
+	// Stream payload specializations
+	extension<TPayload>(Task<IResponse<TPayload>> me) where TPayload : Stream
+	{
+		public async Task<IHttpActionResult> ToApiFileStreamResultAsync(string? contentType = null, string? fileDownloadName = null)
+			=> ToApiResultCore(await me, contentType, fileDownloadName, false);
+	}
+	extension<TPayload>(Task<Response<TPayload>> me) where TPayload : Stream
+	{
+		public async Task<IHttpActionResult> ToApiFileStreamResultAsync(string? contentType = null, string? fileDownloadName = null)
+			=> ToApiResultCore(await me, contentType, fileDownloadName, false);
+	}
+	extension<TPayload>(IResponse<TPayload> me) where TPayload : Stream
+	{
+		public IHttpActionResult ToApiFileStreamResult(string? contentType = null, string? fileDownloadName = null)
+			=> ToApiResultCore(me, contentType, fileDownloadName, false);
+	}
+
+	// Bytes payload specializations
+	extension<TPayload>(Task<IResponse<TPayload>> me) where TPayload : IEnumerable<byte>
+	{
+		public async Task<IHttpActionResult> ToApiFileBytesResultAsync(string? contentType = null, string? fileDownloadName = null)
+			=> ToApiResultCore(await me, contentType, fileDownloadName, false);
+	}
+	extension<TPayload>(Task<Response<TPayload>> me) where TPayload : IEnumerable<byte>
+	{
+		public async Task<IHttpActionResult> ToApiFileBytesResultAsync(string? contentType = null, string? fileDownloadName = null)
+			=> ToApiResultCore(await me, contentType, fileDownloadName, false);
+	}
+	extension<TPayload>(IResponse<TPayload> me) where TPayload : IEnumerable<byte>
+	{
+		public IHttpActionResult ToApiFileBytesResult(string? contentType = null, string? fileDownloadName = null)
+			=> ToApiResultCore(me, contentType, fileDownloadName, false);
+	}
+
+	// Non-generic IResponse and Task wrappers
+	extension(Task<IResponse> me)
+	{
+		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false)
+			=> ToApiResultCore(await me, null, null, fullSerialization);
+	}
+	extension(Task<Response> me)
+	{
+		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false)
+			=> ToApiResultCore(await me, null, null, fullSerialization);
+	}
+	extension(IResponse me)
+	{
+		public IHttpActionResult ToApiResult(bool fullSerialization = false)
+			=> ToApiResultCore(me, null, null, fullSerialization);
 	}
 }
 
