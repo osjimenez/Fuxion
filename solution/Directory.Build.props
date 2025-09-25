@@ -3,6 +3,8 @@
 		<LangVersion>preview</LangVersion>
 		<Nullable>enable</Nullable>
 		<WarningsAsErrors>Nullable;CA1857</WarningsAsErrors>
+		<!-- Con esto me deja poner versiones prerelease en paquetes nuget con version estable -->
+		<NoWarn>$(NoWarn);NU5104</NoWarn>
 		<ImplicitUsings>disable</ImplicitUsings>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
