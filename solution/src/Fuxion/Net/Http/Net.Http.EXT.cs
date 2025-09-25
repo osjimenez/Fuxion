@@ -102,7 +102,10 @@ public static class Extensions
 					try
 					{
 						var jsonContent = JsonNode.Parse(strContent);
-						if (jsonContent is not null) extensions.Add((JsonContentKey, jsonContent));
+						if (jsonContent is not null)
+							extensions.Add(jsonContent.GetValueKind() == JsonValueKind.String
+								? (StringContentKey, jsonContent)
+								: (JsonContentKey, jsonContent));
 					}
 					catch
 					{
