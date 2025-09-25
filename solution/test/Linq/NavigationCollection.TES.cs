@@ -27,7 +27,7 @@ public class NavigationCollection : BaseTest<NavigationCollection>
 			"Server=host.docker.internal;Database=LinqTestEF;User Id=sa;Password=Scoring123456;MultipleActiveResultSets=true");
 		db.Database.Delete();
 		db.Database.CreateIfNotExists();
-		data = db;
+		_data = db;
 #else
 		DbContextOptionsBuilder<EntityFrameworkCoreDbContext> builder = new();
 		builder.UseSqlServer(
@@ -35,37 +35,43 @@ public class NavigationCollection : BaseTest<NavigationCollection>
 		var db = new EntityFrameworkCoreDbContext(builder.Options);
 		db.Database.EnsureDeleted();
 		db.Database.EnsureCreated();
-		data = db;
+		_data = db;
 #endif
-		foreach (var country in DataSeed.Countries) data.AddCountry(country.Value);
-		foreach (var state in DataSeed.States) data.AddState(state.Value);
-		foreach (var city in DataSeed.Cities) data.AddCity(city.Value);
-		foreach (var address in DataSeed.Addresses) data.AddAddress(address.Value);
-		foreach (var user in DataSeed.Users) data.AddUser(user.Value);
-		foreach (var invoice in DataSeed.Invoices) data.AddInvoice(invoice.Value);
+		_data.AddCountries(DataSeed.Countries.Values);
+		_data.AddStates(DataSeed.States.Values);
+		_data.AddCities(DataSeed.Cities.Values);
+		_data.AddAddresses(DataSeed.Addresses.Values);
+		_data.AddUsers(DataSeed.Users.Values);
+		_data.AddInvoices(DataSeed.Invoices.Values);
 
-		data.SaveChanges();
+		_data.SaveChanges();
 	}
 
-	private readonly IDataContext data;
+	private readonly IDataContext _data;
 
-	UserFilter filter_all_or = new UserFilter().Transform(x=>x.Invoices.All(or: [a => a.InvoiceSerie.StartsWith = "A", a => a.InvoiceCode.StartsWith = "00"]));
-	Expression<Func<UserDao, bool>> predicate_all_or = x =>
+	private readonly UserFilter _filter_all_or = new UserFilter()
+		.Transform(x => x.Invoices.All(or:
+		[
+			a => a.InvoiceSerie.StartsWith = "A",
+			a => a.InvoiceCode.StartsWith = "00"
+		]));
+
+	private readonly Expression<Func<UserDao, bool>> _predicate_all_or = x =>
 		x.Invoices != null &&
 		x.Invoices.All(ce => ce.InvoiceSerie.StartsWith("A") || ce.InvoiceCode.StartsWith("00"));
 	
 	[Fact(DisplayName = "Predicate => All - Or")]
 	public void Predicate_All_Or()
 	{
-		PrintVariable(filter_all_or.Predicate);
-		PrintVariable(predicate_all_or);
-		Assert.Equal(filter_all_or.Predicate.ToString(), predicate_all_or.ToString());
+		PrintVariable(_filter_all_or.Predicate);
+		PrintVariable(_predicate_all_or);
+		Assert.Equal(_filter_all_or.Predicate.ToString(), _predicate_all_or.ToString());
 	}
 	[Fact(DisplayName = "Database => All - Or", Explicit = true)]
 	public async Task Database_All_Or()
 	{
-		var filterCount = await data.GetUsers().Filter(filter_all_or).CountAsync(TestContext.Current.CancellationToken);
-		var linqCount = await data.GetUsers().Where(predicate_all_or).CountAsync(TestContext.Current.CancellationToken);
+		var filterCount = await _data.GetUsers().Filter(_filter_all_or).CountAsync(TestContext.Current.CancellationToken);
+		var linqCount = await _data.GetUsers().Where(_predicate_all_or).CountAsync(TestContext.Current.CancellationToken);
 		Assert.Equal(linqCount, filterCount);
 	}
 }

@@ -188,6 +188,5 @@ public static class HardwareId
 		if (list.Count == 0) return Guid.Empty;
 		foreach (var g in list) res.CombineHash(g);
 		return new(res);
-		;
 	}
 }

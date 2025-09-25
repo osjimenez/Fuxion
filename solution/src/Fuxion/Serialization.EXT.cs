@@ -62,6 +62,8 @@ public static class SerializationExtensions
 		public string SerializeToJson(JsonSerializerOptions? options)
 		{
 			options ??= new();
+			if(options.IsReadOnly)
+				options = new(options);
 			if (!options.Converters.Any(c => c.GetType().IsSubclassOf(typeof(ExceptionConverter))))
 				options.Converters.Add(new ExceptionConverter());
 			return JsonSerializer.Serialize(me, options);

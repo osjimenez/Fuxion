@@ -5,30 +5,7 @@ using Fuxion.Linq.Test.Data.Daos;
 
 namespace Fuxion.Linq.Test.Data;
 
-public interface IDataContext
-{
-	IQueryable<CountryDao> GetCountries();
-	void AddCountry(CountryDao country);
-	
-	IQueryable<StateDao> GetStates();
-	void AddState(StateDao state);
-	
-	IQueryable<CityDao> GetCities();
-	void AddCity(CityDao city);
-	
-	IQueryable<AddressDao> GetAddresses();
-	void AddAddress(AddressDao address);
-	
-	IQueryable<UserDao> GetUsers();
-	void AddUser(UserDao user);
-
-	IQueryable<InvoiceDao> GetInvoices();
-	void AddInvoice(InvoiceDao invoice);
-
-	void SaveChanges();
-}
-
-public class DataSeed
+public static class DataSeed
 {
 	static DataSeed()
 	{
@@ -102,52 +79,52 @@ public class DataSeed
 			}
 		};
 		Cities = new Dictionary<string, CityDao>
+		{
 			{
+				"MAD", new()
 				{
-					"MAD", new()
-					{
-						CityId = Guid.Parse("{B63C8873-750E-4D3F-9A8D-471C3E622510}"),
-						Name = "Madrid",
-						Code = "MAD",
-						UpdatedAtUtc = startSeedDate,
-						StateId = States["MAD"].StateId,
-						State = States["MAD"]
-					}
-				},
-				{
-					"BCN", new()
-					{
-						CityId = Guid.Parse("{8D61B925-8185-421E-8D71-A52821964F52}"),
-						Name = "Barcelona",
-						Code = "BCN",
-						UpdatedAtUtc = startSeedDate,
-						StateId = States["BCN"].StateId,
-						State = States["BCN"]
-					}
-				},
-				{
-					"LAX", new()
-					{
-						CityId = Guid.Parse("{03C28E1B-A5D6-4912-A623-C169C272454C}"),
-						Name = "Los Angeles",
-						Code = "LAX",
-						UpdatedAtUtc = startSeedDate,
-						StateId = States["CA"].StateId,
-						State = States["CA"]
-					}
-				},
-				{
-					"NYC", new()
-					{
-						CityId = Guid.Parse("{A9666F2E-9694-45F1-B40E-798E33977903}"),
-						Name = "New York",
-						Code = "NYC",
-						UpdatedAtUtc = startSeedDate,
-						StateId = States["NY"].StateId,
-						State = States["NY"]
-					}
+					CityId = Guid.Parse("{B63C8873-750E-4D3F-9A8D-471C3E622510}"),
+					Name = "Madrid",
+					Code = "MAD",
+					UpdatedAtUtc = startSeedDate,
+					StateId = States["MAD"].StateId,
+					State = States["MAD"]
 				}
-			};
+			},
+			{
+				"BCN", new()
+				{
+					CityId = Guid.Parse("{8D61B925-8185-421E-8D71-A52821964F52}"),
+					Name = "Barcelona",
+					Code = "BCN",
+					UpdatedAtUtc = startSeedDate,
+					StateId = States["BCN"].StateId,
+					State = States["BCN"]
+				}
+			},
+			{
+				"LAX", new()
+				{
+					CityId = Guid.Parse("{03C28E1B-A5D6-4912-A623-C169C272454C}"),
+					Name = "Los Angeles",
+					Code = "LAX",
+					UpdatedAtUtc = startSeedDate,
+					StateId = States["CA"].StateId,
+					State = States["CA"]
+				}
+			},
+			{
+				"NYC", new()
+				{
+					CityId = Guid.Parse("{A9666F2E-9694-45F1-B40E-798E33977903}"),
+					Name = "New York",
+					Code = "NYC",
+					UpdatedAtUtc = startSeedDate,
+					StateId = States["NY"].StateId,
+					State = States["NY"]
+				}
+			}
+		};
 		Addresses = new Dictionary<string, AddressDao>
 		{
 			{
