@@ -131,7 +131,8 @@ public static class Extensions
 
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
-		return Response.ErrorMessage(problem?.Detail ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions);
+		return Response
+			.ErrorMessage(problem?.Detail ?? extensions.FirstOrDefault(e => e.Item1 == StringContentKey).Item2?.ToString() ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions);
 	}
 
 	static async Task<Response<TPayload>> AsResponseFromMessageAsync<TPayload>(HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
@@ -153,7 +154,7 @@ public static class Extensions
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
 		return Response
-			.ErrorMessage(problem?.Detail ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions)
+			.ErrorMessage(problem?.Detail ?? extensions.FirstOrDefault(e=>e.Item1==StringContentKey).Item2?.ToString() ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions)
 			.AsPayload<TPayload>();
 	}
 
