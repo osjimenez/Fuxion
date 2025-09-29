@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE instance-profile
+        SYSTEM "https://resources.jetbrains.com/writerside/1.0/product-profile.dtd">
+
+<instance-profile id="f"
+                 name="Fuxion"
+                 start-page="starter-topic.md">
+
+    <toc-element topic="starter-topic.md"/>
+    <toc-element topic="Pods.md"/>
+    <toc-element topic="Tools.md"/>
+    <toc-element topic="Reponse.md"/>
+    <toc-element topic="Linq-Filters.md"/>
+</instance-profile>

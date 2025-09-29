@@ -11,7 +11,7 @@ public class MemoryCachedAsyncKeyValueRepository<TKey, TValue> : IAsyncKeyValueR
 	readonly Locker<Dictionary<TKey, MemoryKeyValueRepositoryValue<TValue>>> dic = new(new());
 	public Task<bool> ExistAsync(TKey key) =>
 		dic.WriteAsync(async d => {
-			if (d.ContainsKey(key)) return d[key].HasOrigin;
+			if (d.TryGetValue(key, out var value)) return value.HasOrigin;
 			MemoryKeyValueRepositoryValue<TValue> res = default!;
 			try
 			{

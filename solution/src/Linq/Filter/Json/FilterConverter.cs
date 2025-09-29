@@ -1,4 +1,5 @@
 ﻿// Re-implement converter to support new Any/All (And/Or) for scalar and navigation collections, keep existing scalar ops and nested filters, and allow primitive literal to map to Equal.
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,8 +7,10 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Fuxion;
+using Fuxion.Linq.Filter.Operations;
 
-namespace Fuxion.Linq;
+namespace Fuxion.Linq.Filter.Json;
 
 public class FilterConverterFactory : JsonConverterFactory
 {
@@ -68,7 +71,7 @@ public class FilterConverter<TFilter> : JsonConverter<TFilter> where TFilter : c
 				continue;
 			}
 			// Scalar operations node
-			if (typeof(IFilterOperationsNode).IsAssignableFrom(propType))
+			if (typeof(IFilterOperation).IsAssignableFrom(propType))
 			{
 				var instance = propVal ?? Activator.CreateInstance(propType)!;
 				if (reader.TokenType == JsonTokenType.StartObject)
@@ -118,7 +121,8 @@ public class FilterConverter<TFilter> : JsonConverter<TFilter> where TFilter : c
 			{
 				var blk = Activator.CreateInstance(elementOpsType)!;
 				ApplyOperationsObject(item, blk);
-				var hasAny = (bool)blk.GetType().GetMethod("HasAny", BindingFlags.Public | BindingFlags.Instance)!.Invoke(blk, null)!;
+				var prop = blk.GetType().GetProperty("HasSomeOperationsDefined", BindingFlags.Public | BindingFlags.Instance);
+				var hasAny = prop != null && (bool)(prop.GetValue(blk) ?? false);
 				if (hasAny) list.Add(blk);
 			}
 		}
@@ -192,7 +196,7 @@ public class FilterConverter<TFilter> : JsonConverter<TFilter> where TFilter : c
 				ConfigureNavigationCollection(val, propVal!, options ?? new());
 				continue;
 			}
-			if (typeof(IFilterOperationsNode).IsAssignableFrom(propType))
+			if (typeof(IFilterOperation).IsAssignableFrom(propType))
 			{
 				if (val.ValueKind == JsonValueKind.Object)
 					ApplyOperationsObject(val, propVal!);
@@ -332,7 +336,7 @@ public class FilterConverter<TFilter> : JsonConverter<TFilter> where TFilter : c
 				WriteNavigationCollection(writer, val, options);
 				continue;
 			}
-			if (val is IFilterOperationsNode node && node.HasAny())
+			if (val is IFilterOperation node && node.IsDefined)
 			{
 				writer.WritePropertyName(prop.Name);
 				WriteOperations(writer, node);
@@ -431,7 +435,7 @@ public class FilterConverter<TFilter> : JsonConverter<TFilter> where TFilter : c
 		foreach (var p in props)
 		{
 			var v = p.GetValue(filter);
-			if (v is IFilterOperationsNode n && n.HasAny()) return true;
+			if (v is IFilterOperation n && n.IsDefined) return true;
 			if (v is IFilter f && FilterHasAny(f)) return true;
 			var t = p.PropertyType;
 			if (t.IsGenericType)

@@ -33,17 +33,11 @@ public class TreeSynchronizer<TItem, TKey> where TKey : struct
 	}
 }
 
-public class TreeSynchronizerEntry<TItem, TKey> where TKey : struct
+public class TreeSynchronizerEntry<TItem, TKey>(TItem item, TKey key, TKey? parentKey, TKey[] childrenKeys)
+	where TKey : struct
 {
-	public TreeSynchronizerEntry(TItem item, TKey key, TKey? parentKey, TKey[] childrenKeys)
-	{
-		Item = item;
-		Key = key;
-		ParentKey = parentKey;
-		ChildrenKeys = childrenKeys;
-	}
-	public TItem Item { get; }
-	public TKey Key { get; }
-	public TKey? ParentKey { get; }
-	public TKey[] ChildrenKeys { get; }
+	public TItem Item { get; } = item;
+	public TKey Key { get; } = key;
+	public TKey? ParentKey { get; } = parentKey;
+	public TKey[] ChildrenKeys { get; } = childrenKeys;
 }

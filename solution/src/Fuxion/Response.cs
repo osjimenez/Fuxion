@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 namespace Fuxion;
 
 [DebuggerDisplay("{IsSuccess} - {Message}")]
-public class Response(bool isSuccess, string? message = null, object? type = null, Exception? exception = null) : IResponse
+public class Response(bool isSuccess, string? message = null, object? errorType = null, Exception? exception = null) : IResponse
 {
 	public bool IsSuccess { get; protected init; } = isSuccess;
 	[JsonIgnore]
@@ -16,7 +16,7 @@ public class Response(bool isSuccess, string? message = null, object? type = nul
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public string? Message { get; init; } = message;
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-	public object? ErrorType { get; init; } = type;
+	public object? ErrorType { get; init; } = errorType;
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 	[JsonConverter(typeof(ExceptionConverter))]
 	public Exception? Exception { get; init; } = exception;

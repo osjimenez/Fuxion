@@ -7,6 +7,7 @@ using Fuxion.Linq.Test.Filters;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using Xunit.Sdk;
 
 #if STANDARD_OR_OLD_FRAMEWORKS
 using Fuxion.Linq.Test.EntityFramework;
@@ -45,8 +46,9 @@ public class NavigationCollection : BaseTest<NavigationCollection>
 		_data.AddInvoices(DataSeed.Invoices.Values);
 
 		_data.SaveChanges();
+		var uf = new UserFilter();
 	}
-
+	const bool ExecuteDatabaseTests = true;
 	private readonly IDataContext _data;
 
 	private readonly UserFilter _filter_all_or = new UserFilter()
@@ -57,8 +59,8 @@ public class NavigationCollection : BaseTest<NavigationCollection>
 		]));
 
 	private readonly Expression<Func<UserDao, bool>> _predicate_all_or = x =>
-		x.Invoices != null &&
-		x.Invoices.All(ce => ce.InvoiceSerie.StartsWith("A") || ce.InvoiceCode.StartsWith("00"));
+		//x.Invoices != null &&
+		x.Invoices!.All(ce => ce.InvoiceSerie.StartsWith("A") || ce.InvoiceCode.StartsWith("00"));
 	
 	[Fact(DisplayName = "Predicate => All - Or")]
 	public void Predicate_All_Or()
@@ -67,11 +69,23 @@ public class NavigationCollection : BaseTest<NavigationCollection>
 		PrintVariable(_predicate_all_or);
 		Assert.Equal(_filter_all_or.Predicate.ToString(), _predicate_all_or.ToString());
 	}
-	[Fact(DisplayName = "Database => All - Or", Explicit = true)]
+	[Fact(DisplayName = "Json => All - Or")]
+	public void Json_All_Or()
+	{
+		var json = _filter_all_or.SerializeToJson(true);
+		PrintVariable(_filter_all_or.Predicate);
+		PrintVariable(json);
+		var filter = json.DeserializeFromJson<UserFilter>();
+		Assert.NotNull(filter);
+		Assert.Equal(filter.Predicate.ToString(), _predicate_all_or.ToString());
+	}
+	[Fact(DisplayName = "Database => All - Or", Explicit = !ExecuteDatabaseTests)]
 	public async Task Database_All_Or()
 	{
-		var filterCount = await _data.GetUsers().Filter(_filter_all_or).CountAsync(TestContext.Current.CancellationToken);
 		var linqCount = await _data.GetUsers().Where(_predicate_all_or).CountAsync(TestContext.Current.CancellationToken);
+		var filterCount = await _data.GetUsers().Filter(_filter_all_or).CountAsync(TestContext.Current.CancellationToken);
+		PrintVariable(linqCount);
+		PrintVariable(filterCount);
 		Assert.Equal(linqCount, filterCount);
 	}
 }

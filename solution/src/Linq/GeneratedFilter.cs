@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Fuxion.Linq.Filter.Operations;
 
 namespace Fuxion.Linq;
 
@@ -23,7 +24,9 @@ public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 	private static readonly MethodInfo _startsWith = typeof(string).GetMethod(nameof(string.StartsWith), new[] { typeof(string) })!;
 	private static readonly MethodInfo _endsWith = typeof(string).GetMethod(nameof(string.EndsWith), new[] { typeof(string) })!;
 
+	// Must be protected to be used in code-generated
 	protected static ParameterExpression Parameter<T>(string name) => Expression.Parameter(typeof(T), name);
+	// Must be protected to be used in code-generated
 	protected static Expression Access(Expression instance, string name) => Expression.Property(instance, name);
 
 	protected internal static Expression And(Expression left, Expression right)
@@ -53,17 +56,17 @@ public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 	/// <summary>
 	/// Aplica operaciones de un nodo de filtro sobre una propiedad escalar (nombre de propiedad) devolviendo la expresión resultante.
 	/// </summary>
-	protected static Expression ApplyProperty<T>(IFilterOperations<T> ops, ParameterExpression root, string propertyName)
+	protected static Expression ApplyProperty<T>(IFilterOperation<T> ops, ParameterExpression root, string propertyName)
 		=> ApplyProperty((FilterOperations<T>)ops, Access(root, propertyName));
 	/// <summary>
 	/// Aplica operaciones de un nodo sobre una expresión (propiedad o computada) ya construida.
 	/// </summary>
-	protected static Expression ApplyProperty<T>(IFilterOperations<T> ops, Expression selector)
+	protected static Expression ApplyProperty<T>(IFilterOperation<T> ops, Expression selector)
 		=> BuildOperations((FilterOperations<T>)ops, selector);
 	/// <summary>
 	/// Aplica operaciones de un nodo de filtro sobre una expresión computada definida por un lambda relativo al root.
 	/// </summary>
-	protected static Expression ApplyComputed<T>(IFilterOperations<T> ops, Expression<Func<TEntity, T>> selector, ParameterExpression root)
+	protected static Expression ApplyComputed<T>(IFilterOperation<T> ops, Expression<Func<TEntity, T>> selector, ParameterExpression root)
 		=> ApplyProperty(ops, Computed(selector, root));
 
 	/// <summary>
@@ -71,75 +74,75 @@ public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 	/// </summary>
 	protected static Expression ApplyScalarCollection<TElement>(Expression collectionAccess, IReadOnlyList<FilterOperations<TElement>> anyAnd, IReadOnlyList<FilterOperations<TElement>> anyOr, IReadOnlyList<FilterOperations<TElement>> all)
 	{
-		var nullCheck = Expression.NotEqual(collectionAccess, Expression.Constant(null));
+		// EF6 no soporta comparar colecciones con null; evitamos null-checks en colecciones
 		Expression result = TrueConstant;
 		foreach (var blk in anyAnd)
 		{
-			if (!blk.HasAny()) continue;
+			if (!blk.HasSomeOperationsDefined) continue;
 			var p = Parameter<TElement>("ean");
 			var inner = BuildOperations(blk, p);
 			var anyCall = Expression.Call(AnyMethod.MakeGenericMethod(typeof(TElement)), collectionAccess, Expression.Lambda(inner, p));
-			result = And(result, And(nullCheck, anyCall));
+			result = And(result, anyCall);
 		}
 		Expression? orAccum = null;
 		foreach (var blk in anyOr)
 		{
-			if (!blk.HasAny()) continue;
+			if (!blk.HasSomeOperationsDefined) continue;
 			var p = Parameter<TElement>("eor");
 			var inner = BuildOperations(blk, p);
 			var anyCall = Expression.Call(AnyMethod.MakeGenericMethod(typeof(TElement)), collectionAccess, Expression.Lambda(inner, p));
 			orAccum = orAccum == null ? anyCall : Or(orAccum, anyCall);
 		}
-		if (orAccum != null) result = And(result, And(nullCheck, orAccum));
+		if (orAccum != null) result = And(result, orAccum);
 		foreach (var blk in all)
 		{
-			if (!blk.HasAny()) continue;
+			if (!blk.HasSomeOperationsDefined) continue;
 			var p = Parameter<TElement>("all");
 			var inner = BuildOperations(blk, p);
 			var allCall = Expression.Call(AllMethod.MakeGenericMethod(typeof(TElement)), collectionAccess, Expression.Lambda(inner, p));
-			result = And(result, And(nullCheck, allCall));
+			result = And(result, allCall);
 		}
 		return result;
 	}
 	protected static Expression ApplyScalarCollection<TElement>(Expression collectionAccess, ScalarCollectionFilterOperations<TElement> ops)
 	{
-		var nullCheck = Expression.NotEqual(collectionAccess, Expression.Constant(null));
+		// EF6 no soporta comparar colecciones con null; evitamos null-checks en colecciones
 		Expression result = TrueConstant;
 
 		// Any AND groups
 		foreach (var blk in ops.AnyAndBlocks)
 		{
-			if (!blk.HasAny()) continue;
+			if (!blk.HasSomeOperationsDefined) continue;
 			var pAnyAnd = Parameter<TElement>("ean");
 			var inner = BuildOperations(blk, pAnyAnd);
 			var anyCall = Expression.Call(AnyMethod.MakeGenericMethod(typeof(TElement)), collectionAccess, Expression.Lambda(inner, pAnyAnd));
-			result = And(result, And(nullCheck, anyCall));
+			result = And(result, anyCall);
 		}
 		// Any OR groups (accumulate OR of Any(...))
 		Expression? anyOrAccum = null;
 		foreach (var blk in ops.AnyOrBlocks)
 		{
-			if (!blk.HasAny()) continue;
+			if (!blk.HasSomeOperationsDefined) continue;
 			var pAnyOr = Parameter<TElement>("eor");
 			var inner = BuildOperations(blk, pAnyOr);
 			var anyCall = Expression.Call(AnyMethod.MakeGenericMethod(typeof(TElement)), collectionAccess, Expression.Lambda(inner, pAnyOr));
 			anyOrAccum = anyOrAccum == null ? anyCall : Or(anyOrAccum, anyCall);
 		}
-		if (anyOrAccum != null) result = And(result, And(nullCheck, anyOrAccum));
+		if (anyOrAccum != null) result = And(result, anyOrAccum);
 
 		// All: construct single predicate with a unified parameter
 		var pAll = Parameter<TElement>("eall");
 		Expression? allAndAccum = null;
 		foreach (var blk in ops.AllAndBlocks)
 		{
-			if (!blk.HasAny()) continue;
+			if (!blk.HasSomeOperationsDefined) continue;
 			var inner = BuildOperations(blk, pAll);
 			allAndAccum = allAndAccum == null ? inner : And(allAndAccum, inner);
 		}
 		Expression? allOrAccum = null;
 		foreach (var blk in ops.AllOrBlocks)
 		{
-			if (!blk.HasAny()) continue;
+			if (!blk.HasSomeOperationsDefined) continue;
 			var inner = BuildOperations(blk, pAll);
 			allOrAccum = allOrAccum == null ? inner : Or(allOrAccum, inner);
 		}
@@ -150,7 +153,7 @@ public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 		if (allPredicate != null)
 		{
 			var allCall = Expression.Call(AllMethod.MakeGenericMethod(typeof(TElement)), collectionAccess, Expression.Lambda(allPredicate, pAll));
-			result = And(result, And(nullCheck, allCall));
+			result = And(result, allCall);
 		}
 
 		return result;
@@ -158,7 +161,7 @@ public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 
 	protected static Expression BuildOperations<T>(FilterOperations<T> ops, Expression selector)
 	{
-		if (!ops.HasAny()) return TrueConstant;
+		if (!ops.HasSomeOperationsDefined) return TrueConstant;
 		Expression body = TrueConstant;
 		var selType = selector.Type;
 		var underlying = Nullable.GetUnderlyingType(selType);
@@ -260,35 +263,35 @@ public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 	protected static Expression ApplyNavigationCollection<TChildFilter, TChildEntity>(Expression collectionAccess, NavigationCollectionFilterOperations<TChildFilter, TChildEntity> ops)
 		where TChildFilter : GeneratedFilter<TChildEntity>, new()
 	{
-		var nullCheck = Expression.NotEqual(collectionAccess, Expression.Constant(null));
+		// EF6 no soporta comparar colecciones con null; evitamos null-checks en colecciones
 		Expression result = TrueConstant;
 		// Any AND
 		foreach (var blk in ops.AnyAndBlocks)
 		{
-			if (!blk.HasAny()) continue;
+			if (!blk.IsDefined) continue;
 			var anyCall = Expression.Call(AnyMethod.MakeGenericMethod(typeof(TChildEntity)), collectionAccess, blk.Predicate);
-			result = And(result, And(nullCheck, anyCall));
+			result = And(result, anyCall);
 		}
 		// Any OR
 		Expression? anyOrAccum = null;
 		foreach (var blk in ops.AnyOrBlocks)
 		{
-			if (!blk.HasAny()) continue;
+			if (!blk.IsDefined) continue;
 			var anyCall = Expression.Call(AnyMethod.MakeGenericMethod(typeof(TChildEntity)), collectionAccess, blk.Predicate);
 			anyOrAccum = anyOrAccum == null ? anyCall : Or(anyOrAccum, anyCall);
 		}
-		if (anyOrAccum != null) result = And(result, And(nullCheck, anyOrAccum));
+		if (anyOrAccum != null) result = And(result, anyOrAccum);
 		// All: P(e) = AND(AllAnd) AND OR(AllOr)
 		Expression? allAndAccum = null;
 		foreach (var blk in ops.AllAndBlocks)
 		{
-			if (!blk.HasAny()) continue;
+			if (!blk.IsDefined) continue;
 			allAndAccum = allAndAccum == null ? blk.Predicate.Body : And(allAndAccum, blk.Predicate.Body);
 		}
 		Expression? allOrAccum = null;
 		foreach (var blk in ops.AllOrBlocks)
 		{
-			if (!blk.HasAny()) continue;
+			if (!blk.IsDefined) continue;
 			allOrAccum = allOrAccum == null ? blk.Predicate.Body : Or(allOrAccum, blk.Predicate.Body);
 		}
 		Expression? allPredicate = null;
@@ -305,18 +308,20 @@ public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 				return repl.Visit(lam.Body)!;
 			}
 			Expression? andBody = null;
-			foreach (var blk in ops.AllAndBlocks) if (blk.HasAny()) andBody = andBody == null ? Rebind(blk.Predicate) : And(andBody, Rebind(blk.Predicate));
+			foreach (var blk in ops.AllAndBlocks) if (blk.IsDefined) andBody = andBody == null ? Rebind(blk.Predicate) : And(andBody, Rebind(blk.Predicate));
 			Expression? orBody = null;
-			foreach (var blk in ops.AllOrBlocks) if (blk.HasAny()) orBody = orBody == null ? Rebind(blk.Predicate) : Or(orBody, Rebind(blk.Predicate));
+			foreach (var blk in ops.AllOrBlocks) if (blk.IsDefined) orBody = orBody == null ? Rebind(blk.Predicate) : Or(orBody, Rebind(blk.Predicate));
 			Expression? final = null;
 			if (andBody != null && orBody != null) final = And(andBody, orBody);
 			else final = andBody ?? orBody;
 			var allCall = Expression.Call(AllMethod.MakeGenericMethod(typeof(TChildEntity)), collectionAccess, Expression.Lambda(final!, p));
-			result = And(result, And(nullCheck, allCall));
+			result = And(result, allCall);
 		}
 		return result;
 	}
 
+	//protected abstract bool HasSomeOperationsDefined { get; }// => ((IFilterOperationsNode)this).HasSomeOperationsDefined;
+	//bool IFilterOperationsNode.HasSomeOperationsDefined { get; }
 	private sealed class ReplaceParameterVisitor(ParameterExpression from, Expression to) : ExpressionVisitor
 	{
 		protected override Expression VisitParameter(ParameterExpression node) => node == from ? to : base.VisitParameter(node);

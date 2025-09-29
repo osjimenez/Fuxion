@@ -1,3 +1,5 @@
 ﻿namespace Fuxion.Linq;
 
-public interface IFilter { }
+public interface IFilter
+{
+}

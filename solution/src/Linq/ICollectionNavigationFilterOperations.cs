@@ -1,7 +1,9 @@
+using Fuxion.Linq.Filter.Operations;
+
 namespace Fuxion.Linq;
 
 // Operaciones sobre colecciones de navegación (IEnumerable<TChildEntity>) cuyos elementos tienen filtro TChildFilter.
-public interface ICollectionNavigationFilterOperations<TChildFilter> : IFilterOperations<TChildFilter> where TChildFilter : IFilter
+public interface ICollectionNavigationFilterOperations<TChildFilter> : IFilterOperation<TChildFilter> where TChildFilter : IFilter
 {
 	void Any(params System.Action<TChildFilter>[] and);
 	void Any(System.Collections.Generic.IEnumerable<System.Action<TChildFilter>>? and = null,

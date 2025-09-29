@@ -33,3 +33,7 @@ public interface IResponse<out TPayload> : IResponse
 #endif
 	TPayload? Payload { get; }
 }
+
+public interface IErrorContract;
+
+public interface IErrorContractConsole;

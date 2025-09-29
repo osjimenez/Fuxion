@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Fuxion.Linq.Filter.Operations;
 
 namespace Fuxion.Linq;
 
@@ -19,14 +20,14 @@ public class NavigationCollectionFilterOperations<TChildFilter, TChildEntity> : 
 			{
 				var f = new TChildFilter();
 				cfg(f);
-				if (f.HasAny()) AnyAndBlocks.Add(f);
+				if (f.IsDefined) AnyAndBlocks.Add(f);
 			}
 		if (or != null)
 			foreach (var cfg in or)
 			{
 				var f = new TChildFilter();
 				cfg(f);
-				if (f.HasAny()) AnyOrBlocks.Add(f);
+				if (f.IsDefined) AnyOrBlocks.Add(f);
 			}
 	}
 
@@ -38,16 +39,16 @@ public class NavigationCollectionFilterOperations<TChildFilter, TChildEntity> : 
 			{
 				var f = new TChildFilter();
 				cfg(f);
-				if (f.HasAny()) AllAndBlocks.Add(f);
+				if (f.IsDefined) AllAndBlocks.Add(f);
 			}
 		if (or != null)
 			foreach (var cfg in or)
 			{
 				var f = new TChildFilter();
 				cfg(f);
-				if (f.HasAny()) AllOrBlocks.Add(f);
+				if (f.IsDefined) AllOrBlocks.Add(f);
 			}
 	}
 
-	public bool HasAny() => AnyAndBlocks.Count>0 || AnyOrBlocks.Count>0 || AllAndBlocks.Count>0 || AllOrBlocks.Count>0;
+	bool IFilterOperation.IsDefined => AnyAndBlocks.Count > 0 || AnyOrBlocks.Count > 0 || AllAndBlocks.Count > 0 || AllOrBlocks.Count > 0;
 }

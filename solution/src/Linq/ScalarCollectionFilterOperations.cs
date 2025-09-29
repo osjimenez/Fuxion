@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Fuxion.Linq.Filter.Operations;
 
 namespace Fuxion.Linq;
 
@@ -22,14 +23,14 @@ public class ScalarCollectionFilterOperations<TElement> : ICollectionScalarFilte
 			{
 				var blk = new ElementOperations();
 				cfg(blk);
-				if (blk.HasAny()) AnyAndBlocks.Add(blk);
+				if (blk.HasSomeOperationsDefined) AnyAndBlocks.Add(blk);
 			}
 		if (or != null)
 			foreach (var cfg in or)
 			{
 				var blk = new ElementOperations();
 				cfg(blk);
-				if (blk.HasAny()) AnyOrBlocks.Add(blk);
+				if (blk.HasSomeOperationsDefined) AnyOrBlocks.Add(blk);
 			}
 	}
 
@@ -42,18 +43,19 @@ public class ScalarCollectionFilterOperations<TElement> : ICollectionScalarFilte
 			{
 				var blk = new ElementOperations();
 				cfg(blk);
-				if (blk.HasAny()) AllAndBlocks.Add(blk);
+				if (blk.HasSomeOperationsDefined) AllAndBlocks.Add(blk);
 			}
 		if (or != null)
 			foreach (var cfg in or)
 			{
 				var blk = new ElementOperations();
 				cfg(blk);
-				if (blk.HasAny()) AllOrBlocks.Add(blk);
+				if (blk.HasSomeOperationsDefined) AllOrBlocks.Add(blk);
 			}
 	}
 
-	public bool HasAny() => AnyAndBlocks.Count > 0 || AnyOrBlocks.Count > 0 || AllAndBlocks.Count > 0 || AllOrBlocks.Count > 0;
+	// New property required by IFilterOperationsNode via ICollectionScalarFilterOperations<TElement>
+	bool IFilterOperation.IsDefined => AnyAndBlocks.Count > 0 || AnyOrBlocks.Count > 0 || AllAndBlocks.Count > 0 || AllOrBlocks.Count > 0;
 
 	public sealed class ElementOperations : FilterOperations<TElement> { }
 }

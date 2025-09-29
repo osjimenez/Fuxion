@@ -1,6 +1,6 @@
 ﻿namespace Fuxion.Repositories;
 
-public interface IKeyValueRepository<TKey, TValue>
+public interface IKeyValueRepository<in TKey, TValue>
 {
 	bool Exist(TKey key);
 	TValue? Find(TKey key);

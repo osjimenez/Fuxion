@@ -1,15 +1,16 @@
 ﻿using System.Collections.Generic;
+using Fuxion.Linq.Filter.Operations;
 
 namespace Fuxion.Linq;
 
 public abstract class FilterOperations<T> :
-	IFilterOperations<T>,
+	IFilterOperation<T>,
 	IEqualityFilterOperations<T>,
-	ISetFilterOperations<T>,
+	IInFilterOperation<T>,
 	IRelationalFilterOperations<T>,
 	INullabilityFilterOperations,
 	ITextFilterOperations<T>,
-	IEnumFlagFilterOperations<T>
+	IHasFlagFilterOperation<T>
 {
 	// Backing fields
 	private IReadOnlyCollection<T>? _in;
@@ -213,10 +214,11 @@ public abstract class FilterOperations<T> :
 	public bool CaseInsensitiveSpecified { get; private set; }
 	public bool HasFlagSpecified { get; private set; }
 
-	public virtual bool HasAny()
-		=> EqualSpecified || NotEqualSpecified || (InSpecified && _in is { Count: > 0 }) ||
-		   GreaterThanSpecified || GreaterOrEqualSpecified || LessThanSpecified || LessOrEqualSpecified ||
-		   BetweenFromSpecified || BetweenToSpecified ||
-		   IsNullSpecified || IsNotNullSpecified || ContainsSpecified || StartsWithSpecified || EndsWithSpecified ||
-		   EmptySpecified || NotEmptySpecified || CaseInsensitiveSpecified || HasFlagSpecified;
+	internal bool HasSomeOperationsDefined => ((IFilterOperation)this).IsDefined;
+	bool IFilterOperation.IsDefined =>
+		EqualSpecified || NotEqualSpecified || (InSpecified && _in is { Count: > 0 }) ||
+			GreaterThanSpecified || GreaterOrEqualSpecified || LessThanSpecified || LessOrEqualSpecified ||
+			BetweenFromSpecified || BetweenToSpecified ||
+			IsNullSpecified || IsNotNullSpecified || ContainsSpecified || StartsWithSpecified || EndsWithSpecified ||
+			EmptySpecified || NotEmptySpecified || CaseInsensitiveSpecified || HasFlagSpecified;
 }

@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Linq.Expressions;
 using System.Text.Json.Serialization;
+using Fuxion.Linq.Filter.Json;
+using Fuxion.Linq.Filter.Operations;
 
 namespace Fuxion.Linq;
 
 [JsonConverter(typeof(FilterConverterFactory))]
-public abstract class Filter<TEntity> : IFilter
+public abstract class Filter<TEntity> : IFilter, IFilterOperation
 {
 	public abstract Expression<Func<TEntity, bool>> Predicate { get; }
 	// Indica si el filtro contiene algún criterio activo (se sobrescribe en los generados)
-	public abstract bool HasAny();
+	protected internal abstract bool IsDefined { get; }
+	bool IFilterOperation.IsDefined => IsDefined;
 }
