@@ -10,6 +10,7 @@ using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Fuxion.Linq.CodeGenerator;
 
@@ -38,7 +39,8 @@ public sealed class FilterSourceGenerator : IIncrementalGenerator
 			.Select((c, _) => c!);
 		context.RegisterSourceOutput(candidates, (spc, cand) => Generate(spc, cand));
 	}
-	private static bool IsPotentialClass(SyntaxNode node, CancellationToken _) => node is ClassDeclarationSyntax cds && cds.AttributeLists.Count > 0 && cds.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
+	private static bool IsPotentialClass(SyntaxNode node, CancellationToken _)
+		=> node is ClassDeclarationSyntax cds && cds.AttributeLists.Count > 0 && cds.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
 	#endregion
 
 	#region Transform helpers
@@ -173,7 +175,8 @@ public sealed class FilterSourceGenerator : IIncrementalGenerator
 				var rt = (model.GetTypeInfo(bodyExpr, ct).Type ?? model.GetTypeInfo(bodyExpr, ct).ConvertedType) ??
 					(model.GetTypeInfo(lam, ct).ConvertedType as INamedTypeSymbol)?.DelegateInvokeMethod?.ReturnType;
 				if (rt == null) continue;
-				bool isNullable = false; ITypeSymbol eff = rt;
+				bool isNullable = false;
+				ITypeSymbol eff = rt;
 				if (rt is INamedTypeSymbol nts && nts.IsGenericType && nts.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T) { isNullable = true; eff = nts.TypeArguments[0]; }
 				bool isStr = eff.SpecialType == SpecialType.System_String;
 				bool isEnum = eff.TypeKind == TypeKind.Enum;

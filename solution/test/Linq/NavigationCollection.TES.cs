@@ -8,6 +8,8 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using Xunit.Sdk;
+using System.Data.SqlClient;
+
 
 #if STANDARD_OR_OLD_FRAMEWORKS
 using Fuxion.Linq.Test.EntityFramework;
@@ -19,37 +21,87 @@ using Microsoft.EntityFrameworkCore.SqlServer;
 #endif
 namespace Fuxion.Linq.Test;
 
-public class NavigationCollection : BaseTest<NavigationCollection>
+public class DatabaseFixture : IDisposable
 {
-	public NavigationCollection(ITestOutputHelper output) : base(output)
+	public DatabaseFixture()
 	{
 #if STANDARD_OR_OLD_FRAMEWORKS
-		var db = new EntityFrameworkDbContext(
+		db = new EntityFrameworkDbContext(
 			"Server=host.docker.internal;Database=LinqTestEF;User Id=sa;Password=Scoring123456;MultipleActiveResultSets=true");
 		db.Database.Delete();
 		db.Database.CreateIfNotExists();
-		_data = db;
+		Data = db;
 #else
 		DbContextOptionsBuilder<EntityFrameworkCoreDbContext> builder = new();
 		builder.UseSqlServer(
 			"Server=host.docker.internal;Database=LinqTestEFC;Trust Server Certificate=true;User Id=sa;Password=Scoring123456;MultipleActiveResultSets=true");
-		var db = new EntityFrameworkCoreDbContext(builder.Options);
+		db = new EntityFrameworkCoreDbContext(builder.Options);
 		db.Database.EnsureDeleted();
 		db.Database.EnsureCreated();
-		_data = db;
+		Data = db;
 #endif
-		_data.AddCountries(DataSeed.Countries.Values);
-		_data.AddStates(DataSeed.States.Values);
-		_data.AddCities(DataSeed.Cities.Values);
-		_data.AddAddresses(DataSeed.Addresses.Values);
-		_data.AddUsers(DataSeed.Users.Values);
-		_data.AddInvoices(DataSeed.Invoices.Values);
+		Data.AddCountries(DataSeed.Countries.Values);
+		Data.AddStates(DataSeed.States.Values);
+		Data.AddCities(DataSeed.Cities.Values);
+		Data.AddAddresses(DataSeed.Addresses.Values);
+		Data.AddUsers(DataSeed.Users.Values);
+		Data.AddInvoices(DataSeed.Invoices.Values);
 
-		_data.SaveChanges();
-		var uf = new UserFilter();
+		Data.SaveChanges();
 	}
+
+	internal IDataContext Data { get; }
+#if STANDARD_OR_OLD_FRAMEWORKS
+	private EntityFrameworkDbContext db;
+#else
+	private EntityFrameworkCoreDbContext db;
+#endif
+	public void Dispose()
+	{
+#if STANDARD_OR_OLD_FRAMEWORKS
+		db.Dispose();
+#else
+		 	db.Dispose();
+#endif
+	}
+}
+
+[CollectionDefinition("Database collection")]
+public class DatabaseCollection : ICollectionFixture<DatabaseFixture>;
+
+[Collection("Database collection")]
+public class NavigationCollection(ITestOutputHelper output, DatabaseFixture database) : BaseTest<NavigationCollection>(output)
+{
+	//public NavigationCollection(ITestOutputHelper output, DatabaseFixture database) : base(output) { }
+//	public NavigationCollection(ITestOutputHelper output) : base(output)
+//	{
+//#if STANDARD_OR_OLD_FRAMEWORKS
+//		var db = new EntityFrameworkDbContext(
+//			"Server=host.docker.internal;Database=LinqTestEF;User Id=sa;Password=Scoring123456;MultipleActiveResultSets=true");
+//		db.Database.Delete();
+//		db.Database.CreateIfNotExists();
+//		_data = db;
+//#else
+//		DbContextOptionsBuilder<EntityFrameworkCoreDbContext> builder = new();
+//		builder.UseSqlServer(
+//			"Server=host.docker.internal;Database=LinqTestEFC;Trust Server Certificate=true;User Id=sa;Password=Scoring123456;MultipleActiveResultSets=true");
+//		var db = new EntityFrameworkCoreDbContext(builder.Options);
+//		db.Database.EnsureDeleted();
+//		db.Database.EnsureCreated();
+//		_data = db;
+//#endif
+//		_data.AddCountries(DataSeed.Countries.Values);
+//		_data.AddStates(DataSeed.States.Values);
+//		_data.AddCities(DataSeed.Cities.Values);
+//		_data.AddAddresses(DataSeed.Addresses.Values);
+//		_data.AddUsers(DataSeed.Users.Values);
+//		_data.AddInvoices(DataSeed.Invoices.Values);
+
+//		_data.SaveChanges();
+//		var uf = new UserFilter();
+	//}
 	const bool ExecuteDatabaseTests = true;
-	private readonly IDataContext _data;
+	//private readonly IDataContext _data;
 
 	private readonly UserFilter _filter_all_or = new UserFilter()
 		.Transform(x => x.Invoices.All(or:
@@ -82,8 +134,8 @@ public class NavigationCollection : BaseTest<NavigationCollection>
 	[Fact(DisplayName = "Database => All - Or", Explicit = !ExecuteDatabaseTests)]
 	public async Task Database_All_Or()
 	{
-		var linqCount = await _data.GetUsers().Where(_predicate_all_or).CountAsync(TestContext.Current.CancellationToken);
-		var filterCount = await _data.GetUsers().Filter(_filter_all_or).CountAsync(TestContext.Current.CancellationToken);
+		var linqCount = await database.Data.GetUsers().Where(_predicate_all_or).CountAsync(TestContext.Current.CancellationToken);
+		var filterCount = await database.Data.GetUsers().Filter(_filter_all_or).CountAsync(TestContext.Current.CancellationToken);
 		PrintVariable(linqCount);
 		PrintVariable(filterCount);
 		Assert.Equal(linqCount, filterCount);

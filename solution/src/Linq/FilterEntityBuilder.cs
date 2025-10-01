@@ -10,23 +10,22 @@ public sealed class FilterEntityBuilder<TEntity>
 	private readonly List<IFilterDescriptor<TEntity>> _fields = new();
 
 	public FilterEntityBuilder<TEntity> Property<TField>(Expression<Func<TEntity, TField>> selector,
-		Action<FilterDescriptor<TEntity, TField>.Builder>? configure = null)
+		Action<FilterPropertyBuilder<TEntity, TField>>? configure = null)
 	{
 		if (selector.Body is not MemberExpression m)
 			throw new ArgumentException("Selector must be member. Use Computed(name, expr) for arbitrary expressions.",
 				nameof(selector));
-		var b = FilterDescriptor<TEntity, TField>.Create(m.Member.Name, selector);
+		var b = FilterPropertyDescriptor<TEntity, TField>.Create();
 		configure?.Invoke(b);
 		_fields.Add(b.Build());
 		return this;
 	}
 
 	public FilterEntityBuilder<TEntity> Computed<TField>(string name, Expression<Func<TEntity, TField>> selector,
-		Action<FilterDescriptor<TEntity, TField>.Builder>? configure = null)
+		Action<FilterPropertyBuilder<TEntity, TField>>? configure = null)
 	{
-		if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Name required", "name");
-		var b = FilterDescriptor<TEntity, TField>.Create(name, selector); // mark via metadata
-		b.Meta("Computed", true);
+		if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Name required", nameof(name));
+		var b = FilterPropertyDescriptor<TEntity, TField>.Create();
 		configure?.Invoke(b);
 		_fields.Add(b.Build());
 		return this;
@@ -51,17 +50,12 @@ public sealed class FilterEntityBuilder<TEntity>
 		};
 
 		// Construir FilterDescriptor<TEntity, TField> dinámicamente
-		var fdGeneric = typeof(FilterDescriptor<,>).MakeGenericType(typeof(TEntity), propType);
+		var fdGeneric = typeof(FilterPropertyDescriptor<,>).MakeGenericType(typeof(TEntity), propType);
 		var create = fdGeneric.GetMethod("Create", BindingFlags.Public | BindingFlags.Static)!;
 		var funcType = typeof(Func<,>).MakeGenericType(typeof(TEntity), propType);
 		var lambda = Expression.Lambda(funcType, memberExpr, selector.Parameters);
-		var builder = create.Invoke(null, new object?[] { member.Name, lambda })!;
-		// MarkNavigation
-		var markNav = builder.GetType().GetMethod("MarkNavigation", BindingFlags.Instance | BindingFlags.NonPublic) ?? builder.GetType().GetMethod("MarkNavigation", BindingFlags.Instance | BindingFlags.Public);
-		markNav?.Invoke(builder, null);
-		// Opcional: tag del filtro expresado (trazabilidad)
-		var meta = builder.GetType().GetMethod("Meta", BindingFlags.Instance | BindingFlags.Public);
-		meta?.Invoke(builder, new object?[] { "NavigationFilterType", typeof(TFilter) });
+		var builder = create.Invoke(null,null);//, new object?[] { member.Name, lambda })!;
+		if (builder is null) throw new InvalidProgramException("FilterPropertyDescriptor couldn't be created");
 		// Build y registrar
 		var built = builder.GetType().GetMethod("Build", BindingFlags.Instance | BindingFlags.Public)!.Invoke(builder, null)!;
 		_fields.Add((IFilterDescriptor<TEntity>)built);

@@ -666,11 +666,11 @@ public static class ExceptionExtensions
 {
 	extension(Exception me)
 	{
-		public string GetDeeperInnerMessage()
+		public Exception GetDeeperInnerException()
 		{
 			var inner = me;
 			while (inner.InnerException is not null) inner = inner.InnerException;
-			return inner.Message;
+			return inner;
 		}
 	}
 }
