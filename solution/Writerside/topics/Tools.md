@@ -2,7 +2,7 @@
 
 ## Main tools
 
-### Fuxion
+## Fuxion
 
 El paquete ``Fuxion`` es un **_bundle package_** contiene las siguientes herramientas principales:
 - Fuxion.Response
@@ -35,22 +35,22 @@ Response
 
 ## Secondary tools
 
-MathGraphCycleDetector
-TreeSynchronizer
-Generic Comparer
-DeactivatableObservableCollection
-DataAnnotations
-- EnsureMinumumElements
-- EnsureNoDuplicates
-- Hostname
-- IpAddress
-- NullableEmail
-Reflection
-- Extensions
-Xml
-- Extensions
-ConsoleTools
-DisposableEnvelope
-- OldTargetFrameworksUtils
-SemanticVersion
-Singleton
+- MathGraphCycleDetector
+- TreeSynchronizer
+- Generic Comparer
+- DeactivatableObservableCollection
+- DataAnnotations
+  - EnsureMinumumElements
+  - EnsureNoDuplicates
+  - Hostname
+  - IpAddress
+  - NullableEmail
+- Reflection
+  - Extensions
+- Xml
+  - Extensions
+- ConsoleTools
+- DisposableEnvelope
+  - OldTargetFrameworksUtils
+- SemanticVersion
+- Singleton

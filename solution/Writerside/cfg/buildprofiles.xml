@@ -4,9 +4,29 @@
                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
     <variables></variables>
-    <build-profile instance="f">
+    <build-profile instance="fuxion">
         <variables>
+            <resizable-sidebar>true</resizable-sidebar>
+            <custom-favicons>favicon.png</custom-favicons>
+            <header-logo>logo.svg</header-logo>
+            <product-web-url>https://fuxion.dev</product-web-url>
+<!--            <download-title>Go GitHub</download-title>-->
+<!--            <download-page>https://fuxion.dev</download-page>-->
+<!--            <showDownloadButton>true</showDownloadButton>-->
+            <offline-docs>true</offline-docs>
             <noindex-content>false</noindex-content>
+            <llms-txt single-file="true"/>
+        </variables>
+        <footer>
+            <copyright>2025 Lyberum SLU</copyright>
+            <social type="twitter" href="https://twitter.com/onwriterside"/>
+            <social type="github" href="https://github.com/osjimenez/Fuxion"/>
+            <link href="https://fuxion.dev">Web Page</link>
+        </footer>
+    </build-profile>
+    <build-profile instance="t">
+        <variables>
+            
         </variables>
     </build-profile>
 

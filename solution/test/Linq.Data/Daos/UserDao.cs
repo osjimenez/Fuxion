@@ -4,14 +4,13 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Fuxion.Linq.Test.Data.Daos;
 
-public class UserDao
+public class UserDao : BaseDao
 {
 	public required Guid UserId { get; set; }
 
 	public required string FirstName { get; set; }
 	public string? LastName { get; set; }
 	public DateTime? BirthDate { get; set; }
-	public required DateTime UpdatedAtUtc { get; set; }
 	public UserTpye Type { get; set; }
 	public List<string> Phones { get; set; } = [];
 	public List<string> Emails { get; set; } = [];

@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Fuxion.Linq.Test.Data.Daos;
 
-public class InvoiceDao
+public class InvoiceDao : BaseDao
 {
 	public required Guid InvoiceId { get; set; }
 
@@ -13,7 +13,6 @@ public class InvoiceDao
 
 	public required DateTime IssueDate { get; set; }
 	public List<TimeSpan>? ExpirationTimes { get; set; }
-	public required DateTime UpdatedAtUtc { get; set; }
 
 	public bool UseCustomerAddress { get; set; }
 	public Guid? AddressId { get; set; }
@@ -30,7 +29,7 @@ public class InvoiceDao
 	}
 }
 
-public class InvoiceLineDao
+public class InvoiceLineDao : BaseDao
 {
 	public Guid InvoiceLineId { get; set; }
 	public decimal Price { get; set; }

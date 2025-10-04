@@ -87,6 +87,7 @@
   </Folder>
   <Folder Name="/repo/.github/" />
   <Folder Name="/repo/.github/workflows/">
+    <File Path="../.github/workflows/build-docs.yml" />
     <File Path="../.github/workflows/dotnet-core.yml" />
   </Folder>
 </Solution>

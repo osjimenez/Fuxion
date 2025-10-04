@@ -4,14 +4,12 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Fuxion.Linq.Test.Data.Daos;
 
-public class AddressDao
+public class AddressDao : BaseDao
 {
 	public required Guid AddressId { get; set; }
 	public required string Street { get; set; }
 	public required int Number { get; set; }
 	public required string Apartment { get; set; }
-	public required DateTime UpdatedAtUtc { get; set; }
-
 	public required Guid CityId { get; set; }
 	[field: AllowNull, MaybeNull]
 	public CityDao City
@@ -21,12 +19,11 @@ public class AddressDao
 	}
 }
 
-public class CityDao
+public class CityDao : BaseDao
 {
 	public required Guid CityId { get; set; }
 	public required string Name { get; set; }
 	public required string Code { get; set; }
-	public required DateTime UpdatedAtUtc { get; set; }
 
 	public required Guid StateId { get; set; }
 	[field: AllowNull, MaybeNull]
@@ -39,12 +36,11 @@ public class CityDao
 	public List<AddressDao> Addresses { get; set; } = [];
 }
 
-public class StateDao
+public class StateDao : BaseDao
 {
 	public required Guid StateId { get; set; }
 	public required string Name { get; set; }
 	public required string Code { get; set; }
-	public required DateTime UpdatedAtUtc { get; set; }
 
 	public required Guid CountryId { get; set; }
 	[field: AllowNull, MaybeNull]
@@ -56,12 +52,11 @@ public class StateDao
 
 	public List<CityDao> Cities { get; set; } = [];
 }
-public class CountryDao
+public class CountryDao : BaseDao
 {
 	public required Guid CountryId { get; set; }
 	public required string Name { get; set; }
 	public required string Code { get; set; }
-	public required DateTime UpdatedAtUtc { get; set; }
 
 	public List<StateDao> States { get; set; } = [];
 }
