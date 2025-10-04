@@ -16,6 +16,10 @@
             <offline-docs>true</offline-docs>
             <noindex-content>false</noindex-content>
             <llms-txt single-file="true"/>
+            <algolia-id>A7NLGGYNYH</algolia-id>
+            <algolia-index>prod_FUXION</algolia-index>
+            <algolia-api-key>f6c33add1844d58db2f222a81b470c1e</algolia-api-key>
+            <algolia-show-logo>true</algolia-show-logo>
         </variables>
         <footer>
             <copyright>2025 Lyberum SLU</copyright>
