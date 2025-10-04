@@ -3,12 +3,18 @@
         SYSTEM "https://resources.jetbrains.com/writerside/1.0/product-profile.dtd">
 
 <instance-profile id="fuxion"
-                 name="..."
+                  status="eap"
+                 name="Fuxion"
                  start-page="About.md">
 
     <toc-element topic="About.md"/>
-    <toc-element topic="Pods.md"/>
-    <toc-element topic="Tools.md"/>
-    <toc-element topic="Reponse.md"/>
+<!--        <toc-element topic="About2.md">-->
+<!--            <toc-element topic="About2-1.md"/>-->
+<!--        </toc-element>-->
+<!--        <toc-element topic="About3.md" />-->
+<!--    </toc-element>-->
+    <toc-element topic="Pods.md" />
+    <toc-element topic="Reponse.md" />
     <toc-element topic="Linq-Filters.md"/>
+    <!--    <toc-element topic="Tools.md" hidden="true"/>-->
 </instance-profile>
