@@ -3,12 +3,12 @@
 Start typing here...
 
 <tabs>
-<tab title="One">
-Contenido 1
-</tab>
-<tab title="Two">
-Contenido 2
-</tab>
+    <tab title="One">
+    Contenido 1
+    </tab>
+    <tab title="Two">
+    Contenido 2
+    </tab>
 </tabs>
 
 <request>
@@ -37,10 +37,3 @@ Contenido 2
         Console.WriteLine("Hola");
     }
 </sample>
-
-<section-starting-page>
-    <title>This is the title</title>
-    <description>Description of the starting page</description>
-
-    
-</section-starting-page>
