@@ -6,5 +6,5 @@
                  name="test"
                  start-page="test-1.md">
 
-    <toc-element topic="test-1.md"/>
+    <toc-element topic="About.md"/>
 </instance-profile>

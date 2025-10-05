@@ -1,0 +1,40 @@
+<section-starting-page>
+    <title>Section starting page title</title>
+    <description>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
+        condimentum feugiat sagittis.
+    </description>
+
+    <spotlight>
+        <card href="About2.md" badge="start" summary="Sed condimentum feugiat sagittis"/>
+        <card href="About3.md" badge="search" summary="Sed condimentum feugiat sagittis"/>
+    </spotlight>
+
+    <primary>
+        <title>Main group</title>
+        <card href="About2.md"
+           summary="Sed condimentum feugiat sagittis"/>
+    </primary>
+
+    <secondary>
+        <title>Highlighted group</title>
+        <card href="About3.md"
+           summary="Sed condimentum feugiat sagittis"/>
+    </secondary>
+
+    <misc>
+        <cards>
+            <title>Custom cards</title>
+            <card href="About2.md"
+               summary="Sed condimentum feugiat sagittis"/>
+        </cards>
+
+        <links narrow="true">
+            <group>
+                <title>Custom links</title>
+                <a href="About2.md"
+                   summary="Sed condimentum feugiat sagittis"/>
+            </group>
+        </links>
+    </misc>
+</section-starting-page>

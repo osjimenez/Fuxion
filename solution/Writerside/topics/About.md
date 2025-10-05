@@ -1,3 +1,0 @@
-﻿# About Fuxion
-
-Documentation in progress ...
