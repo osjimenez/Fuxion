@@ -433,7 +433,7 @@ mindmap
       Popularisation
         British popular psychology author Tony Buzan
     Research
-      On effectiveness<br/>and features
+      On effectiveness and features
       On Automatic creation
         Uses
             Creative techniques

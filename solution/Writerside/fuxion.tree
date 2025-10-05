@@ -16,6 +16,6 @@
     <toc-element topic="Pods.md" />
     <toc-element topic="Reponse.md" />
     <toc-element topic="Linq-Filters.md"/>
-    <toc-element topic="OneOfEach.md"/>
+<!--    <toc-element topic="OneOfEach.md"/>-->
     <!--    <toc-element topic="Tools.md" hidden="true"/>-->
 </instance-profile>
