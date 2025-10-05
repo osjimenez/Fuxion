@@ -5,17 +5,15 @@
 <instance-profile id="fuxion"
                   status="eap"
                  name="Fuxion"
-                 start-page="About.md">
+                 start-page="index.topic">
 
-    <toc-element topic="About.md"/>
-<!--        <toc-element topic="About2.md">-->
-<!--            <toc-element topic="About2-1.md"/>-->
-<!--        </toc-element>-->
-<!--        <toc-element topic="About3.md" />-->
-<!--    </toc-element>-->
+    <toc-element topic="index.topic">
+        <toc-element topic="hola_mundo.topic"/>
+        <toc-element topic="acerca_de.topic"/>
+    </toc-element>
     <toc-element topic="Pods.md" />
     <toc-element topic="Reponse.md" />
     <toc-element topic="Linq-Filters.md"/>
-<!--    <toc-element topic="OneOfEach.md"/>-->
+    <!--    <toc-element topic="OneOfEach.md"/>-->
     <!--    <toc-element topic="Tools.md" hidden="true"/>-->
 </instance-profile>
