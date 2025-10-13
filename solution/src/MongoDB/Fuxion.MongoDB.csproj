@@ -5,7 +5,12 @@
 		<Title>Fuxion MongoDB</Title>
 		<PackageId>Fuxion.MongoDB</PackageId>
 		<Description>Fuxion infrastructure for MongoDB</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Fuxion\Fuxion.csproj"/>

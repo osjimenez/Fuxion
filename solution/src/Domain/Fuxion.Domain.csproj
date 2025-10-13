@@ -5,7 +5,12 @@
 		<Title>Fuxion Domain</Title>
 		<PackageId>Fuxion.Domain</PackageId>
 		<Description>Fuxion library for DDD</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<Compile Update="Properties\AssemblyInfo.cs" />

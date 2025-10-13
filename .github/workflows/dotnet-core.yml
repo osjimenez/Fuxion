@@ -34,141 +34,17 @@ jobs:
         dotnet-version: '10.x.x'
         include-prerelease: true
 
-#    - name: Install dependencies
-#      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/Fuxion.slnx
-    - name: Dependencies - Fuxion
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/Fuxion/Fuxion.csproj
-    - name: Dependencies - Pods
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/Pods/Fuxion.Pods.csproj
-    - name: Dependencies - Domain
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/Domain/Fuxion.Domain.csproj
-    - name: Dependencies - Application
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/Application/Fuxion.Application.csproj
-    - name: Dependencies - Drawing
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/Drawing/Fuxion.Drawing.csproj
-    - name: Dependencies - Licensing
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/Licensing/Fuxion.Licensing.csproj
-    - name: Dependencies - xUnit
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/xUnit/Fuxion.xUnit.csproj
-    - name: Dependencies - AspNet
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/AspNet/Fuxion.AspNet.csproj
-    - name: Dependencies - AspNetCore
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/AspNetCore/Fuxion.AspNetCore.csproj
-    - name: Dependencies - EntityFramework
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/EntityFramework/Fuxion.EntityFramework.csproj
-    - name: Dependencies - EntityFrameworkCore
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/EntityFrameworkCore/Fuxion.EntityFrameworkCore.csproj
-    - name: Dependencies - EntityFrameworkCore.InMemory
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/EntityFrameworkCore.InMemory/Fuxion.EntityFrameworkCore.InMemory.csproj
-    - name: Dependencies - EntityFrameworkCore.SqlServer
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/EntityFrameworkCore.SqlServer/Fuxion.EntityFrameworkCore.SqlServer.csproj
-    - name: Dependencies - EventStore
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/EventStore/Fuxion.EventStore.csproj
-    - name: Dependencies - MongoDB
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/MongoDB/Fuxion.MongoDB.csproj
-    - name: Dependencies - Orleans
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/Orleans/Fuxion.Orleans.csproj
-    - name: Dependencies - RabbitMQ
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/RabbitMQ/Fuxion.RabbitMQ.csproj
-    - name: Dependencies - Windows
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/Windows/Fuxion.Windows.csproj
-    - name: Dependencies - Windows.Controls
-      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/src/Windows.Controls/Fuxion.Windows.Controls.csproj
+    - name: Install dependencies
+      run: dotnet restore -p:RestoreUseSkipNonexistentTargets=false solution/Fuxion-deploy.slnx
 
-#    - name: Build
-#      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/Fuxion.slnx
-    - name: Build - Fuxion
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/Fuxion/Fuxion.csproj
-    - name: Build - Pods
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/Pods/Fuxion.Pods.csproj
-    - name: Build - Domain
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/Domain/Fuxion.Domain.csproj
-    - name: Build - Application
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/Application/Fuxion.Application.csproj
-    - name: Build - Drawing
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/Drawing/Fuxion.Drawing.csproj
-    - name: Build - Licensing
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/Licensing/Fuxion.Licensing.csproj
-    - name: Build - xUnit
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/xUnit/Fuxion.xUnit.csproj
-    - name: Build - AspNet
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/AspNet/Fuxion.AspNet.csproj
-    - name: Build - AspNetCore
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/AspNetCore/Fuxion.AspNetCore.csproj
-    - name: Build - EntityFramework
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/EntityFramework/Fuxion.EntityFramework.csproj
-    - name: Build - EntityFrameworkCore
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/EntityFrameworkCore/Fuxion.EntityFrameworkCore.csproj
-    - name: Build - EntityFrameworkCore.InMemory
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/EntityFrameworkCore.InMemory/Fuxion.EntityFrameworkCore.InMemory.csproj
-    - name: Build - EntityFrameworkCore.SqlServer
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/EntityFrameworkCore.SqlServer/Fuxion.EntityFrameworkCore.SqlServer.csproj
-    - name: Build - EventStore
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/EventStore/Fuxion.EventStore.csproj
-    - name: Build - MongoDB
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/MongoDB/Fuxion.MongoDB.csproj
-    - name: Build - Orleans
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/Orleans/Fuxion.Orleans.csproj
-    - name: Build - RabbitMQ
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/RabbitMQ/Fuxion.RabbitMQ.csproj
-    - name: Build - Windows
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/Windows/Fuxion.Windows.csproj
-    - name: Build - Windows.Controls
-      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/src/Windows.Controls/Fuxion.Windows.Controls.csproj
+    - name: Build
+      run: dotnet build --configuration Release --no-restore -p:Version=${{ steps.gitversion.outputs.semVer }} solution/Fuxion-deploy.slnx
 
 #    - name: Run tests
-#      run: dotnet test --configuration Release --no-restore --verbosity minimal solution/Fuxion.slnx
-#    - name: Test - Fuxion
-#      run: dotnet test --configuration Release --no-restore --verbosity minimal solution/test/Fuxion/Fuxion.Test.csproj
-#    - name: Test - Domain
-#      run: dotnet test --configuration Release --no-restore --verbosity minimal solution/test/Domain/Fuxion.Domain.Test.csproj
-#    - name: Test - Application
-#      run: dotnet test --configuration Release --no-restore --verbosity minimal solution/test/Application/Fuxion.Application.Test.csproj
-#    - name: Test - Licensing
-#      run: dotnet test --configuration Release --no-restore --verbosity minimal solution/test/Licensing/Fuxion.Licensing.Test.csproj
-#    - name: Test - Windows
-#      run: dotnet test --configuration Release --no-restore --verbosity minimal solution/test/Windows/Fuxion.Windows.Test.csproj
+#      run: dotnet test --configuration Release --no-restore --verbosity minimal solution/Fuxion-deploy.slnx
 
-#    - name: Create packages
-#      run: dotnet pack --configuration Release --no-build -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/Fuxion.slnx
-    - name: Create package - Fuxion
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/Fuxion/Fuxion.csproj
-    - name: Create package - Pods
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/Pods/Fuxion.Pods.csproj
-    - name: Create package - Domain
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/Domain/Fuxion.Domain.csproj
-    - name: Create package - Application
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/Application/Fuxion.Application.csproj
-    - name: Create package - Drawing
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/Drawing/Fuxion.Drawing.csproj
-    - name: Create package - Licensing
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/Licensing/Fuxion.Licensing.csproj
-    - name: Create package - xUnit
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/xUnit/Fuxion.xUnit.csproj
-    - name: Create package - AspNet
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/AspNet/Fuxion.AspNet.csproj
-    - name: Create package - AspNetCore
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/AspNetCore/Fuxion.AspNetCore.csproj
-    - name: Create package - EntityFramework
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/EntityFramework/Fuxion.EntityFramework.csproj
-    - name: Create package - EntityFrameworkCore
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/EntityFrameworkCore/Fuxion.EntityFrameworkCore.csproj
-    - name: Create package - EntityFrameworkCore.InMemory
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/EntityFrameworkCore.InMemory/Fuxion.EntityFrameworkCore.InMemory.csproj
-    - name: Create package - EntityFrameworkCore.SqlServer
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/EntityFrameworkCore.SqlServer/Fuxion.EntityFrameworkCore.SqlServer.csproj
-    - name: Create package - EventStore
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/EventStore/Fuxion.EventStore.csproj
-    - name: Create package - MongoDB
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/MongoDB/Fuxion.MongoDB.csproj
-    - name: Create package - Orleans
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/Orleans/Fuxion.Orleans.csproj
-    - name: Create package - RabbitMQ
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/RabbitMQ/Fuxion.RabbitMQ.csproj
-    - name: Create package - Windows
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/Windows/Fuxion.Windows.csproj
-    - name: Create package - Windows.Controls
-      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/src/Windows.Controls/Fuxion.Windows.Controls.csproj
+    - name: Create packages
+      run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/Fuxion-deploy.slnx
 
     - name: Publish to GitHub Packages
       if: github.ref != 'refs/heads/main'

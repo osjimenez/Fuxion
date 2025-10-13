@@ -1,0 +1,93 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/src/">
+    <File Path="src/Directory.Build.props" />
+    <File Path="src/icon.png" />
+    <Project Path="src/Application/Fuxion.Application.csproj" />
+    <Project Path="src/AspNet/Fuxion.AspNet.csproj" />
+    <Project Path="src/AspNetCore/Fuxion.AspNetCore.csproj" />
+    <Project Path="src/Domain/Fuxion.Domain.csproj" />
+    <Project Path="src/Drawing/Fuxion.Drawing.csproj" />
+    <Project Path="src/EntityFramework/Fuxion.EntityFramework.csproj" />
+    <Project Path="src/EntityFrameworkCore.InMemory/Fuxion.EntityFrameworkCore.InMemory.csproj" />
+    <Project Path="src/EntityFrameworkCore.SqlServer/Fuxion.EntityFrameworkCore.SqlServer.csproj" />
+    <Project Path="src/EntityFrameworkCore/Fuxion.EntityFrameworkCore.csproj" />
+    <Project Path="src/EventStore/Fuxion.EventStore.csproj" />
+    <Project Path="src/Fuxion/Fuxion.csproj" />
+    <Project Path="src/Identity/Fuxion.Identity.csproj" />
+    <Project Path="src/Licensing/Fuxion.Licensing.csproj" />
+    <Project Path="src/Linq.CodeGenerator/Fuxion.Linq.CodeGenerator.csproj" />
+    <Project Path="src/Linq/Fuxion.Linq.csproj" />
+    <Project Path="src/MongoDB/Fuxion.MongoDB.csproj" />
+    <Project Path="src/Orleans/Fuxion.Orleans.csproj" />
+    <Project Path="src/Pods/Fuxion.Pods.csproj" />
+    <Project Path="src/RabbitMQ/Fuxion.RabbitMQ.csproj" />
+    <Project Path="src/Telerik.Wpf/Fuxion.Telerik.Wpf.csproj" />
+    <Project Path="src/Windows.Controls/Fuxion.Windows.Controls.csproj" />
+    <Project Path="src/Windows/Fuxion.Windows.csproj" />
+    <Project Path="src/Xunit/Fuxion.Xunit.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <File Path="test/Directory.Build.props" />
+    <Project Path="test/Application/Fuxion.Application.Test.csproj" />
+    <Project Path="test/AspNetCore.Service/Fuxion.AspNetCore.Service.csproj" />
+    <Project Path="test/AspNetCore/Fuxion.AspNetCore.Test.csproj" />
+    <Project Path="test/Domain/Fuxion.Domain.Test.csproj" />
+    <Project Path="test/EntityFramework/Fuxion.EntityFramework.Test.csproj" />
+    <Project Path="test/Fuxion/Fuxion.Test.csproj" />
+    <Project Path="test/Identity.DatabaseEFTest/Fuxion.Identity.DatabaseEFTest.csproj" />
+    <Project Path="test/Identity.DatabaseTest/Fuxion.Identity.DatabaseTest.csproj" />
+    <Project Path="test/Identity/Fuxion.Identity.Test.csproj" />
+    <Project Path="test/Licensing/Fuxion.Licensing.Test.csproj" />
+    <Project Path="test/Linq.Data/Fuxion.Linq.Test.Data.csproj" />
+    <Project Path="test/Linq.EntityFramework/Fuxion.Linq.Test.EntityFramework.csproj" />
+    <Project Path="test/Linq.EntityFrameworkCore/Fuxion.Linq.Test.EntityFrameworkCore.csproj" />
+    <Project Path="test/Linq/Fuxion.Linq.Test.csproj" />
+    <Project Path="test/Pods/Fuxion.Pods.Test.csproj" />
+    <Project Path="test/Windows/Fuxion.Windows.Test.csproj" />
+  </Folder>
+  <Folder Name="/lab/">
+    <Project Path="lab/AppHost/Fuxion.Lab.AppHost.csproj" />
+    <Project Path="lab/Common/Fuxion.Lab.Common.csproj" />
+    <Project Path="lab/ServiceDefaults/Fuxion.Lab.ServiceDefaults.csproj" />
+    <Project Path="lab/Test/Fuxion.Lab.Test.csproj" />
+  </Folder>
+  <Folder Name="/lab/cloud/">
+    <Project Path="lab/cloud/GATE/Fuxion.Lab.Cloud.GATE.csproj" />
+    <Project Path="lab/cloud/MS1/Fuxion.Lab.Cloud.MS1.csproj" />
+    <Project Path="lab/cloud/MS2/Fuxion.Lab.Cloud.MS2.csproj" />
+  </Folder>
+  <Folder Name="/lab/on-premise/">
+    <Project Path="lab/on-premise/A1/Fuxion.Lab.OnPremise.A1.csproj" />
+    <Project Path="lab/on-premise/A2/Fuxion.Lab.OnPremise.A2.csproj" />
+  </Folder>
+  <Folder Name="/repo/solution/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/sketches/">
+    <File Path="sketches/OneFile.cs" />
+    <Project Path="sketches/DemoConsole/DemoConsole.csproj" />
+    <Project Path="sketches/DemoCoreWpf/DemoCoreWpf.csproj" />
+  </Folder>
+  <Folder Name="/new-src/">
+    <Project Path="new-src/Fuxion.Console/Fuxion.Console.csproj" Id="373fb533-3450-4c33-a05c-8149fad99bbd" />
+    <Project Path="new-src/Fuxion.Text.Json/Fuxion.Text.Json.csproj" Id="ffff5379-1dfd-4f74-a2df-ba6b3cfb4a86" />
+    <Project Path="new-src/Fuxion.Threading.Tasks/Fuxion.Threading.Tasks.csproj" Id="25ddd295-0ca1-43b3-9959-45e9b1887bfd" />
+  </Folder>
+  <Folder Name="/repo/">
+    <File Path="../.gitattributes" />
+    <File Path="../.gitignore" />
+    <File Path="../GitVersion.yml" />
+    <File Path="../LICENSE" />
+    <File Path="../README.md" />
+  </Folder>
+  <Folder Name="/repo/.github/" />
+  <Folder Name="/repo/.github/workflows/">
+    <File Path="../.github/workflows/build-docs.yml" />
+    <File Path="../.github/workflows/dotnet-core.yml" />
+  </Folder>
+</Solution>

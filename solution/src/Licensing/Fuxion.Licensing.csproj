@@ -5,7 +5,12 @@
 		<Title>Fuxion Licensing</Title>
 		<PackageId>Fuxion.Licensing</PackageId>
 		<Description>Fuxion Licensing</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Fuxion\Fuxion.csproj"/>

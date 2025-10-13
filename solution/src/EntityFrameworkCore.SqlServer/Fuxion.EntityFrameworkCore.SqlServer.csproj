@@ -2,10 +2,15 @@
 
 	<PropertyGroup>
 		<TargetFrameworks>$(CoreFrameworks)</TargetFrameworks>
-		<Title>Fuxion Entity Framework Core in memory</Title>
-		<PackageId>Fuxion.EntityFrameworkCore.InMemory</PackageId>
-		<Description>Fuxion library with extensions for Entity Framework Core in memory.</Description>
+		<Title>Fuxion Entity Framework Core for Sql Server</Title>
+		<PackageId>Fuxion.EntityFrameworkCore.SqlServer</PackageId>
+		<Description>Fuxion library with extensions for Entity Framework Core for Sql Server.</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />

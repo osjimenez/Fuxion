@@ -6,7 +6,7 @@
 
 Install command:
 ```bash
-dotnet add package Fuxion
+dotnet add package Fuxion.Linq.CodeGenerator
 ```
 
 **🔨 Work in progress..**

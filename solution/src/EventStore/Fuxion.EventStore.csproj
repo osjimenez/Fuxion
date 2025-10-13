@@ -5,7 +5,12 @@
 		<Title>Fuxion EventStore</Title>
 		<PackageId>Fuxion.EventStore</PackageId>
 		<Description>Fuxion infrastructure for EventStore</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="EventStore.Client.Grpc.Streams" />

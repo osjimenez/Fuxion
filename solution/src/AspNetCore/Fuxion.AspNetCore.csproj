@@ -5,7 +5,12 @@
 		<Title>Fuxion Asp.Net Core</Title>
 		<PackageId>Fuxion.AspNetCore</PackageId>
 		<Description>Fuxion library for Asp.Net Core.</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />

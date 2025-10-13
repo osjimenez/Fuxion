@@ -5,7 +5,12 @@
 		<Title>FuxionRabbitMQ</Title>
 		<PackageId>Fuxion.RabbitMQ</PackageId>
 		<Description>Fuxion infrastructure for RabbitMQ</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Polly" />

@@ -6,7 +6,7 @@
 
 Install command:
 ```bash
-dotnet add package Fuxion
+dotnet add package Fuxion.EntityFrameworkCore.InMemory
 ```
 
 **🔨 Work in progress..**

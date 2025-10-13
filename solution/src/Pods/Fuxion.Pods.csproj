@@ -5,7 +5,12 @@
 		<Title>Fuxion Pods</Title>
 		<PackageId>Fuxion.Pods</PackageId>
 		<Description>Fuxion Pods library</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">
 		<Reference Include="System.Web" />

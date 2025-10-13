@@ -7,14 +7,12 @@
 		<Description>Fuxion Xunit</Description>
 		<IsPackable>true</IsPackable>
 		<OutputType>Exe</OutputType>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
-	<!--<ItemGroup>
-		<PackageReference Include="coverlet.collector" />
-		<PackageReference Include="xunit.v3" />
-		<PackageReference Include="xunit.runner.visualstudio" />
-		
-	</ItemGroup>-->
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="coverlet.collector">

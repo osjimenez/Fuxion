@@ -5,7 +5,12 @@
 		<Title>Fuxion Entity Framework</Title>
 		<PackageId>Fuxion.EntityFramework</PackageId>
 		<Description>Fuxion library with extensions for EntityFramework.</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="EntityFramework"/>

@@ -11,6 +11,7 @@
 |Fuxion |[![NuGet Version](https://img.shields.io/nuget/v/Fuxion?style=for-the-badge&logo=nuget)](https://www.nuget.org/packages/Fuxion)|
 |Fuxion.AspNet|[![NuGet Version](https://img.shields.io/nuget/v/Fuxion.AspNet?style=for-the-badge&logo=nuget)](https://www.nuget.org/packages/Fuxion.AspNet)|
 |Fuxion.AspNetCore|[![NuGet Version](https://img.shields.io/nuget/v/Fuxion.AspNetCore?style=for-the-badge&logo=nuget)](https://www.nuget.org/packages/Fuxion.AspNetCore)|
+|...|...|
 
 </p>
 <br/><br/>

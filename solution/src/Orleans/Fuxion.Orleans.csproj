@@ -5,7 +5,12 @@
 		<Title>Fuxion Orleans</Title>
 		<PackageId>Fuxion.Orleans</PackageId>
 		<Description>Fuxion infrastructure for Orleans frameowrk</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Application\Fuxion.Application.csproj" />
