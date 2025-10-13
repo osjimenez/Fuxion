@@ -6,8 +6,8 @@
 
 |Sample|Description|Hexadecimal|RGB|
 |:----:|:---------:|:---------:|:-:|
-|<span style="color:#1b60a5">████</span>|Dark blue|#1b60a5|27, 96, 165|
-|<span style="color:#3ea8ff">████</span>|Light blue|#3ea8ff|62, 168, 255|
+|$\color{#1b60a5}{\textbf{████}}$|Dark blue|#1b60a5|27, 96, 165|
+|$\color{#3ea8ff}{\textbf{████}}$|Light blue|#3ea8ff|62, 168, 255|
 
 </p>
 

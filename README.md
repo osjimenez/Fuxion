@@ -1,12 +1,12 @@
 <br/><br/>
 <p align="center">
-  <image src="https://docs.fuxion.dev/img/logo_full_dark.svg" alt="Fuxion logo" width="300px">
+  <image src="./res/logo/Assets/full_light.svg" alt="Fuxion logo" width="300px">
 </p>
 <br/><br/>
 
 <p align="center">
 
-|||
+|Packages||
 |:------|:---:|
 |Fuxion |[![NuGet Version](https://img.shields.io/nuget/v/Fuxion?style=for-the-badge&logo=nuget)](https://www.nuget.org/packages/Fuxion)|
 |Fuxion.AspNet|[![NuGet Version](https://img.shields.io/nuget/v/Fuxion.AspNet?style=for-the-badge&logo=nuget)](https://www.nuget.org/packages/Fuxion.AspNet)|
