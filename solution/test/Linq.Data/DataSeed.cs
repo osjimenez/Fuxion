@@ -176,14 +176,14 @@ public static class DataSeed
 				}
 			}
 		};
-		var aliceCreationTime = startSeedDate.Add(10.Days + 13.Hours + 54.Minutes);
-		var aliceBrithDate = startSeedDate.Subtract((365 * 21).Days);
-		var clarkCreationDate = startSeedDate.Add(15.Days + 1.Hours + 44.Minutes);
-		var clarkBrithDate = startSeedDate.Subtract((365 * 25).Days);
-		var bobCreationTime = startSeedDate.Add(20.Days + 23.Hours + 1.Minutes);
-		var bobBrithDate = startSeedDate.Subtract((365 * 31).Days);
-		var charlieCreationTime = startSeedDate.Add(25.Days + 7.Hours + 37.Minutes);
-		var charlieBrithDate = startSeedDate.Subtract((365 * 35).Days);
+		var aliceCreationTime = startSeedDate + 10.Days + 13.Hours + 54.Minutes;
+		var aliceBrithDate = startSeedDate - (365 * 21).Days;
+		var clarkCreationDate = startSeedDate + 15.Days + 1.Hours + 44.Minutes;
+		var clarkBrithDate = startSeedDate - (365 * 25).Days;
+		var bobCreationTime = startSeedDate + 20.Days + 23.Hours + 1.Minutes;
+		var bobBrithDate = startSeedDate - (365 * 31).Days;
+		var charlieCreationTime = startSeedDate + 25.Days + 7.Hours + 37.Minutes;
+		var charlieBrithDate = startSeedDate - (365 * 35).Days;
 		Users = new Dictionary<string, UserDao>
 		{
 			{
@@ -250,7 +250,7 @@ public static class DataSeed
 				}
 			}
 		};
-		var aliceInvoice1CreationDate = aliceCreationTime.Add(1.Days + 4.Hours + 23.Minutes);
+		var aliceInvoice1CreationDate = aliceCreationTime + 1.Days + 4.Hours + 23.Minutes;
 		Invoices = new Dictionary<(string, string), InvoiceDao>
 		{
 			{
@@ -279,6 +279,7 @@ public static class DataSeed
 				Concept = "Product 1",
 				InvoiceId = Invoices[("A", "0001")].InvoiceId,
 				Invoice = Invoices[("A", "0001")],
+				UpdatedAtUtc = aliceInvoice1CreationDate
 			},
 			new()
 			{
@@ -289,6 +290,7 @@ public static class DataSeed
 				Concept = "Product 2",
 				InvoiceId = Invoices[("A", "0001")].InvoiceId,
 				Invoice = Invoices[("A", "0001")],
+				UpdatedAtUtc = aliceInvoice1CreationDate
 			}
 		];
 		// Set invoice lines

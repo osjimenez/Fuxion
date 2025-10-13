@@ -1,3 +1,0 @@
-﻿# Linq Filters
-
-Documentation in progress ...
