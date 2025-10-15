@@ -46,9 +46,13 @@ jobs:
     - name: Create packages
       run: dotnet pack --configuration Release --no-build --output nupkgs -p:PackageVersion=${{ steps.gitversion.outputs.semVer }} solution/Fuxion-deploy.slnx
 
-    - name: Publish to GitHub Packages
+#    - name: Publish to GitHub Packages
+#      if: github.ref != 'refs/heads/main'
+#      run: dotnet nuget push "nupkgs\*.*" --source https://nuget.pkg.github.com/OsJimenez/index.json --api-key ${{secrets.GITHUB_TOKEN}} --skip-duplicate
+
+    - name: Publish to MyGet Packages
       if: github.ref != 'refs/heads/main'
-      run: dotnet nuget push "nupkgs\*.*" --source https://nuget.pkg.github.com/OsJimenez/index.json --api-key ${{secrets.GITHUB_TOKEN}} --skip-duplicate
+      run: dotnet nuget push "nupkgs\*.*" --source https://www.myget.org/F/fuxion/api/v3/index.json --api-key ${{secrets.MYGET_ORG}} --skip-duplicate
 
     - name: Publish to NuGet.org
       if: github.ref == 'refs/heads/main'

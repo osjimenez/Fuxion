@@ -84,6 +84,8 @@ public partial class SemanticVersion : IComparable, IComparable<SemanticVersion>
 		result = null;
 		return false;
 	}
+	public static implicit operator string(SemanticVersion version)=> version.ToString();
+	public static implicit operator SemanticVersion(string version) => new(version);
 	public static bool operator ==(SemanticVersion? version1, SemanticVersion? version2)
 	{
 		if (version1 is null) return version2 is null;
