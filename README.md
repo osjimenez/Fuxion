@@ -6,12 +6,12 @@
 
 <p align="center">
 
-|Packages||
-|:------|:---:|
-|Fuxion |[![NuGet Version](https://img.shields.io/nuget/v/Fuxion?style=for-the-badge&logo=nuget)](https://www.nuget.org/packages/Fuxion)|
-|Fuxion.AspNet|[![NuGet Version](https://img.shields.io/nuget/v/Fuxion.AspNet?style=for-the-badge&logo=nuget)](https://www.nuget.org/packages/Fuxion.AspNet)|
-|Fuxion.AspNetCore|[![NuGet Version](https://img.shields.io/nuget/v/Fuxion.AspNetCore?style=for-the-badge&logo=nuget)](https://www.nuget.org/packages/Fuxion.AspNetCore)|
-|...|...|
+|Package|Stable|Preview|
+|:------|:---:|:-:|
+|Fuxion |[![NuGet Version](https://img.shields.io/nuget/v/Fuxion?style=for-the-badge&logo=nuget&label=NuGet.org)](https://www.nuget.org/packages/Fuxion)|![MyGet Version](https://img.shields.io/myget/fuxion/vpre/Fuxion?style=for-the-badge&logo=nuget&label=MyGet.org)|
+|Fuxion.AspNet|[![NuGet Version](https://img.shields.io/nuget/v/Fuxion.AspNet?style=for-the-badge&logo=nuget&label=NuGet.org)](https://www.nuget.org/packages/Fuxion.AspNet)|![MyGet Version](https://img.shields.io/myget/fuxion/vpre/Fuxion.AspNet?style=for-the-badge&logo=nuget&label=MyGet.org)|
+|Fuxion.AspNetCore|[![NuGet Version](https://img.shields.io/nuget/v/Fuxion.AspNetCore?style=for-the-badge&logo=nuget&label=NuGet.org)](https://www.nuget.org/packages/Fuxion.AspNetCore)|![MyGet Version](https://img.shields.io/myget/fuxion/vpre/Fuxion.AspNetCore?style=for-the-badge&logo=nuget&label=MyGet.org)|
+|.|.|.|
 
 </p>
 <br/><br/>
