@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
-using Xunit;
 using Fuxion.Linq;
+using Xunit;
 
-namespace Fuxion.Linq.Test.Primitive;
+namespace Test.Linq.Primitive;
 
 public class DateTimeDao
 {
@@ -14,7 +14,7 @@ public class DateTimeDao
 public partial class DateTimeFilter
 {
 	public static readonly IFilterDescriptor<DateTimeDao>[] Fields = FilterBuilder
-		.For<DateTimeDao>()
+		.For<DateTimeDao>("DateTime", "DateTimes")
 		.Property(d => d.Property)
 		.Build();
 }

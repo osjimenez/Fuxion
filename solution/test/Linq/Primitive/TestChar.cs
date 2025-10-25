@@ -1,9 +1,8 @@
-using System;
 using System.Linq;
-using Xunit;
 using Fuxion.Linq;
+using Xunit;
 
-namespace Fuxion.Linq.Test.Primitive;
+namespace Test.Linq.Primitive;
 
 public class CharDao
 {
@@ -14,7 +13,7 @@ public class CharDao
 public partial class CharFilter
 {
 	public static readonly IFilterDescriptor<CharDao>[] Fields = FilterBuilder
-		.For<CharDao>()
+		.For<CharDao>("Char","Chars")
 		.Property(d => d.Property)
 		.Build();
 }

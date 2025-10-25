@@ -290,7 +290,7 @@ public sealed class FilterSourceGenerator : IIncrementalGenerator
 		sb.AppendLine("using System.Linq.Expressions;");
 		sb.AppendLine();
 		sb.AppendLine("[JsonConverter(typeof(FilterConverterFactory))]");
-		sb.AppendLine($"public partial class {filter.Name} : GeneratedFilter<{entity.ToDisplayString()}> ");
+		sb.AppendLine($"public partial class {filter.Name} : GeneratedFilter<global::{entity.ToDisplayString()}> ");
 		sb.AppendLine("{");
 		sb.AppendLine("\t// PROPERTIES / COLLECTIONS / NAVIGATIONS\n");
 
@@ -360,36 +360,36 @@ public sealed class FilterSourceGenerator : IIncrementalGenerator
 		sb.AppendLine($"\tprotected override bool IsDefined => {(parts.Count == 0 ? "false" : string.Join(" || ", parts))};\n");
 
 		// Predicate
-		sb.AppendLine($"\tExpression<System.Func<{entity.ToDisplayString()}, bool>>? _predicate;");
-		sb.AppendLine($"\tpublic override Expression<System.Func<{entity.ToDisplayString()}, bool>> Predicate => _predicate ??= Build();\n");
-		sb.AppendLine($"\tExpression<System.Func<{entity.ToDisplayString()}, bool>> Build() {{");
-		sb.AppendLine($"\t\tvar x = Parameter<{entity.ToDisplayString()}>(\"x\");");
+		sb.AppendLine($"\tExpression<System.Func<global::{entity.ToDisplayString()}, bool>>? _predicate;");
+		sb.AppendLine($"\tpublic override Expression<System.Func<global::{entity.ToDisplayString()}, bool>> Predicate => _predicate ??= Build();\n");
+		sb.AppendLine($"\tExpression<System.Func<global::{entity.ToDisplayString()}, bool>> Build() {{");
+		sb.AppendLine($"\t\tvar x = Parameter<global::{entity.ToDisplayString()}>(\"x\");");
 		sb.AppendLine("\t\tExpression body = TrueConstant;");
 
 		// Apply properties
 		foreach (var d in cand.Descriptors.Where(x => x.Kind == DescriptorKind.Property))
 		{
 			if (d.IsComputed && d.RawExpression != null)
-				sb.AppendLine($"\t\tbody = And(body, ApplyComputed({d.Name}, ({entity.ToDisplayString()} {d.ParamName ?? "p"}) => {d.RawExpression}, x));");
+				sb.AppendLine($"\t\tbody = And(body, ApplyComputed({d.Name}, (global::{entity.ToDisplayString()} {d.ParamName ?? "p"}) => {d.RawExpression}, x));");
 			else
-				sb.AppendLine($"\t\tbody = And(body, ApplyProperty({d.Name}, x, nameof({entity.ToDisplayString()}.{d.SourceMember}))); ");
+				sb.AppendLine($"\t\tbody = And(body, ApplyProperty({d.Name}, x, nameof(global::{entity.ToDisplayString()}.{d.SourceMember}))); ");
 		}
 
 		// Apply navigations (nested filters)
 		foreach (var d in cand.Descriptors.Where(x => x.Kind == DescriptorKind.Navigation))
 			if (d.TargetFilterType is not null)
-				sb.AppendLine($"\t\tif (((IFilterOperation){d.Name}).IsDefined) body = And(body, ApplyNavigation({d.Name}.Predicate, Access(x, nameof({entity.ToDisplayString()}.{d.SourceMember})), true));");
+				sb.AppendLine($"\t\tif (((IFilterOperation){d.Name}).IsDefined) body = And(body, ApplyNavigation({d.Name}.Predicate, Access(x, nameof(global::{entity.ToDisplayString()}.{d.SourceMember})), true));");
 
 		// Apply scalar collections (operation node)
 		foreach (var d in cand.Descriptors.Where(x => x.Kind == DescriptorKind.CollectionScalar))
-			sb.AppendLine($"\t\tif (((IFilterOperation){d.Name}).IsDefined) body = And(body, ApplyScalarCollection(Access(x, nameof({entity.ToDisplayString()}.{d.SourceMember})), {d.Name}));");
+			sb.AppendLine($"\t\tif (((IFilterOperation){d.Name}).IsDefined) body = And(body, ApplyScalarCollection(Access(x, nameof(global::{entity.ToDisplayString()}.{d.SourceMember})), {d.Name}));");
 
 		// Apply navigation collections (operation node)
 		foreach (var d in cand.Descriptors.Where(x => x.Kind == DescriptorKind.NavigationCollection))
 			if (d.CollectionElementFilterType is not null && d.CollectionElementEntityType is not null)
-				sb.AppendLine($"\t\tif (((IFilterOperation){d.Name}).IsDefined) body = And(body, ApplyNavigationCollection(Access(x, nameof({entity.ToDisplayString()}.{d.SourceMember})), {d.Name}));");
+				sb.AppendLine($"\t\tif (((IFilterOperation){d.Name}).IsDefined) body = And(body, ApplyNavigationCollection(Access(x, nameof(global::{entity.ToDisplayString()}.{d.SourceMember})), {d.Name}));");
 
-		sb.AppendLine($"\t\treturn Expression.Lambda<System.Func<{entity.ToDisplayString()}, bool>>(body, x);");
+		sb.AppendLine($"\t\treturn Expression.Lambda<System.Func<global::{entity.ToDisplayString()}, bool>>(body, x);");
 		sb.AppendLine("\t}");
 		sb.AppendLine("}");
 

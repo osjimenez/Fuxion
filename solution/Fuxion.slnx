@@ -35,6 +35,10 @@
     <Project Path="test/Application/Fuxion.Application.Test.csproj" />
     <Project Path="test/AspNetCore.Service/Fuxion.AspNetCore.Service.csproj" />
     <Project Path="test/AspNetCore/Fuxion.AspNetCore.Test.csproj" />
+    <Project Path="test/Dataset.EntityFramework/Test.Dataset.EntityFramework.csproj" />
+    <Project Path="test/Dataset.EntityFrameworkCore.SqlServer/Test.Dataset.EntityFrameworkCore.SqlServer.csproj" />
+    <Project Path="test/Dataset.EntityFrameworkCore.MongoDB/Test.Dataset.EntityFrameworkCore.MongoDB.csproj"/>
+    <Project Path="test/Dataset/Test.Dataset.csproj" />
     <Project Path="test/Domain/Fuxion.Domain.Test.csproj" />
     <Project Path="test/EntityFramework/Fuxion.EntityFramework.Test.csproj" />
     <Project Path="test/Fuxion/Fuxion.Test.csproj" />
@@ -42,11 +46,9 @@
     <Project Path="test/Identity.DatabaseTest/Fuxion.Identity.DatabaseTest.csproj" />
     <Project Path="test/Identity/Fuxion.Identity.Test.csproj" />
     <Project Path="test/Licensing/Fuxion.Licensing.Test.csproj" />
-    <Project Path="test/Linq.Data/Fuxion.Linq.Test.Data.csproj" />
-    <Project Path="test/Linq.EntityFramework/Fuxion.Linq.Test.EntityFramework.csproj" />
-    <Project Path="test/Linq.EntityFrameworkCore/Fuxion.Linq.Test.EntityFrameworkCore.csproj" />
-    <Project Path="test/Linq/Fuxion.Linq.Test.csproj" />
+    <Project Path="test/Linq/Test.Linq.csproj" />
     <Project Path="test/Pods/Fuxion.Pods.Test.csproj" />
+
     <Project Path="test/Windows/Fuxion.Windows.Test.csproj" />
   </Folder>
   <Folder Name="/lab/">
@@ -69,7 +71,6 @@
     <File Path="Directory.Packages.props" />
   </Folder>
   <Folder Name="/sketches/">
-    <File Path="sketches/OneFile.cs" />
     <Project Path="sketches/DemoConsole/DemoConsole.csproj" />
     <Project Path="sketches/DemoCoreWpf/DemoCoreWpf.csproj" />
   </Folder>

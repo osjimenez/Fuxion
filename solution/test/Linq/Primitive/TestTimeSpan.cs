@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
-using Xunit;
 using Fuxion.Linq;
+using Xunit;
 
-namespace Fuxion.Linq.Test.Primitive;
+namespace Test.Linq.Primitive;
 
 public class TimeSpanDao
 {

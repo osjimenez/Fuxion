@@ -17,34 +17,39 @@
 		<PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
 		<PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.9.0" />
 		<PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.4.2" />
-		<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+		<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
 		<PackageVersion Include="Microsoft.Orleans.EventSourcing" Version="9.2.1" />
 		<PackageVersion Include="Microsoft.Orleans.Sdk" Version="9.2.1" />
 		<PackageVersion Include="Microsoft.Reactive.Testing" Version="6.0.2" />
 		<PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
 		<PackageVersion Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="170.121.2" />
 		<PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1" />
+		<PackageVersion Include="MongoDB.EntityFrameworkCore" Version="9.0.3" />
 		<PackageVersion Include="MQTTnet" Version="5.0.1.1416" />
 		<PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.12.0" />
 		<PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
 		<PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
 		<PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />
 		<PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
-		<PackageVersion Include="Polly" Version="8.6.3" />
+		<PackageVersion Include="Polly" Version="8.6.4" />
 		<PackageVersion Include="PolySharp" Version="1.15.0" />
 		<PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
-		<PackageVersion Include="ReactiveUI.WPF" Version="21.0.1" />
+		<PackageVersion Include="ReactiveUI.WPF" Version="22.1.1" />
 		<PackageVersion Include="Spectre.Console" Version="0.52.0" />
 		<PackageVersion Include="Spectre.Console.Json" Version="0.51.1" />
 		<PackageVersion Include="Swashbuckle.AspNetCore" Version="9.0.4" />
 		<PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
 		<PackageVersion Include="System.Net.Http" Version="4.3.4" />
 		<PackageVersion Include="System.Private.Uri" Version="4.3.2" />
-		<PackageVersion Include="System.Reactive" Version="6.0.2" />
+		<PackageVersion Include="System.Reactive" Version="6.1.0" />
+		<PackageVersion Include="Testcontainers.XunitV3" Version="4.8.0" />
+		<PackageVersion Include="Testcontainers.Redis" Version="4.8.0" />
+		<PackageVersion Include="Testcontainers.MsSql" Version="4.8.0" />
+		<PackageVersion Include="Testcontainers.MongoDb" Version="4.8.0" />
 		<PackageVersion Include="xunit.analyzers" Version="1.24.0" />
-		<PackageVersion Include="xunit.v3" Version="3.0.1" />
-		<PackageVersion Include="xunit.v3.assert" Version="3.0.1" />
-		<PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+		<PackageVersion Include="xunit.v3" Version="3.1.0" />
+		<PackageVersion Include="xunit.v3.assert" Version="3.1.0" />
+		<PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
 	</ItemGroup>
 	<!-- Packages in latest stable version -->
 	<PropertyGroup>

@@ -1,17 +1,38 @@
-﻿using System.Text;
-using System.Text.Json.Serialization;
-using Fuxion;
+﻿using Fuxion;
 using Fuxion.Licensing;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 using Spectre.Console;
+using System.Reflection;
+using System.Runtime.Loader;
+using System.Text;
+using System.Text.Json.Serialization;
 using Xunit;
+using AssemblyName = System.Reflection.AssemblyName;
 
 namespace DemoConsole;
 
+public class PluginLoadContext(string pluginPath) : AssemblyLoadContext(isCollectible: true)
+{
+	private readonly AssemblyDependencyResolver _resolver = new(pluginPath);
+
+	protected override Assembly? Load(AssemblyName assemblyName)
+	{
+		var assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
+		if (assemblyPath != null)
+			return LoadFromAssemblyPath(assemblyPath);
+
+		return null; // fallback al contexto default
+	}
+}
 public class Program
 {
 	public static void Main(string[] args)
 	{
+		var context = new PluginLoadContext("C:\\MisPlugins\\Plugin1\\Plugin1.dll");
+		var pluginAssembly = context.LoadFromAssemblyPath("C:\\MisPlugins\\Plugin1\\Plugin1.dll");
+		var pluginType = pluginAssembly.GetType("Plugin1.Main");
+		var plugin = pluginType is null ? null : Activator.CreateInstance(pluginType);
+
 		AnsiConsole.MarkupLine("[underline red]Hello[/] World!");
 		AnsiConsole.WriteLine();
 		var table = new Table();

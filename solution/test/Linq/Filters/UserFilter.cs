@@ -1,13 +1,13 @@
-using System;
-using Fuxion.Linq.Test.Data.Daos;
+using Fuxion.Linq;
+using Test.Dataset.Daos;
 
-namespace Fuxion.Linq.Test.Filters;
+namespace Test.Linq.Filters;
 
 [FilterSchema(nameof(Fields))]
 public partial class UserFilter
 {
 	public static readonly IFilterDescriptor<UserDao>[] Fields = FilterBuilder
-		.For<UserDao>()
+		.For<UserDao>("User", "Users")
 		.Property(u => u.UserId)
 		.Property(u => u.BirthDate)
 		.Property(u => u.FirstName, b => b.CaseInsensitive())

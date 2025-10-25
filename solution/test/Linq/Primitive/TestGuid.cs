@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
-using Xunit;
 using Fuxion.Linq;
+using Xunit;
 
-namespace Fuxion.Linq.Test.Primitive;
+namespace Test.Linq.Primitive;
 
 public class GuidDao
 {
@@ -14,7 +14,7 @@ public class GuidDao
 public partial class GuidFilter
 {
 	public static readonly IFilterDescriptor<GuidDao>[] Fields = FilterBuilder
-		.For<GuidDao>()
+		.For<GuidDao>("Guid", "Guids")
 		.Property(d => d.Property)
 		.Build();
 }

@@ -1,9 +1,8 @@
-using System;
 using System.Linq;
-using Xunit;
 using Fuxion.Linq;
+using Xunit;
 
-namespace Fuxion.Linq.Test.Primitive;
+namespace Test.Linq.Primitive;
 
 public class ByteDao
 {
@@ -14,7 +13,7 @@ public class ByteDao
 public partial class ByteFilter
 {
 	public static readonly IFilterDescriptor<ByteDao>[] Fields = FilterBuilder
-		.For<ByteDao>()
+		.For<ByteDao>("Byte", "Bytes")
 		.Property(d => d.Property)
 		.Build();
 }

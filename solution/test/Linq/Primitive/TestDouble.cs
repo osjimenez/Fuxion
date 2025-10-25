@@ -1,9 +1,8 @@
-using System;
 using System.Linq;
-using Xunit;
 using Fuxion.Linq;
+using Xunit;
 
-namespace Fuxion.Linq.Test.Primitive;
+namespace Test.Linq.Primitive;
 
 public class DoubleDao
 {
@@ -14,7 +13,7 @@ public class DoubleDao
 public partial class DoubleFilter
 {
 	public static readonly IFilterDescriptor<DoubleDao>[] Fields = FilterBuilder
-		.For<DoubleDao>()
+		.For<DoubleDao>("Double", "Doubles")
 		.Property(d => d.Property)
 		.Build();
 }

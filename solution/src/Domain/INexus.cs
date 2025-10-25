@@ -15,6 +15,22 @@ using Fuxion.Reflection;
 
 namespace Fuxion.Domain;
 
+//public static class Instance
+//{
+//	public static Guid InstanceId { get; } = Guid.CreateVersion7(DateTimeOffset.Now); //;Guid.NewGuid();
+
+//	public static Task Publish<TMessage, TScope>(TMessage message, TScope scope)
+//		where TMessage : notnull
+//		where TScope : IScope
+//	{
+//		return Task.CompletedTask;
+//	}
+
+//	public static Task<IDisposable> OnReceive(Action<IReceipt<object>> onMessageReceived)
+//	{
+//		throw new NotImplementedException();
+//	}
+//}
 public interface INexus : IInitializable
 {
 	string NodeType { get; }

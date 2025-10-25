@@ -5,9 +5,11 @@ using System.Reflection;
 
 namespace Fuxion.Linq;
 
-public sealed class FilterEntityBuilder<TEntity>
+public sealed class FilterEntityBuilder<TEntity>(string singularKey, string pluralKey)
 {
 	private readonly List<IFilterDescriptor<TEntity>> _fields = new();
+	public string SingularKey { get; } = singularKey;
+	public string PluralKey { get; } = pluralKey;
 
 	public FilterEntityBuilder<TEntity> Property<TField>(Expression<Func<TEntity, TField>> selector,
 		Action<FilterPropertyBuilder<TEntity, TField>>? configure = null)

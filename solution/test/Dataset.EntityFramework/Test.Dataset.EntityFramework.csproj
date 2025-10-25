@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(OldFrameworks)</TargetFrameworks>
+		<OutputType>Library</OutputType>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="EntityFramework" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Dataset\Test.Dataset.csproj" />
+	</ItemGroup>
+
+</Project>

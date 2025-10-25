@@ -1,9 +1,8 @@
-using System;
 using System.Linq;
-using Xunit;
 using Fuxion.Linq;
+using Xunit;
 
-namespace Fuxion.Linq.Test.Primitive;
+namespace Test.Linq.Primitive;
 
 public class FloatDao
 {
@@ -14,7 +13,7 @@ public class FloatDao
 public partial class FloatFilter
 {
 	public static readonly IFilterDescriptor<FloatDao>[] Fields = FilterBuilder
-		.For<FloatDao>()
+		.For<FloatDao>("Float", "Floats")
 		.Property(d => d.Property)
 		.Build();
 }

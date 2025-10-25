@@ -1,9 +1,8 @@
-using System;
 using System.Linq;
-using Xunit;
 using Fuxion.Linq;
+using Xunit;
 
-namespace Fuxion.Linq.Test.Primitive;
+namespace Test.Linq.Primitive;
 
 public class NullableByteDao
 {
@@ -14,7 +13,7 @@ public class NullableByteDao
 public partial class NullableByteFilter
 {
 	public static readonly IFilterDescriptor<NullableByteDao>[] Fields = FilterBuilder
-		.For<NullableByteDao>()
+		.For<NullableByteDao>("NullableByte", "NullableBytes")
 		.Property(d => d.Property)
 		.Build();
 }

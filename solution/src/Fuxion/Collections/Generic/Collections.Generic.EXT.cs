@@ -71,7 +71,7 @@ public static class Extensions
 		}
 		return res;
 	}
-	public static bool IsNullOrEmpty<T>(this IEnumerable<T>? me) => me == null || !me.Any();
+	public static bool IsNullOrEmpty<T>([NotNullWhen(false)]this IEnumerable<T>? me) => me == null || !me.Any();
 	
 	// Remove outliers: http://www.ehow.com/how_5201412_calculate-outliers.html
 	public static IEnumerable<int> RemoveOutliers(this IEnumerable<int> list, Action<string>? outputConsole = null)

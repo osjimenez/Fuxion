@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
-using Xunit;
 using Fuxion.Linq;
+using Xunit;
 
-namespace Fuxion.Linq.Test.Primitive;
+namespace Test.Linq.Primitive;
 
 public class LongDao
 {
@@ -14,7 +14,7 @@ public class LongDao
 public partial class LongFilter
 {
 	public static readonly IFilterDescriptor<LongDao>[] Fields = FilterBuilder
-		.For<LongDao>()
+		.For<LongDao>("Long", "Longs")
 		.Property(d => d.Property)
 		.Build();
 }

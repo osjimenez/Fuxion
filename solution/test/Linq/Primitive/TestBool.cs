@@ -1,9 +1,8 @@
-using System;
 using System.Linq;
-using Xunit;
 using Fuxion.Linq;
+using Xunit;
 
-namespace Fuxion.Linq.Test.Primitive;
+namespace Test.Linq.Primitive;
 
 public class BoolDao
 {
@@ -14,7 +13,7 @@ public class BoolDao
 public partial class BoolFilter
 {
 	public static readonly IFilterDescriptor<BoolDao>[] Fields = FilterBuilder
-		.For<BoolDao>()
+		.For<BoolDao>("Boolean","Booleans")
 		.Property(d => d.Property)
 		.Build();
 }
