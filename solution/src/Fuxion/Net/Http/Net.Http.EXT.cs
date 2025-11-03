@@ -72,6 +72,7 @@ public static class Extensions
 		);
 		if (!strContent.IsNullOrEmpty())
 		{
+			
 			if (res.Content.Headers.ContentType?.MediaType == "application/problem+json")
 			{
 				try
@@ -86,6 +87,18 @@ public static class Extensions
 			}
 			if (problem is null)
 			{
+				try
+				{
+					var jsonContent = JsonNode.Parse(strContent);
+					if (jsonContent is not null)
+						extensions.Add(jsonContent.GetValueKind() == JsonValueKind.String
+							? (StringContentKey, jsonContent)
+							: (JsonContentKey, jsonContent));
+				}
+				catch
+				{
+					extensions.Add((StringContentKey, strContent));
+				}
 				if (deserializationType is not null)
 				{
 					try
@@ -95,21 +108,6 @@ public static class Extensions
 					catch (Exception ex)
 					{
 						extensions.Add((JsonErrorKey, JsonNode.Parse(ex.SerializeToJson(options: jsonOptions))));
-					}
-				}
-				if (deserializedBody is null)
-				{
-					try
-					{
-						var jsonContent = JsonNode.Parse(strContent);
-						if (jsonContent is not null)
-							extensions.Add(jsonContent.GetValueKind() == JsonValueKind.String
-								? (StringContentKey, jsonContent)
-								: (JsonContentKey, jsonContent));
-					}
-					catch
-					{
-						extensions.Add((StringContentKey, strContent));
 					}
 				}
 			}

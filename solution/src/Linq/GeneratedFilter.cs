@@ -10,16 +10,16 @@ namespace Fuxion.Linq;
 public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 {
 	public static readonly MethodInfo AnyMethod = typeof(Enumerable).GetMethods()
-		.First(m => m.Name == nameof(Enumerable.Any) && m.GetParameters().Length == 2);
+		.First(m => m.Name == nameof(Enumerable.Any) && m.GetParameters().Length ==2);
 
 	public static readonly MethodInfo AllMethod = typeof(Enumerable).GetMethods()
-		.First(m => m.Name == nameof(Enumerable.All) && m.GetParameters().Length == 2);
+		.First(m => m.Name == nameof(Enumerable.All) && m.GetParameters().Length ==2);
 
 	protected static readonly Expression TrueConstant = Expression.Constant(true);
 	protected static readonly Expression FalseConstant = Expression.Constant(false);
 
 	internal static readonly MethodInfo ContainsGeneric = typeof(Enumerable).GetMethods()
-		.First(m => m.Name == nameof(Enumerable.Contains) && m.GetParameters().Length == 2);
+		.First(m => m.Name == nameof(Enumerable.Contains) && m.GetParameters().Length ==2);
 
 	private static readonly MethodInfo _toLower = typeof(string).GetMethod(nameof(string.ToLower), Type.EmptyTypes)!;
 
@@ -73,8 +73,8 @@ public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 	}
 
 	/// <summary>
-	///    Aplica operaciones de un nodo de filtro sobre una propiedad escalar (nombre de propiedad) devolviendo la expresión
-	///    resultante.
+	/// Aplica operaciones de un nodo de filtro sobre una propiedad escalar (nombre de propiedad) devolviendo la expresión
+	/// resultante.
 	/// </summary>
 	protected static Expression ApplyProperty<T>(IFilterOperation<T> ops, ParameterExpression root, string propertyName)
 	{
@@ -82,7 +82,7 @@ public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 	}
 
 	/// <summary>
-	///    Aplica operaciones de un nodo sobre una expresión (propiedad o computada) ya construida.
+	/// Aplica operaciones de un nodo sobre una expresión (propiedad o computada) ya construida.
 	/// </summary>
 	protected static Expression ApplyProperty<T>(IFilterOperation<T> ops, Expression selector)
 	{
@@ -90,7 +90,7 @@ public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 	}
 
 	/// <summary>
-	///    Aplica operaciones de un nodo de filtro sobre una expresión computada definida por un lambda relativo al root.
+	/// Aplica operaciones de un nodo de filtro sobre una expresión computada definida por un lambda relativo al root.
 	/// </summary>
 	protected static Expression ApplyComputed<T>(IFilterOperation<T> ops, Expression<Func<TEntity, T>> selector,
 		ParameterExpression root)
@@ -99,7 +99,7 @@ public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 	}
 
 	/// <summary>
-	///    Construye la expresión para una colección escalar aplicando bloques AnyAnd, AnyOr y All.
+	/// Construye la expresión para una colección escalar aplicando bloques AnyAnd, AnyOr y All.
 	/// </summary>
 	protected static Expression ApplyScalarCollection<TElement>(Expression collectionAccess,
 		IReadOnlyList<FilterOperations<TElement>> anyAnd, IReadOnlyList<FilterOperations<TElement>> anyOr,
@@ -283,7 +283,7 @@ public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 				body = And(body, isNullable ? Expression.AndAlso(hasValueExpr!, cmp) : cmp);
 			}
 
-			if (ops.InSpecified && ops.In is { Count: > 0 })
+			if (ops.InSpecified && ops.In is { Count: >0 })
 			{
 				var method = ContainsGeneric.MakeGenericMethod(typeof(T));
 				var inCall = Expression.Call(method, Expression.Constant(ops.In), selector);
@@ -393,7 +393,8 @@ public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 		if (allPredicate != null)
 		{
 			// Necesitamos unificar el parámetro del lambda de cada Predicate
-			var p = Parameter<TChildEntity>("ce");
+			var paramName = GetEntitySingularKeyOrDefault<TChildFilter>("ce").ToCamelCase();
+			var p = Parameter<TChildEntity>(paramName);
 
 			Expression Rebind(LambdaExpression lam)
 			{
@@ -428,5 +429,34 @@ public abstract class GeneratedFilter<TEntity> : Filter<TEntity>
 		{
 			return node == from ? to : base.VisitParameter(node);
 		}
+	}
+
+	// Helper to obtain the singular key from a generated child filter type
+	protected static string GetEntitySingularKeyOrDefault<TFilter>(string @default)
+	{
+		var t = typeof(TFilter);
+		// Try constant field first (preferred as it's compile-time constant in generated class)
+		var f = t.GetField("SingularKey", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+		if (f != null && f.FieldType == typeof(string))
+		{
+			try
+			{
+				var val = f.IsLiteral ? (string?)f.GetRawConstantValue() : (string?)f.GetValue(null);
+				if (!string.IsNullOrWhiteSpace(val)) return val!;
+			}
+			catch { /* ignore */ }
+		}
+		// Try static property fallback
+		var p = t.GetProperty("SingularKey", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+		if (p != null && p.PropertyType == typeof(string))
+		{
+			try
+			{
+				var val = p.GetValue(null) as string;
+				if (!string.IsNullOrWhiteSpace(val)) return val!;
+			}
+			catch { /* ignore */ }
+		}
+		return @default;
 	}
 }

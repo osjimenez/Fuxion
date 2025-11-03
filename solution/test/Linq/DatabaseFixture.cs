@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Test.Dataset;
 using Testcontainers.MsSql;
 using Xunit;
@@ -33,7 +34,7 @@ public class DatabaseFixture : IDisposable, IAsyncDisposable
 		_dbSqlServer = await SqlServerDbContext.CreateAsync(_sqlContainer.GetConnectionString(), "FuxionTest");
 		res.Add(_dbSqlServer);
 #else
-		_dbSqlServer = await SqlServerDbContext.CreateSync(_sqlContainer.GetConnectionString(), "FuxionTestCore");
+		_dbSqlServer = await SqlServerDbContext.CreateAsync(_sqlContainer.GetConnectionString(), "FuxionTestCore");
 		res.Add(_dbSqlServer);
 #if NET9_0 || NET8_0 // PEND Allow MongoDB support in .NET 10
 		_dbMongo = await MongoDbContext.CreateAsync(_mongoContainer.GetConnectionString(), "FuxionTest");

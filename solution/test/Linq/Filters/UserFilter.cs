@@ -1,3 +1,4 @@
+using System.Linq;
 using Fuxion.Linq;
 using Test.Dataset.Daos;
 

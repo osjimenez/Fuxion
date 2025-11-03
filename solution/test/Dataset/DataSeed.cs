@@ -269,7 +269,7 @@ public static class DataSeed
 				}
 			},
 			{
-				("",""), new()
+				("A","0002"), new()
 				{
 					InvoiceId = Guid.Parse("{586200F5-B53A-49D6-BA8F-2B7D3CEF6BC7}"),
 					InvoiceCode = "0002",
@@ -309,6 +309,29 @@ public static class DataSeed
 				UpdatedAtUtc = aliceInvoice1CreationDate
 			}
 		];
+		var aliceInvoiceAppointment1CreationDate = aliceCreationTime + 10.Days + 1.Hours + 51.Minutes;
+		var bobUserAppoinmentCreationDate = bobCreationTime + 5.Days + 12.Hours + 33.Minutes;
+		Appointments = new Dictionary<string, AppointmentDao>
+		{
+			{
+				("A-0001"), new()
+				{
+					AppointmentId = Guid.Parse("{CB55DDBC-3A39-4220-89B8-15846481A7F1}"),
+					ExternalId = "A-0001",
+					AppointmentDate = aliceInvoiceAppointment1CreationDate,
+					Payload = "Appointment for A-0001",
+				}
+			},
+			{
+				("B396147A-8261-4476-962D-0A52E726A936"), new()
+				{
+					AppointmentId = Guid.Parse("{E0DAB6F1-AAE0-491B-933B-1BA9B3B3B2C8}"),
+					ExternalId = "b396147a-8261-4476-962d-0a52e726a936",
+					AppointmentDate = bobUserAppoinmentCreationDate,
+					Payload = "Appointment for Bob",
+				}
+			}
+		};
 		// Set invoice lines
 		foreach (var invoice in Invoices.Values)
 			invoice.Lines = InvoiceLines.Where(il => il.InvoiceId == invoice.InvoiceId).ToList();
@@ -317,7 +340,6 @@ public static class DataSeed
 			user.Invoices = Invoices.Values.Where(i => i.CustomerId == user.UserId).ToList();
 	}
 
-	//public static DateTime startSeedDate = DateTime.Parse("2025-01-01T14:00:00");
 	public static IReadOnlyDictionary<string, CountryDao> Countries { get; }
 	public static IReadOnlyDictionary<string, StateDao> States { get; }
 	public static IReadOnlyDictionary<string, CityDao> Cities { get; }
@@ -325,4 +347,32 @@ public static class DataSeed
 	public static IReadOnlyDictionary<string, UserDao> Users { get; }
 	public static IReadOnlyDictionary<(string,string), InvoiceDao> Invoices { get; }
 	public static IReadOnlyList<InvoiceLineDao> InvoiceLines { get; }
+	public static IReadOnlyDictionary<string, AppointmentDao> Appointments { get; }
+
+	public static ITestDataContext DataContext { get; } = new StaticDataContext();
+	class StaticDataContext : ITestDataContext
+	{
+		public string Name => "Static";
+
+		public IQueryable<TDao> Get<TDao>() where TDao : class
+		{
+			if (typeof(TDao) == typeof(CountryDao))
+				return Countries.Values.Cast<TDao>().AsQueryable();
+			if (typeof(TDao) == typeof(StateDao))
+				return States.Values.Cast<TDao>().AsQueryable();
+			if (typeof(TDao) == typeof(CityDao))
+				return Cities.Values.Cast<TDao>().AsQueryable();
+			if (typeof(TDao) == typeof(AddressDao))
+				return Addresses.Values.Cast<TDao>().AsQueryable();
+			if (typeof(TDao) == typeof(UserDao))
+				return Users.Values.Cast<TDao>().AsQueryable();
+			if (typeof(TDao) == typeof(InvoiceDao))
+				return Invoices.Values.Cast<TDao>().AsQueryable();
+			if (typeof(TDao) == typeof(InvoiceLineDao))
+				return InvoiceLines.Cast<TDao>().AsQueryable();
+			if (typeof(TDao) == typeof(AppointmentDao))
+				return Appointments.Values.Cast<TDao>().AsQueryable();
+			throw new NotSupportedException($"Type {typeof(TDao).GetSignature()} is not supported by StaticDataContext.");
+		}
+	}
 }

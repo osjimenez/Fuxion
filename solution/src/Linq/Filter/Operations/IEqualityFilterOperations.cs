@@ -1,5 +1,9 @@
 ﻿namespace Fuxion.Linq.Filter.Operations;
 
+using System;
+using System.Data.SqlTypes;
+using System.Linq.Expressions;
+
 public interface IEqualityFilterOperations<T> :
 	IEqualFilterOperation<T>,
 	INotEqualFilterOperation<T>;

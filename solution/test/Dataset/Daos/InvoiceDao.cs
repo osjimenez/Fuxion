@@ -43,3 +43,5 @@ public class InvoiceLineDao : BaseDao
 		set;
 	}
 }
+
+// INFO This class is intentionally defined without a foreign key relationship to test specific scenarios

@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Fuxion;
 using Fuxion.Linq;
 using Fuxion.Xunit;
+using Test.Dataset.Daos;
 #if STANDARD_OR_OLD_FRAMEWORKS
 using System.Data.Entity;
 #else
@@ -52,19 +54,26 @@ public abstract class FilterTest<TFilterTest, TDao>(ITestOutputHelper output, Da
 #endif
 	public async Task TestDatabase(string dataContext)
 	{
-		(await database.GetData()).ActiveDataContextName = dataContext;
-		var predicateCount = await (await database.GetData())
+		var data = await database.GetData();
+		data.ActiveDataContextName = dataContext;
+		Fil<TDao, IQueryable<AppointmentDao>> fil1 = new();
+		Fil<TDao, IQueryable<AppointmentDao>, string> fil2 = new();
+		var predicateCount = await data
 			.Get<TDao>()
 			.Where(Predicate)
 			.CountAsync(TestContext.Current.CancellationToken);
-		var filterCount = await (await database.GetData())
+		var filterCount = await data
 			.Get<TDao>()
 			.Filter(Filter)
+			.Filter(fil1, data.Get<AppointmentDao>())
+			.Filter(fil2, data.Get<AppointmentDao>(), "")
 			.CountAsync(TestContext.Current.CancellationToken);
 		PrintVariable(predicateCount);
 		PrintVariable(filterCount);
 		Assert.Equal(predicateCount, filterCount);
 	}
+
+	// Filtros unique o identity (solo devuelven una entidad)
 
 	// Test para usar un filtro suelto
 

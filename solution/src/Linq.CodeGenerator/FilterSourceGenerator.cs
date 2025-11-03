@@ -81,6 +81,27 @@ public sealed class FilterSourceGenerator : IIncrementalGenerator
 		var sm = compilation.GetSemanticModel(tree);
 		return new FilterSourceGenerator().InferEntityType(field, sm, ct); // use same logic
 	}
+
+	private static (string? Singular, string? Plural) ExtractKeysFromFor(ExpressionSyntax root, SemanticModel model, CancellationToken ct)
+	{
+		foreach (var inv in root.DescendantNodes().OfType<InvocationExpressionSyntax>())
+		{
+			if (inv.Expression is not MemberAccessExpressionSyntax me) continue;
+			if (me.Name is GenericNameSyntax g && g.Identifier.Text == "For" && g.TypeArgumentList.Arguments.Count == 1)
+			{
+				var args = inv.ArgumentList?.Arguments;
+				if (args != null && args.Value.Count >= 2)
+				{
+					var s1 = model.GetConstantValue(args.Value[0].Expression, ct);
+					var s2 = model.GetConstantValue(args.Value[1].Expression, ct);
+					var singular = s1.HasValue ? s1.Value as string : null;
+					var plural = s2.HasValue ? s2.Value as string : null;
+					return (singular, plural);
+				}
+			}
+		}
+		return (null, null);
+	}
 	#endregion
 
 	#region Transform
@@ -116,21 +137,21 @@ public sealed class FilterSourceGenerator : IIncrementalGenerator
 		if (string.IsNullOrWhiteSpace(member))
 		{
 			diags.Add(Diagnostic.Create(DxMissingAttributeArg, attr.GetLocation(), symbol.Name));
-			return new(symbol, null, null, null, null, ImmutableArray<Descriptor>.Empty, diags.ToImmutable(), true);
+			return new(symbol, null, null, null, null, ImmutableArray<Descriptor>.Empty, diags.ToImmutable(), true, null, null);
 		}
 
 		var field = symbol.GetMembers().FirstOrDefault(m => m.Name == member && m is IFieldSymbol fs && fs.IsStatic) as IFieldSymbol;
 		if (field == null)
 		{
 			diags.Add(Diagnostic.Create(DxMemberNotFound, cls.Identifier.GetLocation(), member, symbol.Name));
-			return new(symbol, null, member, null, null, ImmutableArray<Descriptor>.Empty, diags.ToImmutable(), true);
+			return new(symbol, null, member, null, null, ImmutableArray<Descriptor>.Empty, diags.ToImmutable(), true, null, null);
 		}
 
 		var entity = InferEntityType(field, model, ct);
 		if (entity == null)
 		{
 			diags.Add(Diagnostic.Create(DxCannotInferEntity, cls.Identifier.GetLocation(), symbol.Name));
-			return new(symbol, field, member, null, null, ImmutableArray<Descriptor>.Empty, diags.ToImmutable(), true);
+			return new(symbol, field, member, null, null, ImmutableArray<Descriptor>.Empty, diags.ToImmutable(), true, null, null);
 		}
 
 		var syntaxRef = field.DeclaringSyntaxReferences.FirstOrDefault();
@@ -138,18 +159,19 @@ public sealed class FilterSourceGenerator : IIncrementalGenerator
 		if (vds?.Initializer?.Value == null)
 		{
 			diags.Add(Diagnostic.Create(DxNoInitializer, cls.Identifier.GetLocation(), member, symbol.Name));
-			return new(symbol, field, member, entity, vds, ImmutableArray<Descriptor>.Empty, diags.ToImmutable(), true);
+			return new(symbol, field, member, entity, vds, ImmutableArray<Descriptor>.Empty, diags.ToImmutable(), true, null, null);
 		}
 
 		var descriptors = ExtractDescriptors(vds.Initializer.Value, model, ct, diags).ToList();
 		if (descriptors.Count == 0)
 		{
 			diags.Add(Diagnostic.Create(DxNoDescriptors, cls.Identifier.GetLocation(), member, symbol.Name));
-			return new(symbol, field, member, entity, vds, ImmutableArray<Descriptor>.Empty, diags.ToImmutable(), true);
+			return new(symbol, field, member, entity, vds, ImmutableArray<Descriptor>.Empty, diags.ToImmutable(), true, null, null);
 		}
 
+		var keys = ExtractKeysFromFor(vds.Initializer.Value, model, ct);
 		diags.Add(Diagnostic.Create(DxInfo, cls.Identifier.GetLocation(), $"FilterGenerator: {symbol.Name} -> {descriptors.Count} descriptor(s)"));
-		return new(symbol, field, member, entity, vds, descriptors.ToImmutableArray(), diags.ToImmutable(), false);
+		return new(symbol, field, member, entity, vds, descriptors.ToImmutableArray(), diags.ToImmutable(), false, keys.Singular, keys.Plural);
 	}
 
 	private IEnumerable<Descriptor> ExtractDescriptors(ExpressionSyntax root, SemanticModel model, CancellationToken ct, ImmutableArray<Diagnostic>.Builder diags)
@@ -292,6 +314,12 @@ public sealed class FilterSourceGenerator : IIncrementalGenerator
 		sb.AppendLine("[JsonConverter(typeof(FilterConverterFactory))]");
 		sb.AppendLine($"public partial class {filter.Name} : GeneratedFilter<global::{entity.ToDisplayString()}> ");
 		sb.AppendLine("{");
+		// Keys from FilterBuilder.For
+		var singular = cand.SingularKey ?? entity.Name;
+		var plural = cand.PluralKey ?? (entity.Name + "s");
+		sb.AppendLine($"\tpublic const string SingularKey = \"{singular}\";");
+		sb.AppendLine($"\tpublic const string PluralKey = \"{plural}\";\n");
+
 		sb.AppendLine("\t// PROPERTIES / COLLECTIONS / NAVIGATIONS\n");
 
 		// Scalar properties & computed
@@ -363,7 +391,7 @@ public sealed class FilterSourceGenerator : IIncrementalGenerator
 		sb.AppendLine($"\tExpression<System.Func<global::{entity.ToDisplayString()}, bool>>? _predicate;");
 		sb.AppendLine($"\tpublic override Expression<System.Func<global::{entity.ToDisplayString()}, bool>> Predicate => _predicate ??= Build();\n");
 		sb.AppendLine($"\tExpression<System.Func<global::{entity.ToDisplayString()}, bool>> Build() {{");
-		sb.AppendLine($"\t\tvar x = Parameter<global::{entity.ToDisplayString()}>(\"x\");");
+		sb.AppendLine($"\t\tvar x = Parameter<global::{entity.ToDisplayString()}>(Fuxion.Extensions.ToCamelCase(SingularKey));");
 		sb.AppendLine("\t\tExpression body = TrueConstant;");
 
 		// Apply properties
@@ -406,7 +434,9 @@ public sealed class FilterSourceGenerator : IIncrementalGenerator
 		VariableDeclaratorSyntax? FieldSyntax,
 		ImmutableArray<Descriptor> Descriptors,
 		ImmutableArray<Diagnostic> Diagnostics,
-		bool SkipGeneration);
+		bool SkipGeneration,
+		string? SingularKey,
+		string? PluralKey);
 
 	private record Descriptor(
 		string Name,

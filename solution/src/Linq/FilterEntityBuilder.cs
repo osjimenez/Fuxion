@@ -5,12 +5,25 @@ using System.Reflection;
 
 namespace Fuxion.Linq;
 
+//public class FilterPropertyWithExternalDataBuilder<TEntity, TExternalData>
+//{
+//	public FilterEntityBuilder<TEntity> Property<TField>(string name, Expression<Func<TEntity, TExternalData, TField>> selector,
+//		Action<FilterPropertyBuilder<TEntity, TField>>? configure = null)
+//	{
+		
+//	}
+//}
 public sealed class FilterEntityBuilder<TEntity>(string singularKey, string pluralKey)
 {
 	private readonly List<IFilterDescriptor<TEntity>> _fields = new();
 	public string SingularKey { get; } = singularKey;
 	public string PluralKey { get; } = pluralKey;
 
+	//public FilterPropertyWithExternalDataBuilder<TEntity, TExternalData> WithExternalData<TExternalData>(string name)
+	//{
+
+	//}
+	
 	public FilterEntityBuilder<TEntity> Property<TField>(Expression<Func<TEntity, TField>> selector,
 		Action<FilterPropertyBuilder<TEntity, TField>>? configure = null)
 	{
@@ -26,7 +39,7 @@ public sealed class FilterEntityBuilder<TEntity>(string singularKey, string plur
 	public FilterEntityBuilder<TEntity> Computed<TField>(string name, Expression<Func<TEntity, TField>> selector,
 		Action<FilterPropertyBuilder<TEntity, TField>>? configure = null)
 	{
-		if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Name required", nameof(name));
+		if (name.IsNullOrWhiteSpace()) throw new ArgumentException("Name required", nameof(name));
 		var b = FilterPropertyDescriptor<TEntity, TField>.Create();
 		configure?.Invoke(b);
 		_fields.Add(b.Build());

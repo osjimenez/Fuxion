@@ -12,7 +12,7 @@ namespace Test.Dataset.EntityFrameworkCore.SqlServer;
 
 public class SqlServerDbContext(DbContextOptions<SqlServerDbContext> options) : DbContext(options), ITestDataContext
 {
-	public static async Task<SqlServerDbContext> CreateSync(string connectionString, string databaseName)
+	public static async Task<SqlServerDbContext> CreateAsync(string connectionString, string databaseName)
 	{
 		DbContextOptionsBuilder<SqlServerDbContext> builderSqlServer = new();
 		SqlConnectionStringBuilder scsb = new(connectionString)
@@ -30,6 +30,7 @@ public class SqlServerDbContext(DbContextOptions<SqlServerDbContext> options) : 
 		await dbSqlServer.Set<AddressDao>().AddRangeAsync(DataSeed.Addresses.Values.ToList());
 		await dbSqlServer.Set<UserDao>().AddRangeAsync(DataSeed.Users.Values.ToList());
 		await dbSqlServer.Set<InvoiceDao>().AddRangeAsync(DataSeed.Invoices.Values.ToList());
+		await dbSqlServer.Set<AppointmentDao>().AddRangeAsync(DataSeed.Appointments.Values.ToList());
 		await dbSqlServer.SaveChangesAsync();
 		return dbSqlServer;
 	}
@@ -46,5 +47,6 @@ public class SqlServerDbContext(DbContextOptions<SqlServerDbContext> options) : 
 		modelBuilder.ApplyConfiguration(new UserConfiguration());
 		modelBuilder.ApplyConfiguration(new InvoiceConfiguration());
 		modelBuilder.ApplyConfiguration(new InvoiceLineConfiguration());
+		modelBuilder.ApplyConfiguration(new AppointmentConfiguration());
 	}
 }

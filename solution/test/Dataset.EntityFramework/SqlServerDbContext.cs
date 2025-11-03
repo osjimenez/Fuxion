@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Test.Dataset.Daos;
 using Test.Dataset.EntityFramework.Configuration;
+using Test.Dataset.EntityFrameworkCore.SqlServer.Configuration;
 
 namespace Test.Dataset.EntityFramework;
 
@@ -27,6 +28,7 @@ public class SqlServerDbContext(string connectionString) : DbContext(connectionS
 		dbSqlServer.Set<AddressDao>().AddRange(DataSeed.Addresses.Values.ToList());
 		dbSqlServer.Set<UserDao>().AddRange(DataSeed.Users.Values.ToList());
 		dbSqlServer.Set<InvoiceDao>().AddRange(DataSeed.Invoices.Values.ToList());
+		dbSqlServer.Set<AppointmentDao>().AddRange(DataSeed.Appointments.Values.ToList());
 		await dbSqlServer.SaveChangesAsync();
 		return dbSqlServer;
 	}
@@ -43,5 +45,6 @@ public class SqlServerDbContext(string connectionString) : DbContext(connectionS
 		modelBuilder.Configurations.Add(new UserConfiguration());
 		modelBuilder.Configurations.Add(new InvoiceConfiguration());
 		modelBuilder.Configurations.Add(new InvoiceLineConfiguration());
+		modelBuilder.Configurations.Add(new AppointmentConfiguration());
 	}
 }

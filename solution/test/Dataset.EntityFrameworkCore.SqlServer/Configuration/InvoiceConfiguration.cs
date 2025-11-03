@@ -19,5 +19,8 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<InvoiceDao>
 		builder.Property(x => x.InvoiceCode)
 			.HasMaxLength(100)
 			.IsRequired();
+
+		builder.HasIndex(i => new { i.InvoiceSerie, i.InvoiceCode })
+			.IsUnique();
 	}
 }
