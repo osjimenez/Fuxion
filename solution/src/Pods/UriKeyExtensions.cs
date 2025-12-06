@@ -53,7 +53,7 @@ public static class UriKeyExtensions
 					if (type.IsConstructedGenericType)
 					{
 						query[UriKey.GenericsParameterName] = type.GetGenericArguments()
-							.Select(g => Encoding.UTF8.GetBytes(g.GetUriKey(includeSystemTypes).ToString()).ToBase64UrlString())
+							.Select(g => g.GetUriKey(includeSystemTypes).ToString().Fx.Encoding.DecodeFromBase64Url())
 							.Aggregate("", (c, a) => c + UriKey.ParameterSeparator + a, c => c.Trim(UriKey.ParameterSeparator));
 					} else
 					{
@@ -70,7 +70,7 @@ public static class UriKeyExtensions
 				if (interfaces.Count > 0)
 				{
 					query[UriKey.InterfacesParameterName] = interfaces
-						.Select(i => Encoding.UTF8.GetBytes(i.GetUriKey(includeSystemTypes).ToString()).ToBase64UrlString())
+						.Select(i => i.GetUriKey(includeSystemTypes).ToString().Fx.Encoding.DecodeFromBase64Url())
 						.Aggregate("", (c, a) => c + UriKey.ParameterSeparator + a, c => c.Trim(UriKey.ParameterSeparator));
 				}
 				ub.Query = query.ToString();
@@ -137,8 +137,7 @@ public static class UriKeyExtensions
 				// PEND Search all IsBaseOf to apply this change if necessary
 				if (@base.Value.Uri.IsBaseOf(lastKeyUri))
 					throw new UriKeyResetException($"The uri '{lastKeyUri}' of the reset type '{lastKeyType.GetSignature()}' cannot be based on previous uri '{@base.Value.Uri}' of type '{@base.Value.Type.GetSignature()}'");
-				keyChain += Encoding.UTF8.GetBytes(current.Uri.ToString())
-					.ToBase64UrlString()+UriKey.ParameterSeparator;
+				keyChain += current.Uri.ToString().Fx.Encoding.DecodeFromBase64Url() + UriKey.ParameterSeparator;
 			}
 			if (!string.IsNullOrWhiteSpace(keyChain))
 			{

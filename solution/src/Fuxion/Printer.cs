@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Fuxion.Text.Json;
 using Fuxion.Threading;
 using Extensions = Fuxion.Extensions;
 
@@ -192,7 +193,7 @@ class PrinterInstance : IPrinter
 				if (!dic.ContainsKey(currentIndentationLevel)) dic.Add(currentIndentationLevel, verticalConnectorChar!.Value);
 			});
 		IndentationLevel++;
-		return o.AsDisposable(_ => {
+		return o.Fx.Lifetime.AsDisposable(_ => {
 			if (IndentationLevel > 0) IndentationLevel--;
 			verticalConnectorLevels.Write(dic => dic.Remove(currentIndentationLevel));
 		});

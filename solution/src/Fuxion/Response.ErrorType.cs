@@ -6,8 +6,8 @@ namespace Fuxion;
 public enum ErrorType
 {
 	NotFound,
-	PermissionDenied,
-	InvalidData,
+	PermissionDenied, // Authentication vs Authorization
+	InvalidData, // Validation
 	Conflict,
 	Critical,
 	NotSupported,

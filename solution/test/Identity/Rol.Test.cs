@@ -19,8 +19,9 @@ public class RolTest : BaseTest<RolTest>
 	{
 		Context.Initialize();
 		services = new();
-		Singleton.AddOrSkip(new TypeDiscriminatorFactory().Transform(fac => {
-			fac.RegisterTree<BaseDao>(typeof(BaseDao).Assembly.DefinedTypes.Except(new[] { typeof(PermissionDao).GetTypeInfo() }).ToArray());
+		Singleton.AddOrSkip(new TypeDiscriminatorFactory().
+			Map(fac => {
+				fac.RegisterTree<BaseDao>(typeof(BaseDao).Assembly.DefinedTypes.Except(new[] { typeof(PermissionDao).GetTypeInfo() }).ToArray());
 			return fac;
 		}));
 		services.AddSingleton(Singleton.Get<TypeDiscriminatorFactory>());
@@ -57,7 +58,7 @@ public class RolTest : BaseTest<RolTest>
 			" - Permiso EDIT en el estado 'California' y sus predecesores\r\n";
 		var query = (
 			$"¿Debería poder '{nameof(Edit)}' una instancia del pais '{nameof(Countries.Usa)}'?\r\n" +
-			" Si").AsDisposable();
+			" Si").Fx.Lifetime.AsDisposable();
 		PrintTestTriedStarted(permissionExplanation + query.Value);
 		Assert.True(ide.Can(Edit).AllLocations2(Countries.Usa), permissionExplanation + query.Value);
 	}
@@ -350,12 +351,12 @@ public class RolTest : BaseTest<RolTest>
 			$"¿Debería poder '{nameof(Create)}' una instancia de documento Word de la categoria 'Purchases'?\r\n" +
 			" Si";
 		PrintTestTriedStarted(permissionExplanation + query);
-		Assert.True(ide.Can(Create).Instance(Documents.Word1.Transform(w => w.Category = Categories.Purchases)), permissionExplanation + query);
+		Assert.True(ide.Can(Create).Instance(Documents.Word1.Map(w => w.Category = Categories.Purchases)), permissionExplanation + query);
 		query =
 			$"¿Debería poder '{nameof(Create)}' una instancia de documento Word de la categoria 'Sales'?\r\n" +
 			" No";
 		PrintTestTriedStarted(permissionExplanation + query);
-		Assert.False(ide.Can(Create).Instance(Documents.Word1.Transform(w => w.Category = Categories.Sales)), permissionExplanation + query);
+		Assert.False(ide.Can(Create).Instance(Documents.Word1.Map(w => w.Category = Categories.Sales)), permissionExplanation + query);
 	}
 	[Fact(DisplayName = "Rol - Grant for discriminator and denied for other discriminator")]
 	public void GrantForDiscriminatorAndDeniedOther()

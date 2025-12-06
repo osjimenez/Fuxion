@@ -1,11 +1,11 @@
-using System.Text.Json;
+using Fuxion;
+using Fuxion.Pods;
 using Fuxion.Pods.Json;
-using Fuxion.Pods.Json.Serialization;
-using Fuxion.Pods.Test.Compression;
+using Fuxion.Text.Json;
 using Fuxion.Xunit;
 using Xunit;
 
-namespace Fuxion.Pods.Test.Json;
+namespace Test.Pods.Json;
 // var jsonString = """
 // 						{
 // 							"__discriminator": "Dog",
@@ -44,12 +44,12 @@ public class JsonPodPayloadPolymorphism : BaseTest<JsonPodPayloadPolymorphism>
 		};
 		
 		// Act
-		var pod = cat.BuildPod()
+		var pod = cat.Fx.Pod.BuildPod()
 			.ToJsonNode(nameof(Cat))
 			.Pod;
 		
 		// Assert
-		PrintVariable(pod.SerializeToJson(true));
+		PrintVariable(pod.Fx.Json.Serialize(true).Payload);
 	}
 	[Fact]
 	public void StringToPod_ShouldReturnRequestedObject_WhenStringIsCorrect()
@@ -66,12 +66,12 @@ public class JsonPodPayloadPolymorphism : BaseTest<JsonPodPayloadPolymorphism>
 						""";
 
 		// Act
-		json.BuildPod()
+		json.Fx.Pod.BuildPod()
 			.FromJsonNode<string>(out var pod);
 		var dog = pod.As<Dog>();
 		
 		// Assert
-		PrintVariable(pod.SerializeToJson(true));
+		PrintVariable(pod.Fx.Json.Serialize(true).Payload);
 		Assert.Equal("Dog", pod.Discriminator);
 		Assert.NotNull(dog);
 		Assert.Equal("Firulais", dog.Name);

@@ -1,12 +1,15 @@
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using Fuxion;
+using Fuxion.Pods;
 using Fuxion.Pods.Json;
-using static Fuxion.Pods.Json.Serialization.IPodConverter<Fuxion.Pods.IPod<int,int>,int,int>;
 using Fuxion.Text.Json;
 using Fuxion.Xunit;
 using Xunit;
+using static Fuxion.Pods.Json.Serialization.IPodConverter<Fuxion.Pods.IPod<int,int>,int,int>;
 
-namespace Fuxion.Pods.Test.Json;
+namespace Test.Pods.Json;
 
 public class JsonPodTest : BaseTest<JsonPodTest>
 {
@@ -49,9 +52,9 @@ public class JsonPodTest : BaseTest<JsonPodTest>
 			// Create Utf8 pod
 			Pod<string, byte[]> utf8Pod = new("utf8", Encoding.UTF8.GetBytes(jsonPod.Payload.ToJsonString()));
 			// Create formatted json string
-			var json = jsonPod.Payload.ToJsonString(true);
+			var json = jsonPod.Payload.ToJsonString(JsonSerializerOptions.Formatted);
 			Output.WriteLine($"json:\r\n{json}");
-			Output.WriteLine($"utf8:\r\n{utf8Pod.Payload.ToBase64String()}");
+			Output.WriteLine($"utf8:\r\n{utf8Pod.Payload.Fx.Encoding.ToBase64String().Payload}");
 			// Assertion
 			Assert.Contains($@"""{DISCRIMINATOR_LABEL}"": ""testPayload""", json);
 			Assert.Contains($@"""{DISCRIMINATOR_LABEL}"": ""string.header""", json);
@@ -78,8 +81,8 @@ public class JsonPodTest : BaseTest<JsonPodTest>
 #endif
 				}))
 				.AddHeader("record.header", new TestRecordPayload("record.header.Name"));
-			Output.WriteLine($"json:\r\n{builder.ToJsonNode("json").Pod.Payload.ToJsonString(true)}");
-			Output.WriteLine($"utf8:\r\n{builder.ToJsonNode("json").ToUtf8Bytes("utf8").Pod.Payload.ToBase64String()}");
+			Output.WriteLine($"json:\r\n{builder.ToJsonNode("json").Pod.Payload.ToJsonString(JsonSerializerOptions.Formatted)}");
+			Output.WriteLine($"utf8:\r\n{builder.ToJsonNode("json").ToUtf8Bytes("utf8").Pod.Payload.Fx.Encoding.ToBase64String().Payload}");
 		}
 	}
 	[Fact(DisplayName = "FromJson")]
@@ -124,8 +127,8 @@ public class JsonPodTest : BaseTest<JsonPodTest>
 									  }
 									}
 									""";
-		var bytes = base64.FromBase64String();
-		var builder = bytes.BuildPod()
+		var bytes = base64.Fx.Encoding.ToBytesFromBase64String().Payload!;
+		var builder = bytes.Fx.Pod.BuildPod()
 			.FromUtf8Bytes("json")
 			.FromJsonNode();
 		var pod = builder.Pod;
@@ -160,7 +163,7 @@ public class JsonPodTest : BaseTest<JsonPodTest>
 #else
 				Birthdate = DateOnly.Parse("12/12/2012")
 #endif
-			}.BuildPod()
+			}.Fx.Pod.BuildPod()
 			.ToJsonNode(headerDiscriminator)
 			.Pod);
 		if (pod[headerDiscriminator] is JsonNodePod<string> valJ)
@@ -175,14 +178,14 @@ public class JsonPodTest : BaseTest<JsonPodTest>
 				Assert.NotNull(val2);
 				Output.WriteLine($"Edited value: {val2.Name}");
 				Assert.NotEqual("value2", val2.Name);
-				Assert.Throws<ArgumentException>(() => pod.Add(val2.BuildPod()
+				Assert.Throws<ArgumentException>(() => pod.Add(val2.Fx.Pod.BuildPod()
 					.ToPod(headerDiscriminator)
 					.Pod)); // Fails because I can't add it if already exist
 			} else
 				Assert.Fail("");
 			Assert.False(pod.Remove($"{headerDiscriminator}1"));
 			Assert.True(pod.Remove(headerDiscriminator));
-			pod.Add(val.BuildPod()
+			pod.Add(val.Fx.Pod.BuildPod()
 				.ToJsonNode(headerDiscriminator)
 				.Pod);
 			if (pod[headerDiscriminator] is JsonNodePod<string> val3J)

@@ -2,6 +2,7 @@ using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Fuxion.Text.Json;
 using Fuxion.Xunit;
 using Xunit;
 
@@ -27,9 +28,9 @@ public class FallbackConverterTest(ITestOutputHelper output) : BaseTest<Fallback
 			}
 		} catch (Exception ex)
 		{
-			var res = ex.SerializeToJson(true);
+			var res = ex.Fx.Json.Serialize(true).Payload;
 			Output.WriteLine("Exception serialized JSON:");
-			Output.WriteLine(res);
+			Output.WriteLine(res ?? "null");
 		}
 	}
 	[Fact(DisplayName = "FallbackConverter - Serialize loop")]
@@ -56,9 +57,9 @@ public class FallbackConverterTest(ITestOutputHelper output) : BaseTest<Fallback
 			}
 		} catch (Exception ex)
 		{
-			var res = ex.SerializeToJson(true);
+			var res = ex.Fx.Json.Serialize(true).Payload;
 			Output.WriteLine("Exception serialized JSON:");
-			Output.WriteLine(res);
+			Output.WriteLine(res ?? "null");
 		}
 	}
 }

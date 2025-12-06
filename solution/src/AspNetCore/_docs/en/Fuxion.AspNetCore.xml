@@ -1,0 +1,354 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Fuxion.AspNetCore</name>
+    </assembly>
+    <members>
+        <member name="T:Fuxion.AspNetCore.ResponseExtensions">
+            <summary>
+            Provides extension methods to convert <see cref="T:Fuxion.IResponse"/> and <see cref="T:Fuxion.IResponse`1"/> objects 
+            into ASP.NET Core action results (<see cref="T:Microsoft.AspNetCore.Http.IResult"/> and <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/>).
+            </summary>
+            <remarks>
+            This class handles the conversion of Response objects to appropriate HTTP responses, including:
+            <list type="bullet">
+            <item><description>Success responses with various payload types (objects, streams, bytes, strings)</description></item>
+            <item><description>Error responses mapped to standard HTTP status codes</description></item>
+            <item><description>File download support for Stream and byte array payloads</description></item>
+            <item><description>ProblemDetails format for errors following RFC 7807</description></item>
+            </list>
+            </remarks>
+        </member>
+        <member name="P:Fuxion.AspNetCore.ResponseExtensions.IncludeException">
+            <summary>
+            Gets or sets a value indicating whether exception details should be included in error responses.
+            </summary>
+            <value>
+            <see langword="true"/> to include exception information in responses; otherwise, <see langword="false"/>.
+            Default is <see langword="true"/>.
+            </value>
+            <remarks>
+            When enabled, exception information is serialized and added to the response extensions.
+            This should typically be disabled in production environments to avoid leaking sensitive information.
+            </remarks>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiResultCore(Fuxion.IResponse,System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean,System.Boolean)">
+            <summary>
+            Core helper method that converts an <see cref="T:Fuxion.IResponse"/> to an <see cref="T:Microsoft.AspNetCore.Http.IResult"/> for minimal API endpoints.
+            </summary>
+            <param name="me">The response to convert.</param>
+            <param name="contentType">The content type for file responses.</param>
+            <param name="fileDownloadName">The filename for file download responses.</param>
+            <param name="lastModified">The last modified date for file responses.</param>
+            <param name="entityTag">The entity tag for file responses.</param>
+            <param name="enableRangeProcessing">Whether to enable range processing for file responses.</param>
+            <param name="fullSerialization">Whether to serialize the entire response object or just the payload.</param>
+            <returns>An <see cref="T:Microsoft.AspNetCore.Http.IResult"/> representing the response.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiActionResultCore(Fuxion.IResponse,System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean,System.Boolean)">
+            <summary>
+            Core helper method that converts an <see cref="T:Fuxion.IResponse"/> to an <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/> for MVC controllers.
+            </summary>
+            <param name="me">The response to convert.</param>
+            <param name="contentType">The content type for file responses.</param>
+            <param name="fileDownloadName">The filename for file download responses.</param>
+            <param name="lastModified">The last modified date for file responses.</param>
+            <param name="entityTag">The entity tag for file responses.</param>
+            <param name="enableRangeProcessing">Whether to enable range processing for file responses.</param>
+            <param name="fullSerialization">Whether to serialize the entire response object or just the payload.</param>
+            <returns>An <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/> representing the response.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.GetTypeFromStatusCode(System.Net.HttpStatusCode)">
+            <summary>
+            Maps an HTTP status code to its corresponding RFC 7231/7232/7233/7235 specification URL.
+            </summary>
+            <param name="status">The HTTP status code.</param>
+            <returns>The URL of the RFC specification for the status code.</returns>
+            <exception cref="T:System.NotImplementedException">Thrown when the status code is not supported.</exception>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiFileStreamResultAsync``1(System.Threading.Tasks.Task{Fuxion.Response{``0}},System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$14FA22EFC0C6FC3365D0A3637CAAF48B`1.ToApiFileStreamResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiResultAsync``1(System.Threading.Tasks.Task{Fuxion.Response{``0}},System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$14FA22EFC0C6FC3365D0A3637CAAF48B`1.ToApiResultAsync(System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiFileStreamActionResultAsync``1(System.Threading.Tasks.Task{Fuxion.Response{``0}},System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$14FA22EFC0C6FC3365D0A3637CAAF48B`1.ToApiFileStreamActionResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiActionResultAsync``1(System.Threading.Tasks.Task{Fuxion.Response{``0}},System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$14FA22EFC0C6FC3365D0A3637CAAF48B`1.ToApiActionResultAsync(System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiFileBytesResultAsync``1(System.Threading.Tasks.Task{Fuxion.Response{``0}},System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$F88EEDD75B251106BE63533EC478FCE0`1.ToApiFileBytesResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiFileBytesActionResultAsync``1(System.Threading.Tasks.Task{Fuxion.Response{``0}},System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$F88EEDD75B251106BE63533EC478FCE0`1.ToApiFileBytesActionResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiResultAsync``1(System.Threading.Tasks.Task{Fuxion.IResponse{``0}})">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$C67E3CEAC6B8F0AF177D0B6914319DFD`1.ToApiResultAsync"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiActionResultAsync``1(System.Threading.Tasks.Task{Fuxion.IResponse{``0}})">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$C67E3CEAC6B8F0AF177D0B6914319DFD`1.ToApiActionResultAsync"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiFileStreamResultAsync``1(System.Threading.Tasks.Task{Fuxion.IResponse{``0}},System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$9DD86C52D3AE020563A046988BA5AC45`1.ToApiFileStreamResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiFileStreamActionResultAsync``1(System.Threading.Tasks.Task{Fuxion.IResponse{``0}},System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$9DD86C52D3AE020563A046988BA5AC45`1.ToApiFileStreamActionResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiFileBytesResultAsync``1(System.Threading.Tasks.Task{Fuxion.IResponse{``0}},System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$6FF032632F206263F4E73113EE3B87B7`1.ToApiFileBytesResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiFileBytesActionResultAsync``1(System.Threading.Tasks.Task{Fuxion.IResponse{``0}},System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$6FF032632F206263F4E73113EE3B87B7`1.ToApiFileBytesActionResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiResultAsync(System.Threading.Tasks.Task{Fuxion.IResponse},System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$5CCC630AB639B55139FA55E2F3187149.ToApiResultAsync(System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiActionResultAsync(System.Threading.Tasks.Task{Fuxion.IResponse},System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$5CCC630AB639B55139FA55E2F3187149.ToApiActionResultAsync(System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiResultAsync(System.Threading.Tasks.Task{Fuxion.Response},System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$96EAFFBFC51007F544BC0EBCCB82F370.ToApiResultAsync(System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiActionResultAsync(System.Threading.Tasks.Task{Fuxion.Response},System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$96EAFFBFC51007F544BC0EBCCB82F370.ToApiActionResultAsync(System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiResult``1(Fuxion.IResponse{``0})">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$9B513D84B2A6C2EAA577FC5082FFA347`1.ToApiResult"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiActionResult``1(Fuxion.IResponse{``0})">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$9B513D84B2A6C2EAA577FC5082FFA347`1.ToApiActionResult"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiFileStreamResult``1(Fuxion.IResponse{``0},System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$2E042B02F54BC1825759A326CB47E761`1.ToApiFileStreamResult(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiFileStreamActionResult``1(Fuxion.IResponse{``0},System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$2E042B02F54BC1825759A326CB47E761`1.ToApiFileStreamActionResult(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiFileBytesResult``1(Fuxion.IResponse{``0},System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$0B1668C51923748670D5DFCD63A09092`1.ToApiFileBytesResult(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiFileBytesActionResult``1(Fuxion.IResponse{``0},System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$0B1668C51923748670D5DFCD63A09092`1.ToApiFileBytesActionResult(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiResult(Fuxion.IResponse,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$D8909F777CA65FB455A8F6DB23AF3F8E.ToApiResult(System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.ToApiActionResult(Fuxion.IResponse,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$D8909F777CA65FB455A8F6DB23AF3F8E.ToApiActionResult(System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$14FA22EFC0C6FC3365D0A3637CAAF48B`1.ToApiFileStreamResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <summary>
+            Converts an async response with a <see cref="T:System.IO.Stream"/> payload to a file stream result for minimal APIs.
+            </summary>
+            <param name="contentType">The content type of the file.</param>
+            <param name="fileDownloadName">The filename to use for the download.</param>
+            <param name="lastModified">The last modified date of the file.</param>
+            <param name="entityTag">The entity tag for cache validation.</param>
+            <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Http.IResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$14FA22EFC0C6FC3365D0A3637CAAF48B`1.ToApiResultAsync(System.Boolean)">
+            <summary>
+            Converts an async response with a <see cref="T:System.IO.Stream"/> payload to a result for minimal APIs.
+            </summary>
+            <param name="fullSerialization">If <see langword="true"/>, serializes the entire response object; otherwise, only the payload.</param>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Http.IResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$14FA22EFC0C6FC3365D0A3637CAAF48B`1.ToApiFileStreamActionResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <summary>
+            Converts an async response with a <see cref="T:System.IO.Stream"/> payload to a file stream action result for MVC controllers.
+            </summary>
+            <param name="contentType">The content type of the file.</param>
+            <param name="fileDownloadName">The filename to use for the download.</param>
+            <param name="lastModified">The last modified date of the file.</param>
+            <param name="entityTag">The entity tag for cache validation.</param>
+            <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$14FA22EFC0C6FC3365D0A3637CAAF48B`1.ToApiActionResultAsync(System.Boolean)">
+            <summary>
+            Converts an async response with a <see cref="T:System.IO.Stream"/> payload to an action result for MVC controllers.
+            </summary>
+            <param name="fullSerialization">If <see langword="true"/>, serializes the entire response object; otherwise, only the payload.</param>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$F88EEDD75B251106BE63533EC478FCE0`1.ToApiFileBytesResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <summary>
+            Converts an async response with a byte array payload to a file bytes result for minimal APIs.
+            </summary>
+            <param name="contentType">The content type of the file.</param>
+            <param name="fileDownloadName">The filename to use for the download.</param>
+            <param name="lastModified">The last modified date of the file.</param>
+            <param name="entityTag">The entity tag for cache validation.</param>
+            <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Http.IResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$F88EEDD75B251106BE63533EC478FCE0`1.ToApiFileBytesActionResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <summary>
+            Converts an async response with a byte array payload to a file bytes action result for MVC controllers.
+            </summary>
+            <param name="contentType">The content type of the file.</param>
+            <param name="fileDownloadName">The filename to use for the download.</param>
+            <param name="lastModified">The last modified date of the file.</param>
+            <param name="entityTag">The entity tag for cache validation.</param>
+            <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$C67E3CEAC6B8F0AF177D0B6914319DFD`1.ToApiResultAsync">
+            <summary>
+            Converts an async generic response to a result for minimal APIs.
+            </summary>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Http.IResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$C67E3CEAC6B8F0AF177D0B6914319DFD`1.ToApiActionResultAsync">
+            <summary>
+            Converts an async generic response to an action result for MVC controllers.
+            </summary>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$9DD86C52D3AE020563A046988BA5AC45`1.ToApiFileStreamResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <summary>
+            Converts an async response with a <see cref="T:System.IO.Stream"/> payload to a file stream result for minimal APIs.
+            </summary>
+            <param name="contentType">The content type of the file.</param>
+            <param name="fileDownloadName">The filename to use for the download.</param>
+            <param name="lastModified">The last modified date of the file.</param>
+            <param name="entityTag">The entity tag for cache validation.</param>
+            <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Http.IResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$9DD86C52D3AE020563A046988BA5AC45`1.ToApiFileStreamActionResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <summary>
+            Converts an async response with a <see cref="T:System.IO.Stream"/> payload to a file stream action result for MVC controllers.
+            </summary>
+            <param name="contentType">The content type of the file.</param>
+            <param name="fileDownloadName">The filename to use for the download.</param>
+            <param name="lastModified">The last modified date of the file.</param>
+            <param name="entityTag">The entity tag for cache validation.</param>
+            <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$6FF032632F206263F4E73113EE3B87B7`1.ToApiFileBytesResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <summary>
+            Converts an async response with a byte array payload to a file bytes result for minimal APIs.
+            </summary>
+            <param name="contentType">The content type of the file.</param>
+            <param name="fileDownloadName">The filename to use for the download.</param>
+            <param name="lastModified">The last modified date of the file.</param>
+            <param name="entityTag">The entity tag for cache validation.</param>
+            <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Http.IResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$6FF032632F206263F4E73113EE3B87B7`1.ToApiFileBytesActionResultAsync(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <summary>
+            Converts an async response with a byte array payload to a file bytes action result for MVC controllers.
+            </summary>
+            <param name="contentType">The content type of the file.</param>
+            <param name="fileDownloadName">The filename to use for the download.</param>
+            <param name="lastModified">The last modified date of the file.</param>
+            <param name="entityTag">The entity tag for cache validation.</param>
+            <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$5CCC630AB639B55139FA55E2F3187149.ToApiResultAsync(System.Boolean)">
+            <summary>
+            Converts an async response to a result for minimal APIs.
+            </summary>
+            <param name="fullSerialization">If <see langword="true"/>, serializes the entire response object; otherwise, only the message.</param>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Http.IResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$5CCC630AB639B55139FA55E2F3187149.ToApiActionResultAsync(System.Boolean)">
+            <summary>
+            Converts an async response to an action result for MVC controllers.
+            </summary>
+            <param name="fullSerialization">If <see langword="true"/>, serializes the entire response object; otherwise, only the message.</param>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$96EAFFBFC51007F544BC0EBCCB82F370.ToApiResultAsync(System.Boolean)">
+            <summary>
+            Converts an async concrete response to a result for minimal APIs.
+            </summary>
+            <param name="fullSerialization">If <see langword="true"/>, serializes the entire response object; otherwise, only the message.</param>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Http.IResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$96EAFFBFC51007F544BC0EBCCB82F370.ToApiActionResultAsync(System.Boolean)">
+            <summary>
+            Converts an async concrete response to an action result for MVC controllers.
+            </summary>
+            <param name="fullSerialization">If <see langword="true"/>, serializes the entire response object; otherwise, only the message.</param>
+            <returns>A task that represents the asynchronous operation. The task result contains an <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/>.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$9B513D84B2A6C2EAA577FC5082FFA347`1.ToApiResult">
+            <summary>
+            Converts a generic response to a result for minimal APIs.
+            </summary>
+            <returns>An <see cref="T:Microsoft.AspNetCore.Http.IResult"/> representing the response.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$9B513D84B2A6C2EAA577FC5082FFA347`1.ToApiActionResult">
+            <summary>
+            Converts a generic response to an action result for MVC controllers.
+            </summary>
+            <returns>An <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/> representing the response.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$2E042B02F54BC1825759A326CB47E761`1.ToApiFileStreamResult(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <summary>
+            Converts a response with a <see cref="T:System.IO.Stream"/> payload to a file stream result for minimal APIs.
+            </summary>
+            <param name="contentType">The content type of the file.</param>
+            <param name="fileDownloadName">The filename to use for the download.</param>
+            <param name="lastModified">The last modified date of the file.</param>
+            <param name="entityTag">The entity tag for cache validation.</param>
+            <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
+            <returns>An <see cref="T:Microsoft.AspNetCore.Http.IResult"/> representing the file response.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$2E042B02F54BC1825759A326CB47E761`1.ToApiFileStreamActionResult(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <summary>
+            Converts a response with a <see cref="T:System.IO.Stream"/> payload to a file stream action result for MVC controllers.
+            </summary>
+            <param name="contentType">The content type of the file.</param>
+            <param name="fileDownloadName">The filename to use for the download.</param>
+            <param name="lastModified">The last modified date of the file.</param>
+            <param name="entityTag">The entity tag for cache validation.</param>
+            <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
+            <returns>An <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/> representing the file response.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$0B1668C51923748670D5DFCD63A09092`1.ToApiFileBytesResult(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <summary>
+            Converts a response with a byte array payload to a file bytes result for minimal APIs.
+            </summary>
+            <param name="contentType">The content type of the file.</param>
+            <param name="fileDownloadName">The filename to use for the download.</param>
+            <param name="lastModified">The last modified date of the file.</param>
+            <param name="entityTag">The entity tag for cache validation.</param>
+            <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
+            <returns>An <see cref="T:Microsoft.AspNetCore.Http.IResult"/> representing the file response.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$0B1668C51923748670D5DFCD63A09092`1.ToApiFileBytesActionResult(System.String,System.String,System.Nullable{System.DateTimeOffset},Microsoft.Net.Http.Headers.EntityTagHeaderValue,System.Boolean)">
+            <summary>
+            Converts a response with a byte array payload to a file bytes action result for MVC controllers.
+            </summary>
+            <param name="contentType">The content type of the file.</param>
+            <param name="fileDownloadName">The filename to use for the download.</param>
+            <param name="lastModified">The last modified date of the file.</param>
+            <param name="entityTag">The entity tag for cache validation.</param>
+            <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
+            <returns>An <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/> representing the file response.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$D8909F777CA65FB455A8F6DB23AF3F8E.ToApiResult(System.Boolean)">
+            <summary>
+            Converts a response to a result for minimal APIs.
+            </summary>
+            <param name="fullSerialization">If <see langword="true"/>, serializes the entire response object; otherwise, only the message.</param>
+            <returns>An <see cref="T:Microsoft.AspNetCore.Http.IResult"/> representing the response.</returns>
+        </member>
+        <member name="M:Fuxion.AspNetCore.ResponseExtensions.&lt;G&gt;$D8909F777CA65FB455A8F6DB23AF3F8E.ToApiActionResult(System.Boolean)">
+            <summary>
+            Converts a response to an action result for MVC controllers.
+            </summary>
+            <param name="fullSerialization">If <see langword="true"/>, serializes the entire response object; otherwise, only the message.</param>
+            <returns>An <see cref="T:Microsoft.AspNetCore.Mvc.IActionResult"/> representing the response.</returns>
+        </member>
+    </members>
+</doc>

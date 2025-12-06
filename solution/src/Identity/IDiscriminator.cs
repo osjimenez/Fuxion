@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Fuxion.Collections.Generic;
 using Fuxion.Identity.Helpers;
+using Fuxion.Reflection;
 
 namespace Fuxion.Identity;
 
@@ -43,7 +44,7 @@ public class Discriminator : IDiscriminator
 		throw new ArgumentException($"The type '{type.Name}' isn't adorned with Discriminator attribute");
 	}
 	internal static IDiscriminator ForId(Type type, object id) =>
-		((Discriminator)Empty(type)).Transform(d => {
+		((Discriminator)Empty(type)).Tap(d => {
 			d.Id = id;
 			d.Name = id?.ToString();
 		});

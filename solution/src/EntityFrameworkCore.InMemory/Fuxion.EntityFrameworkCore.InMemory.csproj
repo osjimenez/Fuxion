@@ -5,12 +5,7 @@
 		<Title>Fuxion Entity Framework Core in memory</Title>
 		<PackageId>Fuxion.EntityFrameworkCore.InMemory</PackageId>
 		<Description>Fuxion library with extensions for Entity Framework Core in memory.</Description>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<None Include="README.md" Pack="true" PackagePath="\" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />

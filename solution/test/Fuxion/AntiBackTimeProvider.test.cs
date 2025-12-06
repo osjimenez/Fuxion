@@ -11,12 +11,7 @@ public class AntiBackTimeProviderTest : BaseTest<AntiBackTimeProviderTest>
 	public void AntiBackTimeProvider_BackTimeException()
 	{
 		var mock = new MockTimeProvider();
-		var abtp = new AntiBackTimeProvider(new MemoryStoredTimeProvider().Transform(s =>
-		{
-			s.SaveUtcTime(DateTime.UtcNow);
-			return s;
-		}))
-		{
+		var abtp = new AntiBackTimeProvider(new MemoryStoredTimeProvider().Tap(s => s.SaveUtcTime(DateTime.UtcNow))) {
 			TimeProvider = mock,
 			Logger = Logger
 		};
@@ -25,11 +20,7 @@ public class AntiBackTimeProviderTest : BaseTest<AntiBackTimeProviderTest>
 	}
 	[Fact(DisplayName = "AntiBackTimeProvider - CheckConsistency")]
 	public void AntiBackTimeProvider_CheckConsistency()
-		=> new AntiBackTimeProvider(new MockStorageTimeProvider().Transform(s =>
-		{
-			s.SaveUtcTime(DateTime.UtcNow);
-			return s;
-		})).CheckConsistency(Output);
+		=> new AntiBackTimeProvider(new MockStorageTimeProvider().Tap(s => s.SaveUtcTime(DateTime.UtcNow))).CheckConsistency(Output);
 }
 
 public class MockStorageTimeProvider : StoredTimeProvider

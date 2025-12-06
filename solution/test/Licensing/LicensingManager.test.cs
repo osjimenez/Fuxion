@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Fuxion.Text.Json;
 using Fuxion.Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -64,7 +65,7 @@ public class LicensingManagerTest : BaseTest<LicensingManagerTest>
 		Output.WriteLine("Created license:");
 		Output.WriteLine(new[] {
 			lic
-		}.SerializeToJson());
+		}.Fx.Json.Serialize().Payload ?? "null");
 	}
 	[Fact(DisplayName = "LicensingManager - License generation")]
 	public void Licensing_GenerateKey()

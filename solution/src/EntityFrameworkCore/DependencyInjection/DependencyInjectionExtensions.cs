@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using Fuxion;
 using Fuxion.EntityFrameworkCore;
+using Fuxion.Reflection;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -12,8 +13,8 @@ public static class DependencyInjectionExtensions
 		=> AddDbTrigger(me, typeof(TTrigger));
 	public static IServiceCollection AddDbTrigger(this IServiceCollection me, Type type, bool failIfNotImplementTriggersInterfaces = true)
 	{
-		var tBeforeContext = type.GetSubclassOfRawGeneric(typeof(IBeforeSaveTrigger<>))?.GetGenericArguments().First();
-		var tAfterContext = type.GetSubclassOfRawGeneric(typeof(IAfterSaveTrigger<>))?.GetGenericArguments().First();
+		var tBeforeContext = type.GetSubclassOfGenericDefinition(typeof(IBeforeSaveTrigger<>))?.GetGenericArguments().First();
+		var tAfterContext = type.GetSubclassOfGenericDefinition(typeof(IAfterSaveTrigger<>))?.GetGenericArguments().First();
 		if (tBeforeContext is not null) me.AddScoped(typeof(IBeforeSaveTrigger<>).MakeGenericType(tBeforeContext), type);
 		if (tAfterContext is not null) me.AddScoped(typeof(IAfterSaveTrigger<>).MakeGenericType(tAfterContext), type);
 		if (tBeforeContext is null && tAfterContext is null && failIfNotImplementTriggersInterfaces)

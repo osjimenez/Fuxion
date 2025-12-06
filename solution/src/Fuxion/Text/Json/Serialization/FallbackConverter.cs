@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Fuxion.Reflection;
+using Fuxion.Text.Json;
 
 namespace Fuxion.Text.Json.Serialization;
 
@@ -141,7 +142,7 @@ public class FallbackConverter<T> : JsonConverter<T>
 		if (!resolvers.OfType<IfNullWritePropertyFallbackResolver>().Any()) this.resolvers.Add(new IfNullWritePropertyFallbackResolver { Deep = deep });
 		if (!resolvers.OfType<IfMemberInfoWriteNamePropertyFallbackResolver>().Any()) this.resolvers.Add(new IfMemberInfoWriteNamePropertyFallbackResolver { Deep = deep });
 		if (!resolvers.OfType<CollectionPropertyFallbackResolver>().Any()) this.resolvers.Add(new CollectionPropertyFallbackResolver { Deep = deep });
-		this.resolvers.AddRange(resolvers.TransformEach(t => t.Deep = deep));
+		this.resolvers.AddRange(resolvers.Do(t => t.Deep = deep));
 		this.deep = deep;
 	}
 	readonly int deep = 0;
@@ -151,40 +152,60 @@ public class FallbackConverter<T> : JsonConverter<T>
 	public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
 	{
 		if (value is null) throw new ArgumentNullException(nameof(value));
-		try
-		{
+		//try
+		//{
 			JsonSerializerOptions opt = new(options);
 			var con = opt.Converters.FirstOrDefault(c => c is FallbackConverter<T>);
 			if (con is not null) opt.Converters.Remove(con);
 			//opt.ReferenceHandler = ReferenceHandler.Preserve;
 			opt.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 			opt.MaxDepth = 6;
-			var json = value.SerializeToJson(options: opt);
-			writer.WriteRawValue(json);
-		} catch
-		{
-			writer.WriteStartObject();
-			foreach (var prop in value.GetType().GetProperties())
+			var json = value.Fx.Json.Serialize(options: opt);
+			if(json.IsSuccess)
+				writer.WriteRawValue(json.Payload);
+			else
 			{
-				var resolved = false;
-				foreach (var resolver in resolvers)
-					if (resolver.Match(value, prop))
-					{
-						resolver.Do(value, prop, writer, options, resolvers);
-						resolved = true;
-						break;
-					}
-				if (resolved) continue;
-				writer.WritePropertyName(prop.Name);
-				FallbackWriteRaw(prop.GetValue(value) ?? throw new NullReferenceException($"The value of property '{prop.Name}' is null"), writer, options, resolvers);
+				writer.WriteStartObject();
+				foreach (var prop in value.GetType().GetProperties())
+				{
+					var resolved = false;
+					foreach (var resolver in resolvers)
+						if (resolver.Match(value, prop))
+						{
+							resolver.Do(value, prop, writer, options, resolvers);
+							resolved = true;
+							break;
+						}
+					if (resolved) continue;
+					writer.WritePropertyName(prop.Name);
+					FallbackWriteRaw(prop.GetValue(value) ?? throw new NullReferenceException($"The value of property '{prop.Name}' is null"), writer, options, resolvers);
+				}
+				writer.WriteEndObject();
 			}
-			writer.WriteEndObject();
-		}
+		//} catch
+		//{
+		//	writer.WriteStartObject();
+		//	foreach (var prop in value.GetType().GetProperties())
+		//	{
+		//		var resolved = false;
+		//		foreach (var resolver in resolvers)
+		//			if (resolver.Match(value, prop))
+		//			{
+		//				resolver.Do(value, prop, writer, options, resolvers);
+		//				resolved = true;
+		//				break;
+		//			}
+		//		if (resolved) continue;
+		//		writer.WritePropertyName(prop.Name);
+		//		FallbackWriteRaw(prop.GetValue(value) ?? throw new NullReferenceException($"The value of property '{prop.Name}' is null"), writer, options, resolvers);
+		//	}
+		//	writer.WriteEndObject();
+		//}
 	}
 	public void FallbackWriteRaw(object? value, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers)
 	{
-		try
-		{
+		//try
+		//{
 			if (value is null)
 			{
 				writer.WriteNullValue();
@@ -201,11 +222,14 @@ public class FallbackConverter<T> : JsonConverter<T>
 			//opt.ReferenceHandler = ReferenceHandler.Preserve;
 			opt.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 			opt.MaxDepth = 6;
-			var json = value.SerializeToJson(options: opt);
-			writer.WriteRawValue(json);
-		} catch (Exception ex)
-		{
-			writer.WriteRawValue($"\"ERROR '{ex.Message}'\"");
-		}
+			var json = value.Fx.Json.Serialize(options: opt);
+			if(json.IsSuccess)
+				writer.WriteRawValue(json.Payload);
+			else
+				writer.WriteRawValue($"\"ERROR '{json.Exception?.Message}'\"");
+		//} catch (Exception ex)
+		//{
+		//	writer.WriteRawValue($"\"ERROR '{ex.Message}'\"");
+		//}
 	}
 }

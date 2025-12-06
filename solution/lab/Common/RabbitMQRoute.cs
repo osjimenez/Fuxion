@@ -92,7 +92,7 @@ public class RabbitMQSubscriber(
 	public Task<IDisposable> OnReceive(Action<IReceipt<RabbitMQReceive>> onMessageReceived)
 	{
 		receivers.Add(onMessageReceived);
-		var dis = onMessageReceived.AsDisposable(f =>
+		var dis = onMessageReceived.Fx.Lifetime.AsDisposable(f =>
 		{
 			receivers.Remove(f);
 		});

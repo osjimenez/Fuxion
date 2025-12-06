@@ -37,14 +37,14 @@ public class PipeConverter : IValueConverter
 	{
 		var att = converter.GetType().GetCustomAttribute<ValueConversionAttribute>(true, false);
 		if (att != null) return (att.SourceType, att.TargetType, att.ParameterType);
-		if (converter.GetType().IsSubclassOfRawGeneric(typeof(GenericConverter<,>)))
+		if (converter.GetType().IsSubclassOfGenericDefinition(typeof(GenericConverter<,>)))
 		{
-			var args = converter.GetType().GetSubclassOfRawGeneric(typeof(GenericConverter<,>))!.GetGenericArguments();
+			var args = converter.GetType().GetSubclassOfGenericDefinition(typeof(GenericConverter<,>))!.GetGenericArguments();
 			return (args[0], args[1], null);
 		}
-		if (converter.GetType().IsSubclassOfRawGeneric(typeof(GenericConverter<,,>)))
+		if (converter.GetType().IsSubclassOfGenericDefinition(typeof(GenericConverter<,,>)))
 		{
-			var args = converter.GetType().GetSubclassOfRawGeneric(typeof(GenericConverter<,,>))!.GetGenericArguments();
+			var args = converter.GetType().GetSubclassOfGenericDefinition(typeof(GenericConverter<,,>))!.GetGenericArguments();
 			return (args[0], args[1], args[2]);
 		}
 		return (null, null, null);

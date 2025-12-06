@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Fuxion.Reflection;
 using Microsoft.AspNetCore.Routing;
 
 namespace Fuxion.AspNetCore;
@@ -32,9 +33,9 @@ public static class EndpointsExtensions
 			.Select(t =>
 			{
 				var isEndpoint = t.GetInterfaces().Any(i => i == typeof(IEndpoint));
-				var isEndpointGroup = t.GetInterfaces().Any(i => i.IsSubclassOfRawGeneric(typeof(IEndpoint<>)));
+				var isEndpointGroup = t.GetInterfaces().Any(i => i.IsSubclassOfGenericDefinition(typeof(IEndpoint<>)));
 				var isGroup = t.GetInterfaces().Any(i => i == typeof(IRouteGroup));
-				var isGroupWithParent = t.GetInterfaces().Any(i => i.IsSubclassOfRawGeneric(typeof(IRouteGroup<>)));
+				var isGroupWithParent = t.GetInterfaces().Any(i => i.IsSubclassOfGenericDefinition(typeof(IRouteGroup<>)));
 				List<bool> res = [isEndpoint, isEndpointGroup, isGroup, isGroupWithParent];
 				return (Type: t, Count: res.Count(r => r));
 			}))
@@ -45,7 +46,7 @@ public static class EndpointsExtensions
 		var endpoints = assembly.GetTypes()
 			.Where(t => t is { IsInterface: false, IsAbstract: false })
 			.Where(t => t.GetInterfaces().Any(i => i == typeof(IEndpoint))
-				&& !t.GetInterfaces().Any(i => i.IsSubclassOfRawGeneric(typeof(IEndpoint<>))))
+				&& !t.GetInterfaces().Any(i => i.IsSubclassOfGenericDefinition(typeof(IEndpoint<>))))
 			.Select(t =>
 			{
 				if (t.GetConstructors().Any(c => c.GetParameters().Length != 0))
@@ -68,10 +69,10 @@ public static class EndpointsExtensions
 				var group = (IRouteGroup)Activator.CreateInstance(t)!;
 				Type? parentGroupType = null;
 				IRouteGroup? parentGroup = null;
-				if (t.GetInterfaces().Any(i => i.IsSubclassOfRawGeneric(typeof(IRouteGroup<>))))
+				if (t.GetInterfaces().Any(i => i.IsSubclassOfGenericDefinition(typeof(IRouteGroup<>))))
 				{
 					parentGroupType = t.GetInterfaces()
-						.First(i => i.IsSubclassOfRawGeneric(typeof(IRouteGroup<>)))
+						.First(i => i.IsSubclassOfGenericDefinition(typeof(IRouteGroup<>)))
 						.GetGenericArguments()[0];
 					parentGroup = (IRouteGroup)Activator.CreateInstance(parentGroupType)!;
 				}
@@ -101,7 +102,7 @@ public static class EndpointsExtensions
 		// Busco los endpoints con grupo
 		var endpointsWithGroups = assembly.GetTypes()
 			.Where(t => t is { IsInterface: false, IsAbstract: false })
-			.Where(t => t.GetInterfaces().Any(i => i.IsSubclassOfRawGeneric(typeof(IEndpoint<>))))
+			.Where(t => t.GetInterfaces().Any(i => i.IsSubclassOfGenericDefinition(typeof(IEndpoint<>))))
 			.Select(t =>
 			{
 				if (t.GetConstructors().Any(c => c.GetParameters().Length != 0))
@@ -115,7 +116,7 @@ public static class EndpointsExtensions
 		foreach (var endpoint in endpointsWithGroups)
 		{
 			var groupType = endpoint.GetType()
-				.GetInterfaces().First(i => i.IsSubclassOfRawGeneric(typeof(IEndpoint<>)))
+				.GetInterfaces().First(i => i.IsSubclassOfGenericDefinition(typeof(IEndpoint<>)))
 				.GetGenericArguments()[0];
 			endpoint.MapEndpoint(allGroups.First(g => g.GroupType == groupType).Builder!);
 		}

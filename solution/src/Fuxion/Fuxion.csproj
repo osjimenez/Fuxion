@@ -5,16 +5,11 @@
 		<Title>Fuxion</Title>
 
 		<PackageId>Fuxion</PackageId>
-		<Description>Fuxion library</Description>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<Description>Fuxion library with built-in Roslyn analyzers for compile-time safety checks</Description>
 
 		<!--<UpdateAssemblyInfo>true</UpdateAssemblyInfo>
 		<GitVersionTargetFramework>net8.0</GitVersionTargetFramework>-->
 	</PropertyGroup>
-
-	<ItemGroup>
-		<None Include="README.md" Pack="true" PackagePath="\" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Logging.Configuration" />

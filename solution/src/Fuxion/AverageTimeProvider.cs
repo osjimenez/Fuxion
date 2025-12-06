@@ -33,7 +33,7 @@ public class AverageTimeProvider : ITimeProvider
 					Logger?.LogWarning($"Provider '{en.Provider}' failed with error '{en.Task.Exception.GetType().Name}': " + en.Task.Exception.Message, en.Task.Exception);
 			var fails = ents.Where(p => p.Task?.Exception != null).ToList();
 			if (fails.Count > MaxFailsPerTry) throw new($"Failed {fails.Count} providers when the maximun to fail is {MaxFailsPerTry}");
-			var r = ents.Where(en => en.Task?.Exception == null).Select(en => en.Task?.Result).WhereNotNull().RemoveOutliers().AverageDateTime();
+			var r = ents.Where(en => en.Task?.Exception == null).Select(en => en.Task?.Result).WhereNotNull().RemoveOutliers().Average();
 			Logger?.LogInformation("Result: " + r);
 			return r;
 		});

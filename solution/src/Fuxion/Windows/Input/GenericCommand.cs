@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Fuxion.Reflection;
 using Fuxion.Windows.Threading;
 
 namespace Fuxion.Windows.Input;
@@ -40,7 +41,7 @@ public class GenericCommand<TParameter> : ICommand, IInvokable
 	{
 		if (parameter is null) throw new InvalidOperationException($"The parameter '{nameof(parameter)}' cannot be null");
 		if (parameter is TParameter par) return CanExecute(par);
-		if (typeof(TParameter).IsNullable()) return CanExecute(default!);
+		if (typeof(TParameter).CanBeNull()) return CanExecute(default!);
 		throw new InvalidCastException($"The parameter of type '{parameter.GetType().Name}' couldn't casted to '{typeof(TParameter).Name}' as was declared for command parameter.");
 	}
 	void ICommand.Execute(object? parameter)
@@ -48,7 +49,7 @@ public class GenericCommand<TParameter> : ICommand, IInvokable
 		if (parameter is null) throw new InvalidOperationException($"The parameter '{nameof(parameter)}' cannot be null");
 		if (parameter is TParameter par)
 			Execute(par);
-		else if (typeof(TParameter).IsNullable() && parameter == null)
+		else if (typeof(TParameter).CanBeNull() && parameter == null)
 			Execute(default!);
 		else
 			throw new InvalidCastException($"The parameter of type '{parameter.GetType().Name}' couldn't casted to '{typeof(TParameter).Name}' as was declared for command parameter.");

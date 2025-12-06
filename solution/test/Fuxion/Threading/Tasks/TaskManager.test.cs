@@ -30,11 +30,10 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 		var list = new List<object[]>();
 		for (var i = 0; i < System.Math.Pow(2, 7); i++)
 		{
-			var b = new BitArray(new[] {
-				i
-			});
+			var b = new BitArray([i]);
 			var bits = b.Cast<bool>().Take(7).ToList();
-			var strings = new[] {
+			string[] strings =
+			[
 				bits[0] ? "VOID  " : "RESULT", // 0
 				bits[1] ? "SYNC  " : "ASYNC ", // 1
 				bits[2] ? "CREATE" : "START ", // 2
@@ -42,7 +41,7 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 				bits[4] ? "LAST  " : "ALL   ", // 4
 				bits[5] ? "CANCEL" : "NO_CAN", // 5
 				bits[6] ? "NAMED " : "NO_NAM" // 6
-			};
+			];
 			//TODO - Test not work on CI
 			//var strings = new[] {
 			//	bits[0] ? "VOID  " : "VOID  ", // 0
@@ -53,7 +52,7 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 			//	bits[5] ? "CANCEL" : "CANCEL", // 5
 			//	bits[6] ? "NO_NAM" : "NO_NAM", // 6
 			//	};
-			for (var j = 0; j < maxParNum + 1; j++) list.Add(strings.Cast<object>().ToList().Transform(ss => { ss.Add(j); }).ToArray());
+			for (var j = 0; j < maxParNum + 1; j++) list.Add(strings.Cast<object>().ToList().Tap(ss => ss.Add(j)).ToArray());
 		}
 		var res = new List<object[]>();
 		foreach (var r in list)
@@ -621,7 +620,7 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 							AssertIfTaskWasExecutedSuccessfully(3);
 						} else
 						{
-							Printer.WriteLine("All executed in any order without cancelations");
+							Printer.WriteLine("All executed in any order without cancellations");
 							AssertIfTaskWasExecutedSuccessfully(1);
 							AssertIfTaskWasExecutedSuccessfully(2);
 							AssertIfTaskWasExecutedSuccessfully(3);

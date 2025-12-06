@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace Fuxion;
 
@@ -17,18 +19,55 @@ public static class ResponseExtensions
 				Extensions = me.Extensions
 			};
 		}
+
+		public T Match<T>(Func<IResponse, T> success, Func<IResponse, T> error) => me.IsSuccess ? success(me) : error(me);
+		public async Task<T> MatchAsync<T>(Func<IResponse, Task<T>> success, Func<IResponse, T> error) => me.IsSuccess ? await success(me) : error(me);
+		public async Task<T> MatchAsync<T>(Func<IResponse, Task<T>> success, Func<IResponse, Task<T>> error) => me.IsSuccess ? await success(me) : await error(me);
+		public async Task<T> MatchAsync<T>(Func<IResponse, T> success, Func<IResponse, Task<T>> error) => me.IsSuccess ? success(me) : await error(me);
+	}
+
+	extension<TPayload>(IResponse<TPayload> me)
+	{
+		public T Match<T>(Func<IResponse<TPayload>, T> success, Func<IResponse<TPayload>, T> error) => me.IsSuccess ? success(me) : error(me);
+		public async Task<T> MatchAsync<T>(Func<IResponse<TPayload>, Task<T>> success, Func<IResponse<TPayload>, T> error) => me.IsSuccess ? await success(me) : error(me);
+		public async Task<T> MatchAsync<T>(Func<IResponse<TPayload>, Task<T>> success, Func<IResponse<TPayload>, Task<T>> error) => me.IsSuccess ? await success(me) : await error(me);
+		public async Task<T> MatchAsync<T>(Func<IResponse<TPayload>, T> success, Func<IResponse<TPayload>, Task<T>> error) => me.IsSuccess ? success(me) : await error(me);
 	}
 	extension(Response me)
 	{
 		public Response<T> AsPayload<T>()
 		{
 			if (me is Response<T> r) return r;
-			if (me.IsSuccess) throw new InvalidOperationException("Can't convert a success response to a different payload type.");
+			if (me.IsSuccess)
+				// PEND Ver si hacer algo distinto aquí en vez de lanza exception
+				throw new InvalidOperationException("Can't convert a success response to a different payload type.");
 			return new Response<T>(me.IsSuccess, default!, me.Message, me.ErrorType, me.Exception)
 			{
 				Extensions = me.Extensions
 			};
 		}
+
+		public Response AddOrUpdateExtension(string key, object? value)
+		{
+			if(me.Extensions.TryGetValue(key,out var val)) 
+				me.Extensions[key] = value;
+			else
+				me.Extensions.Add(key, value);
+			return me;
+		}
+		public T Match<T>(Func<Response, T> success, Func<Response, T> error) => me.IsSuccess ? success(me) : error(me);
+		public async Task<T> MatchAsync<T>(Func<Response, Task<T>> success, Func<Response, T> error) => me.IsSuccess ? await success(me) : error(me);
+		public async Task<T> MatchAsync<T>(Func<Response, Task<T>> success, Func<Response, Task<T>> error) => me.IsSuccess ? await success(me) : await error(me);
+		public async Task<T> MatchAsync<T>(Func<Response, T> success, Func<Response, Task<T>> error) => me.IsSuccess ? success(me) : await error(me);
+	}
+
+	extension<TPayload>(Response<TPayload> me)
+	{
+		public T Match<T>(Func<Response<TPayload>, T> success, Func<Response<TPayload>, T> error) => me.IsSuccess ? success(me) : error(me);
+		public async Task<T> MatchAsync<T>(Func<Response<TPayload>, Task<T>> success, Func<Response<TPayload>, T> error) => me.IsSuccess ? await success(me) : error(me);
+		public async Task<T> MatchAsync<T>(Func<Response<TPayload>, Task<T>> success, Func<Response<TPayload>, Task<T>> error) => me.IsSuccess ? await success(me) : await error(me);
+		public async Task<T> MatchAsync<T>(Func<Response<TPayload>, T> success, Func<Response<TPayload>, Task<T>> error) => me.IsSuccess ? success(me) : await error(me);
+		public TPayload PayloadOrError(Func<Response<TPayload>, TPayload> error) => me.IsSuccess ? me.Payload : error(me);
 	}
 
 	extension(IEnumerable<IResponse> me)
@@ -75,7 +114,7 @@ public static class ResponseExtensions
 		public static Response Exception(Exception exception, string? message = null) => new(false, message ?? $"{exception.GetType().Name}: {exception.Message}", exception: exception);
 
 		// Not found
-		public static Response NotFound(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+		public static Response NotFound(string message = "Not found", Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
 			=> Response.ErrorMessage(message, ErrorType.NotFound, exception, extensions);
 		public static Response<TPayload> NotFound<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
 			=> Response.ErrorPayload(payload, message, ErrorType.NotFound, exception, extensions);
@@ -125,7 +164,15 @@ public static class ResponseExtensions
 
 	extension(IResponse me)
 	{
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool IsErrorType(object type) => me.ErrorType?.Equals(type) == true;
+
+		public bool IsNotFound2
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => me.IsErrorType(ErrorType.NotFound);
+		}
+
 		public bool IsNotFound() => me.IsErrorType(ErrorType.NotFound);
 		public bool IsPermissionDenied() => me.IsErrorType(ErrorType.PermissionDenied);
 		public bool IsInvalidData() => me.IsErrorType(ErrorType.InvalidData);
@@ -155,7 +202,7 @@ public static class ResponseExtensions
 			IEnumerable<(string Property, object? Value)>? extensions = null)
 			=> Response.ErrorPayload(payload, message, type, exception, extensions);
 		public Response Exception(Exception exception, string? message = null) => Response.Exception(exception, message);
-		public Response NotFound(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null) => Response.NotFound(message, exception, extensions);
+		public Response NotFound(string message = "Not found", Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null) => Response.NotFound(message, exception, extensions);
 		public Response<TPayload> NotFound<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
 			=> Response.NotFound(message, payload, exception, extensions);
 		public Response PermissionDenied(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)

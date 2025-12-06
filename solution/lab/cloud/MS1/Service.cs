@@ -37,7 +37,7 @@ public class Service(IServiceProvider serviceProvider) : IHostedService
 		var dis = nexus.Observe(obj => true)
 			.OfType<RabbitMQReceive>()
 			.Select(receive => receive.Body.ToArray()
-				.BuildUriKeyPod(resolver)
+				.Fx.Pod.BuildUriKeyPod(resolver)
 				.FromUtf8Bytes()
 				.FromJsonNode()
 				.Pod)

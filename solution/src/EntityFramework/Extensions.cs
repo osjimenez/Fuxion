@@ -16,7 +16,7 @@ public static class Extensions
 			connection.Open();
 			// Get tables
 			var tables = (from DataRow row in connection.GetSchema("Tables").Rows select row[2].ToString()).ToList();
-			// Compute exlusions
+			// Compute exclusions
 			if (autoExludeMigrationHistory && !excludedTable.Contains("__MigrationHistory"))
 			{
 				var list = excludedTable.ToList();
@@ -24,7 +24,7 @@ public static class Extensions
 				excludedTable = list.ToArray();
 			}
 			var exclusions = usePartialExcludedTableName ? tables.Where(t => excludedTable.Any(t.Contains)) : tables.Where(excludedTable.Contains);
-			// Remove exlusions
+			// Remove exclusions
 			tables.RemoveAll(exclusions.Contains);
 			// Deactivate db consistency check
 			foreach (var table in tables)

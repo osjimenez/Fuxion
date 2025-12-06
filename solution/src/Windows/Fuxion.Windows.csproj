@@ -6,12 +6,7 @@
 		<Title>Fuxion Windows</Title>
 		<PackageId>Fuxion.Windows</PackageId>
 		<Description>Fuxion Windows</Description>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<None Include="README.md" Pack="true" PackagePath="\" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<Compile Update="Properties\AssemblyInfo.cs" />

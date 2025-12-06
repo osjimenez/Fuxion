@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using Fuxion.Text.Json;
 using Fuxion.Web;
 using Fuxion.Xunit;
 using Microsoft.CSharp.RuntimeBinder;
@@ -95,9 +96,11 @@ public class PatchableTest : BaseTest<PatchableTest>
 		dyn.Integer = 111;
 		
 		// Serialize and deserialize to simulate network service passthrough
-		var ser = ((Patchable<ToPatch>)dyn).SerializeToJson().DeserializeFromJson<Patchable<ToPatch>>();
-		Assert.NotNull(ser);
-		ser.Patch(toPatch);
+		var res = ((Patchable<ToPatch>)dyn).Fx.Json.Serialize().Payload.Fx.Json.Deserialize<Patchable<ToPatch>>();
+		Assert.True(res.IsSuccess);
+		PrintVariable(toPatch.Integer, "Before path");
+		res.Payload.Patch(toPatch);
+		PrintVariable(toPatch.Integer, "After patch");
 		Assert.Equal(111, toPatch.Integer);
 	}
 	[Fact(DisplayName = "Patchable - From dynamic")]
@@ -107,7 +110,7 @@ public class PatchableTest : BaseTest<PatchableTest>
 			c.Integer = 123;
 			c.String = "TEST";
 		});
-		Logger.LogInformation($"JSON:\r\n{pat.SerializeToJson()}");
+		Logger.LogInformation($"JSON:\r\n{pat.Fx.Json.Serialize().Payload}");
 	}
 	[Fact(DisplayName = "Patchable - From object (anonymous types)")]
 	public void FromObject()
@@ -116,7 +119,7 @@ public class PatchableTest : BaseTest<PatchableTest>
 			Integer = 123,
 			String = "TEST"
 		});
-		Logger.LogInformation($"JSON:\r\n{pat.SerializeToJson()}");
+		Logger.LogInformation($"JSON:\r\n{pat.Fx.Json.Serialize().Payload}");
 	}
 	
 }

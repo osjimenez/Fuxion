@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Fuxion.Reflection;
 
 namespace Fuxion.Linq.Expressions;
 

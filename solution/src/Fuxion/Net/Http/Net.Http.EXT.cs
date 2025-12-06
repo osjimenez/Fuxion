@@ -1,3 +1,5 @@
+using Fuxion.Collections.Generic;
+using Fuxion.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -9,6 +11,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
+using Fuxion.Reflection;
 
 namespace Fuxion.Net.Http;
 
@@ -27,7 +30,7 @@ public static class Extensions
 	public const string FileNameKey = "file-name";
 
 	// Internal helper that performs the heavy lifting
-	static async Task<(List<(string, object?)> Extensions, ResponseProblemDetails? Problem, object? deserializedBody)> DoAsResponse(
+	static async Task<(List<(string, object?)> Extensions, ResponseProblemDetails? Problem, object? DeserializedBody, Exception? DeserializationException)> DoAsResponse(
 		HttpResponseMessage res,
 		Type? deserializationType = null,
 		JsonSerializerOptions? jsonOptions = null,
@@ -40,6 +43,7 @@ public static class Extensions
 		];
 		ResponseProblemDetails? problem = null;
 		object? deserializedBody = null;
+		Exception? deserializationException = null;
 
 		if (deserializationType is not null && typeof(Stream).IsAssignableFrom(deserializationType))
 		{
@@ -50,7 +54,7 @@ public static class Extensions
 #if !STANDARD_OR_OLD_FRAMEWORKS
 				ct
 #endif
-			));
+			), deserializationException);
 		}
 
 		if (deserializationType is not null && typeof(byte[]).IsAssignableFrom(deserializationType))
@@ -62,7 +66,7 @@ public static class Extensions
 #if !STANDARD_OR_OLD_FRAMEWORKS
 				ct
 #endif
-			));
+			), deserializationException);
 		}
 
 		var strContent = await res.Content.ReadAsStringAsync(
@@ -70,55 +74,53 @@ public static class Extensions
 			ct
 #endif
 		);
+
+		
 		if (!strContent.IsNullOrEmpty())
 		{
 			
 			if (res.Content.Headers.ContentType?.MediaType == "application/problem+json")
 			{
-				try
+				var problemResponse = strContent.Fx.Json.Deserialize<ResponseProblemDetails>(options:jsonOptions);
+				if (problemResponse.IsSuccess)
 				{
-					problem = strContent.DeserializeFromJson<ResponseProblemDetails>(jsonOptions);
-					if (problem is not null) extensions.Add((InnerProblemKey, problem));
-				}
-				catch
-				{
-					// ignored
+					problem = problemResponse.Payload;
+					extensions.Add((InnerProblemKey, problem));
 				}
 			}
 			if (problem is null)
 			{
-				try
-				{
-					var jsonContent = JsonNode.Parse(strContent);
-					if (jsonContent is not null)
-						extensions.Add(jsonContent.GetValueKind() == JsonValueKind.String
-							? (StringContentKey, jsonContent)
-							: (JsonContentKey, jsonContent));
-				}
-				catch
-				{
+				var ele = strContent.Fx.Json.SerializeToElement();
+				if(ele.IsError)
 					extensions.Add((StringContentKey, strContent));
-				}
+				extensions.Add(ele.Payload.ValueKind == JsonValueKind.String
+					? (StringContentKey, ele.Payload)
+					: (JsonContentKey, ele.Payload));
 				if (deserializationType is not null)
 				{
-					try
+					var deserializationResponse = strContent.Fx.Json.Deserialize(deserializationType, options:jsonOptions);
+					if (deserializationResponse.IsSuccess)
+						deserializedBody = deserializationResponse.Payload;
+					else
 					{
-						deserializedBody = JsonSerializer.Deserialize(strContent, deserializationType, jsonOptions);
-					}
-					catch (Exception ex)
-					{
-						extensions.Add((JsonErrorKey, JsonNode.Parse(ex.SerializeToJson(options: jsonOptions))));
+						if (deserializationResponse.Exception is not null)
+						{
+							deserializationException = deserializationResponse.Exception;
+							var tt = deserializationResponse.Exception.Fx.Json.SerializeToElement(options: jsonOptions);
+							if (tt.IsSuccess)
+								extensions.Add((JsonErrorKey, tt.Payload));
+						}
 					}
 				}
 			}
 		}
-		return (extensions, problem, deserializedBody);
+		return (extensions, problem, deserializedBody, deserializationException);
 	}
 
 	// Core wrappers to produce Response objects from an HttpResponseMessage
 	static async Task<Response> AsResponseFromMessageAsync(HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 	{
-		var (extensions, problem, _) = await DoAsResponse(res, null, jsonOptions, ct);
+		var (extensions, problem, _, exception) = await DoAsResponse(res, null, jsonOptions, ct);
 
 		if (res.IsSuccessStatusCode)
 			if (extensions.Any(e => e.Item1 == StringContentKey))
@@ -130,12 +132,18 @@ public static class Extensions
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
 		return Response
-			.ErrorMessage(problem?.Detail ?? extensions.FirstOrDefault(e => e.Item1 == StringContentKey).Item2?.ToString() ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions);
+			.ErrorMessage(
+				problem?.Detail
+				?? extensions.FirstOrDefault(e => e.Item1 == StringContentKey).Item2?.ToString()
+				?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.",
+				type: errorType,
+				extensions: extensions,
+				exception: exception);
 	}
 
 	static async Task<Response<TPayload>> AsResponseFromMessageAsync<TPayload>(HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 	{
-		var (extensions, problem, deserializedBody) = await DoAsResponse(res, typeof(TPayload), jsonOptions, ct);
+		var (extensions, problem, deserializedBody, exception) = await DoAsResponse(res, typeof(TPayload), jsonOptions, ct);
 
 		if (res.IsSuccessStatusCode)
 		{
@@ -143,16 +151,26 @@ public static class Extensions
 				return Response.SuccessPayload(payload, extensions: extensions);
 			if (extensions.Any(e => e.Item1 == JsonContentKey))
 				return Response
-					.InvalidData($"The content of the response isn't '{typeof(TPayload).GetSignature()}' type.", extensions: extensions)
+					.InvalidData($"The content of the response isn't '{typeof(TPayload).GetSignature()}' type.",
+						extensions: extensions,
+						exception: exception)
 					.AsPayload<TPayload>();
 			return Response
-				.InvalidData("The content of the response isn't a valid json.", extensions: extensions)
+				.InvalidData("The content of the response isn't a valid json.",
+					extensions: extensions,
+					exception: exception)
 				.AsPayload<TPayload>();
 		}
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
 		return Response
-			.ErrorMessage(problem?.Detail ?? extensions.FirstOrDefault(e=>e.Item1==StringContentKey).Item2?.ToString() ?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.", type: errorType, extensions: extensions)
+			.ErrorMessage(
+				problem?.Detail
+				?? extensions.FirstOrDefault(e=>e.Item1==StringContentKey).Item2?.ToString()
+				?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.",
+				type: errorType,
+				extensions: extensions,
+				exception: exception)
 			.AsPayload<TPayload>();
 	}
 

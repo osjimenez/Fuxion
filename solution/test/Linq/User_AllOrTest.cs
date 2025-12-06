@@ -13,7 +13,7 @@ public class User_AllOrTest(ITestOutputHelper output, DatabaseFixture database)
 	: FilterTest<User_AllOrTest, UserDao>(output, database)
 {
 	protected override Filter<UserDao> Filter { get; } = new UserFilter()
-		.Transform(x => x.Invoices.All(or:
+		.Tap(x => x.Invoices.All(or:
 		[
 			a => a.InvoiceSerie.StartsWith = "A",
 			a => a.InvoiceCode.StartsWith = "00"
@@ -38,11 +38,7 @@ public class Invoice_AllOrTest : FilterTest<Invoice_AllOrTest, InvoiceDao>
 	}
 
 	protected override Filter<InvoiceDao> Filter { get; } = new InvoiceFilter()
-		.Transform(x =>
-		{
-			x.InvoiceSerie.Equal = "";
-			return x;
-		});
+		.Tap(x => x.InvoiceSerie.Equal = "");
 	//.Transform(x => x.Appointments.All(or:
 	//[
 	//	a => a.InvoiceSerie.StartsWith = "A",

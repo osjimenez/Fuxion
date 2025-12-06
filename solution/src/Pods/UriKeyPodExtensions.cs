@@ -1,17 +1,22 @@
+﻿using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Fuxion.Analyzers;
 using Fuxion.Pods.Json;
 using Fuxion.Pods.Json.Serialization;
+using Fuxion.Reflection;
+using Fuxion.Text.Json;
 
 namespace Fuxion.Pods;
 
 public static class UriKeyPodExtensions
 {
-	public static IUriKeyPodPreBuilder<TPayload> BuildUriKeyPod<TPayload>(this TPayload me, IUriKeyResolver resolver)
-		where TPayload : notnull
-		=> new UriKeyPodPreBuilder<TPayload>(resolver, me);
+	//public static IUriKeyPodPreBuilder<TPayload> BuildUriKeyPod<TPayload>(this TPayload me, IUriKeyResolver resolver)
+	//where TPayload : notnull
+	//	=> new UriKeyPodPreBuilder<TPayload>(resolver, me);
 	public static IUriKeyPodBuilder<TPayload, TPod> RebuildUriKeyPod<TPayload, TPod>(this TPod me)
 		where TPayload : notnull
 		where TPod : IUriKeyPod<TPayload>
@@ -42,25 +47,29 @@ public static class UriKeyPodExtensions
 		JsonSerializerOptions options = new();
 		options.PropertyNameCaseInsensitive = true;
 		options.Converters.Add(new IPodConverterFactory(me.Resolver));
-		return new UriKeyPodBuilder<object, IUriKeyPod<object>>(me.Resolver,
-			me.Pod.Payload.DeserializeFromJson<UriKeyPod<object>>(options) ?? throw new SerializationException("string couldn't be deserialized"));
+		return new UriKeyPodBuilder<object, IUriKeyPod<object>>(me.Resolver, me.Pod.Payload.Fx.Json
+			.Deserialize<UriKeyPod<object>>(options: options)
+			.PayloadOrError(r => throw new JsonException("string couldn't be deserialized", r.Exception)));
 	}
 	public static IUriKeyPodBuilder<object, IUriKeyPod<object>> FromJsonNode(this IUriKeyPodPreBuilder<string> me)
 	{
 		JsonSerializerOptions options = new();
 		options.PropertyNameCaseInsensitive = true;
 		options.Converters.Add(new IPodConverterFactory(me.Resolver));
-		return new UriKeyPodBuilder<object, IUriKeyPod<object>>(me.Resolver,
-			me.Payload.DeserializeFromJson<UriKeyPod<object>>(options) ?? throw new SerializationException("string couldn't be deserialized"));
+		return new UriKeyPodBuilder<object, IUriKeyPod<object>>(me.Resolver, me.Payload.Fx.Json
+			.Deserialize<UriKeyPod<object>>(options: options)
+			.PayloadOrError(r => throw new JsonException("string couldn't be deserialized", r.Exception)));
 	}
 	public static IUriKeyPodBuilder<object, IUriKeyPod<object>> FromJsonNode(this IUriKeyPodPreBuilder<string> me, out IUriKeyPod<object> pod)
 	{
 		JsonSerializerOptions options = new();
 		options.PropertyNameCaseInsensitive = true;
 		options.Converters.Add(new IPodConverterFactory(me.Resolver));
-		var deserializedPod = me.Payload.DeserializeFromJson<UriKeyPod<object>>(options) ?? throw new SerializationException("string couldn't be deserialized");
-		pod = deserializedPod;
-		return new UriKeyPodBuilder<object, IUriKeyPod<object>>(me.Resolver, deserializedPod);
+		var res = me.Payload.Fx.Json.Deserialize<UriKeyPod<object>>(options: options);
+		if(res.IsError)
+			throw new JsonException("string couldn't be deserialized", res.Exception);
+		pod = res.Payload;
+		return new UriKeyPodBuilder<object, IUriKeyPod<object>>(me.Resolver, res.Payload);
 	}
 	public static IUriKeyPodBuilder<byte[], IUriKeyPod<byte[]>> ToUtf8Bytes(this IUriKeyPodBuilder<string, IPod<UriKey, string>> me)
 		=> new UriKeyPodBuilder<byte[], IUriKeyPod<byte[]>>(me.Resolver, new UriKeyPod<byte[]>(me.Resolver[typeof(byte[])], Encoding.UTF8.GetBytes(me.Pod.Payload)));
@@ -68,4 +77,31 @@ public static class UriKeyPodExtensions
 		=> new UriKeyPodBuilder<byte[], IUriKeyPod<byte[]>>(me.Resolver, new UriKeyPod<byte[]>(me.Resolver[typeof(byte[])], Encoding.UTF8.GetBytes(me.Pod.Payload.ToJsonString())));
 	public static IUriKeyPodBuilder<string, IUriKeyPod<string>> FromUtf8Bytes(this IUriKeyPodPreBuilder<byte[]> me)
 		=> new UriKeyPodBuilder<string, IUriKeyPod<string>>(me.Resolver, new UriKeyPod<string>(me.Resolver[typeof(string)], Encoding.UTF8.GetString(me.Payload)));
+
+	extension<T>(FuxionExtensions<T?> me) where T : notnull
+	{
+		[RequiresNotNull]
+		public PodExtensions<T> Pod
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get
+			{
+#if NET6_0_OR_GREATER
+				ArgumentNullException.ThrowIfNull(me.Value);
+#else
+				if (me.Value is null)
+					throw new ArgumentNullException(nameof(me.Value),
+						"Cannot access Pod operations on null values. Pod requires non-null payloads.");
+#endif
+				return new(me.Value);
+			}
+		}
+	}
+	extension<T>(PodExtensions<T> me) where T : notnull
+	{
+		public IUriKeyPodPreBuilder<T> BuildUriKeyPod(IUriKeyResolver resolver)
+			=> new UriKeyPodPreBuilder<T>(resolver, me.Value);
+	}
 }
+
+public class PodExtensions<T>(T me) : Extensions<T>(me);

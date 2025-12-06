@@ -11,10 +11,16 @@ namespace Fuxion;
 public interface IResponse
 {
 	bool IsSuccess { get; }
+	[JsonIgnore]
 	bool IsError { get; }
+	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	string? Message { get; }
+	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	object? ErrorType { get; }
+	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+	[JsonConverter(typeof(ExceptionConverter))]
 	Exception? Exception { get; }
+	[JsonExtensionData]
 	IDictionary<string, object?> Extensions { get; }
 }
 
@@ -29,8 +35,10 @@ public interface IResponse<out TPayload> : IResponse
 	[MemberNotNullWhen(true, nameof(Payload))]
 	new bool IsSuccess { get; }
 	[MemberNotNullWhen(false, nameof(Payload))]
+	[JsonIgnore]
 	new bool IsError { get; }
 #endif
+	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 	TPayload? Payload { get; }
 }
 

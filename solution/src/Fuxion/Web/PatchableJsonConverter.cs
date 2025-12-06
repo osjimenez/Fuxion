@@ -2,6 +2,8 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Fuxion.Reflection;
+using Fuxion.Text.Json;
 using Fuxion.Text.Json.Serialization.Metadata;
 
 namespace Fuxion.Web;
@@ -35,7 +37,8 @@ public class PatchableJsonConverter<T> : JsonConverter<Patchable<T>> where T : c
 		foreach (var pvk in value.Properties)
 		{
 			writer.WritePropertyName(pvk.Key);
-			writer.WriteRawValue(pvk.Value.Value.SerializeToJson(options:options));
+			writer.WriteRawValue(pvk.Value.Value.Fx.Json.Serialize(options: options).PayloadOrError(
+				r => throw new JsonException($"Error writing '{value.GetType().GetSignature()}'.", r.Exception)));
 		}
 		writer.WriteEndObject();
 	}

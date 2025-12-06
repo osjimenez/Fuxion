@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 #endif
 using Test.Linq.Filters;
 using Xunit;
+using Fuxion.Text.Json;
 
 namespace Test.Linq;
 
@@ -38,13 +39,13 @@ public abstract class FilterTest<TFilterTest, TDao>(ITestOutputHelper output, Da
 	[Fact(DisplayName = "Json")]
 	public void TestsJson()
 	{
-		var json = Filter.SerializeToJson(true);
+		var json = Filter.Fx.Json.Serialize(true).Payload;
 		PrintVariable(Filter.Predicate);
 		PrintVariable(json);
-		var filter = json.DeserializeFromJson<UserFilter>();
-		Assert.NotNull(filter);
+		var res = json.Fx.Json.Deserialize<UserFilter>();
+		Assert.True(res.IsSuccess);
 		Assert.Equal(Filter.Predicate.ToString(), Predicate.ToString());
-		Assert.Equal(filter.Predicate.ToString(), Predicate.ToString());
+		Assert.Equal(res.Payload.Predicate.ToString(), Predicate.ToString());
 	}
 
 	[Theory(DisplayName = "Database", Explicit = !ExecuteDatabaseTests)]

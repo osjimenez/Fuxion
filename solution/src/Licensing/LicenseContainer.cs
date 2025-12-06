@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Fuxion.Text.Json;
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -59,18 +60,23 @@ public class LicenseContainer
 	public static LicenseContainer Sign(License license, string key)
 	{
 		license.SignatureUtcTime = DateTime.UtcNow;
-		var originalData = Encoding.Unicode.GetBytes(license.SerializeToJson());
-		byte[] signedData;
+		var originalData =
+			Encoding.Unicode.GetBytes(license.Fx.Json.Serialize()
+				.PayloadOrError(r => throw new JsonException("Error serializing license", r.Exception)));
 		var pro = new RSACryptoServiceProvider();
 		FromXmlString(pro, key);
-		signedData = pro.SignData(originalData, SHA1.Create());
+		var signedData = pro.SignData(originalData, SHA1.Create());
 		return new(Convert.ToBase64String(signedData), license);
 	}
 	public bool VerifySignature(string key)
 	{
 		var pro = new RSACryptoServiceProvider();
 		FromXmlString(pro, key);
-		return pro.VerifyData(Encoding.Unicode.GetBytes(RawLicense.SerializeToJson()), SHA1.Create(), Convert.FromBase64String(Signature));
+		return pro.VerifyData(Encoding.Unicode.GetBytes(
+				RawLicense.Fx.Json.Serialize()
+					.PayloadOrError(r => throw new JsonException("Error serializing license", r.Exception))),
+			SHA1.Create(),
+			Convert.FromBase64String(Signature));
 	}
 	//TODO - Must be done in framework when solved issue https://github.com/dotnet/corefx/pull/37593
 	static void FromXmlString(RSACryptoServiceProvider rsa, string xmlString)

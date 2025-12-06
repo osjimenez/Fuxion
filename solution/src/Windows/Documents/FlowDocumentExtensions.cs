@@ -27,7 +27,7 @@ public static class FlowDocumentExtensions
 		var res = new List<Block>();
 		var objType = obj?.GetType() ?? type;
 		return IsBasicType(objType)
-			? new Paragraph().Transform(p => {
+			? new Paragraph().Tap(p => {
 				//p.Inlines.Add(new Bold(new Run("●")));
 				p.Inlines.Add(new Bold(new Run($"  ●  {name} = ")));
 				var valStr = obj?.ToString();
@@ -66,7 +66,7 @@ class CollapsibleSection : Section
 							var list = new List {
 								MarkerStyle = TextMarkerStyle.None
 							};
-							if (item != null) list.ListItems.Add(new ListItem().Transform(i => i.Blocks.Add(item.ProcessProperty($"{name} [{counter++}]", item.GetType()))));
+							if (item != null) list.ListItems.Add(new ListItem().Tap(i => i.Blocks.Add(item.ProcessProperty($"{name} [{counter++}]", item.GetType()))));
 							Blocks.Add(list);
 						}
 					} else
@@ -78,16 +78,16 @@ class CollapsibleSection : Section
 							foreach (var pro in obj.GetType().GetProperties().Where(p => !p.GetIndexParameters().Any()).OrderBy(p => p.Name))
 								try
 								{
-									list.ListItems.Add(new ListItem().Transform(item => item.Blocks.Add(pro.GetValue(obj).ProcessProperty(pro.Name, pro.PropertyType))));
+									list.ListItems.Add(new ListItem().Tap(item => item.Blocks.Add(pro.GetValue(obj).ProcessProperty(pro.Name, pro.PropertyType))));
 								} catch (Exception ex)
 								{
-									list.ListItems.Add(new ListItem().Transform(item => item.Blocks.Add(new Paragraph().Transform(p =>
-										p.Inlines.Add(new Bold(new Run(Strings.ErrorExpandingItem + $":\r\n'{ex.GetType().Name}': {ex.Message}").Transform<Run>(r => r.Foreground = Brushes.Red)))))));
+									list.ListItems.Add(new ListItem().Tap(item => item.Blocks.Add(new Paragraph().Tap(p =>
+										p.Inlines.Add(new Bold(new Run(Strings.ErrorExpandingItem + $":\r\n'{ex.GetType().Name}': {ex.Message}").Tap<Run>(r => r.Foreground = Brushes.Red)))))));
 								}
 						if (isEnumerable)
 						{
 							var sec = new CollapsibleSection(obj, name, type, true);
-							list.ListItems.Add(new ListItem().Transform(item => item.Blocks.Add(sec)));
+							list.ListItems.Add(new ListItem().Tap(item => item.Blocks.Add(sec)));
 						}
 						Blocks.Add(list);
 					}
@@ -99,8 +99,8 @@ class CollapsibleSection : Section
 			} catch (Exception ex)
 			{
 				ResetBlocks();
-				Blocks.Add(new Paragraph().Transform(p =>
-					p.Inlines.Add(new Bold(new Run(Strings.ErrorExpandingItem + $":\r\n'{ex.GetType().Name}': {ex.Message}").Transform<Run>(r => r.Foreground = Brushes.Red)))));
+				Blocks.Add(new Paragraph().Tap(p =>
+					p.Inlines.Add(new Bold(new Run(Strings.ErrorExpandingItem + $":\r\n'{ex.GetType().Name}': {ex.Message}").Tap<Run>(r => r.Foreground = Brushes.Red)))));
 			}
 		};
 		button.Content = obj != null ? "▼" : "◊"; // "■"; // "●";

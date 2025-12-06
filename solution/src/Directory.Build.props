@@ -19,13 +19,25 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/OsJimenez/Fuxion</PackageProjectUrl>
 		<PackageIcon>icon.png</PackageIcon>
-		<PackageOutputPath>$(SolutionDir)..\nupkgs</PackageOutputPath>
+		<PackageOutputPath>$(SolutionDir)..\~$publish\nupkgs</PackageOutputPath>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 
 		<RepositoryUrl>https://github.com/OsJimenez/Fuxion.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 
 		<SourceLinkCreate>true</SourceLinkCreate>
 		<SourceLinkOriginUrl>https://github.com/osjimenez/Fuxion</SourceLinkOriginUrl>
+
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<!-- Opcional: Suprimir warning CS1591 (falta de documentación) -->
+		<NoWarn>$(NoWarn);CS1591</NoWarn>
+		
+		<!-- Hook into NuGet pack pipeline for Spanish XML documentation -->
+		<TargetsForTfmSpecificContentInPackage>
+			$(TargetsForTfmSpecificContentInPackage);
+			IncludeSpanishXmlInPackage;
+			IncludeAnalyzersAbstractionsInPackage
+		</TargetsForTfmSpecificContentInPackage>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -34,6 +46,141 @@
 
 	<ItemGroup>
 		<None Include="../icon.png" Pack="true" PackagePath="\" />
+		<None Include="README.md" Pack="true" PackagePath="\" Condition="Exists('README.md')" />
 	</ItemGroup>
+
+	<!-- ========================================== -->
+	<!-- ANALYZERS: Build before packing            -->
+	<!-- ========================================== -->
+	<!-- 
+	Builds the Fuxion analyzers before creating NuGet packages.
+	This ensures analyzer DLLs are up-to-date when packing any project in src/
+	Excludes the analyzer projects themselves to avoid circular dependencies.
+	-->
+	<Target Name="BuildAnalyzersBeforePack" 
+	        BeforeTargets="GenerateNuspec"
+	        Condition="'$(MSBuildProjectName)' != 'Fuxion.Analyzers.Abstractions' And '$(MSBuildProjectName)' != 'Fuxion.Analyzers' And '$(MSBuildProjectName)' != 'Fuxion.Analyzers.CodeFixes'">
+		
+		<Message Text="[Analyzers Build] Building Fuxion.Analyzers.Abstractions from: $(FuxionAnalyzersAbstractionsProject)" Importance="high" />
+		<MSBuild Projects="$(FuxionAnalyzersAbstractionsProject)" 
+		         Targets="Build" 
+		         Properties="Configuration=$(Configuration)" />
+		
+		<Message Text="[Analyzers Build] Building Fuxion.Analyzers from: $(FuxionAnalyzersProject)" Importance="high" />
+		<MSBuild Projects="$(FuxionAnalyzersProject)" 
+		         Targets="Build" 
+		         Properties="Configuration=$(Configuration)" />
+		
+		<Message Text="[Analyzers Build] Building Fuxion.Analyzers.CodeFixes from: $(FuxionAnalyzersCodeFixesProject)" Importance="high" />
+		<MSBuild Projects="$(FuxionAnalyzersCodeFixesProject)" 
+		         Targets="Build" 
+		         Properties="Configuration=$(Configuration)" />
+	</Target>
+
+	<!-- ========================================== -->
+	<!-- ANALYZERS: Pack Abstractions into lib/     -->
+	<!-- ========================================== -->
+	<!-- 
+	Packages Fuxion.Analyzers.Abstractions.dll as a regular library dependency (in lib/).
+	This is necessary because it contains the [RequiresNotNull] attribute that users need at runtime.
+	The DLL is included for each target framework to ensure compatibility.
+	-->
+	<Target Name="IncludeAnalyzersAbstractionsInPackage"
+	        Condition="'$(MSBuildProjectName)' != 'Fuxion.Analyzers.Abstractions' And '$(MSBuildProjectName)' != 'Fuxion.Analyzers' And '$(MSBuildProjectName)' != 'Fuxion.Analyzers.CodeFixes'">
+		
+		<ItemGroup Condition="Exists('$(FuxionAnalyzersAbstractionsDll)')">
+			<TfmSpecificPackageFile Include="$(FuxionAnalyzersAbstractionsDll)">
+				<PackagePath>lib/$(TargetFramework)</PackagePath>
+			</TfmSpecificPackageFile>
+		</ItemGroup>
+		
+		<Message Text="[Analyzers Abstractions] $(AssemblyName) - TFM: $(TargetFramework) - File exists: $(Exists('$(FuxionAnalyzersAbstractionsDll)'))" Importance="high" />
+		<Message Text="[Analyzers Abstractions] $(AssemblyName) - Adding DLL for $(TargetFramework): lib/$(TargetFramework)/Fuxion.Analyzers.Abstractions.dll" 
+		         Importance="high" 
+		         Condition="Exists('$(FuxionAnalyzersAbstractionsDll)')" />
+	</Target>
+
+	<!-- ========================================== -->
+	<!-- ANALYZERS: Pack into NuGet package         -->
+	<!-- ========================================== -->
+	<!-- 
+	Automatically includes Fuxion analyzers in ALL packages created from src/ projects.
+	The analyzers are placed in the standard 'analyzers/dotnet/cs' path.
+	Excludes the analyzer projects themselves to avoid self-packaging.
+	-->
+	<ItemGroup Condition="'$(MSBuildProjectName)' != 'Fuxion.Analyzers.Abstractions' And '$(MSBuildProjectName)' != 'Fuxion.Analyzers' And '$(MSBuildProjectName)' != 'Fuxion.Analyzers.CodeFixes'">
+		<!-- Pack Analyzer DLL -->
+		<None Include="$(FuxionAnalyzersDll)" 
+		      Pack="true" 
+		      PackagePath="$(AnalyzersPackagePath)" 
+		      Visible="false" 
+		      Condition="Exists('$(FuxionAnalyzersDll)')" />
+		
+		<!-- Pack CodeFix DLL -->
+		<None Include="$(FuxionAnalyzersCodeFixesDll)" 
+		      Pack="true" 
+		      PackagePath="$(AnalyzersPackagePath)" 
+		      Visible="false" 
+		      Condition="Exists('$(FuxionAnalyzersCodeFixesDll)')" />
+	</ItemGroup>
+
+	<!-- ========================================== -->
+	<!-- XML DOCUMENTATION: Copy English to _docs   -->
+	<!-- ========================================== -->
+	<!-- 
+	After each build, automatically copy the generated English XML documentation 
+	to _docs/en/ for easier translation workflow.
+	This runs after compilation but only for the first target framework to avoid 
+	multiple unnecessary copies (the XML is the same for all frameworks).
+	-->
+	<Target Name="CopyEnglishXmlDocs" 
+	        AfterTargets="CoreCompile" 
+	        Condition="'$(GenerateDocumentationFile)' == 'true' And '$(TargetFramework)' != ''">
+		
+		<PropertyGroup>
+			<_EnglishXmlSource>$(OutputPath)$(AssemblyName).xml</_EnglishXmlSource>
+			<_EnglishXmlDest>_docs\en\$(AssemblyName).xml</_EnglishXmlDest>
+		</PropertyGroup>
+		
+		<!-- Create directory if it doesn't exist -->
+		<MakeDir Directories="_docs\en" Condition="!Exists('_docs\en')" />
+		
+		<!-- Copy XML file (only if source exists and is different from destination) -->
+		<Copy SourceFiles="$(_EnglishXmlSource)" 
+		      DestinationFiles="$(_EnglishXmlDest)" 
+		      Condition="Exists('$(_EnglishXmlSource)')"
+		      SkipUnchangedFiles="true" />
+		
+		<Message Text="[English XML] Copied documentation to: $(_EnglishXmlDest)" 
+		         Importance="normal" 
+		         Condition="Exists('$(_EnglishXmlSource)')" />
+	</Target>
+
+	<!-- ========================================== -->
+	<!-- XML DOCUMENTATION: Spanish Satellite        -->
+	<!-- ========================================== -->
+	<!-- 
+	This target is called once per TargetFramework during pack for all projects in src/
+	It automatically includes Spanish XML documentation if the file exists at _docs/es/{AssemblyName}.xml
+	
+	IMPORTANT: The Exists() condition is evaluated INSIDE the target (not as a Condition attribute)
+	to ensure it works correctly with multi-targeting scenarios where TargetFramework changes
+	-->
+	<Target Name="IncludeSpanishXmlInPackage">
+		<PropertyGroup>
+			<_SpanishXmlPath>_docs\es\$(AssemblyName).xml</_SpanishXmlPath>
+		</PropertyGroup>
+		
+		<ItemGroup Condition="Exists('$(_SpanishXmlPath)')">
+			<TfmSpecificPackageFile Include="$(_SpanishXmlPath)">
+				<PackagePath>lib/$(TargetFramework)/es</PackagePath>
+			</TfmSpecificPackageFile>
+		</ItemGroup>
+		
+		<Message Text="[Spanish XML] $(AssemblyName) - TFM: $(TargetFramework) - File exists: $(Exists('$(_SpanishXmlPath)'))" Importance="high" />
+		<Message Text="[Spanish XML] $(AssemblyName) - Adding documentation for $(TargetFramework): lib/$(TargetFramework)/es/$(AssemblyName).xml" 
+		         Importance="high" 
+		         Condition="Exists('$(_SpanishXmlPath)')" />
+	</Target>
 
 </Project>

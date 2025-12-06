@@ -13,7 +13,7 @@ public static class Maps
 		app.MapGet("/send/rabbit", async (INexus nexus, IUriKeyResolver resolver) =>
 		{
 			TestMessage msg = new(1, "test");
-			var pod = msg.BuildUriKeyPod(resolver)
+			var pod = msg.Fx.Pod.BuildUriKeyPod(resolver)
 				.ToUriKeyPod()
 				.AddUriKeyHeader(new TestDestination("fuxion-lab-CL1-MS1"))
 				.Pod;

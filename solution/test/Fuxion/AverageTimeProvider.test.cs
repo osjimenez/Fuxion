@@ -35,7 +35,7 @@ public class AverageTimeProviderTest : BaseTest<AverageTimeProviderTest>
 	};
 	[Fact(DisplayName = "AverageTimeProvider - CheckConsistency")]
 	public void AverageTimeProvider_CheckConsistency() =>
-		new AverageTimeProvider().Transform(p => {
+		new AverageTimeProvider().Tap(p => {
 			foreach (var add in WebServersAddresses)
 				p.AddProvider(new InternetTimeProvider {
 					ServerAddress = add, ServerType = InternetTimeServerType.Web, Timeout = TimeSpan.FromSeconds(15)
@@ -43,6 +43,5 @@ public class AverageTimeProviderTest : BaseTest<AverageTimeProviderTest>
 			p.Logger = Logger;
 			p.RandomizedProvidersPerTry = 3;
 			p.MaxFailsPerTry = 3;
-			return p;
 		}).CheckConsistency(Output);
 }

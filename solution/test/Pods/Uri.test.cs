@@ -1,8 +1,8 @@
-using Fuxion.Xunit;
 using System.Web;
+using Fuxion.Xunit;
 using Xunit;
 
-namespace Fuxion.Pods.Test;
+namespace Test.Pods;
 
 public class UriTest(ITestOutputHelper output) : BaseTest<UriTest>(output)
 {

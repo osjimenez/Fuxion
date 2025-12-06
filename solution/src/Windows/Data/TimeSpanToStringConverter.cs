@@ -23,8 +23,8 @@ public class TimeSpanToStringConverter : GenericConverter<TimeSpan?, string?>
 		var res = "";
 		switch (Mode)
 		{
-			case TimeSpanToStringMode.PerElements:            return ts.ToTimeString(NumberOfElements);
-			case TimeSpanToStringMode.PerElementsOnlyLetters: return ts.ToTimeString(NumberOfElements, true);
+			case TimeSpanToStringMode.PerElements:            return ts.Fx.Time.ToTimeString(NumberOfElements);
+			case TimeSpanToStringMode.PerElementsOnlyLetters: return ts.Fx.Time.ToTimeString(NumberOfElements, true);
 			case TimeSpanToStringMode.Ticks:
 				res += $"{ts.Ticks} {(ts.Ticks > 1 ? Strings.ticks : Strings.tick)}, ";
 				return res;

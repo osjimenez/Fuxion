@@ -22,10 +22,7 @@ public class AntiTamperedTimeProviderTest(ITestOutputHelper output) : BaseTest<A
 				ServerAddress = address, ServerType = InternetTimeServerType.Web, Timeout = TimeSpan.FromSeconds(5)
 			}))
 			atp.AddProvider(pro);
-		new AntiTamperedTimeProvider(atp, new(new MemoryStoredTimeProvider().Transform(s => {
-			s.SaveUtcTime(DateTime.UtcNow);
-			return s;
-		})) {
+		new AntiTamperedTimeProvider(atp, new(new MemoryStoredTimeProvider().Tap(s => s.SaveUtcTime(DateTime.UtcNow))) {
 			Logger = Logger
 		}).CheckConsistency(Output);
 	}

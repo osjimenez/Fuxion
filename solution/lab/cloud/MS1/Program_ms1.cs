@@ -70,9 +70,9 @@ builder.Services.AddScoped<INexus>(sp =>
 	nexus.RouteDirectory.AddPublisher<JsonNode>(
 		new(""),
 		async jsonNode => await nexus.Publish(jsonNode.ToJsonString()
-		.BuildUriKeyPod(directory)
-		.FromJsonNode()
-		.Pod));
+			.Fx.Pod.BuildUriKeyPod(directory)
+			.FromJsonNode()
+			.Pod));
 	
 	// TODO El orden de los dos siguientes publishers es importante, y eso no mola
 	// Primero proceso los que tienen cabecera, luego los que no

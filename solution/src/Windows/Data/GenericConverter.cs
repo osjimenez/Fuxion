@@ -10,8 +10,8 @@ namespace Fuxion.Windows.Data;
 public abstract class GenericConverter<TSource, TResult> : IValueConverter
 {
 	public GenericConverter() { }
-	public GenericConverter(bool valueTypesAreNotNullables) : this() => this.valueTypesAreNotNullables = valueTypesAreNotNullables;
-	readonly bool valueTypesAreNotNullables = true;
+	public GenericConverter(bool includeNullableValueTypes) : this() => this.includeNullableValueTypes = includeNullableValueTypes;
+	readonly bool includeNullableValueTypes = true;
 	public bool AllowUnsetValue { get; set; }
 	public TResult UnsetValue { get; set; } = default!;
 	object? IValueConverter.Convert(object? value, Type targetType, object parameter, CultureInfo culture)
@@ -22,9 +22,9 @@ public abstract class GenericConverter<TSource, TResult> : IValueConverter
 			throw new NotSupportedException($"The value is DependencyProperty.UnsetValue. To support unset values use '{nameof(AllowUnsetValue)}' property of the '{GetType().Name}' class");
 		// value must be TSource, call Convert
 		// value is null and TSource is nullable, call Convert
-		if (value is TSource || value == null && typeof(TSource).IsNullable(valueTypesAreNotNullables)) return Convert((TSource)value!, culture);
+		if (value is TSource || value == null && typeof(TSource).CanBeNull(includeNullableValueTypes)) return Convert((TSource)value!, culture);
 		// value is null and TResult is nullable, return null
-		if (value == null && typeof(TResult).IsNullable(valueTypesAreNotNullables)) return null;
+		if (value == null && typeof(TResult).CanBeNull(includeNullableValueTypes)) return null;
 		// In any other case, value is not supported exception
 		throw new NotSupportedException($"The value '{value}' is not supported for '{GetType().Name}.{nameof(Convert)}' method, must be of type '{typeof(TSource).GetSignature()}'");
 	}
@@ -32,9 +32,9 @@ public abstract class GenericConverter<TSource, TResult> : IValueConverter
 	{
 		// value must be TSource, call ConvertBack
 		// value is null and TResult is nullable, call ConvertBack
-		if (value is TResult || value == null && typeof(TResult).IsNullable(valueTypesAreNotNullables)) return ConvertBack((TResult)value!, culture);
+		if (value is TResult || value == null && typeof(TResult).CanBeNull(includeNullableValueTypes)) return ConvertBack((TResult)value!, culture);
 		// value is null and Tsource is nullable, return null
-		if (value == null && typeof(TSource).IsNullable(valueTypesAreNotNullables)) return null;
+		if (value == null && typeof(TSource).CanBeNull(includeNullableValueTypes)) return null;
 		// In any other case, value is not supported exception
 		throw new NotSupportedException($"The value '{value}' is not supported for '{GetType().Name}.{nameof(ConvertBack)}' method, must be of type '{typeof(TResult).GetSignature()}'");
 	}
@@ -59,9 +59,9 @@ public abstract class GenericConverter<TSource, TResult, TParameter> : IValueCon
 			throw new NotSupportedException($"The value is DependencyProperty.UnsetValue. To support unset values use '{nameof(AllowUnsetValue)}' property of the '{GetType().Name}' class");
 		// value must be TSource, call Convert
 		// value is null and TSource is nullable, call Convert
-		if (value is TSource || value == null && typeof(TSource).IsNullable(valueTypesAreNotNullables)) return Convert((TSource)value!, (TParameter)parameter, culture);
+		if (value is TSource || value == null && typeof(TSource).CanBeNull(valueTypesAreNotNullables)) return Convert((TSource)value!, (TParameter)parameter, culture);
 		// value is null and TResult is nullable, return null
-		if (value == null && typeof(TResult).IsNullable(valueTypesAreNotNullables)) return null;
+		if (value == null && typeof(TResult).CanBeNull(valueTypesAreNotNullables)) return null;
 		// In any other case, value is not supported exception
 		throw new NotSupportedException($"The value '{value}' is not supported for '{GetType().Name}.{nameof(Convert)}' method, must be of type '{typeof(TSource).GetSignature()}'");
 	}
@@ -70,9 +70,9 @@ public abstract class GenericConverter<TSource, TResult, TParameter> : IValueCon
 		if (typeof(TParameter) != typeof(object) && !(parameter is TParameter)) throw new NotSupportedException($"The parameter must be of type '{typeof(TParameter).GetSignature()}'");
 		// value must be TSource, call ConvertBack
 		// value is null and TResult is nullable, call ConvertBack
-		if (value is TResult || value == null && typeof(TResult).IsNullable(valueTypesAreNotNullables)) return ConvertBack((TResult)value!, (TParameter)parameter, culture);
+		if (value is TResult || value == null && typeof(TResult).CanBeNull(valueTypesAreNotNullables)) return ConvertBack((TResult)value!, (TParameter)parameter, culture);
 		// value is null and Tsource is nullable, return null
-		if (value == null && typeof(TSource).IsNullable(valueTypesAreNotNullables)) return null;
+		if (value == null && typeof(TSource).CanBeNull(valueTypesAreNotNullables)) return null;
 		// In any other case, value is not supported exception
 		throw new NotSupportedException($"The value '{value}' is not supported for '{GetType().Name}.{nameof(ConvertBack)}' method, must be of type '{typeof(TResult).GetSignature()}'");
 	}

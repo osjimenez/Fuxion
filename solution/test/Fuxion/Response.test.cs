@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Fuxion.Text.Json;
 using Fuxion.Xunit;
 using Xunit;
 
@@ -51,20 +52,20 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 	[Fact]
 	public void Serialize()
 	{
-		PrintVariable(GetSuccess().SerializeToJson(true));
-		PrintVariable(GetSuccessMessage().SerializeToJson(true));
-		PrintVariable(GetSuccessMessageWithExtensions().SerializeToJson(true));
-		PrintVariable(GetSuccessWithPayload().SerializeToJson(true));
-		PrintVariable(GetSuccessWithPayloadAndExtensions().SerializeToJson(true));
+		PrintVariable(GetSuccess().Fx.Json.Serialize(true).Payload);
+		PrintVariable(GetSuccessMessage().Fx.Json.Serialize(true).Payload);
+		PrintVariable(GetSuccessMessageWithExtensions().Fx.Json.Serialize(true).Payload);
+		PrintVariable(GetSuccessWithPayload().Fx.Json.Serialize(true).Payload);
+		PrintVariable(GetSuccessWithPayloadAndExtensions().Fx.Json.Serialize(true).Payload);
 
-		PrintVariable(GetError().SerializeToJson(true));
-		PrintVariable(GetErrorWithPayload().SerializeToJson(true));
+		PrintVariable(GetError().Fx.Json.Serialize(true).Payload);
+		PrintVariable(GetErrorWithPayload().Fx.Json.Serialize(true).Payload);
 
-		PrintVariable(GetNotFound().SerializeToJson(true));
-		PrintVariable(GetNotFoundWithPayload().SerializeToJson(true));
-		PrintVariable(GetNotFoundWithPayloadAndExtensions().SerializeToJson(true));
+		PrintVariable(GetNotFound().Fx.Json.Serialize(true).Payload);
+		PrintVariable(GetNotFoundWithPayload().Fx.Json.Serialize(true).Payload);
+		PrintVariable(GetNotFoundWithPayloadAndExtensions().Fx.Json.Serialize(true).Payload);
 
-		PrintVariable(GetCustomError().SerializeToJson(true));
+		PrintVariable(GetCustomError().Fx.Json.Serialize(true).Payload);
 
 		var results = new[]
 		{
@@ -74,8 +75,8 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 			Response.NotFound("message"),
 			Response.ErrorPayload(new Payload("Bob", 25), "message", extensions: [("Extension", 123.456)])
 		};
-		PrintVariable(results.SerializeToJson(true));
-		PrintVariable(results.CombineResponses().SerializeToJson(true));
+		PrintVariable(results.Fx.Json.Serialize(true).Payload);
+		PrintVariable(results.CombineResponses().Fx.Json.Serialize(true).Payload);
 
 		IsTrue(GetNotFound().IsNotFound());
 		IsTrue(GetNotFound().IsErrorType(ErrorType.NotFound));
@@ -86,7 +87,7 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 	{
 		Dictionary<int, int> dic = new();
 		var res = Do();
-		PrintVariable(res.SerializeToJson(true));
+		PrintVariable(res.Fx.Json.Serialize(true).Payload);
 
 		return;
 		Response<int> Do()
@@ -96,7 +97,7 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 				return Do2();
 			} catch (Exception ex)
 			{
-				PrintVariable(ex.SerializeToJson(true));
+				PrintVariable(ex.Fx.Json.Serialize(true).Payload);
 				return Response.Critical("Exception", exception: ex).AsPayload<int>();
 			}
 		}

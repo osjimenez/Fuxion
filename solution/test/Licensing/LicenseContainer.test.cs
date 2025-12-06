@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Text.Json;
 using System.Threading;
+using Fuxion.Text.Json;
 using Fuxion.Xunit;
 using Xunit;
 
@@ -19,12 +21,12 @@ public class LicenseContainerTest(ITestOutputHelper output) : BaseTest<LicenseCo
 		var con = LicenseContainer.Sign(lic, Const.FULL_KEY);
 		con.Comment = "Original comment";
 		Output.WriteLine("Original ToJson:");
-		Output.WriteLine(con.SerializeToJson());
+		Output.WriteLine(con.Fx.Json.Serialize().Payload ?? "null");
 		Assert.True(con.VerifySignature(Const.PUBLIC_KEY));
 		con.Comment = "Change comment";
 		Assert.True(con.VerifySignature(Const.PUBLIC_KEY));
 		Output.WriteLine("Changed ToJson:");
-		Output.WriteLine(con.SerializeToJson());
+		Output.WriteLine(con.Fx.Json.Serialize().Payload ?? "null");
 	}
 	[Fact(DisplayName = "LicenseContainer - Serialization")]
 	public void LicenseContainer_Serialization()
@@ -36,12 +38,13 @@ public class LicenseContainerTest(ITestOutputHelper output) : BaseTest<LicenseCo
 		lic.SetProductId(productId);
 		var con = new LicenseContainer("signature", lic);
 		Output.WriteLine("ToJson:");
-		var json = con.SerializeToJson();
+		var json = con.Fx.Json.Serialize().Payload;
+		Assert.NotNull(json);
 		Output.WriteLine(json);
 		Output.WriteLine("FromJson:");
-		var con2 = json.DeserializeFromJson<LicenseContainer>()!;
-		var json2 = con2.SerializeToJson();
-		Output.WriteLine(json2);
+		var con2 = json.Fx.Json.Deserialize<LicenseContainer>().Payload!;
+		var json2 = con2.Fx.Json.Serialize().Payload;
+		Output.WriteLine(json2 ?? "null");
 		Assert.Equal(json, json2);
 		Assert.True(con2.Is<LicenseMock>());
 		var lic2 = con2.As<LicenseMock>()!;
@@ -54,9 +57,9 @@ public class LicenseContainerTest(ITestOutputHelper output) : BaseTest<LicenseCo
 		Output.WriteLine("Time: " + time);
 		Thread.Sleep(time);
 		Output.WriteLine("FromJson timed:");
-		var con3 = json.DeserializeFromJson<LicenseContainer>()!;
-		var json3 = con3.SerializeToJson();
-		Output.WriteLine(json3);
+		var con3 = json.Fx.Json.Deserialize<LicenseContainer>().Payload!;
+		var json3 = con3.Fx.Json.Serialize().Payload;
+		Output.WriteLine(json3 ?? "null");
 		Assert.Equal(json, json3);
 		Assert.Equal(json2, json3);
 		Assert.True(con3.Is<LicenseMock>());
@@ -77,9 +80,9 @@ public class LicenseContainerTest(ITestOutputHelper output) : BaseTest<LicenseCo
 		lic.SetProductId(productId);
 		var con = LicenseContainer.Sign(lic, Const.FULL_KEY);
 		Output.WriteLine("ToJson:");
-		Output.WriteLine(con.SerializeToJson());
+		Output.WriteLine(con.Fx.Json.Serialize().Payload ?? "null");
 		Output.WriteLine("License.ToJson:");
-		Output.WriteLine(con.RawLicense.SerializeToJson());
+		Output.WriteLine(con.RawLicense.Fx.Json.Serialize().Payload ?? "null");
 		Assert.True(con.VerifySignature(Const.PUBLIC_KEY));
 	}
 }

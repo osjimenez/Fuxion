@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Fuxion.Reflection;
 
 namespace Fuxion;
 
@@ -57,7 +58,7 @@ public class UndefinedException(string message) : Exception(message);
 
 public class UndefinableConverterFactory : JsonConverterFactory
 {
-	public override bool CanConvert(Type type) => type.IsSubclassOfRawGeneric(typeof(Undefinable<>));
+	public override bool CanConvert(Type type) => type.IsSubclassOfGenericDefinition(typeof(Undefinable<>));
 
 	public override JsonConverter? CreateConverter(Type type, JsonSerializerOptions options)
 		=> (JsonConverter?)Activator.CreateInstance(typeof(UndefinableConverter<>).MakeGenericType(type.GetGenericArguments()[0])) ?? null;
@@ -70,7 +71,7 @@ public class UndefinableConverter<T> : JsonConverter<Undefinable<T?>>
 	public override bool CanConvert(Type type)
 	{
 		if (UndefinableTypes.ContainsKey(type)) return true;
-		if (type.IsSubclassOfRawGeneric(typeof(Undefinable<>)))
+		if (type.IsSubclassOfGenericDefinition(typeof(Undefinable<>)))
 		{
 			UndefinableTypes.Add(type, true);
 			return true;

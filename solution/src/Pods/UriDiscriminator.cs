@@ -90,8 +90,8 @@ public class UriDiscriminator
 
 	private string BuildBase64Url()
 	{
-		_base64Url = Encoding.UTF8.GetBytes(Key.ToString()).ToBase64UrlString();
-		return _base64Url;
+		_base64Url = Key.ToString().Fx.Encoding.DecodeFromBase64Url();
+		return _base64Url!; // PEND Quitar el null warning '!'
 	}
 }
 

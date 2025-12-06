@@ -110,11 +110,11 @@ public class TypeDiscriminatorFactory
 				{
 					// Inclusions
 					ent.Discriminator.Inclusions = Search(ent.Types.SelectMany(t => t.Attribute?.ExplicitInclusions ?? new string[]
-						{ })).Transform(res =>
+						{ })).Map(res =>
 						res.Count > 0 ? res : ent.Types?.SelectMany(t => t.DerivedTypes.Select(t2 => t2.Entry.Discriminator)).Distinct().ToList() ?? Enumerable.Empty<TypeDiscriminator>().ToList());
 					// Exclusions
 					ent.Discriminator.Exclusions = Search(ent.Types.SelectMany(t => t.Attribute?.ExplicitExclusions ?? new string[]
-						{ })).Transform(res =>
+						{ })).Map(res =>
 						res.Count > 0
 							? res
 							: ent.Discriminator.Exclusions = ent.Types?.Select(t => t.DeepBaseType?.Entry.Discriminator).WhereNotNull().ToList() ?? Enumerable.Empty<TypeDiscriminator>().ToList());
@@ -235,7 +235,7 @@ public class TypeDiscriminatorFactory
 	public void RegisterTree<T>(params Type[] types) => RegisterTree(typeof(T), types);
 	public void RegisterTree(Type baseType, params Type[] types) =>
 		Register((types.IsNullOrEmpty() ? baseType.GetTypeInfo().Assembly.DefinedTypes.Select(ti => ti.AsType()).ToArray() : types).Where(type =>
-			baseType == type || (baseType.GetTypeInfo().IsGenericTypeDefinition ? type.IsSubclassOfRawGeneric(baseType) : type.GetTypeInfo().IsSubclassOf(baseType))).ToArray());
+			baseType == type || (baseType.GetTypeInfo().IsGenericTypeDefinition ? type.IsSubclassOfGenericDefinition(baseType) : type.GetTypeInfo().IsSubclassOf(baseType))).ToArray());
 	public void Register<T>() => Register(typeof(T));
 	public void Register(params Type[] types)
 	{
@@ -256,7 +256,7 @@ public class TypeDiscriminatorFactory
 			{
 				// La entrada ya existe, agrego el tipo a la lista de tipos de la entrada existente
 				if (AllowMoreThanOneTypeByDiscriminator)
-					existent.Types.AddRange(ent.Types.TransformEach(t => t.Entry = existent));
+					existent.Types.AddRange(ent.Types.Do(t => t.Entry = existent));
 				else
 					throw new($"Type '{type.FullName}' cannot be registered because the id '{ent.Discriminator.Id}' already registered for '{existent.Discriminator.Id}'");
 			} else

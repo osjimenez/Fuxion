@@ -102,10 +102,17 @@ public class StronglyConnectedComponent<T> : IEnumerable<Vertex<T>>
 }
 
 /// <summary>
-///    Implementation of the Tarjan stronly connected components algorithm.
+/// Detects all strongly connected components in the graph using Tarjan's algorithm.
 /// </summary>
-/// <seealso cref="http://en.wikipedia.org/wiki/Tarjan's_strongly_connected_components_algorithm" />
-/// <seealso cref="http://stackoverflow.com/questions/261573/best-algorithm-for-detecting-cycles-in-a-directed-graph" />
+/// <returns>
+/// A list of strongly connected components, where each component is represented as a list of vertices.
+/// </returns>
+/// <remarks>
+/// A strongly connected component is a maximal set of vertices where there is a path from any vertex
+/// to every other vertex in the set.
+/// </remarks>
+/// <seealso href="http://en.wikipedia.org/wiki/Tarjan's_strongly_connected_components_algorithm">Tarjan's algorithm on Wikipedia</seealso>
+/// <seealso href="http://stackoverflow.com/questions/261573/best-algorithm-for-detecting-cycles-in-a-directed-graph">Best algorithm for detecting cycles in a directed graph</seealso>
 public class StronglyConnectedComponentFinder<T>
 {
 	int index;

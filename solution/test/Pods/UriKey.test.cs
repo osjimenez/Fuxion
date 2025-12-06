@@ -1,10 +1,12 @@
-using System.Text;
 using System.Web;
+using Fuxion;
+using Fuxion.Pods;
 using Fuxion.Reflection;
+using Fuxion.Text.Json;
 using Fuxion.Xunit;
 using Xunit;
 
-namespace Fuxion.Pods.Test;
+namespace Test.Pods;
 
 public class UriKeyTest(ITestOutputHelper output) : BaseTest<UriKeyTest>(output)
 {
@@ -143,11 +145,11 @@ public class UriKeyTest(ITestOutputHelper output) : BaseTest<UriKeyTest>(output)
 	[Fact]
 	public void DeserializeFromJson()
 	{
-		PrintVariable("\"https://fuxion.dev/folder/1.0.0\"".DeserializeFromJson<Uri>());
-		PrintVariable("\"https://fuxion.dev/folder/1.0.0\"".DeserializeFromJson<UriKey>());
+		PrintVariable("\"https://fuxion.dev/folder/1.0.0\"".Fx.Json.Deserialize<Uri>().Payload);
+		PrintVariable("\"https://fuxion.dev/folder/1.0.0\"".Fx.Json.Deserialize<UriKey>().Payload);
 		PrintVariable(
 			"\"https://chain9reset.com/Chain9Reset_Folder/Chain9Reset_Echelon1_Folder/1.0.0?__base=https%3A%2F%2Fchain9.com%2FChain9_Folder%2FChain9_Echelon1_Folder%2FChain9_Echelon3_Folder%2F1.0.0\""
-				.DeserializeFromJson<UriKey>());
+				.Fx.Json.Deserialize<UriKey>().Payload);
 	}
 	[Fact]
 	public void Dictionary()
@@ -188,21 +190,21 @@ public class UriKeyTest(ITestOutputHelper output) : BaseTest<UriKeyTest>(output)
 	[Fact]
 	public void SerializeToJson()
 	{
-		PrintVariable(new Uri("https://fuxion.dev/folder/1.0.0").SerializeToJson());
-		PrintVariable(new UriKey("https://fuxion.dev/folder/1.0.0").SerializeToJson());
-		PrintVariable(typeof(Chain9Reset_Echelon1).GetUriKey().SerializeToJson());
+		PrintVariable(new Uri("https://fuxion.dev/folder/1.0.0").Fx.Json.Serialize().Payload);
+		PrintVariable(new UriKey("https://fuxion.dev/folder/1.0.0").Fx.Json.Serialize().Payload);
+		PrintVariable(typeof(Chain9Reset_Echelon1).GetUriKey().Fx.Json.Serialize().Payload);
 	}
 	[Fact(DisplayName = "Validate UriKey properties")]
 	public void ValidateProperties()
 	{
 		var i1 = "https://fuxion.dev/interface-1/1.0.0";
-		var i1b64 = Encoding.UTF8.GetBytes(i1).ToBase64UrlString();
+		var i1b64 = i1.Fx.Encoding.ToBase64UrlString().Payload;
 		var i2 = "https://fuxion.dev/interface-2/1.0.0";
-		var i2b64 = Encoding.UTF8.GetBytes(i2).ToBase64UrlString();
-		var g1 = "https://fuxion.dev/generic-1/1.0.0"u8.ToArray().ToBase64UrlString();
-		var g2 = "https://fuxion.dev/generic-2/1.0.0"u8.ToArray().ToBase64UrlString();
-		var c1 = "https://fuxion.dev/chain-1/1.0.0"u8.ToArray().ToBase64UrlString();
-		var c2 = "https://fuxion.dev/chain-2/1.0.0"u8.ToArray().ToBase64UrlString();
+		var i2b64 = i2.Fx.Encoding.ToBase64UrlString().Payload;
+		var g1 = "https://fuxion.dev/generic-1/1.0.0".Fx.Encoding.ToBase64UrlString().Payload;
+		var g2 = "https://fuxion.dev/generic-2/1.0.0".Fx.Encoding.ToBase64UrlString().Payload;
+		var c1 = "https://fuxion.dev/chain-1/1.0.0".Fx.Encoding.ToBase64UrlString().Payload;
+		var c2 = "https://fuxion.dev/chain-2/1.0.0".Fx.Encoding.ToBase64UrlString().Payload;
 		// var u1 = new UriKey(new ($"https://fuxion.dev/1.0.0?__interfaces={i1}-{i2}"),true);
 		UriBuilder ub1 = new("https://fuxion.dev/1.0.0");
 		var query = HttpUtility.ParseQueryString(ub1.Query);

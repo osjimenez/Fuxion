@@ -5,6 +5,7 @@ using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Fuxion.Reflection;
 using Fuxion.Text.Json;
 using PodNames = Fuxion.Pods.IPod<string, string>;
 
@@ -34,7 +35,7 @@ public class IPodConverter<TPod, TDiscriminator, TPayload>(IUriKeyResolver? reso
 			.RootElement) ?? throw new SerializationException("Couldn't be created JsonObject");
 		
 		// TODO: - Alonso - Implement this in another way
-		 if (typeToConvert.IsSubclassOfRawGeneric(typeof(IUriKeyPod<>)))
+		 if (typeToConvert.IsSubclassOfGenericDefinition(typeof(IUriKeyPod<>)))
 		 	typeToConvert.GetProperty(nameof(IUriKeyPod<string>.Resolver))?.SetValue(pod, resolver);
 		
 		// DISCRIMINATOR
@@ -49,7 +50,7 @@ public class IPodConverter<TPod, TDiscriminator, TPayload>(IUriKeyResolver? reso
 			var tk = disNode.Deserialize<UriKey>(options) ?? throw new SerializationException($"Couldn't be obtained '{nameof(UriKey)}' from discriminator");
 			payloadType = resolver[tk];
 		}
-		pod.SetPrivatePropertyValue(disProp.Name, disNode.Deserialize<TDiscriminator>(options));
+		pod.Fx.Reflection.SetPrivatePropertyValue(disProp.Name, disNode.Deserialize<TDiscriminator>(options));
 		
 		// PAYLOAD
 		var payNode = jsonObject.FirstOrDefault(pair => pair.Key == PAYLOAD_LABEL)
@@ -58,7 +59,7 @@ public class IPodConverter<TPod, TDiscriminator, TPayload>(IUriKeyResolver? reso
 				.GetProperty(nameof(PodNames.Payload), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
 			?? throw new InvalidProgramException($"'{nameof(PodNames.Payload)}' property could not be obtained from pod '{pod.GetType().Name}'");
 		var payValue = payNode.Deserialize(payloadType, options);
-		pod.SetPrivatePropertyValue(payProp.Name, payValue);
+		pod.Fx.Reflection.SetPrivatePropertyValue(payProp.Name, payValue);
 		
 		// ITEMS
 		var iteNode = jsonObject.FirstOrDefault(pair => pair.Key == ITEMS_LABEL)
@@ -91,16 +92,18 @@ public class IPodConverter<TPod, TDiscriminator, TPayload>(IUriKeyResolver? reso
 		{
 			writer.WritePropertyName(prop.GetCustomAttribute<JsonPropertyNameAttribute>()
 				?.Name ?? prop.Name);
-			writer.WriteRawValue(prop.GetValue(value)
-				.SerializeToJson(options: options));
+			writer.WriteRawValue(prop.GetValue(value).Fx.Json.Serialize(options: options).PayloadOrError(
+				r => throw new JsonException($"Error writing property '{prop.Name}' of type '{prop.PropertyType.GetSignature()}' with value '{prop.GetValue(value)}'.", r.Exception)));
 		}
 		writer.WritePropertyName(DISCRIMINATOR_LABEL);
-		writer.WriteRawValue(value.Discriminator.SerializeToJson(options: options));
+		writer.WriteRawValue(value.Discriminator.Fx.Json.Serialize(options: options).PayloadOrError(
+			r => throw new JsonException($"Error writing discriminator of type '{typeof(TDiscriminator).GetSignature()}' with value '{value.Discriminator}'", r.Exception)));
 		writer.WritePropertyName(PAYLOAD_LABEL);
 		if (value.Payload is JsonNode jn)
 			jn.WriteTo(writer, options);
 		else
-			writer.WriteRawValue(value.Payload.SerializeToJson(options: options));
+			writer.WriteRawValue(value.Payload.Fx.Json.Serialize(options: options).PayloadOrError(
+				r => throw new JsonException($"Error writing payload of type '{typeof(TPayload).GetSignature()}' with value '{value.Payload}'", r.Exception)));
 		// Items
 		if (value is ICollectionPod<TDiscriminator, TPayload> col)
 			if (col.Any())

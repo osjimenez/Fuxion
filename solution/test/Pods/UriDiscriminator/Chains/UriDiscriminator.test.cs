@@ -1,8 +1,10 @@
+using Fuxion;
+using Fuxion.Pods;
+using Fuxion.Reflection;
 using Fuxion.Xunit;
-using System.Collections.ObjectModel;
 using Xunit;
 
-namespace Fuxion.Pods.Test.UriDiscriminator.Chains;
+namespace Test.Pods.UriDiscriminator.Chains;
 
 public class UriDiscriminatorTest(ITestOutputHelper output) : BaseTest<UriDiscriminatorTest>(output)
 {
@@ -36,7 +38,7 @@ public class UriDiscriminatorTest(ITestOutputHelper output) : BaseTest<UriDiscri
 		//foreach (var chain in res.Payload.Chain)
 		//	PrintVariable(chain.Key);
 	}
-	void PrintDiscriminator(Pods.UriDiscriminator discriminator)
+	void PrintDiscriminator(Fuxion.Pods.UriDiscriminator discriminator)
 	{
 		Printer.WriteLineAction = m => Output.WriteLine(m);
 		using (Printer.Indent($"DISCRIMINATOR: {discriminator.Key}"))

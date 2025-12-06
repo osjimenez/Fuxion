@@ -37,7 +37,7 @@ public class SignalRServerSubscriber() : ISubscriber<object>
 	public Task<IDisposable> OnReceive(Action<IReceipt<object>> onMessageReceived)
 	{
 		receivers.Add(onMessageReceived);
-		var dis = onMessageReceived.AsDisposable(f => receivers.Remove(f));
+		var dis = onMessageReceived.Fx.Lifetime.AsDisposable(f => receivers.Remove(f));
 		return Task.FromResult<IDisposable>(dis);
 	}
 	internal void ReceiveFromClient(IReceipt<object> receipt)
@@ -74,7 +74,7 @@ public class SignalRClientSubscriber([FromKeyedServices("NexusHub")] HubConnecti
 	public Task<IDisposable> OnReceive(Action<IReceipt<object>> onMessageReceived)
 	{
 		receivers.Add(onMessageReceived);
-		var dis = onMessageReceived.AsDisposable(f => receivers.Remove(f));
+		var dis = onMessageReceived.Fx.Lifetime.AsDisposable(f => receivers.Remove(f));
 		return Task.FromResult<IDisposable>(dis);
 	}
 }

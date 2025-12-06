@@ -6,6 +6,9 @@
   <Folder Name="/src/">
     <File Path="src/Directory.Build.props" />
     <File Path="src/icon.png" />
+    <Project Path="src/Analyzers.Abstractions/Fuxion.Analyzers.Abstractions.csproj" />
+    <Project Path="src/Analyzers.CodeFixes/Fuxion.Analyzers.CodeFixes.csproj" />
+    <Project Path="src/Analyzers/Fuxion.Analyzers.csproj" Id="f8c0a885-789e-4685-8719-78d31607cba2" />
     <Project Path="src/Application/Fuxion.Application.csproj" />
     <Project Path="src/AspNet/Fuxion.AspNet.csproj" />
     <Project Path="src/AspNetCore/Fuxion.AspNetCore.csproj" />
@@ -36,8 +39,8 @@
     <Project Path="test/AspNetCore.Service/Fuxion.AspNetCore.Service.csproj" />
     <Project Path="test/AspNetCore/Fuxion.AspNetCore.Test.csproj" />
     <Project Path="test/Dataset.EntityFramework/Test.Dataset.EntityFramework.csproj" />
+    <Project Path="test/Dataset.EntityFrameworkCore.MongoDB/Test.Dataset.EntityFrameworkCore.MongoDB.csproj" />
     <Project Path="test/Dataset.EntityFrameworkCore.SqlServer/Test.Dataset.EntityFrameworkCore.SqlServer.csproj" />
-    <Project Path="test/Dataset.EntityFrameworkCore.MongoDB/Test.Dataset.EntityFrameworkCore.MongoDB.csproj"/>
     <Project Path="test/Dataset/Test.Dataset.csproj" />
     <Project Path="test/Domain/Fuxion.Domain.Test.csproj" />
     <Project Path="test/EntityFramework/Fuxion.EntityFramework.Test.csproj" />
@@ -47,8 +50,7 @@
     <Project Path="test/Identity/Fuxion.Identity.Test.csproj" />
     <Project Path="test/Licensing/Fuxion.Licensing.Test.csproj" />
     <Project Path="test/Linq/Test.Linq.csproj" />
-    <Project Path="test/Pods/Fuxion.Pods.Test.csproj" />
-
+    <Project Path="test/Pods/Test.Pods.csproj" />
     <Project Path="test/Windows/Fuxion.Windows.Test.csproj" />
   </Folder>
   <Folder Name="/lab/">
@@ -65,6 +67,13 @@
   <Folder Name="/lab/on-premise/">
     <Project Path="lab/on-premise/A1/Fuxion.Lab.OnPremise.A1.csproj" />
     <Project Path="lab/on-premise/A2/Fuxion.Lab.OnPremise.A2.csproj" />
+  </Folder>
+  <Folder Name="/repo/docs/" />
+  <Folder Name="/repo/docs/analyzers/">
+    <File Path="docs/analyzers/debugging-analyzers.md" />
+    <File Path="docs/analyzers/FX001.md" />
+    <File Path="docs/analyzers/packaging.md" />
+    <File Path="docs/analyzers/README.md" />
   </Folder>
   <Folder Name="/repo/solution/">
     <File Path="Directory.Build.props" />

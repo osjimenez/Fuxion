@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http;
+using Fuxion.Text.Json;
 using Fuxion.Text.Json.Serialization;
 using Newtonsoft.Json.Linq;
 using static Fuxion.Net.Http.Extensions;
@@ -43,8 +44,8 @@ public static class ResponseExtensions
 							ContentLength = me.Extensions.TryGetValue(ContentLengthKey, out var extension) && extension is long length ? length : -1,
 						}
 					});
-				else if (me2.Payload is byte[] bytes)
-					return Factory.Ok(new ByteArrayContent(bytes)
+				else if (me2.Payload is IEnumerable<byte> bytes)
+					return Factory.Ok(new ByteArrayContent(bytes.ToArray())
 					{
 						Headers =
 						{
@@ -56,15 +57,26 @@ public static class ResponseExtensions
 							ContentLength = me.Extensions.TryGetValue(ContentLengthKey, out var extension) && extension is long length ? length : -1
 						}
 					});
+				else if (me2.Payload is string str)
+					return fullSerialization
+						? me2.Fx.Json.Serialize(options: JsonSerializerOptions != null ? new(JsonSerializerOptions) : null).Match(
+							r => Factory.Ok(new StringContent(r.Payload, Encoding.UTF8, "application/json")),
+							r => throw new JsonException("Error serializing response", r.Exception))
+						: Factory.Ok(new StringContent(str, Encoding.UTF8, contentType ?? "text/plain"));
 				else
-					return Factory.Ok(fullSerialization
-						? new StringContent(me2.SerializeToJson(JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
-						: new StringContent(me2.Payload.SerializeToJson(JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
-					);
-			else if (me.Message is not null)
-				return Factory.Ok(fullSerialization
-					? new StringContent(me.SerializeToJson(JsonSerializerOptions != null ? new(JsonSerializerOptions) : null), Encoding.UTF8, "application/json")
-					: new StringContent(me.Message));
+					return fullSerialization
+						? me2.Fx.Json.Serialize(options: JsonSerializerOptions != null ? new(JsonSerializerOptions) : null).Match(
+							r => Factory.Ok(new StringContent(r.Payload, Encoding.UTF8, "application/json")),
+							r => throw new JsonException("Error serializing response", r.Exception))
+						: me2.Payload.Fx.Json.Serialize(options: JsonSerializerOptions != null ? new(JsonSerializerOptions) : null).Match(
+							r => Factory.Ok(new StringContent(r.Payload, Encoding.UTF8, "application/json")),
+							r => throw new JsonException("Error serializing response", r.Exception));
+			else if (me.Message is not null || fullSerialization)
+				return fullSerialization
+					? me.Fx.Json.Serialize(options: JsonSerializerOptions != null ? new(JsonSerializerOptions) : null).Match(
+						r => Factory.Ok(new StringContent(r.Payload, Encoding.UTF8, "application/json")),
+						r => throw new JsonException("Error serializing response", r.Exception))
+					: Factory.Ok(new StringContent(me.Message, Encoding.UTF8, contentType ?? "text/plain"));
 			else
 				return Factory.NoContent();
 
@@ -83,7 +95,7 @@ public static class ResponseExtensions
 						new ExceptionConverter()
 					}
 				}
-				: JsonSerializerOptions.Transform(o =>
+				: JsonSerializerOptions.Map(o =>
 				{
 					var res = new JsonSerializerOptions(o);
 					res.Converters.Add(new ExceptionConverter());
@@ -114,11 +126,21 @@ public static class ResponseExtensions
 		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false)
 			=> ToApiResultCore(await me, null, null, fullSerialization);
 	}
+	extension(Task<IResponse<string>> me)
+	{
+		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false, string contentType = "text/plain ")
+			=> ToApiResultCore(await me, contentType, null, fullSerialization);
+	}
 	// Task<Response<TPayload>> receivers (general)
 	extension<TPayload>(Task<Response<TPayload>> me)
 	{
 		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false)
 			=> ToApiResultCore(await me, null, null, fullSerialization);
+	}
+	extension(Task<Response<string>> me)
+	{
+		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false, string contentType = "text/plain ")
+			=> ToApiResultCore(await me, contentType, null, fullSerialization);
 	}
 
 	// Stream payload specializations
@@ -172,7 +194,10 @@ public static class ResponseExtensions
 			=> ToApiResultCore(me, null, null, fullSerialization);
 	}
 }
-
+file class FuncHttpActionResult(Func<CancellationToken, Task<HttpResponseMessage>> func) : IHttpActionResult
+{
+	Task<HttpResponseMessage> IHttpActionResult.ExecuteAsync(CancellationToken cancellationToken) => func(cancellationToken);
+}
 file class Factory(Func<CancellationToken, Task<HttpResponseMessage>> func) : IHttpActionResult
 {
 	public static Factory Ok(HttpContent? content = null) => Create(HttpStatusCode.OK, content);
@@ -185,8 +210,11 @@ file class Factory(Func<CancellationToken, Task<HttpResponseMessage>> func) : IH
 			Title = title,
 			Detail = detail,
 			Extensions = extensions ?? new(StringComparer.Ordinal)
-		}.SerializeToJson(ResponseExtensions.JsonSerializerOptions != null ? new(ResponseExtensions.JsonSerializerOptions) : null), Encoding.UTF8, "application/problem+json"));
-	static Factory Create(HttpStatusCode status, HttpContent? content = null)
+		}.Fx.Json.Serialize(options: ResponseExtensions.JsonSerializerOptions != null ? new(ResponseExtensions.JsonSerializerOptions) : null).PayloadOrError(
+				r => throw new JsonException("Error serializing response problem", r.Exception)),
+			Encoding.UTF8,
+			"application/problem+json"));
+	public static Factory Create(HttpStatusCode status, HttpContent? content = null)
 		=> new(_ =>
 		{
 			var msg = new HttpResponseMessage(status);

@@ -240,7 +240,7 @@ static class IdentityExtensions
 				var r = "";
 				if (exp.Value == null)
 					r += "null";
-				else if (exp.Value.GetType().IsSubclassOfRawGeneric(typeof(List<>)))
+				else if (exp.Value.GetType().IsSubclassOfGenericDefinition(typeof(List<>)))
 				{
 					var toAdd = "[";
 					foreach (var obj in (IEnumerable)exp.Value) toAdd += obj + ", ";

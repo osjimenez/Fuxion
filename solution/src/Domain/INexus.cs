@@ -206,7 +206,7 @@ public class RouteDirectory
 		{
 			disposables.Add(await subscriber.OnReceive(onMessageReceived));
 		}
-		return disposables.AsDisposable(list =>
+		return disposables.Fx.Lifetime.AsDisposable(list =>
 		{
 			foreach (var dis in list) dis.Dispose();
 		});

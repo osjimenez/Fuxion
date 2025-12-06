@@ -391,7 +391,7 @@ public sealed class FilterSourceGenerator : IIncrementalGenerator
 		sb.AppendLine($"\tExpression<System.Func<global::{entity.ToDisplayString()}, bool>>? _predicate;");
 		sb.AppendLine($"\tpublic override Expression<System.Func<global::{entity.ToDisplayString()}, bool>> Predicate => _predicate ??= Build();\n");
 		sb.AppendLine($"\tExpression<System.Func<global::{entity.ToDisplayString()}, bool>> Build() {{");
-		sb.AppendLine($"\t\tvar x = Parameter<global::{entity.ToDisplayString()}>(Fuxion.Extensions.ToCamelCase(SingularKey));");
+		sb.AppendLine($"\t\tvar x = Parameter<global::{entity.ToDisplayString()}>(Fuxion.StringExtensions.ToCamelCase(SingularKey));");
 		sb.AppendLine("\t\tExpression body = TrueConstant;");
 
 		// Apply properties

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using Fuxion;
+using Fuxion.Reflection;
 using Fuxion.Xunit;
 using Microsoft.EntityFrameworkCore;
 using Test.Dataset;
@@ -41,7 +42,7 @@ public interface IEqualPropertyFilter2<TValue> : IPropertyFilter2<TValue>
 {
 	TValue? Equal { get; set; }
 	
-	static bool CanApply(object target) => target.GetType().IsSubclassOfRawGeneric(typeof(IEquatable<>));
+	static bool CanApply(object target) => target.GetType().IsSubclassOfGenericDefinition(typeof(IEquatable<>));
 
 	Expression<Func<TEntity, bool>> BuildEqualPredicate<TEntity>(Expression<Func<TEntity, TValue>> selector)
 	{
@@ -62,7 +63,7 @@ public interface INotEqualPropertyFilter2<TValue> : IPropertyFilter2<TValue>
 {
 	TValue? NotEqual { get; set; }
 	
-	static bool CanApply(object target) => target.GetType().IsSubclassOfRawGeneric(typeof(IEquatable<>));
+	static bool CanApply(object target) => target.GetType().IsSubclassOfGenericDefinition(typeof(IEquatable<>));
 
 	Expression<Func<TEntity, bool>> BuildNotEqualPredicate<TEntity>(Expression<Func<TEntity, TValue>> selector)
 	{
@@ -92,7 +93,7 @@ public interface IInPropertyFilter2<TValue> : IPropertyFilter2<TValue>
 
 	IReadOnlyCollection<TValue>? In { get; set; }
 
-	static bool CanApply(object target) => target.GetType().IsSubclassOfRawGeneric(typeof(IEquatable<>));
+	static bool CanApply(object target) => target.GetType().IsSubclassOfGenericDefinition(typeof(IEquatable<>));
 
 	Expression<Func<TEntity, bool>> BuildInPredicate<TEntity>(Expression<Func<TEntity, TValue>> selector)
 	{
@@ -116,7 +117,7 @@ public interface IGreaterThanPropertyFilter2<TValue> : IPropertyFilter2<TValue>
 	TValue? GreaterThan { get; set; }
 
 
-	static bool CanApply(object target) => target.GetType().IsSubclassOfRawGeneric(typeof(IComparable<>));
+	static bool CanApply(object target) => target.GetType().IsSubclassOfGenericDefinition(typeof(IComparable<>));
 
 	Expression<Func<TEntity, bool>> BuildGreaterThanPredicate<TEntity>(Expression<Func<TEntity, TValue>> selector)
 	{
@@ -209,7 +210,7 @@ public interface IAnyPropertyFilter2<TPropertyFilter, TValue> : IPropertyFilter2
 {
 	TPropertyFilter? Any { get; set; }
 
-	static bool CanApply(object target) => target.GetType().IsSubclassOfRawGeneric(typeof(ICollection<>));
+	static bool CanApply(object target) => target.GetType().IsSubclassOfGenericDefinition(typeof(ICollection<>));
 
 	Expression<Func<TEntity, bool>> BuildAnyPredicate<TEntity>(Expression<Func<TEntity, ICollection<TValue>>> selector)
 	{
@@ -248,7 +249,7 @@ public interface IAllPropertyFilter2<TPropertyFilter, TValue> : IPropertyFilter2
 {
 	TPropertyFilter? All { get; set; }
 
-	static bool CanApply(object target) => target.GetType().IsSubclassOfRawGeneric(typeof(ICollection<>));
+	static bool CanApply(object target) => target.GetType().IsSubclassOfGenericDefinition(typeof(ICollection<>));
 
 	Expression<Func<TEntity, bool>> BuildAllPredicate<TEntity>(Expression<Func<TEntity, ICollection<TValue>>> selector)
 	{
@@ -287,7 +288,7 @@ public interface IAllNonEmptyPropertyFilter2<TPropertyFilter, TValue> : IPropert
 {
 	TPropertyFilter? AllNonEmpty { get; set; }
 
-	static bool CanApply(object target) => target.GetType().IsSubclassOfRawGeneric(typeof(ICollection<>));
+	static bool CanApply(object target) => target.GetType().IsSubclassOfGenericDefinition(typeof(ICollection<>));
 
 	// All no-vacuo: col != null && col.Any(pred) && !col.Any(!pred)
 	Expression<Func<TEntity, bool>> BuildAllNonEmptyPredicate<TEntity>(Expression<Func<TEntity, ICollection<TValue>>> selector)

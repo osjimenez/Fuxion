@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Fuxion.Pods.Json.Serialization;
+using Fuxion.Text.Json;
 
 namespace Fuxion.Pods.Json;
 
@@ -22,19 +23,28 @@ public static class JsonNodePodExtensions
 		JsonSerializerOptions options = new();
 		options.PropertyNameCaseInsensitive = true;
 		options.Converters.Add(new IPodConverterFactory());
-		return new PodBuilder<TDiscriminator, JsonNode, JsonNodePod<TDiscriminator>>(me.Pod.Payload.DeserializeFromJson<JsonNodePod<TDiscriminator>>(options)
-			?? throw new SerializationException("string couldn't be deserialized"));
+		var res = me.Pod.Payload.Fx.Json.Deserialize<JsonNodePod<TDiscriminator>>(options: options);
+		return res.IsSuccess
+			? new PodBuilder<TDiscriminator, JsonNode, JsonNodePod<TDiscriminator>>(res.Payload)
+			: throw new JsonException("string couldn't be deserialized", res.Exception);
 	}
 	public static IPodBuilder<TDiscriminator, JsonNode, JsonNodePod<TDiscriminator>> FromJsonNode<TDiscriminator>(this IPodPreBuilder<string> me)
 		where TDiscriminator : notnull
-		=> new PodBuilder<TDiscriminator, JsonNode, JsonNodePod<TDiscriminator>>(me.Payload.DeserializeFromJson<JsonNodePod<TDiscriminator>>()
-			?? throw new SerializationException("string couldn't be deserialized"));
+	{
+		var res = me.Payload.Fx.Json.Deserialize<JsonNodePod<TDiscriminator>>();
+		return res.IsSuccess
+			? new PodBuilder<TDiscriminator, JsonNode, JsonNodePod<TDiscriminator>>(res.Payload)
+			: throw new JsonException("string couldn't be deserialized", res.Exception);
+	}
+
 	public static IPodBuilder<TDiscriminator, JsonNode, JsonNodePod<TDiscriminator>> FromJsonNode<TDiscriminator>(this IPodPreBuilder<string> me, out JsonNodePod<TDiscriminator> pod)
 		where TDiscriminator : notnull
 	{
-		var deserializedPod = me.Payload.DeserializeFromJson<JsonNodePod<TDiscriminator>>() ?? throw new SerializationException("string couldn't be deserialized");
-		pod = deserializedPod;
-		return new PodBuilder<TDiscriminator, JsonNode, JsonNodePod<TDiscriminator>>(deserializedPod);
+		var res = me.Payload.Fx.Json.Deserialize<JsonNodePod<TDiscriminator>>();
+		if (res.IsError)
+			throw new JsonException("string couldn't be deserialized", res.Exception);
+		pod = res.Payload;
+		return new PodBuilder<TDiscriminator, JsonNode, JsonNodePod<TDiscriminator>>(res.Payload);
 	}
 	public static IPodBuilder<TDiscriminator, byte[], IPod<TDiscriminator, byte[]>> ToUtf8Bytes<TDiscriminator>(this IPodBuilder<TDiscriminator, JsonNode, JsonNodePod<TDiscriminator>> me, TDiscriminator discriminator)
 		where TDiscriminator : notnull

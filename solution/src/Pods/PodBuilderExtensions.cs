@@ -2,11 +2,8 @@ using System.Text;
 
 namespace Fuxion.Pods;
 
-public static class PodBuilder2Extensions
+public static class PodBuilderExtensions
 {
-	public static IPodPreBuilder<TPayload> BuildPod<TPayload>(this TPayload me)
-		where TPayload : notnull
-		=> new PodPreBuilder<TPayload>(me);
 	public static IPodBuilder<TDiscriminator, TPayload, Pod<TDiscriminator, TPayload>> ToPod<TDiscriminator, TPayload>(this IPodPreBuilder<TPayload> me, TDiscriminator discriminator)
 		where TDiscriminator : notnull
 		where TPayload : notnull
@@ -42,4 +39,9 @@ public static class PodBuilder2Extensions
 	public static IPodBuilder<TDiscriminator, string, IPod<TDiscriminator, string>> FromUtf8Bytes<TDiscriminator>(this IPodPreBuilder<byte[]> me, TDiscriminator discriminator)
 		where TDiscriminator : notnull
 		=> new PodBuilder<TDiscriminator, string, IPod<TDiscriminator, string>>(new Pod<TDiscriminator, string>(discriminator, Encoding.UTF8.GetString(me.Payload)));
+
+	extension<T>(PodExtensions<T> me) where T : notnull
+	{
+		public IPodPreBuilder<T> BuildPod() => new PodPreBuilder<T>(me.Value);
+	}
 }

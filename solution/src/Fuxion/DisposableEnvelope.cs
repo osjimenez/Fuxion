@@ -5,28 +5,44 @@ namespace Fuxion;
 
 public class DisposableEnvelope<T> : IDisposable, IAsyncDisposable where T : notnull
 {
+	public static DisposableEnvelope<T> Disposed
+	{
+		get
+		{
+			if (field is not null) return field;
+			field = new (true);
+			return field;
+		}
+	}
+
+	private DisposableEnvelope(bool disposed)
+	{
+		_disposed = disposed;
+		Value = default!;
+	}
 	public DisposableEnvelope(T obj, Action<T>? actionOnDispose = null)
 	{
 		Action = actionOnDispose;
-		value = obj;
+		Value = obj;
 	}
 	public DisposableEnvelope(T obj, Func<T, ValueTask>? functionOnDispose = null)
 	{
 		Function = functionOnDispose;
-		value = obj;
+		Value = obj;
 	}
-	bool disposed;
 
-	T value;
+	private bool _disposed;
+
 	public T Value
 	{
-		get => value;
+		get;
 		set
 		{
-			if (disposed) throw new ObjectDisposedException(nameof(Value));
-			this.value = value;
+			if (_disposed) throw new ObjectDisposedException(nameof(Value));
+			field = value;
 		}
 	}
+
 	protected Action<T>? Action { get; set; }
 	protected Func<T, ValueTask>? Function { get; set; }
 	
@@ -34,15 +50,17 @@ public class DisposableEnvelope<T> : IDisposable, IAsyncDisposable where T : not
 	ValueTask IAsyncDisposable.DisposeAsync() => OnDisposeAsync();
 	protected virtual void OnDispose()
 	{
-		disposed = true;
+		_disposed = true;
 		Action?.Invoke(Value);
 		Function?.Invoke(Value).AsTask().Wait();
 	}
 	protected virtual async ValueTask OnDisposeAsync()
 	{
-		disposed = true;
+		_disposed = true;
 		Action?.Invoke(Value);
 		if(Function is not null)
 			await Function.Invoke(Value);
 	}
+
+	public static implicit operator T(DisposableEnvelope<T> dis) => dis.Value;
 }

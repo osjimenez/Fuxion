@@ -1,13 +1,22 @@
-﻿using System;
+﻿using Fuxion.Text.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace Fuxion.Licensing.Test;
 
 public class LicenseStoreMock : ILicenseStore
 {
-	public LicenseStoreMock() => licenses = (File.ReadAllText("licenses.json").DeserializeFromJson<LicenseContainer[]>() ?? throw new InvalidOperationException("Error deserializing licenses.json")).ToList();
+	public LicenseStoreMock()
+	{
+		var res = File.ReadAllText("licenses.json").Fx.Json.Deserialize<LicenseContainer[]>();
+		licenses = res.IsSuccess
+			? res.Payload!.ToList()
+			: throw new JsonException("Error deserializing licenses.json: " + res.Message, res.Exception);
+	}
+
 	readonly List<LicenseContainer> licenses;
 	public event EventHandler<EventArgs<LicenseContainer>>? LicenseAdded;
 	public event EventHandler<EventArgs<LicenseContainer>>? LicenseRemoved;

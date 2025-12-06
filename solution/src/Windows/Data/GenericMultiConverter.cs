@@ -11,8 +11,8 @@ namespace Fuxion.Windows.Data;
 public abstract class GenericMultiConverter<TSource, TResult> : IMultiValueConverter
 {
 	public GenericMultiConverter() { }
-	public GenericMultiConverter(bool valueTypesAreNotNullables) : this() => this.valueTypesAreNotNullables = valueTypesAreNotNullables;
-	readonly bool valueTypesAreNotNullables = true;
+	public GenericMultiConverter(bool includeNullableValueTypes) : this() => this.includeNullableValueTypes = includeNullableValueTypes;
+	readonly bool includeNullableValueTypes = true;
 	public bool AllowUnsetValues { get; set; }
 	public bool IgnoreUnsetValues { get; set; } = true;
 	public TResult UnsetValue { get; set; } = default!;
@@ -32,7 +32,7 @@ public abstract class GenericMultiConverter<TSource, TResult> : IMultiValueConve
 		}
 		// value must be TSource, call Convert
 		// value is null and TSource is nullable, call Convert
-		if (values.All(value => value is TSource || value == null && typeof(TSource).IsNullable(valueTypesAreNotNullables))) return Convert(values.Cast<TSource>().ToArray(), culture);
+		if (values.All(value => value is TSource || value == null && typeof(TSource).CanBeNull(includeNullableValueTypes))) return Convert(values.Cast<TSource>().ToArray(), culture);
 		// In any other case, value is not supported exception
 		throw new NotSupportedException(
 			$"The values '{values.Aggregate("", (a, c) => a + ", " + c, a => a.Trim(',', ' '))}' are not supported for '{GetType().Name}.{nameof(Convert)}' method, all must be of type '{typeof(TSource).Name}'");
@@ -41,9 +41,9 @@ public abstract class GenericMultiConverter<TSource, TResult> : IMultiValueConve
 	{
 		// value must be TSource, call ConvertBack
 		// value is null and TResult is nullable, call ConvertBack
-		if (value is TResult || value == null && typeof(TResult).IsNullable(valueTypesAreNotNullables)) return ConvertBack((TResult)value!, culture).Cast<object>().ToArray();
+		if (value is TResult || value == null && typeof(TResult).CanBeNull(includeNullableValueTypes)) return ConvertBack((TResult)value!, culture).Cast<object>().ToArray();
 		// value is null and Tsource is nullable, return null
-		if (value == null && typeof(TSource).IsNullable(valueTypesAreNotNullables)) return null;
+		if (value == null && typeof(TSource).CanBeNull(includeNullableValueTypes)) return null;
 		// In any other case, value is not supported exception
 		throw new NotSupportedException($"The value '{value}' is not supported for '{GetType().Name}.{nameof(ConvertBack)}' method, must be of type '{typeof(TResult).Name}'");
 	}
@@ -77,7 +77,7 @@ public abstract class GenericMultiConverter<TSource, TResult, TParameter> : IMul
 		}
 		// value must be TSource, call Convert
 		// value is null and TSource is nullable, call Convert
-		if (values.All(value => value is TSource || value == null && typeof(TSource).IsNullable(valueTypesAreNotNullables)))
+		if (values.All(value => value is TSource || value == null && typeof(TSource).CanBeNull(valueTypesAreNotNullables)))
 			return Convert(values.Cast<TSource>().ToArray(), (TParameter)parameter, culture);
 		// In any other case, value is not supported exception
 		throw new NotSupportedException(
@@ -88,9 +88,9 @@ public abstract class GenericMultiConverter<TSource, TResult, TParameter> : IMul
 		if (typeof(TParameter) != typeof(object) && !(parameter is TParameter)) throw new NotSupportedException($"The parameter must be of type '{typeof(TParameter).Name}'");
 		// value must be TSource, call ConvertBack
 		// value is null and TResult is nullable, call ConvertBack
-		if (value is TResult || value == null && typeof(TResult).IsNullable(valueTypesAreNotNullables)) return ConvertBack((TResult)value!, (TParameter)parameter, culture).Cast<object>().ToArray();
+		if (value is TResult || value == null && typeof(TResult).CanBeNull(valueTypesAreNotNullables)) return ConvertBack((TResult)value!, (TParameter)parameter, culture).Cast<object>().ToArray();
 		// value is null and Tsource is nullable, return null
-		if (value == null && typeof(TSource).IsNullable(valueTypesAreNotNullables)) return null;
+		if (value == null && typeof(TSource).CanBeNull(valueTypesAreNotNullables)) return null;
 		// In any other case, value is not supported exception
 		throw new NotSupportedException($"The value '{value}' is not supported for '{GetType().Name}.{nameof(ConvertBack)}' method, must be of type '{typeof(TResult).Name}'");
 	}

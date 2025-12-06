@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
+using Fuxion.Reflection;
 
 namespace Fuxion.Text.Json.Serialization.Metadata;
 

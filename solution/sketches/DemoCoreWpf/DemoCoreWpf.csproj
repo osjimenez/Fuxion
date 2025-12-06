@@ -10,8 +10,8 @@
 		<None Remove="ScreenCapture\ScreenCaptureWindow.xaml"/>
 	</ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="System.Drawing.Common" />
+	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">
+		<Reference Include="System.Drawing.Common" />
 	</ItemGroup>
 
 	<ItemGroup>

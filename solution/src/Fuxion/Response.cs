@@ -4,6 +4,7 @@ using Fuxion.Text.Json.Serialization;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
+using Fuxion.Reflection;
 
 namespace Fuxion;
 
@@ -50,7 +51,7 @@ public class Response<TPayload>(bool isSuccess, TPayload payload, string? messag
 		get;
 		init
 			=> field = value?.GetType()
-				.IsSubclassOfRawGeneric(typeof(Response<>)) ?? false
+				.IsSubclassOfGenericDefinition(typeof(Response<>)) ?? false
 				? throw new ArgumentException($"Payload is '{value.GetType().GetSignature()}' type, but can't be derived from '{typeof(Response<>).GetSignature()}' to avoid nested responses.",
 					nameof(Payload))
 				: value;

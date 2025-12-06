@@ -1,16 +1,17 @@
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Fuxion.Reflection;
 using PodType = Fuxion.Pods.IPod<string, string>;
 
 namespace Fuxion.Pods.Json.Serialization;
 
 public class IPodConverterFactory(IUriKeyResolver? resolver = null) : JsonConverterFactory
 {
-	public override bool CanConvert(Type typeToConvert) => typeToConvert.IsSubclassOfRawGeneric(typeof(IPod<,>));
+	public override bool CanConvert(Type typeToConvert) => typeToConvert.IsSubclassOfGenericDefinition(typeof(IPod<,>));
 	public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
 	{
-		var podType = typeToConvert.GetSubclassOfRawGeneric(typeof(IPod<,>));
+		var podType = typeToConvert.GetSubclassOfGenericDefinition(typeof(IPod<,>));
 		var disType = podType?.GetProperty(nameof(PodType.Discriminator))
 			?.PropertyType;
 		var payType = podType?.GetProperty(nameof(PodType.Payload))
@@ -50,7 +51,7 @@ public class IPodJsonConverterFactoryAttribute : JsonConverterAttribute
 
 	public override JsonConverter? CreateConverter(Type typeToConvert)
 	{
-		var podType = typeToConvert.GetSubclassOfRawGeneric(typeof(IPod<,>));
+		var podType = typeToConvert.GetSubclassOfGenericDefinition(typeof(IPod<,>));
 		var disType = podType?.GetProperty(nameof(PodType.Discriminator))
 			?.PropertyType;
 		var payType = podType?.GetProperty(nameof(PodType.Payload))

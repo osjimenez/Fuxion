@@ -2,6 +2,8 @@
 using Xunit;
 
 namespace Fuxion.Test;
+
+using Fuxion.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -115,10 +117,10 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 			IndentSize = 1,
 			WriteIndented = true
 		};
-		var definedJson = definedSample.SerializeToJson(true);//JsonSerializer.Serialize(definedSample, options);
+		var definedJson = definedSample.Fx.Json.Serialize(true).Payload;
 		var undefinedJson = JsonSerializer.Serialize(undefinedSample, options);
 
-		Output.WriteLine(definedJson);
+		Output.WriteLine(definedJson ?? "null");
 		//Output.WriteLine(undefinedJson);
 	}
 

@@ -22,7 +22,7 @@ public static class Functions
 			foreach (var inc in function.Inclusions)
 				((Function)dic[inc.Id]).Exclusions = new[] {
 					function
-				}.Transform(o => {
+				}.Map(o => {
 					if (dic[inc.Id].Exclusions != null) o = o.Union(dic[inc.Id].Exclusions).Where(_ => _ != null).ToArray();
 					return o;
 				});
@@ -30,7 +30,7 @@ public static class Functions
 			foreach (var exc in function.Exclusions)
 				((Function)dic[exc.Id]).Inclusions = new[] {
 					function
-				}.Transform(o => {
+				}.Map(o => {
 					if (dic[exc.Id].Inclusions != null) o = o.Union(dic[exc.Id].Inclusions).Where(_ => _ != null).ToArray();
 					return o;
 				});

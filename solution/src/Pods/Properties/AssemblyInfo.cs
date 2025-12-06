@@ -1,3 +1,3 @@
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("Fuxion.Pods.Test")]
+[assembly: InternalsVisibleTo("Test.Pods")]

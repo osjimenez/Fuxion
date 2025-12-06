@@ -5,13 +5,12 @@ using Fuxion.Reflection;
 namespace Fuxion.Domain;
 
 [UriKey(UriKey.FuxionBaseUri + "domain/event/1.0.0")]
-public abstract record Event(Guid aggregateId) :
+public abstract record Event(Guid AggregateId) :
 #if STANDARD_OR_OLD_FRAMEWORKS
 	Featurizable<Event>,
 #endif
 	IFeaturizable<Event>
 {
-	public Guid AggregateId { get; set; } = aggregateId;
 	IFeatureCollection<Event> IFeaturizable<Event>.Features { get; } = new FeatureCollection<Event>();
 }
 

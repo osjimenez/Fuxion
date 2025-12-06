@@ -31,7 +31,7 @@ public static class MessageBusExtensions
 	}
 	public static void SaveLayout(this IMessageBus me, Stream layoutFileStream) => me.SendMessage(new SaveLayoutMessage(layoutFileStream));
 	public static void OpenPanel(this IMessageBus me, PanelName name, params (string Key, object Value)[] args) =>
-		OpenPanel(me, name, args.Transform(list => new Dictionary<string, object>(list.Select(l => new KeyValuePair<string, object>(l.Key, l.Value)))));
+		OpenPanel(me, name, args.Map(list => new Dictionary<string, object>(list.Select(l => new KeyValuePair<string, object>(l.Key, l.Value)))));
 	public static void OpenPanel(this IMessageBus me, PanelName name, Dictionary<string, object> args) => me.SendMessage(new OpenPanelMessage(name, args));
 	internal static void OnOpenPanel(this IMessageBus me, Action<OpenPanelMessage> action) => me.Listen<OpenPanelMessage>().Subscribe(action);
 	public static void ClosePanel(this IMessageBus me, PanelName name) => me.SendMessage(new ClosePanelMessage(name));

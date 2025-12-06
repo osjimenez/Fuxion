@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using Fuxion.Linq.Expressions;
+using Fuxion.Reflection;
 using Microsoft.CSharp.RuntimeBinder;
 using Binder = Microsoft.CSharp.RuntimeBinder.Binder;
 
@@ -37,7 +38,7 @@ public sealed class Patchable<T>(NonExistingPropertiesMode nonExistingProperties
 				.GetProperty(pro.Key);
 			if (property == null) continue;
 			var isList = property.PropertyType.GetTypeInfo()
-				.IsGenericType && property.PropertyType.IsSubclassOfRawGeneric(typeof(IEnumerable<>));
+				.IsGenericType && property.PropertyType.IsSubclassOfGenericDefinition(typeof(IEnumerable<>));
 			if (isList)
 			{
 				var listType = typeof(List<>).MakeGenericType(property.PropertyType.GenericTypeArguments[0]);
@@ -50,7 +51,7 @@ public sealed class Patchable<T>(NonExistingPropertiesMode nonExistingProperties
 	}
 	object? CastValue(Type type, object? value)
 	{
-		var isNullable = type.IsSubclassOfRawGeneric(typeof(Nullable<>));
+		var isNullable = type.IsSubclassOfGenericDefinition(typeof(Nullable<>));
 		var valueType = isNullable
 			? type.GetTypeInfo()
 				.GenericTypeArguments.First()

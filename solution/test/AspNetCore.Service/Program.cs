@@ -13,7 +13,7 @@ public class Program
 		var builder = WebApplication.CreateBuilder(args);
 
 		// Add services to the container.
-
+		
 		// Configurar la serialización JSON
 		builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
 		{

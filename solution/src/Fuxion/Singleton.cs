@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
 using Fuxion.Reflection;
@@ -71,18 +72,21 @@ public class Singleton
 	public static void Add<T>()
 		where T : new()
 		=> Add(new T(), SingletonKey.GetKey<T>());
-	public static void Add<T>(T objectInstance) => Add(objectInstance, SingletonKey.GetKey<T>());
-	public static void Add<T>(T objectInstance, object key) => Add(objectInstance, SingletonKey.GetKey<T>(key));
-	static void Add<T>(T objectInstance, SingletonKey key)
+	public static T Add<T>(T objectInstance) => Add(objectInstance, SingletonKey.GetKey<T>());
+	public static T Add<T>(T objectInstance, object key) => Add(objectInstance, SingletonKey.GetKey<T>(key));
+	static T Add<T>(T objectInstance, SingletonKey key)
 	{
-		Instance.objects.Write(_ =>
+		Instance.objects.Write(dic =>
 		{
-			if (_.ContainsKey(key)) throw new ArgumentException("No se puede agregar el objeto porque la combinación clave/tipo esta en uso");
-			_.Add(key, objectInstance);
+			if(dic.ContainsKey(key)) throw new ArgumentException("No se puede agregar el objeto porque la combinación clave/tipo esta en uso");
+			dic.Add(key, objectInstance);
+			//if (!dic.TryAdd(key, objectInstance))
+			//		throw new ArgumentException("No se puede agregar el objeto porque la combinación clave/tipo esta en uso");
 		});
 		//if (Instance.objects.ContainsKey(key)) throw new ArgumentException("No se puede agregar el objeto porque la combinación clave/tipo esta en uso");
 		//Instance.objects.Add(key, objectInstance);
 		foreach (var sub in Instance.subscriptions.Where(sub => sub.Type == objectInstance?.GetType() && sub.Key == key)) sub.Invoke(default!, objectInstance, SingletonAction.Add);
+		return objectInstance;
 	}
 	public static void AddOrSkip<T>()
 		where T : new()
@@ -91,15 +95,16 @@ public class Singleton
 	public static void AddOrSkip<T>(T objectInstance, object key) => AddOrSkip(objectInstance, SingletonKey.GetKey<T>(key));
 	static void AddOrSkip<T>(T objectInstance, SingletonKey key)
 	{
-		var added = Instance.objects.Write(_ =>
+		var added = Instance.objects.Write(dic =>
 		{
-			if (!_.ContainsKey(key))
+			if (!dic.ContainsKey(key))
 			{
-				_.Add(key, objectInstance);
+				dic.Add(key,objectInstance);
 				return true;
 			}
 			return false;
 		});
+		//var added = Instance.objects.Write(dic => dic.TryAdd(key, objectInstance));
 		if (added)
 			foreach (var sub in Instance.subscriptions.Where(sub => sub.Type == objectInstance?.GetType() && sub.Key == key))
 				sub.Invoke(default!, objectInstance, SingletonAction.Add);
@@ -160,9 +165,9 @@ public class Singleton
 	}
 	static object? Find(SingletonKey key, Type requestedType)
 		//=> Instance.objects.Read(_ => _.ContainsKey(key) ? _[key] : null);
-		=> Instance.objects.ReadUpgradeable(_ =>
+		=> Instance.objects.ReadUpgradeable(dic =>
 		{
-			if (_.ContainsKey(key)) return _[key];
+			if (dic.TryGetValue(key, out var expression)) return expression;
 			var att = requestedType.GetCustomAttribute<DefaultSingletonInstanceAttribute>(true, false);
 			if (att != null)
 			{
@@ -212,9 +217,9 @@ public class Singleton
 	static void Subscribe<T>(Action<SingletonSubscriptionArgs<T>> changeAction, SingletonKey key, bool raiseAddIfAlreadyAdded = true)
 	{
 		Instance.subscriptions.Add(new(typeof(T), key, changeAction));
-		Instance.objects.Read(_ =>
+		Instance.objects.Read(dic =>
 		{
-			if (raiseAddIfAlreadyAdded && _.ContainsKey(key)) changeAction(new(default!, (T)_[key]!, SingletonAction.Add));
+			if (raiseAddIfAlreadyAdded && dic.TryGetValue(key, out var value)) changeAction(new(default!, (T)value!, SingletonAction.Add));
 		});
 	}
 	#endregion
@@ -236,8 +241,8 @@ public class SingletonSubscriptionArgs<T>
 		Action = action;
 	}
 	public SingletonAction Action { get; }
-	public T PreviousValue { get; set; }
-	public T ActualValue { get; set; }
+	public T PreviousValue { get; }
+	public T ActualValue { get; }
 }
 
 public interface ISingletonConstants

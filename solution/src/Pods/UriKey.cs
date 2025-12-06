@@ -107,24 +107,25 @@ public class UriKey : IEquatable<UriKey>, IComparable, IComparable<UriKey>
 			?.Split(ParameterSeparator);
 		if(genericsBase64 is not null)
 			foreach(var generic in genericsBase64)
-				generics.Add(string.IsNullOrWhiteSpace(generic) ? null : new(Encoding.UTF8.GetString(generic.FromBase64UrlString())));
-		
+				//generics.Add(string.IsNullOrWhiteSpace(generic) ? null : new(Encoding.UTF8.GetString(generic.Fx.Encoding.FromBase64UrlString()!))); // PEND Quitar el null warning '!'
+				generics.Add(string.IsNullOrWhiteSpace(generic) ? null : new(generic.Fx.Encoding.DecodeFromBase64Url()!)); // PEND Quitar el null warning '!'
+
 		// Extract interfaces
 		List<Uri> interfaces = new();
 		var interfacesBase64 = pars[InterfacesParameterName]
 			?.Split(ParameterSeparator);
 		if(interfacesBase64 is not null)
 			foreach(var @interface in interfacesBase64)
-				interfaces.Add(new(Encoding.UTF8.GetString(@interface.FromBase64UrlString())));
-		
+				interfaces.Add(new(@interface.Fx.Encoding.DecodeFromBase64Url()!)); // PEND Quitar el null warning '!'
+
 		// Extract key chain
 		List<Uri> keyChain = new();
 		var keyChainBase64 = pars[BasesParameterName]
 			?.Split(ParameterSeparator);
 		if(keyChainBase64 is not null)
 			foreach(var key in keyChainBase64)
-				keyChain.Add(new(Encoding.UTF8.GetString(key.FromBase64UrlString())));
-		
+				keyChain.Add(new(key.Fx.Encoding.DecodeFromBase64Url()!)); // PEND Quitar el null warning '!'
+
 		UriBuilder ub = new(currentUri);
 		// Create key Uri
 		Dictionary<string,string?> newQuery = new();

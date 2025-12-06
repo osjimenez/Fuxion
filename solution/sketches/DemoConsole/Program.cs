@@ -1,5 +1,7 @@
 ﻿using Fuxion;
 using Fuxion.Licensing;
+using Fuxion.Pods;
+using Fuxion.Text.Json;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 using Spectre.Console;
 using System.Reflection;
@@ -135,46 +137,46 @@ public class Program
 		return sb.ToString();
 	}
 
-	public static void Main2(string[] args)
-	{
-		var hardwareId = Guid.NewGuid().ToString();
-		var productId = Guid.NewGuid().ToString();
-		var lic = new LicenseMock();
-		lic.SetHarwareId(hardwareId);
-		lic.SetProductId(productId);
-		var con = new LicenseContainer("signature", lic);
-		Console.WriteLine("ToJson:");
-		var json = con.SerializeToJson();
-		Console.WriteLine(json);
-		Console.WriteLine("FromJson:");
-		var con2 = json.DeserializeFromJson<LicenseContainer>()!;
-		var json2 = con2.SerializeToJson();
-		Console.WriteLine(json2);
-		Assert.Equal(json, json2);
-		Assert.True(con2.Is<LicenseMock>());
-		var lic2 = con2.As<LicenseMock>()!;
-		Assert.NotNull(lic2);
-		Assert.Equal(lic.HardwareId.Key, lic2.HardwareId.Key);
-		Assert.Equal(lic.ProductId.Key, lic2.ProductId.Key);
+	//public static void Main2(string[] args)
+	//{
+	//	var hardwareId = Guid.NewGuid().ToString();
+	//	var productId = Guid.NewGuid().ToString();
+	//	var lic = new LicenseMock();
+	//	lic.SetHarwareId(hardwareId);
+	//	lic.SetProductId(productId);
+	//	var con = new LicenseContainer("signature", lic);
+	//	Console.WriteLine("ToJson:");
+	//	var json = con.Fx.Json.Serialize().Payload;
+	//	Console.WriteLine(json);
+	//	Console.WriteLine("FromJson:");
+	//	var con2 = json.Fx.Json.Deserialize<LicenseContainer>().Payload!;
+	//	var json2 = con2.Fx.Json.Serialize().Payload;
+	//	Console.WriteLine(json2);
+	//	Assert.Equal(json, json2);
+	//	Assert.True(con2.Is<LicenseMock>());
+	//	var lic2 = con2.As<LicenseMock>()!;
+	//	Assert.NotNull(lic2);
+	//	Assert.Equal(lic.HardwareId.Key, lic2.HardwareId.Key);
+	//	Assert.Equal(lic.ProductId.Key, lic2.ProductId.Key);
 
-		//Assert.Equal(con2.LicenseAs<LicenseMock>(), lic);
-		var time = new Random(Guid.NewGuid().GetHashCode()).Next(500, 1500);
-		Console.WriteLine("Time: " + time);
-		Thread.Sleep(time);
-		Console.WriteLine("FromJson timed:");
-		var con3 = json.DeserializeFromJson<LicenseContainer>()!;
-		var json3 = con3.SerializeToJson();
-		Console.WriteLine(json3);
-		Assert.Equal(json, json3);
-		Assert.Equal(json2, json3);
-		Assert.True(con3.Is<LicenseMock>());
-		var lic3 = con3.As<LicenseMock>()!;
-		Assert.NotNull(lic3);
-		Assert.Equal(lic.HardwareId.Key, lic3.HardwareId.Key);
-		Assert.Equal(lic.ProductId.Key, lic3.ProductId.Key);
+	//	//Assert.Equal(con2.LicenseAs<LicenseMock>(), lic);
+	//	var time = new Random(Guid.NewGuid().GetHashCode()).Next(500, 1500);
+	//	Console.WriteLine("Time: " + time);
+	//	Thread.Sleep(time);
+	//	Console.WriteLine("FromJson timed:");
+	//	var con3 = json.Fx.Json.Deserialize<LicenseContainer>().Payload!;
+	//	var json3 = con3.Fx.Json.Serialize().Payload;
+	//	Console.WriteLine(json3);
+	//	Assert.Equal(json, json3);
+	//	Assert.Equal(json2, json3);
+	//	Assert.True(con3.Is<LicenseMock>());
+	//	var lic3 = con3.As<LicenseMock>()!;
+	//	Assert.NotNull(lic3);
+	//	Assert.Equal(lic.HardwareId.Key, lic3.HardwareId.Key);
+	//	Assert.Equal(lic.ProductId.Key, lic3.ProductId.Key);
 
-		//Assert.Equal(con3.LicenseAs<LicenseMock>(), lic);
-	}
+	//	//Assert.Equal(con3.LicenseAs<LicenseMock>(), lic);
+	//}
 }
 
 public class LicenseMock : License

@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Fuxion.Reflection;
 
 namespace Fuxion.Web;
 
 public class PatchableJsonConverterFactory : JsonConverterFactory
 {
-	public override bool CanConvert(Type typeToConvert) => typeToConvert.IsSubclassOfRawGeneric(typeof(Patchable<>));
+	public override bool CanConvert(Type typeToConvert) => typeToConvert.IsSubclassOfGenericDefinition(typeof(Patchable<>));
 	public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
 	{
 		var types = typeToConvert.GetGenericArguments();
