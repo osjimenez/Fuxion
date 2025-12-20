@@ -72,7 +72,7 @@ public record Featurizable<TFeaturizable> where TFeaturizable : IFeaturizable<TF
 			this);
 		Features.Add((IFeature)feaObj);
 	}
-	public void Add<TFeature>(Action<TFeature>? initializeAction = null) 
+	public void Add<TFeature>(Action<TFeature>? initializeAction = null)
 		where TFeature : IFeature, new()
 	{
 		if (Has<TFeature>()) throw new FeatureAlreadyExistException($"'{GetType().GetSignature()}' object already has '{typeof(TFeature).Name}' feature");
@@ -134,10 +134,10 @@ internal class FeatureCollection<TFeaturizable> : IFeatureCollection<TFeaturizab
 	public bool Remove(UriKey key) => Features.Remove(key);
 	public TFeature Get<TFeature>()
 		where TFeature : IFeature
-		=> ((IFeatureCollection<TFeaturizable>)this).Has<TFeature>() 
+		=> ((IFeatureCollection<TFeaturizable>)this).Has<TFeature>()
 			? (TFeature)Features[typeof(TFeature).GetUriKey()]
 			: throw new FeatureNotFoundException($"Feature of type '{typeof(TFeature).GetSignature()}' not found");
-	
+
 	public bool TryGet<TFeature>([NotNullWhen(true)] out TFeature? feature)
 		where TFeature : IFeature
 	{

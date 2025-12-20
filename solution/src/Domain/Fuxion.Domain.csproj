@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>$(DefaultFrameworks)</TargetFrameworks>
@@ -17,8 +17,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\..\..\solution\src\Pods\Fuxion.Pods.csproj" />
 		<ProjectReference Include="..\Fuxion\Fuxion.csproj" />
-		<ProjectReference Include="..\Pods\Fuxion.Pods.csproj" />
+		<!--<ProjectReference Include="..\Pods\Fuxion.Pods.csproj" />-->
 	</ItemGroup>
 
 </Project>

@@ -83,9 +83,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\..\..\solution\src\Linq.CodeGenerator\Fuxion.Linq.CodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
 		<ProjectReference Include="..\..\src\Linq\Fuxion.Linq.csproj" />
 		<ProjectReference Include="..\..\src\Xunit\Fuxion.Xunit.csproj" />
-		<ProjectReference Include="..\..\src\Linq.CodeGenerator\Fuxion.Linq.CodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 		<ProjectReference Include="..\Dataset\Test.Dataset.csproj" />
 	</ItemGroup>
 
