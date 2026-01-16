@@ -1,3 +1,5 @@
+using Fuxion.Analyzers;
+using Fuxion.Analyzers.Abstractions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -5,7 +7,6 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
-using Fuxion.Analyzers;
 
 namespace Fuxion.Analyzers;
 
@@ -18,8 +19,8 @@ namespace Fuxion.Analyzers;
 public class RequiresNotNullAnalyzer : DiagnosticAnalyzer
 {
 	// Fully qualified names as constants (safer for analyzers)
-	private const string RequiresNotNullAttributeFullName = "Fuxion.Analyzers.RequiresNotNullAttribute";
-	private const string HasMembersRequiringNotNullAttributeFullName = "Fuxion.Analyzers.HasMembersRequiringNotNullAttribute";
+	private const string RequiresNotNullAttributeFullName = "Fuxion.Analyzers.Abstractions.RequiresNotNullAttribute";
+	private const string HasMembersRequiringNotNullAttributeFullName = "Fuxion.Analyzers.Abstractions.HasMembersRequiringNotNullAttribute";
 
 	private const string Category = "Usage";
 
@@ -216,6 +217,7 @@ public class RequiresNotNullAnalyzer : DiagnosticAnalyzer
 	private static bool HasRequiresNotNullAttribute(ISymbol symbol)
 	{
 		return symbol.GetAttributes()
+			//.Any(attr => attr.AttributeClass?.ToDisplayString() == typeof(RequiresNotNullAttribute).FullName);
 			.Any(attr => attr.AttributeClass?.ToDisplayString() == RequiresNotNullAttributeFullName);
 	}
 
@@ -235,6 +237,7 @@ public class RequiresNotNullAnalyzer : DiagnosticAnalyzer
 
 		// Look for [HasMembersRequiringNotNull] attribute on the containing type
 		var attribute = containingType.GetAttributes()
+			//.FirstOrDefault(attr => attr.AttributeClass?.ToDisplayString() == typeof(HasMembersRequiringNotNullAttribute).FullName);
 			.FirstOrDefault(attr => attr.AttributeClass?.ToDisplayString() == HasMembersRequiringNotNullAttributeFullName);
 
 		if (attribute == null)
@@ -262,6 +265,7 @@ public class RequiresNotNullAnalyzer : DiagnosticAnalyzer
 	private static string? GetCustomMessage(ISymbol symbol)
 	{
 		var attribute = symbol.GetAttributes()
+			//.FirstOrDefault(attr => attr.AttributeClass?.ToDisplayString() == typeof(RequiresNotNullAttribute).FullName);
 			.FirstOrDefault(attr => attr.AttributeClass?.ToDisplayString() == RequiresNotNullAttributeFullName);
 
 		if (attribute is null)
