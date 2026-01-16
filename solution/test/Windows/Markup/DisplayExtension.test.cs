@@ -34,9 +34,7 @@ public class DisplayExtensionTest(ITestOutputHelper output) : BaseTest<DisplayEx
 	}
 	T RegisterFrameworkElement<T>(object property, string bindPath) where T : FrameworkElement, new()
 	{
-		var ext = new DisplayExtension(bindPath) {
-			Printer = Printer.Default
-		};
+		var ext = new DisplayExtension(bindPath);
 		var element = new T();
 		var ser = new ServiceProviderMock(element, property);
 		var provider = ser.GetService(null!) as ProvideValueTargetMock;
@@ -45,9 +43,7 @@ public class DisplayExtensionTest(ITestOutputHelper output) : BaseTest<DisplayEx
 	}
 	T RegisterFrameworkContentElement<T>(object property, string bindPath) where T : FrameworkContentElement, new()
 	{
-		var ext = new DisplayExtension(bindPath) {
-			Printer = Printer.Default
-		};
+		var ext = new DisplayExtension(bindPath);
 		var element = new T();
 		var ser = new ServiceProviderMock(element, property);
 		var provider = ser.GetService(null!) as ProvideValueTargetMock;
@@ -113,9 +109,7 @@ public class DisplayExtensionTest(ITestOutputHelper output) : BaseTest<DisplayEx
 	[Fact(DisplayName = "DisplayExtension - Create chain")]
 	public async Task DisplayExtension_CreateChain() =>
 		await StartSTATask(() => {
-			var ext = new DisplayExtension("Dto.SubDto.Value") {
-				Printer = Printer.Default
-			};
+			var ext = new DisplayExtension("Dto.SubDto.Value");
 			var dtoLink = ext.chain.First();
 			var subDtoLink = ext.chain.Skip(1).First();
 			var valueLink = ext.chain.Skip(2).First();

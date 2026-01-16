@@ -7,6 +7,14 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+/// <summary>
+/// Provides extension methods for generating random strings using custom character sets.
+/// </summary>
+/// <remarks>
+/// This class extends <see cref="string"/> to enable random string generation using the string itself as a charset.
+/// On .NET 8.0 and greater, uses <see cref="RandomNumberGenerator"/> for cryptographically strong random generation.
+/// On older frameworks, uses <see cref="Random"/> with a GUID-based seed for pseudo-random generation.
+/// </remarks>
 public static class RandomExtensions
 {
 	extension(string me)

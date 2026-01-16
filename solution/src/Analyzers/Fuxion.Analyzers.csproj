@@ -1,0 +1,61 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<Title>Fuxion Analyzers</Title>
+		<PackageId>Fuxion.Analyzers</PackageId>
+		<Description>Roslyn analyzers for Fuxion library. Provides compile-time diagnostics for Pods, Json, Linq and other Fuxion features.</Description>
+		<PackageTags>fuxion;analyzers;roslyn;csharp;diagnostics</PackageTags>
+
+		<!-- Required for analyzers/source generators -->
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+
+		<!-- Analyzer packaging configuration -->
+		<IsPackable>true</IsPackable>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
+		<!-- CHANGED: Allow Abstractions dependency -->
+		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+		<DevelopmentDependency>true</DevelopmentDependency>
+		<!-- IMPORTANT: analyzers packages usually have no lib/ref; avoid TFM-specific dependency groups -->
+		<!--<NoPackageAnalysis>true</NoPackageAnalysis>-->
+		<NoWarn>$(NoWarn);NU5128</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Pack analyzer DLL into NuGet -->
+		<None Include="$(TargetPath)"
+		      Pack="true"
+		      PackagePath="analyzers/dotnet/cs"
+		      Visible="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Analyzer release tracking -->
+		<AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+		<AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Roslyn dependencies - versions managed centrally in Directory.Packages.props -->
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Reference to Abstractions (TRANSITIVO - usuarios obtienen esto automáticamente) -->
+		<ProjectReference Include="..\Analyzers.Abstractions\Fuxion.Analyzers.Abstractions.csproj" PrivateAssets="none" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Pack analyzer DLL into NuGet -->
+		<!--<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />-->
+
+		<!-- Pack CodeFixes DLL into NuGet (from sibling project) -->
+		<!-- Note: CodeFixes project must be built BEFORE packaging this project -->
+		<None Include="..\Analyzers.CodeFixes\$(OutputPath)\Fuxion.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" Condition="Exists('..\Analyzers.CodeFixes\$(OutputPath)\Fuxion.Analyzers.CodeFixes.dll')" />
+	</ItemGroup>
+
+</Project>

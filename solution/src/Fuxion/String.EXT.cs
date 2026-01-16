@@ -9,6 +9,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+/// <summary>
+/// Provides extension methods for string manipulation, case conversion, and text processing.
+/// </summary>
+/// <remarks>
+/// This class contains a comprehensive set of string utilities organized into several categories:
+/// <list type="bullet">
+/// <item><description><strong>Character and line manipulation:</strong> RemoveChar, SplitInLines, EnsureEndsWith</description></item>
+/// <item><description><strong>Case conversion:</strong> ToTitleCase, ToCamelCase, ToPascalCase, ToSnakeCase, ToKebabCase</description></item>
+/// <item><description><strong>Substring operations:</strong> SubstringFromEnd, AllIndexesOf</description></item>
+/// <item><description><strong>Null checking:</strong> IsNullOrEmpty, IsNullOrWhiteSpace, IsNeither* variants</description></item>
+/// <item><description><strong>Formatting:</strong> Format with fluent syntax</description></item>
+/// <item><description><strong>Search operations:</strong> AllIndexesOf, SearchTextInElements</description></item>
+/// </list>
+/// </remarks>
 public static class StringExtensions
 {
 	extension(string me)
@@ -147,7 +161,44 @@ public static class StringExtensions
 			return length < me.Length ? me.Substring(me.Length - length) : me;
 		}
 
-		// Helper: Splits string into words from various naming conventions
+		/// <summary>
+		/// Splits a string into individual words from various naming conventions.
+		/// Handles camelCase, PascalCase, snake_case, kebab-case, spaces, and acronyms.
+		/// </summary>
+		/// <param name="input">The string to split into words.</param>
+		/// <returns>
+		/// An enumerable sequence of words extracted from the input string.
+		/// Returns empty if the input is null or empty.
+		/// </returns>
+		/// <remarks>
+		/// <para>
+		/// This is a helper method used internally by case conversion methods (ToTitleCase, ToCamelCase, etc.).
+		/// It intelligently handles various naming conventions and edge cases:
+		/// </para>
+		/// <list type="bullet">
+		/// <item><description><strong>Separators:</strong> Splits on space, hyphen (-), and underscore (_)</description></item>
+		/// <item><description><strong>camelCase/PascalCase:</strong> Splits when transitioning from lowercase to uppercase</description></item>
+		/// <item><description><strong>Acronyms:</strong> Handles sequences like "XMLParser" → ["XML", "Parser"]</description></item>
+		/// <item><description><strong>Mixed cases:</strong> "HTTPSConnection" → ["HTTPS", "Connection"]</description></item>
+		/// </list>
+		/// <para>
+		/// <strong>Acronym detection logic:</strong> When encountering consecutive uppercase letters followed by
+		/// a lowercase letter, the last uppercase letter is considered the start of a new word.
+		/// For example: "XMLHttp" splits before 'H' → ["XML", "Http"].
+		/// </para>
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// // Internal usage examples (not directly accessible)
+		/// SplitIntoWords("myVariableName")     // yields: ["my", "Variable", "Name"]
+		/// SplitIntoWords("MY_CONSTANT_NAME")   // yields: ["MY", "CONSTANT", "NAME"]
+		/// SplitIntoWords("kebab-case-string")  // yields: ["kebab", "case", "string"]
+		/// SplitIntoWords("XMLParser")          // yields: ["XML", "Parser"]
+		/// SplitIntoWords("HTTPSConnection")    // yields: ["HTTPS", "Connection"]
+		/// SplitIntoWords("IOError")            // yields: ["IO", "Error"]
+		/// SplitIntoWords("Hello World")        // yields: ["Hello", "World"]
+		/// </code>
+		/// </example>
 		private static IEnumerable<string> SplitIntoWords(string input)
 		{
 			if (string.IsNullOrEmpty(input)) yield break;
@@ -289,59 +340,125 @@ public static class StringExtensions
 			string.Concat(SplitIntoWords(me).Select(w =>
 				char.ToUpper(w[0], culture ?? CultureInfo.CurrentCulture) + w[1..].ToLower(culture ?? CultureInfo.CurrentCulture)));
 
-		// PEND Actualizar documentación (cambio de nombre)
 		/// <summary>
-		/// Converts the string to snake_case, where words are lowercase and separated by underscores.
+		/// Converts the string to lowercase snake_case, where words are lowercase and separated by underscores.
 		/// Automatically detects and handles various naming conventions (camelCase, PascalCase, kebab-case, Title Case).
 		/// </summary>
 		/// <param name="culture">
 		/// The culture to use for casing. When <c>null</c>, uses <see cref="CultureInfo.CurrentCulture"/>.
 		/// </param>
 		/// <returns>
-		/// A string in snake_case format.
+		/// A string in lowercase snake_case format.
 		/// </returns>
+		/// <remarks>
+		/// This method was renamed from <c>ToSnakeCase</c> to <c>ToSnakeCaseLower</c> to distinguish it from
+		/// the uppercase variant <see cref="ToSnakeCaseUpper"/>. Both methods are provided to support different
+		/// naming conventions (e.g., variable names vs. constant names).
+		/// </remarks>
 		/// <example>
 		/// <code>
-		/// "Hello World".ToSnakeCase()            // returns "hello_world"
-		/// "MyVariableName".ToSnakeCase()         // returns "my_variable_name"
-		/// "MY_CONSTANT_NAME".ToSnakeCase()       // returns "my_constant_name"
-		/// "kebab-case-string".ToSnakeCase()      // returns "kebab_case_string"
-		/// "XMLParser".ToSnakeCase()              // returns "xml_parser"
-		/// "already_snake_case".ToSnakeCase()     // returns "already_snake_case"
+		/// "Hello World".ToSnakeCaseLower()            // returns "hello_world"
+		/// "MyVariableName".ToSnakeCaseLower()         // returns "my_variable_name"
+		/// "MY_CONSTANT_NAME".ToSnakeCaseLower()       // returns "my_constant_name"
+		/// "kebab-case-string".ToSnakeCaseLower()      // returns "kebab_case_string"
+		/// "XMLParser".ToSnakeCaseLower()              // returns "xml_parser"
+		/// "already_snake_case".ToSnakeCaseLower()     // returns "already_snake_case"
 		/// </code>
 		/// </example>
 		public string ToSnakeCaseLower(CultureInfo? culture = null)
 			=> string.Join("_", SplitIntoWords(me).Select(w => w.ToLower(culture ?? CultureInfo.CurrentCulture)));
 
-		// PEND Crear documentación
+		/// <summary>
+		/// Converts the string to uppercase SNAKE_CASE, where words are uppercase and separated by underscores.
+		/// Automatically detects and handles various naming conventions (camelCase, PascalCase, kebab-case, Title Case).
+		/// </summary>
+		/// <param name="culture">
+		/// The culture to use for casing. When <c>null</c>, uses <see cref="CultureInfo.CurrentCulture"/>.
+		/// </param>
+		/// <returns>
+		/// A string in uppercase SNAKE_CASE format, commonly used for constants.
+		/// </returns>
+		/// <remarks>
+		/// This format is typically used for constant names in many programming languages (e.g., C, C++, Java, C#).
+		/// Use <see cref="ToSnakeCaseLower"/> for lowercase snake_case (commonly used for variable names in Python, Ruby).
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// "Hello World".ToSnakeCaseUpper()            // returns "HELLO_WORLD"
+		/// "MyVariableName".ToSnakeCaseUpper()         // returns "MY_VARIABLE_NAME"
+		/// "myConstantName".ToSnakeCaseUpper()         // returns "MY_CONSTANT_NAME"
+		/// "kebab-case-string".ToSnakeCaseUpper()      // returns "KEBAB_CASE_STRING"
+		/// "XMLParser".ToSnakeCaseUpper()              // returns "XML_PARSER"
+		/// "already_snake_case".ToSnakeCaseUpper()     // returns "ALREADY_SNAKE_CASE"
+		/// 
+		/// // Common use case: constant naming
+		/// const string API_KEY = "my-api-key".ToSnakeCaseUpper();  // "MY_API_KEY"
+		/// </code>
+		/// </example>
 		public string ToSnakeCaseUpper(CultureInfo? culture = null)
 			=> string.Join("_", SplitIntoWords(me).Select(w => w.ToUpper(culture ?? CultureInfo.CurrentCulture)));
 
-		// PEND Actualizar documentación (cambio de nombre)
 		/// <summary>
-		/// Converts the string to kebab-case, where words are lowercase and separated by hyphens.
+		/// Converts the string to lowercase kebab-case, where words are lowercase and separated by hyphens.
 		/// Automatically detects and handles various naming conventions (camelCase, PascalCase, snake_case, Title Case).
 		/// </summary>
 		/// <param name="culture">
 		/// The culture to use for casing. When <c>null</c>, uses <see cref="CultureInfo.CurrentCulture"/>.
 		/// </param>
 		/// <returns>
-		/// A string in kebab-case format.
+		/// A string in lowercase kebab-case format, commonly used in URLs, CSS classes, and HTML attributes.
 		/// </returns>
+		/// <remarks>
+		/// This method was renamed from <c>ToKebabCase</c> to <c>ToKebabCaseLower</c> to distinguish it from
+		/// the uppercase variant <see cref="ToKebabCaseUpper"/>. Lowercase kebab-case is the standard format
+		/// for URLs, CSS class names, and HTML IDs.
+		/// </remarks>
 		/// <example>
 		/// <code>
-		/// "Hello World".ToKebabCase()            // returns "hello-world"
-		/// "MyVariableName".ToKebabCase()         // returns "my-variable-name"
-		/// "MY_CONSTANT_NAME".ToKebabCase()       // returns "my-constant-name"
-		/// "snake_case_string".ToKebabCase()      // returns "snake-case-string"
-		/// "XMLParser".ToKebabCase()              // returns "xml-parser"
-		/// "already-kebab-case".ToKebabCase()     // returns "already-kebab-case"
+		/// "Hello World".ToKebabCaseLower()            // returns "hello-world"
+		/// "MyVariableName".ToKebabCaseLower()         // returns "my-variable-name"
+		/// "MY_CONSTANT_NAME".ToKebabCaseLower()       // returns "my-constant-name"
+		/// "snake_case_string".ToKebabCaseLower()      // returns "snake-case-string"
+		/// "XMLParser".ToKebabCaseLower()              // returns "xml-parser"
+		/// "already-kebab-case".ToKebabCaseLower()     // returns "already-kebab-case"
+		/// 
+		/// // Common use cases
+		/// var cssClass = "MyButton".ToKebabCaseLower();      // "my-button"
+		/// var url = "UserProfile".ToKebabCaseLower();        // "user-profile"
+		/// var htmlId = "MainContainer".ToKebabCaseLower();   // "main-container"
 		/// </code>
 		/// </example>
 		public string ToKebabCaseLower(CultureInfo? culture = null)
 			=> string.Join("-", SplitIntoWords(me).Select(w => w.ToLower(culture ?? CultureInfo.CurrentCulture)));
 
-		// PEND Crear documentación
+		/// <summary>
+		/// Converts the string to uppercase KEBAB-CASE, where words are uppercase and separated by hyphens.
+		/// Automatically detects and handles various naming conventions (camelCase, PascalCase, snake_case, Title Case).
+		/// </summary>
+		/// <param name="culture">
+		/// The culture to use for casing. When <c>null</c>, uses <see cref="CultureInfo.CurrentCulture"/>.
+		/// </param>
+		/// <returns>
+		/// A string in uppercase KEBAB-CASE format.
+		/// </returns>
+		/// <remarks>
+		/// This format is less common than lowercase kebab-case but may be used for emphasis in headers,
+		/// titles, or specific styling requirements. For standard kebab-case (lowercase), use
+		/// <see cref="ToKebabCaseLower"/>.
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// "Hello World".ToKebabCaseUpper()            // returns "HELLO-WORLD"
+		/// "MyVariableName".ToKebabCaseUpper()         // returns "MY-VARIABLE-NAME"
+		/// "myConstantName".ToKebabCaseUpper()         // returns "MY-CONSTANT-NAME"
+		/// "snake_case_string".ToKebabCaseUpper()      // returns "SNAKE-CASE-STRING"
+		/// "XMLParser".ToKebabCaseUpper()              // returns "XML-PARSER"
+		/// "already-kebab-case".ToKebabCaseUpper()     // returns "ALREADY-KEBAB-CASE"
+		/// 
+		/// // Use case: emphasized headers or titles
+		/// var header = "Important Notice".ToKebabCaseUpper();  // "IMPORTANT-NOTICE"
+		/// </code>
+		/// </example>
 		public string ToKebabCaseUpper(CultureInfo? culture = null)
 			=> string.Join("-", SplitIntoWords(me).Select(w => w.ToUpper(culture ?? CultureInfo.CurrentCulture)));
 
@@ -577,8 +694,93 @@ public static class StringExtensions
 		public bool IsNeitherNullNorWhiteSpace() => !string.IsNullOrWhiteSpace(me);
 	}
 
+	/// <summary>
+	/// Extension methods for string arrays to perform advanced text search operations.
+	/// </summary>
 	extension(string[] me)
 	{
+		/// <summary>
+		/// Searches for all occurrences of a text pattern within an array of strings and returns their positions.
+		/// The search treats the array as a continuous text stream, handling matches that span multiple array elements.
+		/// </summary>
+		/// <param name="text">The text pattern to search for in the array elements.</param>
+		/// <param name="comparisonType">
+		/// The string comparison rules to use. Affects case sensitivity and culture-specific comparison.
+		/// </param>
+		/// <returns>
+		/// A list of tuples where each tuple contains:
+		/// <list type="bullet">
+		/// <item><description><strong>Start:</strong> (ItemIndex, PositionIndex) - The array index and character position where the match begins</description></item>
+		/// <item><description><strong>End:</strong> (ItemIndex, PositionIndex) - The array index and character position where the match ends</description></item>
+		/// </list>
+		/// Returns an empty list if no matches are found or if the search text is null/empty.
+		/// </returns>
+		/// <remarks>
+		/// <para>
+		/// This method is particularly useful for searching text that has been split into logical segments
+		/// (like lines, paragraphs, or tokens) but where matches may cross segment boundaries.
+		/// </para>
+		/// <para>
+		/// <strong>Algorithm:</strong>
+		/// </para>
+		/// <list type="number">
+		/// <item><description>Concatenates all array elements into a single string</description></item>
+		/// <item><description>Finds all occurrences of the search text using <see cref="AllIndexesOf"/></description></item>
+		/// <item><description>Maps each occurrence back to the original array structure, identifying start and end positions</description></item>
+		/// <item><description>Handles matches that span multiple array elements</description></item>
+		/// </list>
+		/// <para>
+		/// <strong>Position indexing:</strong> PositionIndex is 0-based and refers to the character position
+		/// within the specific array element (ItemIndex).
+		/// </para>
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// var lines = new[]
+		/// {
+		///     "Hello wor",
+		///     "ld! This is",
+		///     " a test."
+		/// };
+		/// 
+		/// // Search for "world" which spans elements 0 and 1
+		/// var results = lines.SearchTextInElements("world", StringComparison.Ordinal);
+		/// // Results:
+		/// // [
+		/// //   Start: (ItemIndex: 0, PositionIndex: 6),  // "wor" starts at index 6 in element 0
+		/// //   End:   (ItemIndex: 1, PositionIndex: 1)   // "ld" ends at index 1 in element 1
+		/// // ]
+		/// 
+		/// // Search within single element
+		/// var results2 = lines.SearchTextInElements("test", StringComparison.Ordinal);
+		/// // Results:
+		/// // [
+		/// //   Start: (ItemIndex: 2, PositionIndex: 3),  // starts at index 3 in element 2
+		/// //   End:   (ItemIndex: 2, PositionIndex: 6)   // ends at index 6 in element 2
+		/// // ]
+		/// 
+		/// // Case-insensitive search
+		/// var results3 = lines.SearchTextInElements("HELLO", StringComparison.OrdinalIgnoreCase);
+		/// // Results:
+		/// // [
+		/// //   Start: (ItemIndex: 0, PositionIndex: 0),
+		/// //   End:   (ItemIndex: 0, PositionIndex: 4)
+		/// // ]
+		/// 
+		/// // No matches
+		/// var results4 = lines.SearchTextInElements("xyz", StringComparison.Ordinal);
+		/// // Returns: empty list []
+		/// 
+		/// // Practical use case: highlighting search results in a multi-line text editor
+		/// foreach (var match in results)
+		/// {
+		///     Console.WriteLine($"Found from element {match.Start.ItemIndex} " +
+		///                       $"position {match.Start.PositionIndex} " +
+		///                       $"to element {match.End.ItemIndex} " +
+		///                       $"position {match.End.PositionIndex}");
+		/// }
+		/// </code>
+		/// </example>
 		public List<((int ItemIndex, int PositionIndex) Start, (int ItemIndex, int PositionIndex) End)> SearchTextInElements(string text, StringComparison comparisonType)
 		{
 			// Concateno el texto de todos los elementos

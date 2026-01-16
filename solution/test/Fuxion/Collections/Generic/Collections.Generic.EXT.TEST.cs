@@ -72,7 +72,6 @@ public class IEnumerableExtensionsTest : BaseTest<IEnumerableExtensionsTest>
 		};
 		//var list = new int[] { 41, 50, 29, 33, 40, 42, 53, 35, 28, 39, 37, 43, 34, 31, 44, 57, 32, 45, 46, 48};
 		//var list = new int[] { 2, 3, 3, 3, 4, 5, 5, 15 };
-		var res = list.RemoveOutliers(m => Printer.WriteLine(m));
-		Printer.WriteLine("");
+		var res = list.RemoveOutliers(m => Output.WriteLine(m));
 	}
 }

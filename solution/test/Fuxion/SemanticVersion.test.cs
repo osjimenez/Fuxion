@@ -1,9 +1,9 @@
 using System.Linq;
-using System.Text.RegularExpressions;
+using Fuxion;
 using Fuxion.Xunit;
 using Xunit;
 
-namespace Fuxion.Test;
+namespace Test.Fuxion;
 
 // https://github.com/maxhauser/semver
 public class SemanticVersionTest(ITestOutputHelper output) : BaseTest<SemanticVersionTest>(output)

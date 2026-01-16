@@ -214,7 +214,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 	public void Serialization()
 	{
 		//var res = Response.PermissionDenied("You don't have permissions");
-		var res = Response.SuccessMessage("Was done");
+		var res = Response.Get.SuccessMessage("Was done");
 		PrintVariable(res.Fx.Json.Serialize(true).Payload);
 	}
 }

@@ -4,6 +4,744 @@
         <name>Fuxion.AspNet</name>
     </assembly>
     <members>
+        <member name="T:Fuxion.AspNet.ResponseExtensions">
+            <summary>
+               Provides extension methods for converting <see cref="T:Fuxion.IResponse" /> and <see cref="T:Fuxion.Response`1" /> objects
+               to ASP.NET Web API <see cref="T:System.Web.Http.IHttpActionResult" /> instances with support for various payload types
+               including streams, byte arrays, strings, and complex objects.
+            </summary>
+            <remarks>
+               <para>
+                  This class enables seamless integration between Fuxion's Response pattern and ASP.NET Web API controllers
+                  by converting responses into appropriate HTTP action results with proper status codes, content types,
+                  and problem details formatting (RFC 7807).
+               </para>
+               <para>
+                  <strong>Key features:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>
+                        <strong>Automatic status code mapping:</strong> Maps <see cref="T:Fuxion.ErrorType" /> to appropriate HTTP status codes
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Multiple payload types:</strong> Handles Stream, byte arrays, strings, and complex objects
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>RFC 7807 Problem Details:</strong> Generates standardized error responses with extensions
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>File download support:</strong> Specialized methods for file streams and byte arrays with content disposition
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>JSON serialization:</strong> Configurable System.Text.Json serialization with custom options
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Exception handling:</strong> Optional exception details in error responses
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Async/await support:</strong> Extension methods for both synchronous and asynchronous responses
+                     </description>
+                  </item>
+               </list>
+               <para>
+                  <strong>ErrorType to HTTP Status Code mapping:</strong>
+               </para>
+               <list type="table">
+                  <listheader>
+                     <term>ErrorType</term>
+                     <description>HTTP Status Code</description>
+                  </listheader>
+                  <item>
+                     <term><see cref="F:Fuxion.ErrorType.NotFound" /></term>
+                     <description>404 Not Found</description>
+                  </item>
+                  <item>
+                     <term><see cref="F:Fuxion.ErrorType.PermissionDenied" /></term>
+                     <description>403 Forbidden</description>
+                  </item>
+                  <item>
+                     <term><see cref="F:Fuxion.ErrorType.InvalidData" /></term>
+                     <description>400 Bad Request</description>
+                  </item>
+                  <item>
+                     <term><see cref="F:Fuxion.ErrorType.Conflict" /></term>
+                     <description>409 Conflict</description>
+                  </item>
+                  <item>
+                     <term><see cref="F:Fuxion.ErrorType.Critical" /></term>
+                     <description>500 Internal Server Error</description>
+                  </item>
+                  <item>
+                     <term><see cref="F:Fuxion.ErrorType.NotSupported" /></term>
+                     <description>501 Not Implemented</description>
+                  </item>
+                  <item>
+                     <term><see cref="F:Fuxion.ErrorType.Unavailable" /></term>
+                     <description>503 Service Unavailable</description>
+                  </item>
+                  <item>
+                     <term><see cref="F:Fuxion.ErrorType.Timeout" /></term>
+                     <description>408 Request Timeout</description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Configuration:</strong>
+               </para>
+               <para>
+                  The class provides static configuration properties:
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>
+                        <see cref="P:Fuxion.AspNet.ResponseExtensions.IncludeException" />: Controls whether exception details are included in error responses (default: true)
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <see cref="P:Fuxion.AspNet.ResponseExtensions.JsonSerializerOptions" />: Custom JSON serialization options (default: null, uses default options)
+                     </description>
+                  </item>
+               </list>
+            </remarks>
+            <example>
+               <strong>Basic usage with generic response:</strong>
+               <code>
+            public class UsersController : ApiController
+            {
+                [HttpGet]
+                public async Task&lt;IHttpActionResult&gt; GetUser(int id)
+                {
+                    var response = await _userService.GetUserAsync(id);
+                    return await response.ToApiResultAsync();
+                }
+            }
+            // Success: 200 OK with JSON body
+            // NotFound: 404 Not Found with problem details
+            </code>
+               <strong>File download with stream:</strong>
+               <code>
+            [HttpGet]
+            public async Task&lt;IHttpActionResult&gt; DownloadReport(int id)
+            {
+                var response = await _reportService.GenerateReportStreamAsync(id);
+                return await response.ToApiFileStreamResultAsync(
+                    contentType: "application/pdf",
+                    fileDownloadName: "report.pdf");
+            }
+            // Success: 200 OK with Content-Disposition: attachment; filename="report.pdf"
+            </code>
+               <strong>File download with byte array:</strong>
+               <code>
+            [HttpGet]
+            public async Task&lt;IHttpActionResult&gt; DownloadImage(int id)
+            {
+                var response = await _imageService.GetImageBytesAsync(id);
+                return await response.ToApiFileBytesResultAsync(
+                    contentType: "image/png",
+                    fileDownloadName: "photo.png");
+            }
+            </code>
+               <strong>Full response serialization (includes all Response properties):</strong>
+               <code>
+            [HttpPost]
+            public async Task&lt;IHttpActionResult&gt; ProcessData(DataRequest request)
+            {
+                var response = await _dataService.ProcessAsync(request);
+                return await response.ToApiResultAsync(fullSerialization: true);
+            }
+            // Returns complete Response object with IsSuccess, ErrorType, Message, etc.
+            </code>
+               <strong>Custom JSON options:</strong>
+               <code>
+            // In Startup or Global.asax
+            ResponseExtensions.JsonSerializerOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            };
+            ResponseExtensions.IncludeException = false; // Don't expose exceptions in production
+            </code>
+               <strong>Error handling example:</strong>
+               <code>
+            [HttpDelete]
+            public async Task&lt;IHttpActionResult&gt; DeleteUser(int id)
+            {
+                var response = await _userService.DeleteUserAsync(id);
+                return await response.ToApiResultAsync();
+            }
+            // If user not found:
+            // 404 Not Found with body:
+            // {
+            //   "type": "https://httpwg.org/specs/rfc9110.html#section-15.5.5",
+            //   "status": 404,
+            //   "title": "Not found",
+            //   "detail": "User with id 123 not found",
+            //   "exception": { /* exception details if IncludeException is true */ }
+            // }
+            </code>
+            </example>
+        </member>
+        <member name="P:Fuxion.AspNet.ResponseExtensions.IncludeException">
+            <summary>
+               Gets or sets a value indicating whether exception details should be included in error responses.
+            </summary>
+            <value>
+               <c>true</c> to include exception details in error responses; otherwise, <c>false</c>.
+               Default is <c>true</c>.
+            </value>
+            <remarks>
+               <para>
+                  When set to <c>true</c>, exceptions are serialized using <see cref="T:Fuxion.Text.Json.Serialization.ExceptionConverter" />
+                  and included in the "exception" extension field of the problem details response.
+               </para>
+               <para>
+                  <strong>Security consideration:</strong> In production environments, consider setting this to
+                  <c>false</c> to avoid exposing sensitive implementation details through stack traces and
+                  exception messages.
+               </para>
+            </remarks>
+            <example>
+               <code>
+            // In Application_Start or Startup
+            #if DEBUG
+                ResponseExtensions.IncludeException = true;
+            #else
+                ResponseExtensions.IncludeException = false;
+            #endif
+            </code>
+            </example>
+        </member>
+        <member name="P:Fuxion.AspNet.ResponseExtensions.JsonSerializerOptions">
+            <summary>
+               Gets or sets the <see cref="P:Fuxion.AspNet.ResponseExtensions.JsonSerializerOptions" /> to use for JSON serialization.
+            </summary>
+            <value>
+               Custom JSON serializer options, or <c>null</c> to use default options.
+               Default is <c>null</c>.
+            </value>
+            <remarks>
+               <para>
+                  These options are used for serializing response payloads and problem details.
+                  The options are cloned before use to avoid modification issues.
+               </para>
+               <para>
+                  If <see cref="P:Fuxion.AspNet.ResponseExtensions.IncludeException" /> is <c>true</c>, an <see cref="T:Fuxion.Text.Json.Serialization.ExceptionConverter" />
+                  is automatically added to the converters when serializing error responses.
+               </para>
+            </remarks>
+            <example>
+               <code>
+            ResponseExtensions.JsonSerializerOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                Converters = { new JsonStringEnumConverter() }
+            };
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.ToApiResultCore(Fuxion.IResponse,System.String,System.String,System.Boolean)">
+            <summary>
+               Core implementation method that converts an <see cref="T:Fuxion.IResponse" /> to an <see cref="T:System.Web.Http.IHttpActionResult" />.
+            </summary>
+            <param name="me">The response to convert.</param>
+            <param name="contentType">The content type for the response. If null, uses value from response extensions or defaults.</param>
+            <param name="fileDownloadName">The file name for Content-Disposition header when returning files.</param>
+            <param name="fullSerialization">
+               If <c>true</c>, serializes the entire Response object including metadata.
+               If <c>false</c>, only serializes the payload or message.
+            </param>
+            <returns>An <see cref="T:System.Web.Http.IHttpActionResult" /> representing the HTTP response.</returns>
+            <remarks>
+               <para>
+                  This method handles the following scenarios:
+               </para>
+               <list type="number">
+                  <item>
+                     <description>
+                        <strong>Success with Stream payload:</strong> Returns 200 OK with StreamContent and
+                        Content-Disposition attachment header
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Success with byte array payload:</strong> Returns 200 OK with ByteArrayContent and
+                        Content-Disposition attachment header
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Success with string payload:</strong> Returns 200 OK with StringContent,
+                        optionally serializing the full Response object
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Success with object payload:</strong> Returns 200 OK with JSON serialized payload or full Response
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Success without payload:</strong> Returns 204 No Content or 200 OK with message
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Error:</strong> Returns appropriate status code with RFC 7807 Problem Details
+                     </description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Problem Details structure:</strong> Error responses follow RFC 7807 format with:
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description><c>type</c>: RFC 9110 reference URL for the status code</description>
+                  </item>
+                  <item>
+                     <description><c>status</c>: HTTP status code (integer)</description>
+                  </item>
+                  <item>
+                     <description><c>title</c>: Human-readable summary</description>
+                  </item>
+                  <item>
+                     <description><c>detail</c>: Detailed error message from Response.Message</description>
+                  </item>
+                  <item>
+                     <description>
+                        <c>extensions</c>: Additional data including payload and exception (if enabled)
+                     </description>
+                  </item>
+               </list>
+            </remarks>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.ToApiResultAsync``1(System.Threading.Tasks.Task{Fuxion.IResponse{``0}},System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$C67E3CEAC6B8F0AF177D0B6914319DFD`1.ToApiResultAsync(System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.ToApiResultAsync(System.Threading.Tasks.Task{Fuxion.IResponse{System.String}},System.Boolean,System.String)">
+            <inheritdoc cref="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$DFA08969A7E039EA1C0CAF993E2EEA32.ToApiResultAsync(System.Boolean,System.String)"/>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.ToApiResultAsync``1(System.Threading.Tasks.Task{Fuxion.Response{``0}},System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$2AE3F642D626588B8EAADC9FE6DEB563`1.ToApiResultAsync(System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.ToApiResultAsync(System.Threading.Tasks.Task{Fuxion.Response{System.String}},System.Boolean,System.String)">
+            <inheritdoc cref="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$1909FFEF4ACB934202417393F98657A0.ToApiResultAsync(System.Boolean,System.String)"/>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.ToApiFileStreamResultAsync``1(System.Threading.Tasks.Task{Fuxion.IResponse{``0}},System.String,System.String)">
+            <inheritdoc cref="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$9DD86C52D3AE020563A046988BA5AC45`1.ToApiFileStreamResultAsync(System.String,System.String)"/>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.ToApiFileStreamResultAsync``1(System.Threading.Tasks.Task{Fuxion.Response{``0}},System.String,System.String)">
+            <inheritdoc cref="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$14FA22EFC0C6FC3365D0A3637CAAF48B`1.ToApiFileStreamResultAsync(System.String,System.String)"/>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.ToApiFileStreamResult``1(Fuxion.IResponse{``0},System.String,System.String)">
+            <inheritdoc cref="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$2E042B02F54BC1825759A326CB47E761`1.ToApiFileStreamResult(System.String,System.String)"/>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.ToApiFileBytesResultAsync``1(System.Threading.Tasks.Task{Fuxion.IResponse{``0}},System.String,System.String)">
+            <inheritdoc cref="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$6FF032632F206263F4E73113EE3B87B7`1.ToApiFileBytesResultAsync(System.String,System.String)"/>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.ToApiFileBytesResultAsync``1(System.Threading.Tasks.Task{Fuxion.Response{``0}},System.String,System.String)">
+            <inheritdoc cref="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$F88EEDD75B251106BE63533EC478FCE0`1.ToApiFileBytesResultAsync(System.String,System.String)"/>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.ToApiFileBytesResult``1(Fuxion.IResponse{``0},System.String,System.String)">
+            <inheritdoc cref="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$0B1668C51923748670D5DFCD63A09092`1.ToApiFileBytesResult(System.String,System.String)"/>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.ToApiResultAsync(System.Threading.Tasks.Task{Fuxion.IResponse},System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$5CCC630AB639B55139FA55E2F3187149.ToApiResultAsync(System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.ToApiResultAsync(System.Threading.Tasks.Task{Fuxion.Response},System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$96EAFFBFC51007F544BC0EBCCB82F370.ToApiResultAsync(System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.ToApiResult(Fuxion.IResponse,System.Boolean)">
+            <inheritdoc cref="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$D8909F777CA65FB455A8F6DB23AF3F8E.ToApiResult(System.Boolean)"/>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$C67E3CEAC6B8F0AF177D0B6914319DFD`1.ToApiResultAsync(System.Boolean)">
+            <summary>
+               Converts a <see cref="T:System.Threading.Tasks.Task`1" /> to a <see cref="T:System.Threading.Tasks.Task`1" />.
+            </summary>
+            <param name="fullSerialization">
+               If <c>true</c>, serializes the entire Response object including metadata (IsSuccess, ErrorType, etc.).
+               If <c>false</c>, only serializes the payload value or message.
+            </param>
+            <returns>
+               A task that represents the asynchronous operation. The task result contains an
+               <see cref="T:System.Web.Http.IHttpActionResult" /> representing the HTTP response.
+            </returns>
+            <remarks>
+               This is the primary extension method for converting generic async response tasks.
+               Use specialized methods like 'ToApiFileStreamResultAsync' for file downloads.
+            </remarks>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$DFA08969A7E039EA1C0CAF993E2EEA32.ToApiResultAsync(System.Boolean,System.String)">
+            <summary>
+               Converts a <see cref="T:System.Threading.Tasks.Task`1" /> with string payload to a <see cref="T:System.Threading.Tasks.Task`1" />.
+            </summary>
+            <param name="fullSerialization">
+               If <c>true</c>, serializes the entire Response object.
+               If <c>false</c>, returns the string payload directly.
+            </param>
+            <param name="contentType">
+               The content type for the response. Default is "text/plain".
+               Ignored if <paramref name="fullSerialization" /> is <c>true</c> (uses "application/json").
+            </param>
+            <returns>
+               A task that represents the asynchronous operation. The task result contains an
+               <see cref="T:System.Web.Http.IHttpActionResult" /> with the string content.
+            </returns>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$2AE3F642D626588B8EAADC9FE6DEB563`1.ToApiResultAsync(System.Boolean)">
+            <summary>
+               Converts a <see cref="T:System.Threading.Tasks.Task`1" /> to a <see cref="T:System.Threading.Tasks.Task`1" />.
+            </summary>
+            <param name="fullSerialization">
+               If <c>true</c>, serializes the entire Response object including metadata.
+               If <c>false</c>, only serializes the payload value or message.
+            </param>
+            <returns>
+               A task that represents the asynchronous operation. The task result contains an
+               <see cref="T:System.Web.Http.IHttpActionResult" /> representing the HTTP response.
+            </returns>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$1909FFEF4ACB934202417393F98657A0.ToApiResultAsync(System.Boolean,System.String)">
+            <summary>
+               Converts a <see cref="T:System.Threading.Tasks.Task`1" /> with string payload to a <see cref="T:System.Threading.Tasks.Task`1" />.
+            </summary>
+            <param name="fullSerialization">
+               If <c>true</c>, serializes the entire Response object.
+               If <c>false</c>, returns the string payload directly.
+            </param>
+            <param name="contentType">
+               The content type for the response. Default is "text/plain".
+            </param>
+            <returns>
+               A task that represents the asynchronous operation. The task result contains an
+               <see cref="T:System.Web.Http.IHttpActionResult" /> with the string content.
+            </returns>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$9DD86C52D3AE020563A046988BA5AC45`1.ToApiFileStreamResultAsync(System.String,System.String)">
+            <summary>
+               Converts a <see cref="T:System.Threading.Tasks.Task`1" /> with <see cref="T:System.IO.Stream" /> payload to a file download result.
+            </summary>
+            <param name="contentType">
+               The MIME content type for the file. If null, attempts to retrieve from response extensions using
+               <see cref="T:Fuxion.Extensions" />.ContentTypeKey.
+            </param>
+            <param name="fileDownloadName">
+               The filename for the Content-Disposition header. If null, attempts to retrieve from response extensions using
+               <see cref="T:Fuxion.Extensions" />.FileNameKey.
+            </param>
+            <returns>
+               A task that represents the asynchronous operation. The task result contains an
+               <see cref="T:System.Web.Http.IHttpActionResult" /> with the stream as downloadable content.
+            </returns>
+            <remarks>
+               The response includes a Content-Disposition header with "attachment" disposition,
+               making browsers prompt for download rather than displaying inline.
+            </remarks>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$14FA22EFC0C6FC3365D0A3637CAAF48B`1.ToApiFileStreamResultAsync(System.String,System.String)">
+            <summary>
+               Converts a <see cref="T:System.Threading.Tasks.Task`1" /> with <see cref="T:System.IO.Stream" /> payload to a file download result.
+            </summary>
+            <param name="contentType">The MIME content type for the file.</param>
+            <param name="fileDownloadName">The filename for the Content-Disposition header.</param>
+            <returns>
+               A task that represents the asynchronous operation. The task result contains an
+               <see cref="T:System.Web.Http.IHttpActionResult" /> with the stream as downloadable content.
+            </returns>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$2E042B02F54BC1825759A326CB47E761`1.ToApiFileStreamResult(System.String,System.String)">
+            <summary>
+               Converts an <see cref="T:Fuxion.IResponse" /> with <see cref="T:System.IO.Stream" /> payload to a file download result.
+            </summary>
+            <param name="contentType">The MIME content type for the file.</param>
+            <param name="fileDownloadName">The filename for the Content-Disposition header.</param>
+            <returns>An <see cref="T:System.Web.Http.IHttpActionResult" /> with the stream as downloadable content.</returns>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$6FF032632F206263F4E73113EE3B87B7`1.ToApiFileBytesResultAsync(System.String,System.String)">
+            <summary>
+               Converts a <see cref="T:System.Threading.Tasks.Task`1" /> with byte array payload to a file download result.
+            </summary>
+            <param name="contentType">
+               The MIME content type for the file. If null, attempts to retrieve from response extensions.
+            </param>
+            <param name="fileDownloadName">
+               The filename for the Content-Disposition header. If null, attempts to retrieve from response extensions.
+            </param>
+            <returns>
+               A task that represents the asynchronous operation. The task result contains an
+               <see cref="T:System.Web.Http.IHttpActionResult" /> with the bytes as downloadable content.
+            </returns>
+            <remarks>
+               The byte sequence is converted to an array and sent as ByteArrayContent with
+               a Content-Disposition attachment header.
+            </remarks>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$F88EEDD75B251106BE63533EC478FCE0`1.ToApiFileBytesResultAsync(System.String,System.String)">
+            <summary>
+               Converts a <see cref="T:System.Threading.Tasks.Task`1" /> with byte array payload to a file download result.
+            </summary>
+            <param name="contentType">The MIME content type for the file.</param>
+            <param name="fileDownloadName">The filename for the Content-Disposition header.</param>
+            <returns>
+               A task that represents the asynchronous operation. The task result contains an
+               <see cref="T:System.Web.Http.IHttpActionResult" /> with the bytes as downloadable content.
+            </returns>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$0B1668C51923748670D5DFCD63A09092`1.ToApiFileBytesResult(System.String,System.String)">
+            <summary>
+               Converts an <see cref="T:Fuxion.IResponse" /> with byte array payload to a file download result.
+            </summary>
+            <param name="contentType">The MIME content type for the file.</param>
+            <param name="fileDownloadName">The filename for the Content-Disposition header.</param>
+            <returns>An <see cref="T:System.Web.Http.IHttpActionResult" /> with the bytes as downloadable content.</returns>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$5CCC630AB639B55139FA55E2F3187149.ToApiResultAsync(System.Boolean)">
+            <summary>
+               Converts a <see cref="T:System.Threading.Tasks.Task`1" /> (non-generic) to a <see cref="T:System.Threading.Tasks.Task`1" />.
+            </summary>
+            <param name="fullSerialization">
+               If <c>true</c>, serializes the entire Response object.
+               If <c>false</c>, returns the message only or 204 No Content if no message.
+            </param>
+            <returns>
+               A task that represents the asynchronous operation. The task result contains an
+               <see cref="T:System.Web.Http.IHttpActionResult" />.
+            </returns>
+            <remarks>
+               Use this for responses that don't have a payload, such as delete operations
+               or commands that only indicate success/failure.
+            </remarks>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$96EAFFBFC51007F544BC0EBCCB82F370.ToApiResultAsync(System.Boolean)">
+            <summary>
+               Converts a <see cref="T:System.Threading.Tasks.Task`1" /> (non-generic) to a <see cref="T:System.Threading.Tasks.Task`1" />.
+            </summary>
+            <param name="fullSerialization">
+               If <c>true</c>, serializes the entire Response object.
+               If <c>false</c>, returns the message only or 204 No Content if no message.
+            </param>
+            <returns>
+               A task that represents the asynchronous operation. The task result contains an
+               <see cref="T:System.Web.Http.IHttpActionResult" />.
+            </returns>
+        </member>
+        <member name="M:Fuxion.AspNet.ResponseExtensions.&lt;G&gt;$D8909F777CA65FB455A8F6DB23AF3F8E.ToApiResult(System.Boolean)">
+            <summary>
+               Converts an <see cref="T:Fuxion.IResponse" /> (non-generic) to an <see cref="T:System.Web.Http.IHttpActionResult" />.
+            </summary>
+            <param name="fullSerialization">
+               If <c>true</c>, serializes the entire Response object.
+               If <c>false</c>, returns the message only or 204 No Content if no message.
+            </param>
+            <returns>An <see cref="T:System.Web.Http.IHttpActionResult" /> representing the HTTP response.</returns>
+        </member>
+        <member name="T:Fuxion.AspNet.FuncHttpActionResult">
+            <summary>
+               Internal implementation of <see cref="T:System.Web.Http.IHttpActionResult" /> that uses a factory function
+               to generate <see cref="T:System.Net.Http.HttpResponseMessage" /> instances.
+            </summary>
+            <param name="func">
+               A function that takes a <see cref="T:System.Threading.CancellationToken" /> and returns a
+               <see cref="T:System.Threading.Tasks.Task`1" />.
+            </param>
+            <remarks>
+               This file-scoped class provides a lightweight wrapper for creating custom HTTP action results
+               without the overhead of creating dedicated classes for each response type.
+            </remarks>
+        </member>
+        <member name="M:Fuxion.AspNet.FuncHttpActionResult.#ctor(System.Func{System.Threading.CancellationToken,System.Threading.Tasks.Task{System.Net.Http.HttpResponseMessage}})">
+            <summary>
+               Internal implementation of <see cref="T:System.Web.Http.IHttpActionResult" /> that uses a factory function
+               to generate <see cref="T:System.Net.Http.HttpResponseMessage" /> instances.
+            </summary>
+            <param name="func">
+               A function that takes a <see cref="T:System.Threading.CancellationToken" /> and returns a
+               <see cref="T:System.Threading.Tasks.Task`1" />.
+            </param>
+            <remarks>
+               This file-scoped class provides a lightweight wrapper for creating custom HTTP action results
+               without the overhead of creating dedicated classes for each response type.
+            </remarks>
+        </member>
+        <member name="T:Fuxion.AspNet.Factory">
+            <summary>
+               Factory class for creating <see cref="T:System.Web.Http.IHttpActionResult" /> instances with various HTTP status codes
+               and content types, including RFC 7807 Problem Details support.
+            </summary>
+            <param name="func">
+               A function that generates the <see cref="T:System.Net.Http.HttpResponseMessage" /> asynchronously.
+            </param>
+            <remarks>
+               <para>
+                  This file-scoped factory class provides static methods for creating common HTTP responses:
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description><see cref="M:Fuxion.AspNet.Factory.Ok(System.Net.Http.HttpContent)" />: Creates 200 OK responses with optional content</description>
+                  </item>
+                  <item>
+                     <description><see cref="M:Fuxion.AspNet.Factory.NoContent" />: Creates 204 No Content responses</description>
+                  </item>
+                  <item>
+                     <description>
+                        <see cref="M:Fuxion.AspNet.Factory.Problem(System.String,System.Net.HttpStatusCode,System.String,System.Collections.Generic.Dictionary{System.String,System.Object})" />: Creates RFC 7807 Problem Details responses with custom status codes
+                     </description>
+                  </item>
+               </list>
+               <para>
+                  The factory also includes comprehensive HTTP status code to RFC 9110 URL mapping via
+                  <see cref="M:Fuxion.AspNet.Factory.GetTypeFromStatusCode(System.Net.HttpStatusCode)" />.
+               </para>
+            </remarks>
+        </member>
+        <member name="M:Fuxion.AspNet.Factory.#ctor(System.Func{System.Threading.CancellationToken,System.Threading.Tasks.Task{System.Net.Http.HttpResponseMessage}})">
+            <summary>
+               Factory class for creating <see cref="T:System.Web.Http.IHttpActionResult" /> instances with various HTTP status codes
+               and content types, including RFC 7807 Problem Details support.
+            </summary>
+            <param name="func">
+               A function that generates the <see cref="T:System.Net.Http.HttpResponseMessage" /> asynchronously.
+            </param>
+            <remarks>
+               <para>
+                  This file-scoped factory class provides static methods for creating common HTTP responses:
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description><see cref="M:Fuxion.AspNet.Factory.Ok(System.Net.Http.HttpContent)" />: Creates 200 OK responses with optional content</description>
+                  </item>
+                  <item>
+                     <description><see cref="M:Fuxion.AspNet.Factory.NoContent" />: Creates 204 No Content responses</description>
+                  </item>
+                  <item>
+                     <description>
+                        <see cref="M:Fuxion.AspNet.Factory.Problem(System.String,System.Net.HttpStatusCode,System.String,System.Collections.Generic.Dictionary{System.String,System.Object})" />: Creates RFC 7807 Problem Details responses with custom status codes
+                     </description>
+                  </item>
+               </list>
+               <para>
+                  The factory also includes comprehensive HTTP status code to RFC 9110 URL mapping via
+                  <see cref="M:Fuxion.AspNet.Factory.GetTypeFromStatusCode(System.Net.HttpStatusCode)" />.
+               </para>
+            </remarks>
+        </member>
+        <member name="M:Fuxion.AspNet.Factory.Ok(System.Net.Http.HttpContent)">
+            <summary>
+               Creates a 200 OK response with optional content.
+            </summary>
+            <param name="content">The HTTP content to include in the response, or <c>null</c> for no content.</param>
+            <returns>A <see cref="T:Fuxion.AspNet.Factory" /> instance representing the OK response.</returns>
+        </member>
+        <member name="M:Fuxion.AspNet.Factory.NoContent">
+            <summary>
+               Creates a 204 No Content response.
+            </summary>
+            <returns>A <see cref="T:Fuxion.AspNet.Factory" /> instance representing the No Content response.</returns>
+        </member>
+        <member name="M:Fuxion.AspNet.Factory.Problem(System.String,System.Net.HttpStatusCode,System.String,System.Collections.Generic.Dictionary{System.String,System.Object})">
+            <summary>
+               Creates an RFC 7807 Problem Details response with the specified status code and details.
+            </summary>
+            <param name="detail">A human-readable explanation specific to this occurrence of the problem.</param>
+            <param name="statusCode">The HTTP status code for the problem.</param>
+            <param name="title">A short, human-readable summary of the problem type.</param>
+            <param name="extensions">
+               Additional members to include in the problem details, such as validation errors or exception details.
+            </param>
+            <returns>
+               A <see cref="T:Fuxion.AspNet.Factory" /> instance representing the problem details response with
+               Content-Type: application/problem+json.
+            </returns>
+            <remarks>
+               <para>
+                  The problem details response includes:
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description><c>type</c>: A URI reference from RFC 9110 identifying the problem type</description>
+                  </item>
+                  <item>
+                     <description><c>status</c>: The HTTP status code</description>
+                  </item>
+                  <item>
+                     <description><c>title</c>: A short summary (e.g., "Not found")</description>
+                  </item>
+                  <item>
+                     <description><c>detail</c>: Detailed explanation of the error</description>
+                  </item>
+                  <item>
+                     <description>Additional extension members from the <paramref name="extensions" /> dictionary</description>
+                  </item>
+               </list>
+               <para>
+                  The response is serialized using the configured <see cref="P:Fuxion.AspNet.ResponseExtensions.JsonSerializerOptions" />.
+               </para>
+            </remarks>
+        </member>
+        <member name="M:Fuxion.AspNet.Factory.Create(System.Net.HttpStatusCode,System.Net.Http.HttpContent)">
+            <summary>
+               Creates a basic <see cref="T:Fuxion.AspNet.Factory" /> instance with the specified status code and optional content.
+            </summary>
+            <param name="status">The HTTP status code for the response.</param>
+            <param name="content">The HTTP content to include in the response, or <c>null</c> for no content.</param>
+            <returns>A <see cref="T:Fuxion.AspNet.Factory" /> instance representing the response.</returns>
+        </member>
+        <member name="M:Fuxion.AspNet.Factory.GetTypeFromStatusCode(System.Net.HttpStatusCode)">
+            <summary>
+               Maps an HTTP status code to its corresponding RFC 9110 specification URL.
+            </summary>
+            <param name="status">The HTTP status code to map.</param>
+            <returns>
+               A string containing the RFC 9110 URL for the status code
+               (e.g., "https://httpwg.org/specs/rfc9110.html#section-15.5.5" for 404).
+            </returns>
+            <exception cref="T:System.NotImplementedException">
+               Thrown when the status code is not explicitly supported in the mapping.
+            </exception>
+            <remarks>
+               <para>
+                  This method provides comprehensive mapping for standard HTTP status codes defined in RFC 9110:
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>1xx: Informational responses (Continue, Switching Protocols)</description>
+                  </item>
+                  <item>
+                     <description>2xx: Successful responses (OK, Created, Accepted, No Content, etc.)</description>
+                  </item>
+                  <item>
+                     <description>3xx: Redirection messages (Multiple Choices, Moved Permanently, etc.)</description>
+                  </item>
+                  <item>
+                     <description>
+                        4xx: Client error responses (Bad Request, Unauthorized, Forbidden, Not Found, etc.)
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        5xx: Server error responses (Internal Server Error, Not Implemented, Service Unavailable, etc.)
+                     </description>
+                  </item>
+               </list>
+               <para>
+                  The URLs point to the official HTTP Semantics specification (RFC 9110) hosted at httpwg.org.
+               </para>
+            </remarks>
+        </member>
         <member name="T:System.Diagnostics.CodeAnalysis.AllowNullAttribute">
             <summary>
             Specifies that null is allowed as an input even if the corresponding type disallows it.

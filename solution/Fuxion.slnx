@@ -6,31 +6,27 @@
   <Folder Name="/src/">
     <File Path="src/Directory.Build.props" />
     <File Path="src/icon.png" />
-    <Project Path="src/Application/Fuxion.Application.csproj" />
+    <Project Path="src/Analyzers.Abstractions/Fuxion.Analyzers.Abstractions.csproj" />
+    <Project Path="src/Analyzers.CodeFixes/Fuxion.Analyzers.CodeFixes.csproj" />
+    <Project Path="src/Analyzers/Fuxion.Analyzers.csproj" />
     <Project Path="src/AspNet/Fuxion.AspNet.csproj" />
     <Project Path="src/AspNetCore/Fuxion.AspNetCore.csproj" />
-    <Project Path="src/Domain/Fuxion.Domain.csproj" />
     <Project Path="src/Drawing/Fuxion.Drawing.csproj" />
     <Project Path="src/Fuxion/Fuxion.csproj" />
-    <Project Path="src/Linq/Fuxion.Linq.csproj" />
     <Project Path="src/Windows.Controls/Fuxion.Windows.Controls.csproj" />
     <Project Path="src/Windows/Fuxion.Windows.csproj" />
     <Project Path="src/Xunit/Fuxion.Xunit.csproj" />
   </Folder>
   <Folder Name="/test/">
     <File Path="test/Directory.Build.props" />
+    <Project Path="test/AspNetCore.Service/Test.AspNetCore.Service.csproj" />
+    <Project Path="test/AspNetCore/Test.AspNetCore.csproj" />
     <Project Path="test/Dataset.EntityFramework/Test.Dataset.EntityFramework.csproj" />
     <Project Path="test/Dataset.EntityFrameworkCore.MongoDB/Test.Dataset.EntityFrameworkCore.MongoDB.csproj" />
     <Project Path="test/Dataset.EntityFrameworkCore.SqlServer/Test.Dataset.EntityFrameworkCore.SqlServer.csproj" />
     <Project Path="test/Dataset/Test.Dataset.csproj" />
-    <Project Path="test/Linq/Test.Linq.csproj" />
-  </Folder>
-  <Folder Name="/repo/docs/" />
-  <Folder Name="/repo/docs/analyzers/">
-    <File Path="docs/analyzers/debugging-analyzers.md" />
-    <File Path="docs/analyzers/FX001.md" />
-    <File Path="docs/analyzers/packaging.md" />
-    <File Path="docs/analyzers/README.md" />
+    <Project Path="test/Fuxion/Test.Fuxion.csproj" />
+    <Project Path="test/Windows/Test.Windows.csproj" />
   </Folder>
   <Folder Name="/repo/solution/">
     <File Path="Directory.Build.props" />

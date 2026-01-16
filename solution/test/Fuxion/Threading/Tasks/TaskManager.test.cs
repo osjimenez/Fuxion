@@ -13,18 +13,8 @@ using Xunit;
 
 namespace Fuxion.Test.Threading.Tasks;
 
-public class TaskManagerTest : BaseTest<TaskManagerTest>
+public class TaskManagerTest(ITestOutputHelper output) : BaseTest<TaskManagerTest>(output)
 {
-	public TaskManagerTest(ITestOutputHelper output) : base(output) =>
-		Printer.WriteLineAction = m => {
-			try
-			{
-				//var message = $"{(Task.CurrentId != null ? $"({Task.CurrentId.Value}) " : "")}{m}";
-				var message = $"{m}{(Task.CurrentId != null ? $" - {Task.CurrentId.Value}" : "")}";
-				output.WriteLine(message);
-				Debug.WriteLine(message);
-			} catch { }
-		};
 	public static IEnumerable<object[]> GenerateTheoryParameters(int maxParNum)
 	{
 		var list = new List<object[]>();
@@ -80,23 +70,19 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 		var runDelay = 5;
 		var cancelledResult = "Canceled";
 		var doneResult = "Done";
-		using (Printer.Indent("Test constants"))
-		{
-			Printer.WriteLine($"{nameof(runDelay)}: {runDelay}");
-			Printer.WriteLine($"{nameof(cancelledResult)}: {cancelledResult}");
-			Printer.WriteLine($"{nameof(doneResult)}: {doneResult}");
-		}
-		using (Printer.Indent("Test parameters"))
-		{
-			Printer.WriteLine($"{nameof(@void)}: {@void}");
-			Printer.WriteLine($"{nameof(sync)}: {sync}");
-			Printer.WriteLine($"{nameof(create)}: {create}");
-			Printer.WriteLine($"{nameof(sequentially)}: {sequentially}");
-			Printer.WriteLine($"{nameof(onlyLast)}: {onlyLast}");
-			Printer.WriteLine($"{nameof(cancel)}: {cancel}");
-			Printer.WriteLine($"{nameof(named)}: {named}");
-			Printer.WriteLine($"{nameof(parNum)}: {parNum}");
-		}
+		Output.WriteLine("Test constants");
+		Output.WriteLine($"\t{nameof(runDelay)}: {runDelay}");
+		Output.WriteLine($"\t{nameof(cancelledResult)}: {cancelledResult}");
+		Output.WriteLine($"\t{nameof(doneResult)}: {doneResult}");
+		Output.WriteLine("Test parameters");
+		Output.WriteLine($"\t{nameof(@void)}: {@void}");
+		Output.WriteLine($"\t{nameof(sync)}: {sync}");
+		Output.WriteLine($"\t{nameof(create)}: {create}");
+		Output.WriteLine($"\t{nameof(sequentially)}: {sequentially}");
+		Output.WriteLine($"\t{nameof(onlyLast)}: {onlyLast}");
+		Output.WriteLine($"\t{nameof(cancel)}: {cancel}");
+		Output.WriteLine($"\t{nameof(named)}: {named}");
+		Output.WriteLine($"\t{nameof(parNum)}: {parNum}");
 		AutoResetEvent are = new(true);
 		object seqLocker = new();
 		var seq = "";
@@ -135,82 +121,82 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 				if (!@void) args[args.Length - 1] = typeof(string);
 				met = met.MakeGenericMethod(args);
 			}
-			Printer.WriteLine("Method: " + met.GetSignature(true, true));
+			Output.WriteLine("Method: " + met.GetSignature(true, true));
 			return met;
 		}
 		Delegate GetDelegate(int order)
 		{
 			void Void_Sync()
 			{
-				Printer.WriteLine($"Do {order} - {TaskManager.CurrentEntry?.ConcurrencyProfile.Name}");
+				Output.WriteLine($"Do {order} - {TaskManager.CurrentEntry?.ConcurrencyProfile.Name}");
 				try
 				{
 					AddToSeq($"S{order}-");
-					Printer.WriteLine("Start " + order);
+					Output.WriteLine("Start " + order);
 #pragma warning disable xUnit1031
 					Task.Delay(runDelay, TaskManager.Current?.GetCancellationToken() ?? throw new InvalidProgramException("Cancellation token cannot be obtained")).Wait();
 #pragma warning restore xUnit1031
 					AddToSeq($"E{order}-");
-					Printer.WriteLine("End " + order);
+					Output.WriteLine("End " + order);
 				} catch
 				{
 					AddToSeq($"E{order}X-");
-					Printer.WriteLine($"End {order} - in catch");
+					Output.WriteLine($"End {order} - in catch");
 					throw;
 				}
 			}
 			async Task Void_Async()
 			{
-				Printer.WriteLine($"Do {order} - {TaskManager.CurrentEntry?.ConcurrencyProfile.Name}");
+				Output.WriteLine($"Do {order} - {TaskManager.CurrentEntry?.ConcurrencyProfile.Name}");
 				try
 				{
 					AddToSeq($"S{order}-");
-					Printer.WriteLine("Start " + order);
+					Output.WriteLine("Start " + order);
 					await Task.Delay(runDelay, TaskManager.Current?.GetCancellationToken() ?? throw new InvalidProgramException("Cancellation token cannot be obtained"));
 					AddToSeq($"E{order}-");
-					Printer.WriteLine("End " + order);
+					Output.WriteLine("End " + order);
 				} catch
 				{
 					AddToSeq($"E{order}X-");
-					Printer.WriteLine($"End {order} - in catch");
+					Output.WriteLine($"End {order} - in catch");
 					throw;
 				}
 			}
 			string Result_Sync()
 			{
-				Printer.WriteLine($"Do {order} - {TaskManager.CurrentEntry?.ConcurrencyProfile.Name}");
+				Output.WriteLine($"Do {order} - {TaskManager.CurrentEntry?.ConcurrencyProfile.Name}");
 				try
 				{
 					AddToSeq($"S{order}-");
-					Printer.WriteLine("Start " + order);
+					Output.WriteLine("Start " + order);
 #pragma warning disable xUnit1031
 					Task.Delay(runDelay, TaskManager.Current?.GetCancellationToken() ?? throw new InvalidProgramException("Cancellation token cannot be obtained")).Wait();
 #pragma warning restore xUnit1031
 					AddToSeq($"E{order}-");
-					Printer.WriteLine("End " + order);
+					Output.WriteLine("End " + order);
 					return $"{doneResult}_{parNum}";
 				} catch
 				{
 					AddToSeq($"E{order}X-");
-					Printer.WriteLine($"End {order} - in catch");
+					Output.WriteLine($"End {order} - in catch");
 					throw;
 				}
 			}
 			async Task<string> Result_Async()
 			{
-				Printer.WriteLine($"Do {order} - {TaskManager.CurrentEntry?.ConcurrencyProfile.Name}");
+				Output.WriteLine($"Do {order} - {TaskManager.CurrentEntry?.ConcurrencyProfile.Name}");
 				try
 				{
 					AddToSeq($"S{order}-");
-					Printer.WriteLine("Start " + order);
+					Output.WriteLine("Start " + order);
 					await Task.Delay(runDelay, TaskManager.Current?.GetCancellationToken() ?? throw new InvalidProgramException("Cancellation token cannot be obtained"));
 					AddToSeq($"E{order}-");
-					Printer.WriteLine("End " + order);
+					Output.WriteLine("End " + order);
 					return $"{doneResult}_{parNum}";
 				} catch
 				{
 					AddToSeq($"E{order}X-");
-					Printer.WriteLine($"End {order} - in catch");
+					Output.WriteLine($"End {order} - in catch");
 					throw;
 				}
 			}
@@ -288,7 +274,7 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 					return (Task?)GetMethod().Invoke(null, GenerateParameters(GetDelegate(order), GetConcurrencyProfile(order))) ?? throw new InvalidProgramException("Method cannot return null");
 			} catch (Exception ex)
 			{
-				Printer.WriteLine($"Error '{ex.GetType().Name}': {ex.Message}");
+				Output.WriteLine($"Error '{ex.GetType().Name}': {ex.Message}");
 				throw;
 			} finally
 			{
@@ -308,7 +294,7 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 					return (Task?)GetMethod().Invoke(null, GenerateParameters(GetDelegate(order), GetConcurrencyProfile(order))) ?? throw new InvalidProgramException("Method cannot return null");
 			} catch (Exception ex)
 			{
-				Printer.WriteLine($"Error '{ex.GetType().Name}': {ex.Message}");
+				Output.WriteLine($"Error '{ex.GetType().Name}': {ex.Message}");
 				throw;
 			} finally
 			{
@@ -329,7 +315,7 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 					return (Task<string?>?)GetMethod().Invoke(null, GenerateParameters(GetDelegate(order), GetConcurrencyProfile(order))) ?? throw new InvalidProgramException("Method cannot return null");
 			} catch (Exception ex)
 			{
-				Printer.WriteLine($"Error '{ex.GetType().Name}': {ex.Message}");
+				Output.WriteLine($"Error '{ex.GetType().Name}': {ex.Message}");
 				throw;
 			} finally
 			{
@@ -350,7 +336,7 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 					return (Task<string?>?)GetMethod().Invoke(null, GenerateParameters(GetDelegate(order), GetConcurrencyProfile(order))) ?? throw new InvalidProgramException("Method cannot return null");
 			} catch (Exception ex)
 			{
-				Printer.WriteLine($"Error '{ex.GetType().Name}': {ex.Message}");
+				Output.WriteLine($"Error '{ex.GetType().Name}': {ex.Message}");
 				throw;
 			} finally
 			{
@@ -361,9 +347,10 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 		#endregion
 
 		#region Run
-		Printer.WriteLine("==============");
-		using (Printer.Indent("Run"))
-		{
+		Output.WriteLine("==============");
+		Output.WriteLine("Run");
+		//using (Printer.Indent("Run"))
+		//{
 			var res = new Task<(bool WasCancelled, string? Result)>[3];
 			var num = 1;
 			var numLocker = new object();
@@ -375,7 +362,7 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 				res[i] = Task.Run(async () => {
 					are.WaitOne();
 					var currentNum = GetNum();
-					Printer.WriteLine($"Test Run {currentNum}");
+					Output.WriteLine($"\tTest Run {currentNum}");
 					try
 					{
 						if (@void)
@@ -389,15 +376,15 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 						return sync ? (false, await Func_Sync(currentNum)) : (false, await Func_Async(currentNum));
 					} catch (TaskCanceledByConcurrencyException)
 					{
-						Printer.WriteLine($"TaskCanceledByConcurrencyException [{currentNum}]");
+						Output.WriteLine($"\tTaskCanceledByConcurrencyException [{currentNum}]");
 						return (true, cancelledResult);
 					} catch (TaskCanceledException)
 					{
-						Printer.WriteLine($"TaskCanceledException [{currentNum}]");
+						Output.WriteLine($"\tTaskCanceledException [{currentNum}]");
 						return (true, cancelledResult);
 					} catch (AggregateException ex) when (ex.Flatten().InnerException is TaskCanceledException)
 					{
-						Printer.WriteLine($"AggregateException [{currentNum}]");
+						Output.WriteLine($"\tAggregateException [{currentNum}]");
 						return (true, cancelledResult);
 					}
 				});
@@ -408,13 +395,13 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 			results[2] = res[2].Result;
 #pragma warning restore xUnit1031
 			seq = seq.Trim('-');
-			for (var i = 0; i < results.Length; i++) Printer.WriteLine($"Result {i + 1}: WasCanceled<{results[i].WasCancelled}>,Result<{results[i].Result}>");
-			Printer.WriteLine("Sequence: " + seq);
-		}
+			for (var i = 0; i < results.Length; i++) Output.WriteLine($"\tResult {i + 1}: WasCanceled<{results[i].WasCancelled}>,Result<{results[i].Result}>");
+			Output.WriteLine("\tSequence: " + seq);
+		//}
 		#endregion
 
 		#region Assert sequence
-		Printer.WriteLine("==============");
+		Output.WriteLine("==============");
 		var seqs = seq.Split('-').ToList();
 
 		#region Methods
@@ -426,22 +413,22 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 		bool WasTaskExecutedSuccessfully(int task) => seqs.Contains($"S{task}") && seqs.Contains($"E{task}");
 		void AssertIfTaskWasFinishBeforeOtherStart(int taskThatHadToFinished, int taskThatHadToStartAfter)
 		{
-			Printer.WriteLine($"Asserting if task {taskThatHadToFinished} finished before task {taskThatHadToStartAfter} was started");
+			Output.WriteLine($"Asserting if task {taskThatHadToFinished} finished before task {taskThatHadToStartAfter} was started");
 			Assert.True(WasTaskFinishBeforeOtherStart(taskThatHadToFinished, taskThatHadToStartAfter), $"Task {taskThatHadToFinished} had to be finished before task {taskThatHadToStartAfter} can start");
 		}
 		void AssertIfTaskWasExecuted(int task)
 		{
-			Printer.WriteLine($"Asserting if task {task} was executed, successful or canceled");
+			Output.WriteLine($"Asserting if task {task} was executed, successful or canceled");
 			Assert.True(WasTaskExecuted(task), $"Task {task} had to be executed, successful or canceled");
 		}
 		void AssertIfTaskWasExecutedSuccessfully(int task)
 		{
-			Printer.WriteLine($"Asserting if task {task} was executed successfully");
+			Output.WriteLine($"Asserting if task {task} was executed successfully");
 			Assert.True(WasTaskExecutedSuccessfully(task), $"Task {task} had to be executed successfully");
 		}
 		#endregion
 
-		using (Printer.Indent("Assert"))
+		Output.WriteLine("Assert");
 			if (sequentially)
 			{
 				if (cancel)
@@ -450,14 +437,14 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 					{
 						if (named)
 						{
-							Printer.WriteLine("Only last call executed sequentially canceling previous with naming even/odd");
+							Output.WriteLine("\tOnly last call executed sequentially canceling previous with naming even/odd");
 							if (WasTaskExecuted(1)) // Task 1 was executed?
 								AssertIfTaskWasFinishBeforeOtherStart(1, 3);
 							AssertIfTaskWasExecutedSuccessfully(2);
 							AssertIfTaskWasExecutedSuccessfully(3);
 						} else
 						{
-							Printer.WriteLine("Only last call executed sequentially canceling previous");
+							Output.WriteLine("\tOnly last call executed sequentially canceling previous");
 							if (WasTaskExecuted(1) && WasTaskExecuted(2))
 							{
 								AssertIfTaskWasExecuted(1);
@@ -483,13 +470,13 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 					{
 						if (named)
 						{
-							Printer.WriteLine("All executed sequentially canceling previous with naming even/odd");
+							Output.WriteLine("\tAll executed sequentially canceling previous with naming even/odd");
 							if (WasTaskExecuted(1)) AssertIfTaskWasFinishBeforeOtherStart(1, 3);
 							AssertIfTaskWasExecutedSuccessfully(2);
 							AssertIfTaskWasExecutedSuccessfully(3);
 						} else
 						{
-							Printer.WriteLine("All executed sequentially canceling previous");
+							Output.WriteLine("\tAll executed sequentially canceling previous");
 							AssertIfTaskWasExecuted(1);
 							AssertIfTaskWasFinishBeforeOtherStart(1, 2);
 							AssertIfTaskWasExecuted(2);
@@ -504,7 +491,7 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 					{
 						if (named)
 						{
-							Printer.WriteLine("Only last call executed sequentially without cancelations with naming even/odd");
+							Output.WriteLine("\tOnly last call executed sequentially without cancelations with naming even/odd");
 							if (WasTaskExecuted(1))
 							{
 								AssertIfTaskWasExecutedSuccessfully(1);
@@ -514,7 +501,7 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 							AssertIfTaskWasExecutedSuccessfully(3);
 						} else
 						{
-							Printer.WriteLine("Only last call executed sequentially without cancelations");
+							Output.WriteLine("\tOnly last call executed sequentially without cancelations");
 							if (WasTaskExecuted(1) && WasTaskExecuted(2))
 							{
 								AssertIfTaskWasExecutedSuccessfully(1);
@@ -537,14 +524,14 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 					{
 						if (named)
 						{
-							Printer.WriteLine("All executed sequentially without cancelations with naming even/odd");
+							Output.WriteLine("\tAll executed sequentially without cancelations with naming even/odd");
 							AssertIfTaskWasExecutedSuccessfully(1);
 							AssertIfTaskWasExecutedSuccessfully(2);
 							AssertIfTaskWasFinishBeforeOtherStart(1, 3);
 							AssertIfTaskWasExecutedSuccessfully(3);
 						} else
 						{
-							Printer.WriteLine("All executed sequentially without cancelations");
+							Output.WriteLine("\tAll executed sequentially without cancelations");
 							AssertIfTaskWasExecutedSuccessfully(1);
 							AssertIfTaskWasFinishBeforeOtherStart(1, 2);
 							AssertIfTaskWasExecutedSuccessfully(2);
@@ -554,7 +541,8 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 						}
 					}
 				}
-			} else
+			}
+			else
 			{
 				if (cancel)
 				{
@@ -562,26 +550,29 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 					{
 						if (named)
 						{
-							Printer.WriteLine("Only last call executed in any order canceling previous with naming even/odd");
+							Output.WriteLine("\tOnly last call executed in any order canceling previous with naming even/odd");
 							AssertIfTaskWasExecutedSuccessfully(2);
 							AssertIfTaskWasExecutedSuccessfully(3);
-						} else
+						}
+						else
 						{
-							Printer.WriteLine("Only last call executed in any order canceling previous");
+							Output.WriteLine("\tOnly last call executed in any order canceling previous");
 							AssertIfTaskWasExecutedSuccessfully(3);
 							//Assert.True(seq.Contains("S3") && seq.Contains("E3"));
 						}
-					} else
+					}
+					else
 					{
 						if (named)
 						{
-							Printer.WriteLine("All executed in any order canceling previous with naming even/odd");
+							Output.WriteLine("\tAll executed in any order canceling previous with naming even/odd");
 							AssertIfTaskWasExecuted(1);
 							AssertIfTaskWasExecutedSuccessfully(2);
 							AssertIfTaskWasExecutedSuccessfully(3);
-						} else
+						}
+						else
 						{
-							Printer.WriteLine("All executed in any order canceling previous");
+							Output.WriteLine("\tAll executed in any order canceling previous");
 							AssertIfTaskWasExecuted(1);
 							AssertIfTaskWasExecuted(2);
 							AssertIfTaskWasExecutedSuccessfully(3);
@@ -592,49 +583,49 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 							//  && seq.Contains("S3") && seq.Contains("E3"));
 						}
 					}
-				} else
+				}
+				else
 				{
 					if (onlyLast)
 					{
 						if (named)
 						{
-							Printer.WriteLine("Only last call executed in any order without cancelations with naming even/odd");
+							Output.WriteLine(
+								"\tOnly last call executed in any order without cancelations with naming even/odd");
 							if (WasTaskExecuted(1)) AssertIfTaskWasExecutedSuccessfully(1);
 							AssertIfTaskWasExecutedSuccessfully(2);
 							AssertIfTaskWasExecutedSuccessfully(3);
-						} else
+						}
+						else
 						{
-							Printer.WriteLine("Only last call executed in any order without cancelations");
+							Output.WriteLine("\tOnly last call executed in any order without cancelations");
 							if (WasTaskExecuted(1)) AssertIfTaskWasExecutedSuccessfully(1);
 							if (WasTaskExecuted(2)) AssertIfTaskWasExecutedSuccessfully(2);
 							AssertIfTaskWasExecutedSuccessfully(3);
 							//Assert.True(seq.Contains("S3") && seq.Contains("E3"));
 						}
-					} else
+					}
+					else
 					{
 						if (named)
 						{
-							Printer.WriteLine("All executed in any order without cancelations with naming even/odd");
+							Output.WriteLine("\tAll executed in any order without cancelations with naming even/odd");
 							AssertIfTaskWasExecutedSuccessfully(1);
 							AssertIfTaskWasExecutedSuccessfully(2);
 							AssertIfTaskWasExecutedSuccessfully(3);
-						} else
+						}
+						else
 						{
-							Printer.WriteLine("All executed in any order without cancellations");
+							Output.WriteLine("\tAll executed in any order without cancellations");
 							AssertIfTaskWasExecutedSuccessfully(1);
 							AssertIfTaskWasExecutedSuccessfully(2);
 							AssertIfTaskWasExecutedSuccessfully(3);
-							//Assert.Contains("S1", seq);
-							//Assert.Contains("E1", seq);
-							//Assert.Contains("S2", seq);
-							//Assert.Contains("E2", seq);
-							//Assert.Contains("S2", seq);
-							//Assert.Contains("E2", seq);
 						}
 					}
 				}
 			}
-		#endregion
+
+			#endregion
 
 		#region Assert results
 		if (!@void)
@@ -656,13 +647,13 @@ public class TaskManagerTest : BaseTest<TaskManagerTest>
 	public void TaskManager_SleepCancelation()
 	{
 		var dt = DateTime.Now;
-		Printer.WriteLine("Inicio en " + dt.ToString("HH:mm:ss.fff"));
+		Output.WriteLine("Inicio en " + dt.ToString("HH:mm:ss.fff"));
 		var task = TaskManager.StartNew(() => {
 			//task.Sleep(TimeSpan.FromMilliseconds(2500), TimeSpan.FromMilliseconds(500));
 			TaskManager.Current?.Sleep(TimeSpan.FromMilliseconds(2500));
 		});
 		task.CancelAndWait();
-		Printer.WriteLine("Cancelado en " + DateTime.Now.ToString("HH:mm:ss.fff"));
+		Output.WriteLine("Cancelado en " + DateTime.Now.ToString("HH:mm:ss.fff"));
 		Assert.True(dt.AddSeconds(1) > DateTime.Now);
 		//Assert.True(dt.AddMilliseconds(400) < DateTime.Now);
 	}

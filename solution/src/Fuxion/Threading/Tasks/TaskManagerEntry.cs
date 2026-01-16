@@ -7,46 +7,43 @@ using Microsoft.Extensions.Logging;
 
 namespace Fuxion.Threading.Tasks;
 
-abstract class TaskManagerEntry : ITaskManagerEntry
+internal abstract class TaskManagerEntry(
+	Delegate? @delegate,
+	TaskScheduler? scheduler,
+	TaskCreationOptions options,
+	ConcurrencyProfile concurrencyProfile)
+	: ITaskManagerEntry
 {
-	protected TaskManagerEntry(Delegate? @delegate, TaskScheduler? scheduler, TaskCreationOptions options, ConcurrencyProfile concurrencyProfile)
-	{
-		CancellationTokenSource = new();
-		Delegate = @delegate;
-		TaskScheduler = scheduler ?? TaskScheduler.Default;
-		TaskCreationOptions = options;
-		ConcurrencyProfile = concurrencyProfile;
-	}
-	ITaskManagerEntry? _Next;
-	ITaskManagerEntry? _Previous;
-	Task? _Task;
+	private ITaskManagerEntry? _next;
+	private ITaskManagerEntry? _previous;
 	public ILogger? Logger { get; set; }
 	public ITaskManagerEntry? Previous
 	{
-		get => _Previous;
+		get => _previous;
 		set
 		{
-			_Previous = value;
-			if (value != null) ((TaskManagerEntry)value)._Next = this;
+			_previous = value;
+			if (value != null) ((TaskManagerEntry)value)._next = this;
 		}
 	}
 	public ITaskManagerEntry? Next
 	{
-		get => _Next;
+		get => _next;
 		set
 		{
-			_Next = value;
-			if (value != null) ((TaskManagerEntry)value)._Previous = this;
+			_next = value;
+			if (value != null) ((TaskManagerEntry)value)._previous = this;
 		}
 	}
-	public ConcurrencyProfile ConcurrencyProfile { get; set; }
+	public ConcurrencyProfile ConcurrencyProfile { get; set; } = concurrencyProfile;
+
 	public Task Task
 	{
-		get => _Task ?? throw new InvalidProgramException();
+		get => field ?? throw new InvalidProgramException();
 		set
 		{
-			_Task = value;
-			_Task.ContinueWith(t => {
+			field = value;
+			field.ContinueWith(t => {
 				var toLog = "La tarea finalizó con " + t.Exception?.InnerExceptions.Count + " errores.";
 				Exception? ex = t.Exception;
 				if (t.Exception?.InnerExceptions.Count == 1)
@@ -61,13 +58,14 @@ abstract class TaskManagerEntry : ITaskManagerEntry
 			}, TaskContinuationOptions.OnlyOnFaulted);
 		}
 	}
-	public TaskScheduler TaskScheduler { get; }
-	public TaskCreationOptions TaskCreationOptions { get; }
+	public TaskScheduler TaskScheduler { get; } = scheduler ?? TaskScheduler.Default;
+	public TaskCreationOptions TaskCreationOptions { get; } = options;
 	public void Start() => Task.Start(TaskScheduler);
 	public event EventHandler? CancelRequested;
 	public bool IsCancellationRequested => CancellationTokenSource.IsCancellationRequested;
-	public CancellationTokenSource CancellationTokenSource { get; }
-	public Delegate? Delegate { get; }
+	public CancellationTokenSource CancellationTokenSource { get; } = new();
+	public Delegate? Delegate { get; } = @delegate;
+
 	public void Cancel()
 	{
 		CancellationTokenSource.Cancel();

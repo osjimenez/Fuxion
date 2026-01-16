@@ -10,53 +10,52 @@ using Xunit;
 
 namespace Fuxion.Test.Web;
 
-public class PatchableTest : BaseTest<PatchableTest>
+public class PatcherTest(ITestOutputHelper output) : BaseTest<PatcherTest>(output)
 {
-	public PatchableTest(ITestOutputHelper output):base(output){}
-	[Fact(DisplayName = "Patchable - Cast")]
+	[Fact(DisplayName = "Patcher - Cast")]
 	public void Cast()
 	{
-		dynamic dyn = new Patchable<ToPatch>();
+		dynamic dyn = new Patcher<ToPatch>();
 		dyn.Id = "{7F27735C-FDE1-4141-985A-214502599C63}";
-		var delta = dyn as Patchable<ToPatch>;
+		var delta = dyn as Patcher<ToPatch>;
 		var id = delta?.Get<Guid>("Id");
 		Assert.Equal(Guid.Parse("{7F27735C-FDE1-4141-985A-214502599C63}"), id);
 	}
-	[Fact(DisplayName = "Patchable - Get")]
+	[Fact(DisplayName = "Patcher - Get")]
 	public void Get()
 	{
-		dynamic dyn = new Patchable<ToPatch>();
+		dynamic dyn = new Patcher<ToPatch>();
 		dyn.Integer = 111;
-		var delta = dyn as Patchable<ToPatch>;
+		var delta = dyn as Patcher<ToPatch>;
 		Assert.Equal(111, delta?.Get<int>("Integer"));
 	}
-	[Fact(DisplayName = "Patchable - Indexer")]
+	[Fact(DisplayName = "Patcher - Indexer")]
 	public void Indexer()
 	{
-		dynamic dyn = new Patchable<ToPatch>();
+		dynamic dyn = new Patcher<ToPatch>();
 		dyn.Integer = 111;
-		var delta = dyn as Patchable<ToPatch>;
+		var delta = dyn as Patcher<ToPatch>;
 		Assert.True(delta?.Has("Integer"));
 		Assert.False(delta?.Has("Integer2"));
 		Assert.Equal(111, delta?.Get<int>("Integer"));
 	}
-	[Fact(DisplayName = "Patchable - List")]
+	[Fact(DisplayName = "Patcher - List")]
 	public void List()
 	{
 		var toPatch = new ToPatch {
 			Integer = 123, String = "TEST"
 		};
-		dynamic dyn = new Patchable<ToPatch>();
+		dynamic dyn = new Patcher<ToPatch>();
 		dyn.List = new List<int>();
 		dyn.List.Add(1);
 		dyn.Patch(toPatch);
 		Assert.NotEmpty(toPatch.List);
 	}
-	[Fact(DisplayName = "Patchable - NonExistingPropertiesMode")]
+	[Fact(DisplayName = "Patcher - NonExistingPropertiesMode")]
 	public void NonExistingProperties()
 	{
 		// Create a Patchable
-		dynamic dyn = new Patchable<ToPatch>();
+		dynamic dyn = new Patcher<ToPatch>();
 		// Set non existing property
 		Assert.Throws<RuntimeBinderException>(() => {
 			dyn.Integer = 123;
@@ -68,12 +67,12 @@ public class PatchableTest : BaseTest<PatchableTest>
 
 		// Path a derived class
 		var derived = new DerivedToPatch();
-		(dyn as Patchable<ToPatch>)?.ToPatchable<DerivedToPatch>().Patch(derived);
+		(dyn as Patcher<ToPatch>)?.ToPatcher<DerivedToPatch>().Patch(derived);
 		Assert.Equal(123, derived.Integer);
 		Assert.Equal(123, derived.DerivedInteger);
 
 		// Get non existing property
-		var delta = (Patchable<ToPatch>)dyn;
+		var delta = (Patcher<ToPatch>)dyn;
 		int? res, derivedRed;
 		Assert.Throws<RuntimeBinderException>(() => {
 			res = delta.Get<int>("Integer");
@@ -86,36 +85,36 @@ public class PatchableTest : BaseTest<PatchableTest>
 		Assert.Equal(123, res);
 		Assert.Equal(123, derivedRed);
 	}
-	[Fact(DisplayName = "Patchable - Patch")]
+	[Fact(DisplayName = "Patcher - Patch")]
 	public void Patch()
 	{
 		var toPatch = new ToPatch {
 			Integer = 123, String = "TEST"
 		};
-		dynamic dyn = new Patchable<ToPatch>();
+		dynamic dyn = new Patcher<ToPatch>();
 		dyn.Integer = 111;
 		
 		// Serialize and deserialize to simulate network service passthrough
-		var res = ((Patchable<ToPatch>)dyn).Fx.Json.Serialize().Payload.Fx.Json.Deserialize<Patchable<ToPatch>>();
+		var res = ((Patcher<ToPatch>)dyn).Fx.Json.Serialize().Payload.Fx.Json.Deserialize<Patcher<ToPatch>>();
 		Assert.True(res.IsSuccess);
 		PrintVariable(toPatch.Integer, "Before path");
 		res.Payload.Patch(toPatch);
 		PrintVariable(toPatch.Integer, "After patch");
 		Assert.Equal(111, toPatch.Integer);
 	}
-	[Fact(DisplayName = "Patchable - From dynamic")]
+	[Fact(DisplayName = "Patcher - From dynamic")]
 	public void FromDynamic()
 	{
-		var pat = Patchable<ToPatch>.FromDynamic(c => {
+		var pat = Patcher<ToPatch>.FromDynamic(c => {
 			c.Integer = 123;
 			c.String = "TEST";
 		});
 		Logger.LogInformation($"JSON:\r\n{pat.Fx.Json.Serialize().Payload}");
 	}
-	[Fact(DisplayName = "Patchable - From object (anonymous types)")]
+	[Fact(DisplayName = "Patcher - From object (anonymous types)")]
 	public void FromObject()
 	{
-		var pat = Patchable<ToPatch>.FromObject(() => new {
+		var pat = Patcher<ToPatch>.FromObject(() => new {
 			Integer = 123,
 			String = "TEST"
 		});

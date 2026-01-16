@@ -57,27 +57,5 @@
 		<Compile Update="SemanticVersion.IdentifierCollection.cs">
 			<DependentUpon>SemanticVersion.cs</DependentUpon>
 		</Compile>
-
-		<Compile Update="AntiBackTimeProvider.cs">
-			<DependentUpon>ITimeProvider.cs</DependentUpon>
-		</Compile>
-		<Compile Update="AverageTimeProvider.cs">
-			<DependentUpon>ITimeProvider.cs</DependentUpon>
-		</Compile>
-		<Compile Update="CachedTimeProvider.cs">
-			<DependentUpon>ITimeProvider.cs</DependentUpon>
-		</Compile>
-		<Compile Update="FileSystemStorageTimeProvider.cs">
-			<DependentUpon>ITimeProvider.cs</DependentUpon>
-		</Compile>
-		<Compile Update="InternetTimeProvider.cs">
-			<DependentUpon>ITimeProvider.cs</DependentUpon>
-		</Compile>
-		<Compile Update="LocalMachineTimeProvider.cs">
-			<DependentUpon>ITimeProvider.cs</DependentUpon>
-		</Compile>
-		<Compile Update="StoredTimeProvider.cs">
-			<DependentUpon>ITimeProvider.cs</DependentUpon>
-		</Compile>
 	</ItemGroup>
 </Project>

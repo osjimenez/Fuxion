@@ -5,6 +5,14 @@ using System.Text;
 
 namespace Fuxion;
 
+/// <summary>
+/// Provides extension methods for encoding and decoding operations on byte arrays and strings.
+/// Supports hexadecimal, Base64, and Base64Url encoding formats with various conversion options.
+/// </summary>
+/// <remarks>
+/// This class uses the extension mechanism to add encoding-related functionality to <see cref="byte" /> and <see cref="string" /> types
+/// through the Fuxion extensions framework. All operations return <see cref="Response{T}" /> objects to enable proper error handling.
+/// </remarks>
 public static class EncodingExtensions
 {
 	extension(FuxionExtensions<byte[]?> me)
@@ -220,12 +228,12 @@ public static class EncodingExtensions
 		/// <code>
 		/// // Encode and decode with UTF-8 (default)
 		/// var original = "Hello, World!";
-		/// var base64 = original.Fx.Encoding.ToBase64String();  // "SGVsbG8sIFdvcmxkIQ=="
+		/// var base64 = original.Fx.Encoding.ToBase64String();  // "SGVsbG8sIFRvcmxkIQ=="
 		/// var decoded = base64.Payload.Fx.Encoding.DecodeFromBase64();
 		/// Console.WriteLine(decoded.Payload);  // Output: "Hello, World!"
 		/// 
 		/// // Using a different encoding
-		/// var base64Latin1 = "SGVsbG8sIFdvcmxkIQ==";
+		/// var base64Latin1 = "SGVsbG8sIFRvcmxkIQ==";
 		/// var decodedLatin1 = base64Latin1.Fx.Encoding.DecodeFromBase64(Encoding.Latin1);
 		/// </code>
 		/// </example>
@@ -258,7 +266,7 @@ public static class EncodingExtensions
 		/// // Encode with UTF-8 (default)
 		/// var text = "Hello, World!";
 		/// var response = text.Fx.Encoding.ToBase64String();
-		/// Console.WriteLine(response.Payload);  // Output: "SGVsbG8sIFdvcmxkIQ=="
+		/// Console.WriteLine(response.Payload);  // Output: "SGVsbG8sIFRvcmxkIQ=="
 		/// 
 		/// // Encode with a different encoding
 		/// var textLatin1 = "Café";
@@ -357,7 +365,7 @@ public static class EncodingExtensions
 		/// <code>
 		/// // Encode and decode with UTF-8 (default)
 		/// var original = "Hello, World!";
-		/// var base64Url = original.Fx.Encoding.ToBase64UrlString();  // "SGVsbG8sIFdvcmxkIQ" (no padding)
+		/// var base64Url = original.Fx.Encoding.ToBase64UrlString();  // "SGVsbG8sIFRvcmxkIQ" (no padding)
 		/// var decoded = base64Url.Payload.Fx.Encoding.DecodeFromBase64Url();
 		/// Console.WriteLine(decoded.Payload);  // Output: "Hello, World!"
 		/// 
@@ -403,11 +411,11 @@ public static class EncodingExtensions
 		/// // Encode with UTF-8 (default)
 		/// var text = "Hello, World!";
 		/// var response = text.Fx.Encoding.ToBase64UrlString();
-		/// Console.WriteLine(response.Payload);  // Output: "SGVsbG8sIFdvcmxkIQ" (no padding)
+		/// Console.WriteLine(response.Payload);  // Output: "SGVsbG8sIFRvcmxkIQ" (no padding)
 		/// 
 		/// // Compare with regular Base64
-		/// var base64 = text.Fx.Encoding.ToBase64String().Payload;        // "SGVsbG8sIFdvcmxkIQ=="
-		/// var base64Url = text.Fx.Encoding.ToBase64UrlString().Payload;  // "SGVsbG8sIFdvcmxkIQ"
+		/// var base64 = text.Fx.Encoding.ToBase64String().Payload;        // "SGVsbG8sIFRvcmxkIQ=="
+		/// var base64Url = text.Fx.Encoding.ToBase64UrlString().Payload;  // "SGVsbG8sIFRvcmxkIQ"
 		/// 
 		/// // URL-safe usage
 		/// var urlData = "user+id/session";
@@ -431,4 +439,24 @@ public static class EncodingExtensions
 		}
 	}
 }
+
+/// <summary>
+/// Generic wrapper class that provides encoding extension methods for values of type <typeparamref name="T"/>.
+/// This class is used internally by the Fuxion extensions framework to enable fluent API syntax for encoding operations.
+/// </summary>
+/// <typeparam name="T">The type of the value being wrapped, typically <see cref="byte"/> or <see cref="string"/>.</typeparam>
+/// <remarks>
+/// This class inherits from <see cref="Extensions{T}"/> and serves as a specialized container for encoding-related operations.
+/// Users typically access encoding functionality through extension methods rather than instantiating this class directly.
+/// </remarks>
+/// <example>
+/// <code>
+/// // Accessed through extension syntax
+/// byte[] data = new byte[] { 0x48, 0x65, 0x6C, 0x6C, 0x6F };
+/// var hexString = data.Fx.Encoding.ToHexString();
+/// 
+/// string text = "Hello";
+/// var base64 = text.Fx.Encoding.ToBase64String();
+/// </code>
+/// </example>
 public class EncodingExtensions<T>(T me) : Extensions<T>(me);

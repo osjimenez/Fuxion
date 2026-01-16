@@ -5,24 +5,298 @@ using System.Threading.Tasks;
 
 namespace Fuxion.Threading.Tasks;
 
-public static class TaskManager
+/// <summary>
+/// Provides advanced task management capabilities with tracking, concurrency control, and enhanced creation options.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <see cref="TaskManager"/> is a static utility class that extends the standard <see cref="Task"/> functionality
+/// by providing:
+/// </para>
+/// <list type="bullet">
+/// <item><description><strong>Task Tracking:</strong> All tasks created through TaskManager are tracked and can be queried</description></item>
+/// <item><description><strong>Concurrency Profiles:</strong> Built-in concurrency control through <see cref="ConcurrencyProfile"/></description></item>
+/// <item><description><strong>Current Task Access:</strong> Easy access to the currently executing managed task via <see cref="Current"/></description></item>
+/// <item><description><strong>Overload Support:</strong> Methods for 0-9 parameters with both synchronous and asynchronous delegates</description></item>
+/// <item><description><strong>Return Value Support:</strong> Both void and result-returning task creation</description></item>
+/// <item><description><strong>Thread-Safe Operations:</strong> All internal task tracking is thread-safe via <see cref="Locker{T}"/></description></item>
+/// </list>
+/// <para>
+/// The class is implemented as a partial class split across three files:
+/// </para>
+/// <list type="bullet">
+/// <item><description><strong>TaskManager.cs:</strong> Core infrastructure, task storage, and entry management</description></item>
+/// <item><description><strong>TaskManager2.cs:</strong> Void-returning task creation methods (Action delegates)</description></item>
+/// <item><description><strong>TaskManager3.cs:</strong> Result-returning task creation methods (Func delegates)</description></item>
+/// </list>
+/// <para>
+/// <strong>Key differences from standard Task.Factory.StartNew:</strong>
+/// </para>
+/// <list type="bullet">
+/// <item><description>Automatic task tracking and lifecycle management</description></item>
+/// <item><description>Concurrency profile support for controlling execution patterns</description></item>
+/// <item><description>Access to task metadata through <see cref="ITaskManagerEntry"/></description></item>
+/// <item><description>Automatic cleanup when tasks complete</description></item>
+/// </list>
+/// </remarks>
+/// <example>
+/// <code>
+/// // Create and start a simple task
+/// var task = TaskManager.StartNew(() => Console.WriteLine("Hello"));
+/// 
+/// // Create a task with parameters
+/// var task2 = TaskManager.StartNew(
+///     (name, age) => Console.WriteLine($"{name} is {age}"), 
+///     "John", 
+///     30
+/// );
+/// 
+/// // Create a task with return value
+/// var resultTask = TaskManager.StartNew(() => 42);
+/// int result = await resultTask;
+/// 
+/// // Access current task from within a managed task
+/// TaskManager.StartNew(() => 
+/// {
+///     var current = TaskManager.Current; // Gets the current task
+///     Console.WriteLine($"Task ID: {current?.Id}");
+/// });
+/// 
+/// // Create task with concurrency profile
+/// var task3 = TaskManager.StartNew(
+///     () => DoWork(),
+///     concurrencyProfile: ConcurrencyProfile.MaxConcurrency(4)
+/// );
+/// 
+/// // Create without starting
+/// var task4 = TaskManager.Create(() => Console.WriteLine("Not started yet"));
+/// // Start later
+/// TaskManager.SearchEntry(task4).Start();
+/// </code>
+/// </example>
+public static partial class TaskManager
 {
-	internal static readonly Locker<List<ITaskManagerEntry>> Tasks = new(new());
+	/// <summary>
+	/// Thread-safe storage for all managed tasks with their associated metadata.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// This locker protects a list of <see cref="ITaskManagerEntry"/> instances, where each entry contains:
+	/// </para>
+	/// <list type="bullet">
+	/// <item><description>The actual <see cref="Task"/> instance</description></item>
+	/// <item><description>Metadata about task creation (scheduler, options, concurrency profile)</description></item>
+	/// <item><description>Optional reference to the original delegate for debugging</description></item>
+	/// </list>
+	/// <para>
+	/// Entries are automatically added when tasks are created and removed when tasks complete.
+	/// All access to this collection is synchronized through the <see cref="Locker{T}"/> wrapper.
+	/// </para>
+	/// </remarks>
+	internal static readonly Locker<List<ITaskManagerEntry>> Tasks = new([]);
+	
+	/// <summary>
+	/// Gets the current managed task, if the calling code is executing within a task created by <see cref="TaskManager"/>.
+	/// </summary>
+	/// <value>
+	/// The <see cref="Task"/> instance of the currently executing managed task, or <c>null</c> if:
+	/// <list type="bullet">
+	/// <item><description>The current code is not executing within a TaskManager-created task</description></item>
+	/// <item><description>The task was not created through TaskManager</description></item>
+	/// <item><description><see cref="Task.CurrentId"/> is <c>null</c></description></item>
+	/// </list>
+	/// </value>
+	/// <remarks>
+	/// <para>
+	/// This property uses <see cref="Task.CurrentId"/> to identify the calling task and looks it up
+	/// in the managed task collection. This is useful for:
+	/// </para>
+	/// <list type="bullet">
+	/// <item><description>Accessing task metadata from within task execution</description></item>
+	/// <item><description>Debugging and logging task information</description></item>
+	/// <item><description>Implementing task-local storage patterns</description></item>
+	/// </list>
+	/// <para>
+	/// <strong>Performance note:</strong> This property performs a thread-safe search through the managed
+	/// task list on each access. Consider caching the result if accessed frequently within a task.
+	/// </para>
+	/// </remarks>
+	/// <example>
+	/// <code>
+	/// TaskManager.StartNew(() => 
+	/// {
+	///     var current = TaskManager.Current;
+	///     if (current != null)
+	///     {
+	///         Console.WriteLine($"Running in task {current.Id}");
+	///         Console.WriteLine($"Status: {current.Status}");
+	///     }
+	/// });
+	/// </code>
+	/// </example>
 	public static Task? Current => CurrentEntry?.Task;
+
+	/// <summary>
+	/// Gets the current managed task entry, if the calling code is executing within a task created by <see cref="TaskManager"/>.
+	/// </summary>
+	/// <value>
+	/// The <see cref="ITaskManagerEntry"/> instance containing the current task and its metadata,
+	/// or <c>null</c> if not executing within a managed task.
+	/// </value>
+	/// <remarks>
+	/// <para>
+	/// This property provides access to the full task entry, which includes:
+	/// </para>
+	/// <list type="bullet">
+	/// <item><description>The <see cref="Task"/> instance via <see cref="ITaskManagerEntry.Task"/></description></item>
+	/// <item><description>Creation options via <see cref="ITaskManagerEntry"/>.Options</description></item>
+	/// <item><description>Concurrency profile via <see cref="ITaskManagerEntry"/>.ConcurrencyProfile</description></item>
+	/// <item><description>Optional task scheduler via <see cref="ITaskManagerEntry"/>.Scheduler</description></item>
+	/// </list>
+	/// <para>
+	/// The lookup is performed by matching <see cref="Task.CurrentId"/> against tracked tasks.
+	/// </para>
+	/// </remarks>
 	internal static ITaskManagerEntry? CurrentEntry => Tasks.Read(l => l.FirstOrDefault(e => Task.CurrentId.HasValue && e.Task.Id == Task.CurrentId.Value));
-	static void AddEntry(ITaskManagerEntry entry)
+
+	/// <summary>
+	/// Adds a task entry to the managed task collection and sets up automatic cleanup on completion.
+	/// </summary>
+	/// <param name="entry">The task entry to add to the tracking system.</param>
+	/// <remarks>
+	/// <para>
+	/// This method performs two key operations:
+	/// </para>
+	/// <list type="number">
+	/// <item><description>
+	/// Registers a continuation on the task that will automatically remove the entry from the
+	/// collection when the task completes (regardless of outcome: success, fault, or cancellation).
+	/// </description></item>
+	/// <item><description>
+	/// Adds the entry to the thread-safe <see cref="Tasks"/> collection for tracking.
+	/// </description></item>
+	/// </list>
+	/// <para>
+	/// <strong>Automatic Cleanup:</strong> The continuation ensures that completed tasks don't
+	/// accumulate in memory. The cleanup happens asynchronously after task completion.
+	/// </para>
+	/// <para>
+	/// <strong>Thread Safety:</strong> Both the continuation registration and the collection
+	/// modification are thread-safe operations.
+	/// </para>
+	/// </remarks>
+	private static void AddEntry(ITaskManagerEntry entry)
 	{
 		entry.Task.ContinueWith(t => Tasks.Write(l => { l.Remove(entry); }));
 		Tasks.Write(l => { l.Add(entry); });
 	}
+
+	/// <summary>
+	/// Searches for a task entry in the managed collection and throws an exception if not found.
+	/// </summary>
+	/// <param name="task">The task to search for.</param>
+	/// <returns>The <see cref="ITaskManagerEntry"/> associated with the specified task.</returns>
+	/// <exception cref="ArgumentException">
+	/// Thrown when the task is not found in the managed collection, indicating it wasn't created
+	/// through <see cref="TaskManager"/>.
+	/// </exception>
+	/// <remarks>
+	/// <para>
+	/// This method is used internally by TaskManager to retrieve task metadata for tasks that
+	/// were created via 'Create' methods but need to be started later.
+	/// </para>
+	/// <para>
+	/// <strong>Search behavior:</strong> The search compares task instances by reference equality.
+	/// </para>
+	/// <para>
+	/// <strong>Common causes of ArgumentException:</strong>
+	/// </para>
+	/// <list type="bullet">
+	/// <item><description>Task was created via standard <see cref="Task.Factory"/>.StartNew or <see cref="Task"/>.Run</description></item>
+	/// <item><description>Task has already completed and been removed from tracking</description></item>
+	/// <item><description>Task object is from a different TaskManager instance (if multiple contexts exist)</description></item>
+	/// </list>
+	/// </remarks>
+	/// <example>
+	/// <code>
+	/// // This will work - task created through TaskManager
+	/// var task = TaskManager.Create(() => Console.WriteLine("Hello"));
+	/// var entry = TaskManager.SearchEntry(task);
+	/// entry.Start();
+	/// 
+	/// // This will throw - task not created through TaskManager
+	/// var standardTask = Task.Run(() => Console.WriteLine("Hello"));
+	/// try 
+	/// {
+	///     var entry = TaskManager.SearchEntry(standardTask); // ArgumentException
+	/// }
+	/// catch (ArgumentException ex)
+	/// {
+	///     Console.WriteLine(ex.Message); // "Task wasn't created with TaskManager."
+	/// }
+	/// </code>
+	/// </example>
 	internal static ITaskManagerEntry SearchEntry(Task task)
 	{
 		//Busco entre las tareas administradas
 		var res = Tasks.Read(l => l.FirstOrDefault(e => e.Task == task));
 		//Compruebo si se encontró y si debo lanzar una excepción
-		if (res == null) throw new ArgumentException("Task wasn't created with TaskManager.");
-		return res;
+		return res ?? throw new ArgumentException("Task wasn't created with TaskManager.");
 	}
+	
+	/// <summary>
+	/// Searches for a task entry in the managed collection with optional exception throwing.
+	/// </summary>
+	/// <param name="task">The task to search for.</param>
+	/// <param name="throwExceptionIfNotFound">
+	/// If <c>true</c>, throws an <see cref="ArgumentException"/> when the task is not found.
+	/// If <c>false</c>, returns <c>null</c> when the task is not found.
+	/// </param>
+	/// <returns>
+	/// The <see cref="ITaskManagerEntry"/> associated with the specified task, or <c>null</c>
+	/// if not found and <paramref name="throwExceptionIfNotFound"/> is <c>false</c>.
+	/// </returns>
+	/// <exception cref="ArgumentException">
+	/// Thrown when the task is not found and <paramref name="throwExceptionIfNotFound"/> is <c>true</c>.
+	/// </exception>
+	/// <remarks>
+	/// <para>
+	/// This overload provides flexibility for callers that want to handle missing tasks gracefully
+	/// without exception handling overhead.
+	/// </para>
+	/// <para>
+	/// <strong>Use cases:</strong>
+	/// </para>
+	/// <list type="bullet">
+	/// <item><description><strong>throwExceptionIfNotFound = true:</strong> When task must exist (internal operations)</description></item>
+	/// <item><description><strong>throwExceptionIfNotFound = false:</strong> When checking if a task is managed (validation, diagnostics)</description></item>
+	/// </list>
+	/// <para>
+	/// The search is performed thread-safely using the <see cref="Tasks"/> locker.
+	/// </para>
+	/// </remarks>
+	/// <example>
+	/// <code>
+	/// var task = Task.Run(() => Console.WriteLine("Standard task"));
+	/// 
+	/// // Safe check without exception
+	/// var entry = TaskManager.SearchEntry(task, throwExceptionIfNotFound: false);
+	/// if (entry == null)
+	/// {
+	///     Console.WriteLine("Task is not managed by TaskManager");
+	/// }
+	/// 
+	/// // Will throw if not found
+	/// try
+	/// {
+	///     var entry2 = TaskManager.SearchEntry(task, throwExceptionIfNotFound: true);
+	/// }
+	/// catch (ArgumentException)
+	/// {
+	///     Console.WriteLine("Task not found in TaskManager");
+	/// }
+	/// </code>
+	/// </example>
 	internal static ITaskManagerEntry? SearchEntry(Task task, bool throwExceptionIfNotFound)
 	{
 		//Busco entre las tareas administradas
@@ -31,1230 +305,4 @@ public static class TaskManager
 		if (res == null && throwExceptionIfNotFound) throw new ArgumentException("Task wasn't created with TaskManager.");
 		return res;
 	}
-
-	#region Void
-	static ITaskManagerEntry CreateEntry(Action action,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new ActionTaskManagerEntry(action, scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task Create(Action action, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) => CreateEntry(action, null, options, concurrencyProfile).Task;
-	public static Task Create(Func<Task> func, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry(() => func().Wait(), null, options, concurrencyProfile, func).Task;
-	public static Task StartNew(Action action, TaskScheduler? scheduler = null, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry(action, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task StartNew(Func<Task> func, TaskScheduler? scheduler = null, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry(() => func().Wait(), scheduler, options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Void<T>
-	static ITaskManagerEntry CreateEntry<T>(Action<T> action,
-		T param,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null) where T : notnull
-	{
-		var entry = new ActionTaskManagerEntry(o => action((T)o), param, scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task Create<T>(Action<T> action, T param, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) where T : notnull =>
-		CreateEntry(action, param, null, options, concurrencyProfile).Task;
-	public static Task Create<T>(Func<T, Task> func, T param, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) where T : notnull =>
-		CreateEntry(p => func(p).Wait(), param, null, options, concurrencyProfile, func).Task;
-	public static Task StartNew<T>(Action<T> action, T param, TaskScheduler? scheduler = null, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) where T : notnull
-	{
-		var task = CreateEntry(action, param, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task StartNew<T>(Func<T, Task> func, T param, TaskScheduler? scheduler = null, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default)
-		where T : notnull
-	{
-		var task = CreateEntry(p => func(p).Wait(), param, scheduler, options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Void<T1,T2>
-	static ITaskManagerEntry CreateEntry<T1, T2>(Action<T1, T2> action,
-		T1 param1,
-		T2 param2,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new ActionTaskManagerEntry(o => {
-			var (p1, p2) = (ValueTuple<T1, T2>)o;
-			action.Invoke(p1, p2);
-		}, (param1, param2), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task Create<T1, T2>(Action<T1, T2> action, T1 param1, T2 param2, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry(action, param1, param2, null, options, concurrencyProfile).Task;
-	public static Task Create<T1, T2>(Func<T1, T2, Task> func, T1 param1, T2 param2, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry((p1, p2) => func(p1, p2).Wait(), param1, param2, null, options, concurrencyProfile, func).Task;
-	public static Task StartNew<T1, T2>(Action<T1, T2> action,
-		T1 param1,
-		T2 param2,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry(action, param1, param2, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task StartNew<T1, T2>(Func<T1, T2, Task> func,
-		T1 param1,
-		T2 param2,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry((p1, p2) => func(p1, p2).Wait(), param1, param2, scheduler, options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Void<T1,T2, T3>
-	static ITaskManagerEntry CreateEntry<T1, T2, T3>(Action<T1, T2, T3> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new ActionTaskManagerEntry(o => {
-			var (p1, p2, p3) = (ValueTuple<T1, T2, T3>)o;
-			action.Invoke(p1, p2, p3);
-		}, (param1, param2, param3), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task Create<T1, T2, T3>(Action<T1, T2, T3> action, T1 param1, T2 param2, T3 param3, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry(action, param1, param2, param3, null, options, concurrencyProfile).Task;
-	public static Task Create<T1, T2, T3>(Func<T1, T2, T3, Task> func, T1 param1, T2 param2, T3 param3, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry((p1, p2, p3) => func(p1, p2, p3).Wait(), param1, param2, param3, null, options, concurrencyProfile, func).Task;
-	public static Task StartNew<T1, T2, T3>(Action<T1, T2, T3> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry(action, param1, param2, param3, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task StartNew<T1, T2, T3>(Func<T1, T2, T3, Task> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry((p1, p2, p3) => func(p1, p2, p3).Wait(), param1, param2, param3, scheduler, options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Void<T1,T2, T3, T4>
-	static ITaskManagerEntry CreateEntry<T1, T2, T3, T4>(Action<T1, T2, T3, T4> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new ActionTaskManagerEntry(o => {
-			var (p1, p2, p3, p4) = (ValueTuple<T1, T2, T3, T4>)o;
-			action.Invoke(p1, p2, p3, p4);
-		}, (param1, param2, param3, param4), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task Create<T1, T2, T3, T4>(Action<T1, T2, T3, T4> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry(action, param1, param2, param3, param4, null, options, concurrencyProfile).Task;
-	public static Task Create<T1, T2, T3, T4>(Func<T1, T2, T3, T4, Task> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry((p1, p2, p3, p4) => func(p1, p2, p3, p4).Wait(), param1, param2, param3, param4, null, options, concurrencyProfile, func).Task;
-	public static Task StartNew<T1, T2, T3, T4>(Action<T1, T2, T3, T4> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry(action, param1, param2, param3, param4, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task StartNew<T1, T2, T3, T4>(Func<T1, T2, T3, T4, Task> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry((p1, p2, p3, p4) => func(p1, p2, p3, p4).Wait(), param1, param2, param3, param4, scheduler, options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Void<T1,T2, T3, T4, T5>
-	static ITaskManagerEntry CreateEntry<T1, T2, T3, T4, T5>(Action<T1, T2, T3, T4, T5> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new ActionTaskManagerEntry(o => {
-			var (p1, p2, p3, p4, p5) = (ValueTuple<T1, T2, T3, T4, T5>)o;
-			action.Invoke(p1, p2, p3, p4, p5);
-		}, (param1, param2, param3, param4, param5), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task Create<T1, T2, T3, T4, T5>(Action<T1, T2, T3, T4, T5> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry(action, param1, param2, param3, param4, param5, null, options, concurrencyProfile).Task;
-	public static Task Create<T1, T2, T3, T4, T5>(Func<T1, T2, T3, T4, T5, Task> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry((p1, p2, p3, p4, p5) => func(p1, p2, p3, p4, p5).Wait(), param1, param2, param3, param4, param5, null, options, concurrencyProfile, func).Task;
-	public static Task StartNew<T1, T2, T3, T4, T5>(Action<T1, T2, T3, T4, T5> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry(action, param1, param2, param3, param4, param5, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task StartNew<T1, T2, T3, T4, T5>(Func<T1, T2, T3, T4, T5, Task> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry((p1, p2, p3, p4, p5) => func(p1, p2, p3, p4, p5).Wait(), param1, param2, param3, param4, param5, scheduler, options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Void<T1,T2, T3, T4, T5, T6>
-	static ITaskManagerEntry CreateEntry<T1, T2, T3, T4, T5, T6>(Action<T1, T2, T3, T4, T5, T6> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new ActionTaskManagerEntry(o => {
-			var (p1, p2, p3, p4, p5, p6) = (ValueTuple<T1, T2, T3, T4, T5, T6>)o;
-			action.Invoke(p1, p2, p3, p4, p5, p6);
-		}, (param1, param2, param3, param4, param5, param6), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task Create<T1, T2, T3, T4, T5, T6>(Action<T1, T2, T3, T4, T5, T6> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry(action, param1, param2, param3, param4, param5, param6, null, options, concurrencyProfile).Task;
-	public static Task Create<T1, T2, T3, T4, T5, T6>(Func<T1, T2, T3, T4, T5, T6, Task> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry((p1, p2, p3, p4, p5, p6) => func(p1, p2, p3, p4, p5, p6).Wait(), param1, param2, param3, param4, param5, param6, null, options, concurrencyProfile, func).Task;
-	public static Task StartNew<T1, T2, T3, T4, T5, T6>(Action<T1, T2, T3, T4, T5, T6> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry(action, param1, param2, param3, param4, param5, param6, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task StartNew<T1, T2, T3, T4, T5, T6>(Func<T1, T2, T3, T4, T5, T6, Task> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry((p1, p2, p3, p4, p5, p6) => func(p1, p2, p3, p4, p5, p6).Wait(), param1, param2, param3, param4, param5, param6, scheduler, options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Void<T1,T2, T3, T4, T5, T6, T7>
-	static ITaskManagerEntry CreateEntry<T1, T2, T3, T4, T5, T6, T7>(Action<T1, T2, T3, T4, T5, T6, T7> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new ActionTaskManagerEntry(o => {
-			var (p1, p2, p3, p4, p5, p6, p7) = (ValueTuple<T1, T2, T3, T4, T5, T6, T7>)o;
-			action.Invoke(p1, p2, p3, p4, p5, p6, p7);
-		}, (param1, param2, param3, param4, param5, param6, param7), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task Create<T1, T2, T3, T4, T5, T6, T7>(Action<T1, T2, T3, T4, T5, T6, T7> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry(action, param1, param2, param3, param4, param5, param6, param7, null, options, concurrencyProfile).Task;
-	public static Task Create<T1, T2, T3, T4, T5, T6, T7>(Func<T1, T2, T3, T4, T5, T6, T7, Task> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry((p1, p2, p3, p4, p5, p6, p7) => func(p1, p2, p3, p4, p5, p6, p7).Wait(), param1, param2, param3, param4, param5, param6, param7, null, options, concurrencyProfile, func).Task;
-	public static Task StartNew<T1, T2, T3, T4, T5, T6, T7>(Action<T1, T2, T3, T4, T5, T6, T7> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry(action, param1, param2, param3, param4, param5, param6, param7, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task StartNew<T1, T2, T3, T4, T5, T6, T7>(Func<T1, T2, T3, T4, T5, T6, T7, Task> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry((p1, p2, p3, p4, p5, p6, p7) => func(p1, p2, p3, p4, p5, p6, p7).Wait(), param1, param2, param3, param4, param5, param6, param7, scheduler, options, concurrencyProfile,
-			func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Void<T1,T2, T3, T4, T5, T6, T7, T8>
-	static ITaskManagerEntry CreateEntry<T1, T2, T3, T4, T5, T6, T7, T8>(Action<T1, T2, T3, T4, T5, T6, T7, T8> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new ActionTaskManagerEntry(o => {
-			var (p1, p2, p3, p4, p5, p6, p7, p8) = (ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>>)o;
-			action.Invoke(p1, p2, p3, p4, p5, p6, p7, p8);
-		}, (param1, param2, param3, param4, param5, param6, param7, param8), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task Create<T1, T2, T3, T4, T5, T6, T7, T8>(Action<T1, T2, T3, T4, T5, T6, T7, T8> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry(action, param1, param2, param3, param4, param5, param6, param7, param8, null, options, concurrencyProfile).Task;
-	public static Task Create<T1, T2, T3, T4, T5, T6, T7, T8>(Func<T1, T2, T3, T4, T5, T6, T7, T8, Task> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry((p1, p2, p3, p4, p5, p6, p7, p8) => func(p1, p2, p3, p4, p5, p6, p7, p8).Wait(), param1, param2, param3, param4, param5, param6, param7, param8, null, options, concurrencyProfile,
-			func).Task;
-	public static Task StartNew<T1, T2, T3, T4, T5, T6, T7, T8>(Action<T1, T2, T3, T4, T5, T6, T7, T8> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry(action, param1, param2, param3, param4, param5, param6, param7, param8, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task StartNew<T1, T2, T3, T4, T5, T6, T7, T8>(Func<T1, T2, T3, T4, T5, T6, T7, T8, Task> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry((p1, p2, p3, p4, p5, p6, p7, p8) => func(p1, p2, p3, p4, p5, p6, p7, p8).Wait(), param1, param2, param3, param4, param5, param6, param7, param8, scheduler, options,
-			concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Void<T1,T2, T3, T4, T5, T6, T7, T8, T9>
-	static ITaskManagerEntry CreateEntry<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		T9 param9,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new ActionTaskManagerEntry(o => {
-			var (p1, p2, p3, p4, p5, p6, p7, p8, p9) = (ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9>>)o;
-			action.Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9);
-		}, (param1, param2, param3, param4, param5, param6, param7, param8, param9), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task Create<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		T9 param9,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry(action, param1, param2, param3, param4, param5, param6, param7, param8, param9, null, options, concurrencyProfile).Task;
-	public static Task Create<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, Task> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		T9 param9,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		CreateEntry((p1, p2, p3, p4, p5, p6, p7, p8, p9) => func(p1, p2, p3, p4, p5, p6, p7, p8, p9).Wait(), param1, param2, param3, param4, param5, param6, param7, param8, param9, null, options,
-			concurrencyProfile, func).Task;
-	public static Task StartNew<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Action<T1, T2, T3, T4, T5, T6, T7, T8, T9> action,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		T9 param9,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry(action, param1, param2, param3, param4, param5, param6, param7, param8, param9, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task StartNew<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, Task> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		T9 param9,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = CreateEntry((p1, p2, p3, p4, p5, p6, p7, p8, p9) => func(p1, p2, p3, p4, p5, p6, p7, p8, p9).Wait(), param1, param2, param3, param4, param5, param6, param7, param8, param9, scheduler,
-			options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Result<TResult>
-	static ITaskManagerEntry CreateEntry<TResult>(Func<TResult> func,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new FuncTaskManagerEntry<TResult>(func, scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task<TResult> Create<TResult>(Func<TResult> func, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry(func, null, options, concurrencyProfile).Task;
-	public static Task<TResult> Create<TResult>(Func<Task<TResult>> func, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry(() => func().Result, null, options, concurrencyProfile, func).Task;
-	public static Task<TResult> StartNew<TResult>(Func<TResult> func, TaskScheduler? scheduler = null, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry(func, scheduler, options, concurrencyProfile).Task;
-		;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task<TResult> StartNew<TResult>(Func<Task<TResult>> func, TaskScheduler? scheduler = null, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry(() => func().Result, scheduler, options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Result<T, TResult>
-	static ITaskManagerEntry CreateEntry<T, TResult>(Func<T, TResult> func,
-		T param,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null) where T : notnull
-	{
-		var entry = new FuncTaskManagerEntry<TResult>(o => func((T)o), param, scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task<TResult> Create<T, TResult>(Func<T, TResult> func, T param, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) where T : notnull =>
-		(Task<TResult>)CreateEntry(func, param, null, options, concurrencyProfile).Task;
-	public static Task<TResult> Create<T, TResult>(Func<T, Task<TResult>> func, T param, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) where T : notnull =>
-		(Task<TResult>)CreateEntry(p => func(p).Result, param, null, options, concurrencyProfile, func).Task;
-	public static Task<TResult> StartNew<T, TResult>(Func<T, TResult> func,
-		T param,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) where T : notnull
-	{
-		var task = (Task<TResult>)CreateEntry(func, param, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task<TResult> StartNew<T, TResult>(Func<T, Task<TResult>> func,
-		T param,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) where T : notnull
-	{
-		var task = (Task<TResult>)CreateEntry(p => func(p).Result, param, scheduler, options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Result<T1, T2, TResult>
-	static ITaskManagerEntry CreateEntry<T1, T2, TResult>(Func<T1, T2, TResult> func,
-		T1 param1,
-		T2 param2,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new FuncTaskManagerEntry<TResult>(o => {
-			var (p1, p2) = (ValueTuple<T1, T2>)o;
-			return func(p1, p2);
-		}, (param1, param2), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task<TResult> Create<T1, T2, TResult>(Func<T1, T2, TResult> func, T1 param1, T2 param2, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry(func, param1, param2, null, options, concurrencyProfile).Task;
-	public static Task<TResult>
-		Create<T1, T2, TResult>(Func<T1, T2, Task<TResult>> func, T1 param1, T2 param2, TaskCreationOptions options = default, ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry((p1, p2) => func(p1, p2).Result, param1, param2, null, options, concurrencyProfile, func).Task;
-	public static Task<TResult> StartNew<T1, T2, TResult>(Func<T1, T2, TResult> func,
-		T1 param1,
-		T2 param2,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry(func, param1, param2, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task<TResult> StartNew<T1, T2, TResult>(Func<T1, T2, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry((p1, p2) => func(p1, p2).Result, param1, param2, scheduler, options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Result<T1, T2, T3, TResult>
-	static ITaskManagerEntry CreateEntry<T1, T2, T3, TResult>(Func<T1, T2, T3, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new FuncTaskManagerEntry<TResult>(o => {
-			var (p1, p2, p3) = (ValueTuple<T1, T2, T3>)o;
-			return func(p1, p2, p3);
-		}, (param1, param2, param3), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task<TResult> Create<T1, T2, T3, TResult>(Func<T1, T2, T3, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry(func, param1, param2, param3, null, options, concurrencyProfile).Task;
-	public static Task<TResult> Create<T1, T2, T3, TResult>(Func<T1, T2, T3, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry((p1, p2, p3) => func(p1, p2, p3).Result, param1, param2, param3, null, options, concurrencyProfile, func).Task;
-	public static Task<TResult> StartNew<T1, T2, T3, TResult>(Func<T1, T2, T3, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry(func, param1, param2, param3, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task<TResult> StartNew<T1, T2, T3, TResult>(Func<T1, T2, T3, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry((p1, p2, p3) => func(p1, p2, p3).Result, param1, param2, param3, scheduler, options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Result<T1, T2, T3, T4, TResult>
-	static ITaskManagerEntry CreateEntry<T1, T2, T3, T4, TResult>(Func<T1, T2, T3, T4, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new FuncTaskManagerEntry<TResult>(o => {
-			var (p1, p2, p3, p4) = (ValueTuple<T1, T2, T3, T4>)o;
-			return func(p1, p2, p3, p4);
-		}, (param1, param2, param3, param4), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task<TResult> Create<T1, T2, T3, T4, TResult>(Func<T1, T2, T3, T4, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry(func, param1, param2, param3, param4, null, options, concurrencyProfile).Task;
-	public static Task<TResult> Create<T1, T2, T3, T4, TResult>(Func<T1, T2, T3, T4, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry((p1, p2, p3, p4) => func(p1, p2, p3, p4).Result, param1, param2, param3, param4, null, options, concurrencyProfile, func).Task;
-	public static Task<TResult> StartNew<T1, T2, T3, T4, TResult>(Func<T1, T2, T3, T4, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry(func, param1, param2, param3, param4, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task<TResult> StartNew<T1, T2, T3, T4, TResult>(Func<T1, T2, T3, T4, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry((p1, p2, p3, p4) => func(p1, p2, p3, p4).Result, param1, param2, param3, param4, scheduler, options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Result<T1, T2, T3, T4, T5, TResult>
-	static ITaskManagerEntry CreateEntry<T1, T2, T3, T4, T5, TResult>(Func<T1, T2, T3, T4, T5, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new FuncTaskManagerEntry<TResult>(o => {
-			var (p1, p2, p3, p4, p5) = (ValueTuple<T1, T2, T3, T4, T5>)o;
-			return func(p1, p2, p3, p4, p5);
-		}, (param1, param2, param3, param4, param5), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task<TResult> Create<T1, T2, T3, T4, T5, TResult>(Func<T1, T2, T3, T4, T5, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry(func, param1, param2, param3, param4, param5, null, options, concurrencyProfile).Task;
-	public static Task<TResult> Create<T1, T2, T3, T4, T5, TResult>(Func<T1, T2, T3, T4, T5, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry((p1, p2, p3, p4, p5) => func(p1, p2, p3, p4, p5).Result, param1, param2, param3, param4, param5, null, options, concurrencyProfile, func).Task;
-	public static Task<TResult> StartNew<T1, T2, T3, T4, T5, TResult>(Func<T1, T2, T3, T4, T5, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry(func, param1, param2, param3, param4, param5, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task<TResult> StartNew<T1, T2, T3, T4, T5, TResult>(Func<T1, T2, T3, T4, T5, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry((p1, p2, p3, p4, p5) => func(p1, p2, p3, p4, p5).Result, param1, param2, param3, param4, param5, scheduler, options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Result<T1, T2, T3, T4, T5, T6, TResult>
-	static ITaskManagerEntry CreateEntry<T1, T2, T3, T4, T5, T6, TResult>(Func<T1, T2, T3, T4, T5, T6, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new FuncTaskManagerEntry<TResult>(o => {
-			var (p1, p2, p3, p4, p5, p6) = (ValueTuple<T1, T2, T3, T4, T5, T6>)o;
-			return func(p1, p2, p3, p4, p5, p6);
-		}, (param1, param2, param3, param4, param5, param6), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task<TResult> Create<T1, T2, T3, T4, T5, T6, TResult>(Func<T1, T2, T3, T4, T5, T6, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry(func, param1, param2, param3, param4, param5, param6, null, options, concurrencyProfile).Task;
-	public static Task<TResult> Create<T1, T2, T3, T4, T5, T6, TResult>(Func<T1, T2, T3, T4, T5, T6, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry((p1, p2, p3, p4, p5, p6) => func(p1, p2, p3, p4, p5, p6).Result, param1, param2, param3, param4, param5, param6, null, options, concurrencyProfile, func).Task;
-	public static Task<TResult> StartNew<T1, T2, T3, T4, T5, T6, TResult>(Func<T1, T2, T3, T4, T5, T6, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry(func, param1, param2, param3, param4, param5, param6, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task<TResult> StartNew<T1, T2, T3, T4, T5, T6, TResult>(Func<T1, T2, T3, T4, T5, T6, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry((p1, p2, p3, p4, p5, p6) => func(p1, p2, p3, p4, p5, p6).Result, param1, param2, param3, param4, param5, param6, scheduler, options, concurrencyProfile,
-			func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Result<T1, T2, T3, T4, T5, T6, T7, TResult>
-	static ITaskManagerEntry CreateEntry<T1, T2, T3, T4, T5, T6, T7, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new FuncTaskManagerEntry<TResult>(o => {
-			var (p1, p2, p3, p4, p5, p6, p7) = (ValueTuple<T1, T2, T3, T4, T5, T6, T7>)o;
-			return func(p1, p2, p3, p4, p5, p6, p7);
-		}, (param1, param2, param3, param4, param5, param6, param7), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task<TResult> Create<T1, T2, T3, T4, T5, T6, T7, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry(func, param1, param2, param3, param4, param5, param6, param7, null, options, concurrencyProfile).Task;
-	public static Task<TResult> Create<T1, T2, T3, T4, T5, T6, T7, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry((p1, p2, p3, p4, p5, p6, p7) => func(p1, p2, p3, p4, p5, p6, p7).Result, param1, param2, param3, param4, param5, param6, param7, null, options, concurrencyProfile,
-			func).Task;
-	public static Task<TResult> StartNew<T1, T2, T3, T4, T5, T6, T7, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry(func, param1, param2, param3, param4, param5, param6, param7, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task<TResult> StartNew<T1, T2, T3, T4, T5, T6, T7, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry((p1, p2, p3, p4, p5, p6, p7) => func(p1, p2, p3, p4, p5, p6, p7).Result, param1, param2, param3, param4, param5, param6, param7, scheduler, options,
-			concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Result<T1, T2, T3, T4, T5, T6, T7, T8, TResult>
-	static ITaskManagerEntry CreateEntry<T1, T2, T3, T4, T5, T6, T7, T8, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new FuncTaskManagerEntry<TResult>(o => {
-			var (p1, p2, p3, p4, p5, p6, p7, p8) = (ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>>)o;
-			return func(p1, p2, p3, p4, p5, p6, p7, p8);
-		}, (param1, param2, param3, param4, param5, param6, param7, param8), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task<TResult> Create<T1, T2, T3, T4, T5, T6, T7, T8, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry(func, param1, param2, param3, param4, param5, param6, param7, param8, null, options, concurrencyProfile).Task;
-	public static Task<TResult> Create<T1, T2, T3, T4, T5, T6, T7, T8, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, T8, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry((p1, p2, p3, p4, p5, p6, p7, p8) => func(p1, p2, p3, p4, p5, p6, p7, p8).Result, param1, param2, param3, param4, param5, param6, param7, param8, null, options,
-			concurrencyProfile, func).Task;
-	public static Task<TResult> StartNew<T1, T2, T3, T4, T5, T6, T7, T8, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry(func, param1, param2, param3, param4, param5, param6, param7, param8, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task<TResult> StartNew<T1, T2, T3, T4, T5, T6, T7, T8, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, T8, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry((p1, p2, p3, p4, p5, p6, p7, p8) => func(p1, p2, p3, p4, p5, p6, p7, p8).Result, param1, param2, param3, param4, param5, param6, param7, param8, scheduler,
-			options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
-
-	#region Result<T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult>
-	static ITaskManagerEntry CreateEntry<T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		T9 param9,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default,
-		Delegate? @delegate = null)
-	{
-		var entry = new FuncTaskManagerEntry<TResult>(o => {
-			var (p1, p2, p3, p4, p5, p6, p7, p8, p9) = (ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9>>)o;
-			return func(p1, p2, p3, p4, p5, p6, p7, p8, p9);
-		}, (param1, param2, param3, param4, param5, param6, param7, param8, param9), scheduler, options, concurrencyProfile, @delegate);
-		AddEntry(entry);
-		return entry;
-	}
-	public static Task<TResult> Create<T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		T9 param9,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry(func, param1, param2, param3, param4, param5, param6, param7, param8, param9, null, options, concurrencyProfile).Task;
-	public static Task<TResult> Create<T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		T9 param9,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default) =>
-		(Task<TResult>)CreateEntry((p1, p2, p3, p4, p5, p6, p7, p8, p9) => func(p1, p2, p3, p4, p5, p6, p7, p8, p9).Result, param1, param2, param3, param4, param5, param6, param7, param8, param9, null,
-			options, concurrencyProfile, func).Task;
-	public static Task<TResult> StartNew<T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		T9 param9,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry(func, param1, param2, param3, param4, param5, param6, param7, param8, param9, scheduler, options, concurrencyProfile).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	public static Task<TResult> StartNew<T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult>(Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, Task<TResult>> func,
-		T1 param1,
-		T2 param2,
-		T3 param3,
-		T4 param4,
-		T5 param5,
-		T6 param6,
-		T7 param7,
-		T8 param8,
-		T9 param9,
-		TaskScheduler? scheduler = null,
-		TaskCreationOptions options = default,
-		ConcurrencyProfile concurrencyProfile = default)
-	{
-		var task = (Task<TResult>)CreateEntry((p1, p2, p3, p4, p5, p6, p7, p8, p9) => func(p1, p2, p3, p4, p5, p6, p7, p8, p9).Result, param1, param2, param3, param4, param5, param6, param7, param8,
-			param9, scheduler, options, concurrencyProfile, func).Task;
-		SearchEntry(task).Start();
-		return task;
-	}
-	#endregion
 }

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Fuxion.Threading.Tasks;
 
-interface ITaskManagerEntry
+internal interface ITaskManagerEntry
 {
 	ConcurrencyProfile ConcurrencyProfile { get; }
 	Delegate? Delegate { get; }

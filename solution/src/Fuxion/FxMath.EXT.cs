@@ -3,6 +3,24 @@ namespace Fuxion;
 using System;
 using System.Runtime.CompilerServices;
 
+/// <summary>
+/// Provides extension methods for mathematical operations on numeric types.
+/// Includes specialized division operations that return both quotient and remainder,
+/// and optimized division by powers of two using bit shifting.
+/// </summary>
+/// <remarks>
+/// This class uses the extension mechanism to add mathematical functionality to numeric types
+/// (<see cref="int"/>, <see cref="long"/>, and <see cref="byte"/> arrays) through the Fuxion extensions framework.
+/// All operations return <see cref="Response{T}"/> objects to enable proper error handling.
+/// <para>
+/// The class provides operations for:
+/// <list type="bullet">
+/// <item><description>Division with remainder calculation for <see cref="int"/> and <see cref="long"/> types</description></item>
+/// <item><description>Optimized division by powers of two using bit shift operations</description></item>
+/// <item><description>Conversion of byte arrays to numeric values for mathematical operations</description></item>
+/// </list>
+/// </para>
+/// </remarks>
 public static class MathExtensions
 {
 	extension(FuxionExtensions<long> me)
@@ -283,5 +301,35 @@ public static class MathExtensions
 	}
 }
 
+/// <summary>
+/// Generic wrapper class that provides mathematical extension methods for values of type <typeparamref name="T"/>.
+/// This class is used internally by the Fuxion extensions framework to enable fluent API syntax for math operations.
+/// </summary>
+/// <typeparam name="T">
+/// The type of the value being wrapped, typically <see cref="int"/>, <see cref="long"/>, 
+/// or <see cref="byte"/> array for numeric operations.
+/// </typeparam>
+/// <remarks>
+/// This class inherits from <see cref="Extensions{T}"/> and serves as a specialized container for mathematical operations.
+/// Users typically access math functionality through extension methods rather than instantiating this class directly.
+/// The primary operations provided are division operations that return both quotient and remainder,
+/// with specialized optimizations for division by powers of two.
+/// </remarks>
+/// <example>
+/// <code>
+/// // Accessed through extension syntax
+/// long number = 100;
+/// var result = number.Fx.Math.DivisionAndRemainder(7);
+/// Console.WriteLine($"Quotient: {result.Payload.Quotient}, Remainder: {result.Payload.Remainder}");
+/// 
+/// // Division by power of two
+/// int value = 1024;
+/// var powerResult = value.Fx.Math.DivisionByPowerOfTwo(3); // Divide by 2^3 = 8
+/// 
+/// // Byte array operations
+/// byte[] bytes = new byte[] { 0xFF, 0x00, 0x00, 0x00 };
+/// var byteResult = bytes.Fx.Math.DivisionByPowerOfTwo(4, isLittleEndian: true);
+/// </code>
+/// </example>
 public class MathExtensions<T>(T value) : Extensions<T>(value);
 

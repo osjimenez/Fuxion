@@ -12,6 +12,28 @@ using System.Threading.Tasks;
 
 namespace Fuxion.Reflection;
 
+/// <summary>
+/// Provides extension methods for reflection operations on types, members, methods, and assemblies.
+/// Includes functionality for custom attribute retrieval, method signature generation, type inspection,
+/// embedded resource access, and private member manipulation.
+/// </summary>
+/// <remarks>
+/// This class extends various reflection types including <see cref="MemberInfo"/>, <see cref="MethodBase"/>, 
+/// <see cref="Type"/>, and <see cref="Assembly"/> to provide convenient helper methods for common reflection tasks.
+/// It also provides extensions for any object type through the Fuxion extensions framework to enable
+/// accessing private fields and properties for testing and advanced scenarios.
+/// <para>
+/// Key features include:
+/// <list type="bullet">
+/// <item><description>Custom attribute retrieval with error handling options</description></item>
+/// <item><description>Human-readable method and type signature generation</description></item>
+/// <item><description>Type hierarchy inspection and generic type definition matching</description></item>
+/// <item><description>Embedded resource loading from assemblies</description></item>
+/// <item><description>Private member access (fields and properties) for testing</description></item>
+/// <item><description>Special handling for async methods and compiler-generated types</description></item>
+/// </list>
+/// </para>
+/// </remarks>
 public static partial class ReflectionExtensions
 {
 	extension(MemberInfo me)
@@ -176,7 +198,7 @@ public static partial class ReflectionExtensions
 			var res = new StringBuilder();
 
 			// Detect if method is a generated async method (MoveNext)
-			if (method.Name == "MoveNext" && method.DeclaringType?.Name.Contains("<") == true)
+			if (method.Name == "MoveNext" && method.DeclaringType?.Name.Contains('<') == true)
 			{
 				// Try to extract original name between <>
 				var match = AsyncMethodRegex()
@@ -198,7 +220,7 @@ public static partial class ReflectionExtensions
 					// Attempt to match the method by parameters
 					var stateMachineFields = method.DeclaringType?
 						.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-						.Where(f => !f.Name.StartsWith("<"))
+						.Where(f => !f.Name.StartsWith('<'))
 						.ToList() ?? [];
 
 					method = methods?.FirstOrDefault(m =>
@@ -238,17 +260,17 @@ public static partial class ReflectionExtensions
 			// Generics arguments
 			if (method.IsGenericMethod)
 			{
-				res.Append("<");
+				res.Append('<');
 				var genericArgs = method.GetGenericArguments();
 				for (var i = 0; i < genericArgs.Length; i++)
-					res.Append((i > 0 ? ", " : "") + genericArgs[i]
+				res.Append((i > 0 ? ", " : "") + genericArgs[i]
 						.GetSignature(useFullNames && !fullNamesOnlyInMethodName));
-				res.Append(">");
+				res.Append('>');
 			}
 			// Parameters
 			if (includeParameters)
 			{
-				res.Append("(");
+				res.Append('(');
 				if (parametersFunction != null)
 					res.Append(parametersFunction(useFullNames && !fullNamesOnlyInMethodName, includeParametersNames, method, parametersFunctionArguments));
 				else
@@ -266,7 +288,7 @@ public static partial class ReflectionExtensions
 						if (i < pars.Length - 1) res.Append(", ");
 					}
 				}
-				res.Append(")");
+				res.Append(')');
 			}
 			return res.ToString();
 		}
@@ -481,13 +503,13 @@ public static partial class ReflectionExtensions
 					"Void" => "void",
 					var _ => name
 				};
-			StringBuilder sb = new(name.Contains("`") ? name[..name.IndexOf('`')] : name);
+			StringBuilder sb = new(name.Contains('`') ? name[..name.IndexOf('`')] : name);
 			sb.Append('<');
 			var first = true;
 			foreach (var t in me.GenericTypeArguments)
 			{
 				if (!first) sb.Append(',');
-				sb.Append(GetSignature(t, useFullNames));
+				sb.Append(t.GetSignature(useFullNames));
 				first = false;
 			}
 			sb.Append('>');
@@ -693,13 +715,16 @@ public static partial class ReflectionExtensions
 		/// </example>
 		public TValue? GetPrivatePropertyValue<TValue>(string propertyName)
 		{
+#pragma warning disable CA2208
 			if (me.Value == null) throw new ArgumentNullException(nameof(me.Value));
+#pragma warning restore CA2208
 			var pi = me.Value.GetType()
 				.GetProperty(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-			if (pi == null)
-				throw new ArgumentOutOfRangeException(nameof(propertyName), $"Property {propertyName} was not found in Type {me.Value.GetType()
-					.FullName}");
-			return (TValue?)pi.GetValue(me.Value, null);
+			return pi == null
+				? throw new ArgumentOutOfRangeException(nameof(propertyName),
+					$"Property {propertyName} was not found in Type {me.Value.GetType()
+						.FullName}")
+				: (TValue?)pi.GetValue(me.Value, null);
 		}
 
 		/// <summary>
@@ -736,7 +761,9 @@ public static partial class ReflectionExtensions
 		/// </example>
 		public TValue? GetPrivateFieldValue<TValue>(string propertyName)
 		{
+#pragma warning disable CA2208
 			if (me.Value == null) throw new ArgumentNullException(nameof(me.Value));
+#pragma warning restore CA2208
 			var t = me.Value.GetType();
 			FieldInfo? fi = null;
 			while (fi == null && t != null)
@@ -781,7 +808,9 @@ public static partial class ReflectionExtensions
 		/// </example>
 		public void SetPrivatePropertyValue(string propertyName, object? value)
 		{
+#pragma warning disable CA2208
 			if (me.Value == null) throw new ArgumentNullException(nameof(me.Value));
+#pragma warning restore CA2208
 			var prop = me.Value.GetType()
 				.GetProperty(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy) ?? throw new ArgumentOutOfRangeException(nameof(propertyName),
 				$"Property {propertyName} was not found in Type {me.Value.GetType()
@@ -824,7 +853,9 @@ public static partial class ReflectionExtensions
 		/// </example>
 		public void SetPrivateFieldValue(string propertyName, object? value)
 		{
+#pragma warning disable CA2208
 			if (me.Value == null) throw new ArgumentNullException(nameof(me.Value));
+#pragma warning restore CA2208
 			var t = me.Value.GetType();
 			FieldInfo? fi = null;
 			while (fi == null && t != null)
@@ -839,4 +870,41 @@ public static partial class ReflectionExtensions
 		}
 	}
 }
+
+/// <summary>
+/// Generic wrapper class that provides reflection extension methods for values of type <typeparamref name="T"/>.
+/// This class is used internally by the Fuxion extensions framework to enable fluent API syntax for reflection operations.
+/// </summary>
+/// <typeparam name="T">The type of the value being wrapped.</typeparam>
+/// <remarks>
+/// This class inherits from <see cref="Extensions{T}"/> and serves as a specialized container for reflection-related operations.
+/// Users typically access reflection functionality through extension methods rather than instantiating this class directly.
+/// The primary operations provided include:
+/// <list type="bullet">
+/// <item><description>Getting private property values</description></item>
+/// <item><description>Getting private field values</description></item>
+/// <item><description>Setting private property values</description></item>
+/// <item><description>Setting private field values</description></item>
+/// </list>
+/// These operations are particularly useful for unit testing and scenarios where you need to access or modify
+/// non-public members of objects.
+/// </remarks>
+/// <example>
+/// <code>
+/// // Accessed through extension syntax
+/// var myObject = new MyClass();
+/// 
+/// // Get private field
+/// var privateData = myObject.Fx.Reflection.GetPrivateFieldValue&lt;string&gt;("_secretData");
+/// 
+/// // Set private property
+/// myObject.Fx.Reflection.SetPrivatePropertyValue("InternalState", 42);
+/// 
+/// // Get private property
+/// var state = myObject.Fx.Reflection.GetPrivatePropertyValue&lt;int&gt;("InternalState");
+/// 
+/// // Set private field
+/// myObject.Fx.Reflection.SetPrivateFieldValue("_counter", 100);
+/// </code>
+/// </example>
 public class ReflectionExtensions<T>(T me) : Extensions<T>(me);

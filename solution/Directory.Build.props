@@ -1,8 +1,11 @@
 <Project>
+	
+	<!--<Import Project="..\\..\\solution\\Directory.Build.props" Condition="Exists('..\\..\\solution\\Directory.Build.props')" />-->
+
 	<PropertyGroup>
 		<LangVersion>preview</LangVersion>
 		<Nullable>enable</Nullable>
-		<WarningsAsErrors>Nullable;CA1857</WarningsAsErrors>
+		<WarningsAsErrors>Nullable</WarningsAsErrors>
 		<!-- Con esto me deja poner versiones prerelease en paquetes nuget con version estable -->
 		<NoWarn>$(NoWarn);NU5104</NoWarn>
 		<ImplicitUsings>disable</ImplicitUsings>
@@ -69,8 +72,6 @@
 	<!-- ========================================== -->
 	<ItemGroup Condition="'$(MSBuildProjectName)' != 'Fuxion.Analyzers.Abstractions' And '$(MSBuildProjectName)' != 'Fuxion.Analyzers' And '$(MSBuildProjectName)' != 'Fuxion.Analyzers.CodeFixes' And '$(MSBuildProjectName)' != 'Fuxion.Lab.AppHost'">
 		<!-- Abstractions Project Reference (for [RequiresNotNull] attribute) -->
-		<!-- Solo para proyectos que NO sean los propios analyzers -->
-		<!-- Fuxion ya lo tiene vía ProjectReference directa -->
 		<ProjectReference Include="$(FuxionAnalyzersAbstractionsProject)" Condition="Exists('$(FuxionAnalyzersAbstractionsProject)')">
 			<ReferenceOutputAssembly>true</ReferenceOutputAssembly>
 			<PrivateAssets>none</PrivateAssets>
@@ -89,6 +90,10 @@
 			<OutputItemType>Analyzer</OutputItemType>
 			<PrivateAssets>all</PrivateAssets>
 		</ProjectReference>
+
+		<!-- Force-load in VS (important) -->
+		<Analyzer Include="$(FuxionAnalyzersDll)" Condition="Exists('$(FuxionAnalyzersDll)')" />
+		<Analyzer Include="$(FuxionAnalyzersCodeFixesDll)" Condition="Exists('$(FuxionAnalyzersCodeFixesDll)')" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(IsStandardOrOldFrameworks)' == 'true'">

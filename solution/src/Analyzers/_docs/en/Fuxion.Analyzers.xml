@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Fuxion.Analyzers</name>
+    </assembly>
+    <members>
+        <member name="T:Fuxion.Analyzers.DiagnosticIds">
+            <summary>
+            Centralized diagnostic IDs for all Fuxion analyzers.
+            Pattern: FX + [Area Code] + [Number]
+            </summary>
+        </member>
+        <member name="F:Fuxion.Analyzers.DiagnosticIds.RequiresNotNullViolation">
+            <summary>
+            FX001: Member requiring non-null accessed on nullable type.
+            Cannot access member marked with [RequiresNotNull] on nullable type.
+            </summary>
+        </member>
+        <member name="T:Fuxion.Analyzers.RequiresNotNullAnalyzer">
+            <summary>
+            Analyzer that detects access to members marked with [RequiresNotNull] on nullable types.
+            Reports diagnostic FX001 when a member requiring non-null is accessed on a nullable type
+            without using the null-conditional operator (?.).
+            </summary>
+        </member>
+        <member name="P:Fuxion.Analyzers.RequiresNotNullAnalyzer.SupportedDiagnostics">
+            <summary>
+            Gets the set of diagnostic descriptors supported by this analyzer.
+            </summary>
+        </member>
+        <member name="M:Fuxion.Analyzers.RequiresNotNullAnalyzer.Initialize(Microsoft.CodeAnalysis.Diagnostics.AnalysisContext)">
+            <summary>
+            Initializes the analyzer and configures its analysis actions within the specified analysis context.
+            </summary>
+            <remarks>This method sets up the analyzer to process simple member access expressions and enables concurrent
+            execution. It should be called by the analysis host to begin analysis.</remarks>
+            <param name="context">The analysis context to register actions and configure analyzer behavior. Cannot be null.</param>
+        </member>
+        <member name="M:Fuxion.Analyzers.RequiresNotNullAnalyzer.AnalyzeFxOrigin(Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionSyntax,Microsoft.CodeAnalysis.SemanticModel)">
+            <summary>
+            Analyzes the origin of a .Fx expression to determine if the original value was nullable.
+            For example: "hello".Fx vs nullable?.Fx
+            </summary>
+        </member>
+        <member name="M:Fuxion.Analyzers.RequiresNotNullAnalyzer.HasRequiresNotNullAttribute(Microsoft.CodeAnalysis.ISymbol)">
+            <summary>
+            Checks if the member has [RequiresNotNull] attribute directly.
+            This works for traditional properties and methods.
+            </summary>
+        </member>
+        <member name="M:Fuxion.Analyzers.RequiresNotNullAnalyzer.HasRequiresNotNullInContainingType(Microsoft.CodeAnalysis.ISymbol)">
+            <summary>
+            Checks if the containing type has [HasMembersRequiringNotNull] attribute
+            listing this member. This is a workaround for C# 14 extension members where
+            individual member attributes are not visible to analyzers.
+            </summary>
+        </member>
+        <member name="M:Fuxion.Analyzers.RequiresNotNullAnalyzer.HasNullableGenericParameter(Microsoft.CodeAnalysis.ITypeSymbol)">
+            <summary>
+            Checks if the type has any nullable generic type parameters.
+            For example, List&lt;string?&gt; has a nullable generic parameter.
+            </summary>
+        </member>
+    </members>
+</doc>

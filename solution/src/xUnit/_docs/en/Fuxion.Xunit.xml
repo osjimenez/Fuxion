@@ -4,5 +4,2690 @@
         <name>Fuxion.Xunit</name>
     </assembly>
     <members>
+        <member name="T:Fuxion.Xunit.BaseTest`1">
+            <summary>
+               Provides a base class for xUnit test classes with integrated dependency injection, logging, and enhanced assertion methods.
+            </summary>
+            <typeparam name="TBaseTest">The type of the derived test class, used for typed logger creation.</typeparam>
+            <remarks>
+               <para>
+                  This abstract base class simplifies xUnit test creation by providing built-in dependency injection,
+                  logging infrastructure via <see cref="T:Fuxion.Xunit.XunitLoggerProvider"/>, and enhanced assertion methods that
+                  automatically output values to the test output. It follows the generic self-referencing pattern to
+                  ensure the logger is typed for the actual test class.
+               </para>
+               <para>
+                  <strong>Key features:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>
+                        <strong>Dependency injection:</strong> Built-in <see cref="T:System.IServiceProvider"/> configured per test instance
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Logging integration:</strong> Automatic setup of <see cref="T:Microsoft.Extensions.Logging.ILogger`1"/> with xUnit output
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Enhanced assertions:</strong> Assert methods that automatically print values using CallerArgumentExpressionAttribute
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Pattern matching:</strong> String pattern matching with placeholder support for formatted strings
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Scoped execution:</strong> Helper method for executing code within DI scopes
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Extensibility:</strong> Virtual methods for customizing service and logging configuration
+                     </description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Common use cases:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>Unit tests that require dependency injection</description>
+                  </item>
+                  <item>
+                     <description>Integration tests with logging to test output</description>
+                  </item>
+                  <item>
+                     <description>Tests that need to verify formatted string patterns</description>
+                  </item>
+                  <item>
+                     <description>Tests requiring scoped service lifetimes</description>
+                  </item>
+               </list>
+            </remarks>
+            <example>
+               <strong>Basic test class:</strong>
+               <code>
+            public class MyServiceTests : BaseTest&lt;MyServiceTests&gt;
+            {
+                public MyServiceTests(ITestOutputHelper output) : base(output)
+                {
+                }
+                
+                [Fact]
+                public void Test_ServiceWorks()
+                {
+                    // Arrange
+                    var service = ServiceProvider.GetRequiredService&lt;IMyService&gt;();
+                    
+                    // Act
+                    var result = service.DoSomething();
+                    
+                    // Assert
+                    IsTrue(result, "Service should return true");
+                }
+            }
+            </code>
+               <strong>With custom service configuration:</strong>
+               <code>
+            public class DatabaseTests : BaseTest&lt;DatabaseTests&gt;
+            {
+                public DatabaseTests(ITestOutputHelper output) : base(output)
+                {
+                }
+                
+                protected override void OnConfigureServices(IServiceCollection serviceCollection)
+                {
+                    serviceCollection.AddDbContext&lt;MyDbContext&gt;(options =&gt;
+                        options.UseInMemoryDatabase("TestDb"));
+                    serviceCollection.AddScoped&lt;IRepository, Repository&gt;();
+                }
+                
+                [Fact]
+                public async Task Test_DatabaseOperation()
+                {
+                    await Scoped&lt;IRepository&gt;(async repo =&gt;
+                    {
+                        // Act
+                        await repo.AddAsync(new Entity { Name = "Test" });
+                        var count = await repo.CountAsync();
+                        
+                        // Assert
+                        IsTrue(count == 1, "Should have one entity");
+                    });
+                }
+            }
+            </code>
+               <strong>With custom logging configuration:</strong>
+               <code>
+            public class LoggingTests : BaseTest&lt;LoggingTests&gt;
+            {
+                public LoggingTests(ITestOutputHelper output) : base(output)
+                {
+                }
+                
+                protected override void OnLoggingBuild(ILoggingBuilder loggingBuilder)
+                {
+                    loggingBuilder.SetMinimumLevel(LogLevel.Debug);
+                    loggingBuilder.AddFilter("Microsoft", LogLevel.Warning);
+                }
+                
+                [Fact]
+                public void Test_Logging()
+                {
+                    Logger.LogInformation("This will appear in test output");
+                    IsTrue(true);
+                }
+            }
+            </code>
+               <strong>Exception testing:</strong>
+               <code>
+            public class ExceptionTests : BaseTest&lt;ExceptionTests&gt;
+            {
+                public ExceptionTests(ITestOutputHelper output) : base(output)
+                {
+                }
+                
+                [Fact]
+                public void Test_ThrowsException()
+                {
+                    Throws&lt;InvalidOperationException&gt;(() =&gt;
+                    {
+                        throw new InvalidOperationException("Test exception");
+                    });
+                }
+                
+                [Fact]
+                public async Task Test_ThrowsExceptionAsync()
+                {
+                    await ThrowsAsync&lt;ArgumentNullException&gt;(async () =&gt;
+                    {
+                        await Task.Delay(10);
+                        throw new ArgumentNullException("param");
+                    });
+                }
+            }
+            </code>
+               <strong>Pattern matching:</strong>
+               <code>
+            public class StringTests : BaseTest&lt;StringTests&gt;
+            {
+                public StringTests(ITestOutputHelper output) : base(output)
+                {
+                }
+                
+                [Fact]
+                public void Test_FormattedString()
+                {
+                    var message = string.Format("User {0} logged in at {1}", "John", DateTime.Now);
+                    
+                    // Matches any formatted string with two placeholders
+                    MatchFormattedString("User {0} logged in at {1}", message);
+                }
+            }
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.Xunit.BaseTest`1.#ctor(Xunit.ITestOutputHelper)">
+            <summary>
+               Initializes a new instance of the <see cref="T:Fuxion.Xunit.BaseTest`1"/> class.
+            </summary>
+            <param name="output">The xUnit test output helper for writing to test output.</param>
+            <remarks>
+               <para>
+                  The constructor performs the following initialization:
+               </para>
+               <list type="number">
+                  <item>
+                     <description>Stores the <paramref name="output"/> for use in assertion methods</description>
+                  </item>
+                  <item>
+                     <description>Creates a <see cref="T:Microsoft.Extensions.DependencyInjection.ServiceCollection"/> and configures logging with <see cref="T:Fuxion.Xunit.XunitLoggerProvider"/></description>
+                  </item>
+                  <item>
+                     <description>Calls <see cref="M:Fuxion.Xunit.BaseTest`1.OnLoggingBuild(Microsoft.Extensions.Logging.ILoggingBuilder)"/> to allow derived classes to customize logging</description>
+                  </item>
+                  <item>
+                     <description>Calls <see cref="M:Fuxion.Xunit.BaseTest`1.OnConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection)"/> to allow derived classes to register services</description>
+                  </item>
+                  <item>
+                     <description>Builds the <see cref="P:Fuxion.Xunit.BaseTest`1.ServiceProvider"/></description>
+                  </item>
+                  <item>
+                     <description>Resolves a typed <see cref="T:Microsoft.Extensions.Logging.ILogger`1"/> for the test class</description>
+                  </item>
+               </list>
+            </remarks>
+        </member>
+        <member name="M:Fuxion.Xunit.BaseTest`1.PrintVariable(System.Object,System.String)">
+            <summary>
+               Prints a variable's name and value to the test output.
+            </summary>
+            <param name="value">The value to print.</param>
+            <param name="name">
+               The name of the variable (automatically captured using CallerArgumentExpressionAttribute).
+            </param>
+            <remarks>
+               This method uses C# 10's CallerArgumentExpressionAttribute to automatically capture
+               the expression passed as the <paramref name="value"/> parameter, providing a clean syntax for
+               printing variable names and values.
+            </remarks>
+            <example>
+               <code>
+            int count = 42;
+            PrintVariable(count);
+            // Output: count = 42
+            
+            var user = new User { Name = "John" };
+            PrintVariable(user.Name);
+            // Output: user.Name = John
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.Xunit.BaseTest`1.IsTrue(System.Nullable{System.Boolean},System.String,System.String)">
+            <summary>
+               Asserts that a condition is <c>true</c> and prints the result to test output.
+            </summary>
+            <param name="value">The condition to evaluate.</param>
+            <param name="userMessage">Optional custom message to display if the assertion fails.</param>
+            <param name="name">
+               The name of the condition expression (automatically captured using CallerArgumentExpressionAttribute).
+            </param>
+            <remarks>
+               This method combines Assert.True(bool?, string) with automatic output logging.
+               The condition expression is automatically captured and printed along with its value.
+            </remarks>
+            <example>
+               <code>
+            int result = service.Calculate(5, 3);
+            IsTrue(result == 8);
+            // If true, outputs: result == 8 = True
+            
+            IsTrue(user.IsActive, "User must be active");
+            // If false, throws with message "User must be active"
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.Xunit.BaseTest`1.IsFalse(System.Boolean,System.String,System.String)">
+            <summary>
+               Asserts that a condition is <c>false</c> and prints the result to test output.
+            </summary>
+            <param name="value">The condition to evaluate.</param>
+            <param name="userMessage">Optional custom message to display if the assertion fails.</param>
+            <param name="name">
+               The name of the condition expression (automatically captured using CallerArgumentExpressionAttribute).
+            </param>
+            <remarks>
+               This method combines Assert.False(bool, string) with automatic output logging.
+            </remarks>
+            <example>
+               <code>
+            IsFalse(user.IsDeleted);
+            // If false, outputs: user.IsDeleted = False
+            
+            IsFalse(result &gt; 100, "Result should not exceed 100");
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.Xunit.BaseTest`1.Throws``1(System.Action,System.String)">
+            <summary>
+               Asserts that a delegate throws a specific exception type and prints exception details to test output.
+            </summary>
+            <typeparam name="TException">The expected exception type.</typeparam>
+            <param name="testCode">The delegate that should throw the exception.</param>
+            <param name="name">
+               The name of the test code expression (automatically captured using CallerArgumentExpressionAttribute).
+            </param>
+            <remarks>
+               This method wraps Assert.Throws{T}(Action) and automatically prints the exception
+               type name and message to the test output.
+            </remarks>
+            <example>
+               <code>
+            Throws&lt;ArgumentNullException&gt;(() =&gt; service.Process(null));
+            // Output: () =&gt; service.Process(null) = Throws 'ArgumentNullException' =&gt; Value cannot be null.
+            
+            Throws&lt;InvalidOperationException&gt;(() =&gt; 
+            {
+                var obj = new MyClass();
+                obj.MethodThatThrows();
+            });
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.Xunit.BaseTest`1.ThrowsAsync``1(System.Func{System.Threading.Tasks.Task},System.String)">
+            <summary>
+               Asserts that an asynchronous delegate throws a specific exception type and prints exception details to test output.
+            </summary>
+            <typeparam name="TException">The expected exception type.</typeparam>
+            <param name="testCode">The asynchronous delegate that should throw the exception.</param>
+            <param name="name">
+               The name of the test code expression (automatically captured using CallerArgumentExpressionAttribute).
+            </param>
+            <returns>A task representing the asynchronous operation.</returns>
+            <remarks>
+               This method wraps Assert.ThrowsAsync{T}(Func{Task}) and automatically prints the
+               exception type name and message to the test output.
+            </remarks>
+            <example>
+               <code>
+            await ThrowsAsync&lt;HttpRequestException&gt;(async () =&gt; 
+                await client.GetAsync("https://invalid-url"));
+            
+            await ThrowsAsync&lt;TaskCanceledException&gt;(async () =&gt;
+            {
+                using var cts = new CancellationTokenSource();
+                cts.Cancel();
+                await service.ProcessAsync(cts.Token);
+            });
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.Xunit.BaseTest`1.MatchFormattedString(System.String,System.String)">
+            <summary>
+               Asserts that a string matches a pattern with placeholder support.
+            </summary>
+            <param name="pattern">
+               The pattern to match, with placeholders in the format <c>{0}</c>, <c>{1}</c>, etc.
+               Each placeholder is treated as a wildcard that matches any text.
+            </param>
+            <param name="input">The input string to validate against the pattern.</param>
+            <remarks>
+               <para>
+                  This method converts a formatted string pattern into a regular expression by replacing
+                  placeholders (<c>{0}</c>, <c>{1}</c>, etc.) with <c>.*</c> regex patterns. This is useful
+                  for verifying formatted strings where the exact placeholder values are unknown or variable.
+               </para>
+               <para>
+                  The pattern matching:
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>Replaces <c>{0}</c>, <c>{1}</c>, ... with <c>.*</c> (matches any characters)</description>
+                  </item>
+                  <item>
+                     <description>Adds <c>$</c> at the end to ensure complete match</description>
+                  </item>
+                  <item>
+                     <description>Uses <see cref="T:System.Text.RegularExpressions.Regex"/> for matching</description>
+                  </item>
+               </list>
+            </remarks>
+            <example>
+               <code>
+            // Test formatted log messages
+            var logMessage = $"User {userId} logged in at {timestamp}";
+            MatchFormattedString("User {0} logged in at {1}", logMessage);
+            // Output: String 'User 123 logged in at 2024-01-15' match pattern 'User {0} logged in at {1}'
+            
+            // Test exception messages
+            var exception = new ArgumentException("Parameter 'count' must be positive", "count");
+            MatchFormattedString("Parameter '{0}' must be positive", exception.Message);
+            
+            // Multiple placeholders
+            var message = string.Format("Order {0} for customer {1} was {2}", orderId, customerId, status);
+            MatchFormattedString("Order {0} for customer {1} was {2}", message);
+            </code>
+            </example>
+        </member>
+        <member name="P:Fuxion.Xunit.BaseTest`1.Output">
+            <summary>
+               Gets the xUnit test output helper for writing to test output.
+            </summary>
+            <value>
+               The <see cref="T:Xunit.ITestOutputHelper"/> instance passed to the constructor.
+            </value>
+            <remarks>
+               Use this property to write additional output to the test results. All output written
+               through this helper will appear in the test results window and test logs.
+            </remarks>
+        </member>
+        <member name="P:Fuxion.Xunit.BaseTest`1.ServiceProvider">
+            <summary>
+               Gets the dependency injection service provider for this test instance.
+            </summary>
+            <value>
+               The <see cref="T:System.IServiceProvider"/> built from services configured in <see cref="M:Fuxion.Xunit.BaseTest`1.OnConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection)"/>.
+            </value>
+            <remarks>
+               Use this property to resolve services registered during test setup. The service provider
+               is created per test instance, ensuring isolation between tests.
+            </remarks>
+            <example>
+               <code>
+            var service = ServiceProvider.GetRequiredService&lt;IMyService&gt;();
+            var repository = ServiceProvider.GetService&lt;IRepository&gt;();
+            </code>
+            </example>
+        </member>
+        <member name="P:Fuxion.Xunit.BaseTest`1.Logger">
+            <summary>
+               Gets the typed logger for this test class.
+            </summary>
+            <value>
+               An <see cref="T:Microsoft.Extensions.Logging.ILogger`1"/> instance configured to write to xUnit test output.
+            </value>
+            <remarks>
+               The logger category is automatically set to the derived test class type (<typeparamref name="TBaseTest"/>).
+               All log output is directed to the xUnit test output via <see cref="T:Fuxion.Xunit.XunitLoggerProvider"/>.
+            </remarks>
+            <example>
+               <code>
+            Logger.LogInformation("Starting test");
+            Logger.LogDebug("Processing item {ItemId}", itemId);
+            Logger.LogWarning("Unexpected condition detected");
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.Xunit.BaseTest`1.OnLoggingBuild(Microsoft.Extensions.Logging.ILoggingBuilder)">
+            <summary>
+               Called during construction to allow derived classes to configure logging.
+            </summary>
+            <param name="loggingBuilder">The <see cref="T:Microsoft.Extensions.Logging.ILoggingBuilder"/> to configure.</param>
+            <remarks>
+               <para>
+                  Override this method in derived classes to customize logging configuration such as:
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>Setting minimum log levels</description>
+                  </item>
+                  <item>
+                     <description>Adding additional logging providers</description>
+                  </item>
+                  <item>
+                     <description>Configuring log filters for specific categories</description>
+                  </item>
+                  <item>
+                     <description>Customizing log output format</description>
+                  </item>
+               </list>
+            </remarks>
+            <example>
+               <code>
+            protected override void OnLoggingBuild(ILoggingBuilder loggingBuilder)
+            {
+                // Set minimum level
+                loggingBuilder.SetMinimumLevel(LogLevel.Debug);
+                
+                // Filter out noisy categories
+                loggingBuilder.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
+                
+                // Add console logging for local debugging
+                loggingBuilder.AddConsole();
+            }
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.Xunit.BaseTest`1.OnConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+               Called during construction to allow derived classes to register services in the dependency injection container.
+            </summary>
+            <param name="serviceCollection">The <see cref="T:Microsoft.Extensions.DependencyInjection.IServiceCollection"/> to configure.</param>
+            <remarks>
+               <para>
+                  Override this method in derived classes to register services required by your tests. Common registrations include:
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>Test doubles (mocks, stubs, fakes)</description>
+                  </item>
+                  <item>
+                     <description>Services under test</description>
+                  </item>
+                  <item>
+                     <description>DbContext with in-memory database</description>
+                  </item>
+                  <item>
+                     <description>Configuration objects</description>
+                  </item>
+                  <item>
+                     <description>HTTP clients and factories</description>
+                  </item>
+               </list>
+            </remarks>
+            <example>
+               <code>
+            protected override void OnConfigureServices(IServiceCollection serviceCollection)
+            {
+                // Register services
+                serviceCollection.AddScoped&lt;IMyService, MyService&gt;();
+                
+                // Register DbContext with in-memory database
+                serviceCollection.AddDbContext&lt;MyDbContext&gt;(options =&gt;
+                    options.UseInMemoryDatabase("TestDatabase"));
+                
+                // Register configuration
+                serviceCollection.Configure&lt;MyOptions&gt;(options =&gt;
+                {
+                    options.ConnectionString = "test-connection";
+                });
+                
+                // Register mock
+                var mockRepo = new Mock&lt;IRepository&gt;();
+                serviceCollection.AddSingleton(mockRepo.Object);
+            }
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.Xunit.BaseTest`1.Scoped``1(System.Func{``0,System.Threading.Tasks.Task})">
+            <summary>
+               Executes an action within a new dependency injection scope, resolving a required service for the action.
+            </summary>
+            <typeparam name="T">The type of service to resolve for the action.</typeparam>
+            <param name="action">The asynchronous action to execute with the resolved service.</param>
+            <returns>A task representing the asynchronous operation.</returns>
+            <remarks>
+               <para>
+                  This method creates a new <see cref="T:Microsoft.Extensions.DependencyInjection.IServiceScope"/> using <see cref="P:Fuxion.Xunit.BaseTest`1.ServiceProvider"/>,
+                  resolves the required service of type <typeparamref name="T"/>, executes the action, and
+                  disposes the scope when complete.
+               </para>
+               <para>
+                  This is particularly useful for testing scoped services like Entity Framework DbContext,
+                  ensuring proper scope lifetime management.
+               </para>
+            </remarks>
+            <exception cref="T:System.InvalidOperationException">
+               Thrown if the service of type <typeparamref name="T"/> is not registered.
+            </exception>
+            <example>
+               <code>
+            [Fact]
+            public async Task Test_DatabaseOperations()
+            {
+                await Scoped&lt;MyDbContext&gt;(async db =&gt;
+                {
+                    // Arrange
+                    db.Users.Add(new User { Name = "Test" });
+                    await db.SaveChangesAsync();
+                    
+                    // Act
+                    var count = await db.Users.CountAsync();
+                    
+                    // Assert
+                    IsTrue(count == 1);
+                });
+            }
+            
+            [Fact]
+            public async Task Test_ScopedService()
+            {
+                await Scoped&lt;IMyService&gt;(async service =&gt;
+                {
+                    var result = await service.ProcessAsync();
+                    IsTrue(result.IsSuccess);
+                });
+            }
+            
+            // Multiple scoped operations
+            [Fact]
+            public async Task Test_MultipleScopes()
+            {
+                // First scope
+                await Scoped&lt;IRepository&gt;(async repo =&gt;
+                {
+                    await repo.AddAsync(new Entity());
+                });
+                
+                // Second scope - ensures fresh instance
+                await Scoped&lt;IRepository&gt;(async repo =&gt;
+                {
+                    var count = await repo.CountAsync();
+                    IsTrue(count == 1);
+                });
+            }
+            </code>
+            </example>
+        </member>
+        <member name="T:Fuxion.Xunit.XunitLogger">
+            <summary>
+               Provides an <see cref="T:Microsoft.Extensions.Logging.ILogger"/> implementation that writes log messages to xUnit test output.
+            </summary>
+            <remarks>
+               <para>
+                  This logger implementation bridges Microsoft.Extensions.Logging with xUnit's test output system,
+                  allowing log messages from services, Entity Framework, and other logging sources to appear in
+                  xUnit test results. This is particularly useful for debugging tests and understanding what's
+                  happening during test execution.
+               </para>
+               <para>
+                  <strong>Key features:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>
+                        <strong>xUnit integration:</strong> Writes all log messages to <see cref="T:Xunit.ITestOutputHelper"/>
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Log level formatting:</strong> Prefixes each line with the log level
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Multiline support:</strong> Properly formats multiline log messages with consistent prefixes
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Exception support:</strong> Includes full exception details in test output
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>No filtering:</strong> All log levels are enabled by default (can be customized via <see cref="T:Fuxion.Xunit.XunitLoggerProvider"/>)
+                     </description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Common use cases:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>Debug Entity Framework Core SQL queries in tests</description>
+                  </item>
+                  <item>
+                     <description>View application logging during integration tests</description>
+                  </item>
+                  <item>
+                     <description>Troubleshoot service behavior in unit tests</description>
+                  </item>
+                  <item>
+                     <description>Monitor dependency injection and service lifetime events</description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Output format:</strong>
+               </para>
+               <para>
+                  Log messages are formatted as: <c>{LogLevel}: {Message}</c>
+               </para>
+               <para>
+                  Multiline messages preserve the log level prefix on each line, and exceptions are written
+                  on separate lines with full stack traces.
+               </para>
+            </remarks>
+            <example>
+               <strong>Basic usage with BaseTest:</strong>
+               <code>
+            public class MyTests : BaseTest&lt;MyTests&gt;
+            {
+                public MyTests(ITestOutputHelper output) : base(output)
+                {
+                    // XunitLogger is automatically configured
+                }
+                
+                [Fact]
+                public void Test_Logging()
+                {
+                    Logger.LogInformation("Starting test");
+                    Logger.LogDebug("Debug information");
+                    Logger.LogWarning("Warning message");
+                    
+                    // Output in test results:
+                    // Information: Starting test
+                    // Debug: Debug information
+                    // Warning: Warning message
+                }
+            }
+            </code>
+               <strong>Direct usage with ITestOutputHelper:</strong>
+               <code>
+            public class CustomTests
+            {
+                private readonly ILogger _logger;
+                
+                public CustomTests(ITestOutputHelper output)
+                {
+                    _logger = new XunitLogger(output);
+                }
+                
+                [Fact]
+                public void Test_Something()
+                {
+                    _logger.LogInformation("Test started");
+                    // Perform test...
+                    _logger.LogInformation("Test completed");
+                }
+            }
+            </code>
+               <strong>Entity Framework Core query logging:</strong>
+               <code>
+            public class DatabaseTests : BaseTest&lt;DatabaseTests&gt;
+            {
+                public DatabaseTests(ITestOutputHelper output) : base(output)
+                {
+                }
+                
+                protected override void OnConfigureServices(IServiceCollection serviceCollection)
+                {
+                    serviceCollection.AddDbContext&lt;MyDbContext&gt;(options =&gt;
+                    {
+                        options.UseInMemoryDatabase("TestDb");
+                        // EF Core logs will appear in test output
+                        options.EnableSensitiveDataLogging();
+                    });
+                }
+                
+                [Fact]
+                public async Task Test_Query()
+                {
+                    await Scoped&lt;MyDbContext&gt;(async db =&gt;
+                    {
+                        var users = await db.Users.Where(u =&gt; u.IsActive).ToListAsync();
+                        // Output will show the SQL query executed
+                    });
+                }
+            }
+            </code>
+               <strong>With custom logging configuration:</strong>
+               <code>
+            public class FilteredLogTests : BaseTest&lt;FilteredLogTests&gt;
+            {
+                public FilteredLogTests(ITestOutputHelper output) : base(output)
+                {
+                }
+                
+                protected override void OnLoggingBuild(ILoggingBuilder loggingBuilder)
+                {
+                    // Only log warnings and errors from Entity Framework
+                    loggingBuilder.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
+                    
+                    // Log everything from your application
+                    loggingBuilder.AddFilter("MyApp", LogLevel.Debug);
+                }
+            }
+            </code>
+               <strong>Multiline and exception logging:</strong>
+               <code>
+            [Fact]
+            public void Test_MultilineAndExceptions()
+            {
+                // Multiline message
+                Logger.LogInformation($"Processing items:\n- Item 1\n- Item 2\n- Item 3");
+                // Output:
+                // Information: Processing items:
+                // Information: - Item 1
+                // Information: - Item 2
+                // Information: - Item 3
+                
+                try
+                {
+                    throw new InvalidOperationException("Something went wrong");
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "An error occurred");
+                    // Output:
+                    // Error: An error occurred
+                    // System.InvalidOperationException: Something went wrong
+                    //    at ...stack trace...
+                }
+            }
+            </code>
+               <strong>Integration test logging:</strong>
+               <code>
+            public class ApiIntegrationTests : BaseTest&lt;ApiIntegrationTests&gt;
+            {
+                public ApiIntegrationTests(ITestOutputHelper output) : base(output)
+                {
+                }
+                
+                protected override void OnConfigureServices(IServiceCollection serviceCollection)
+                {
+                    serviceCollection.AddHttpClient&lt;IMyApiClient, MyApiClient&gt;()
+                        .AddHttpMessageHandler&lt;LoggingHandler&gt;();
+                }
+                
+                [Fact]
+                public async Task Test_ApiCall()
+                {
+                    var client = ServiceProvider.GetRequiredService&lt;IMyApiClient&gt;();
+                    
+                    Logger.LogInformation("Making API call");
+                    var result = await client.GetDataAsync();
+                    // All HTTP request/response logs appear in test output
+                    
+                    IsTrue(result.IsSuccess);
+                }
+            }
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.Xunit.XunitLogger.#ctor(Xunit.ITestOutputHelper)">
+            <summary>
+               Initializes a new instance of the <see cref="T:Fuxion.Xunit.XunitLogger"/> class.
+            </summary>
+            <param name="output">The xUnit test output helper to write log messages to.</param>
+            <remarks>
+               The logger will write all log messages to the provided <see cref="T:Xunit.ITestOutputHelper"/>,
+               making them visible in xUnit test results and output windows.
+            </remarks>
+            <example>
+               <code>
+            public class MyTests
+            {
+                private readonly ILogger _logger;
+                
+                public MyTests(ITestOutputHelper output)
+                {
+                    _logger = new XunitLogger(output);
+                }
+            }
+            </code>
+            </example>
+        </member>
+        <member name="P:Fuxion.Xunit.XunitLogger.Output">
+            <summary>
+               Gets the xUnit test output helper used for writing log messages.
+            </summary>
+            <value>
+               The <see cref="T:Xunit.ITestOutputHelper"/> instance provided in the constructor.
+            </value>
+        </member>
+        <member name="M:Fuxion.Xunit.XunitLogger.Log``1(Microsoft.Extensions.Logging.LogLevel,Microsoft.Extensions.Logging.EventId,``0,System.Exception,System.Func{``0,System.Exception,System.String})">
+            <summary>
+               Writes a log entry to the xUnit test output.
+            </summary>
+            <typeparam name="TState">The type of the state object.</typeparam>
+            <param name="logLevel">The log level for this entry.</param>
+            <param name="eventId">The event identifier associated with the log entry.</param>
+            <param name="state">The state object to log.</param>
+            <param name="exception">The exception to log, or <c>null</c> if no exception.</param>
+            <param name="formatter">Function to format the state and exception into a log message.</param>
+            <exception cref="T:System.ArgumentNullException">
+               Thrown when <paramref name="formatter"/> is <c>null</c>.
+            </exception>
+            <remarks>
+               <para>
+                  The log entry is formatted with the following rules:
+               </para>
+               <list type="number">
+                  <item>
+                     <description>If the log level is not enabled, the entry is ignored</description>
+                  </item>
+                  <item>
+                     <description>The formatter is used to create the message string</description>
+                  </item>
+                  <item>
+                     <description>Empty messages without exceptions are ignored</description>
+                  </item>
+                  <item>
+                     <description>Each line of the message is prefixed with the log level</description>
+                  </item>
+                  <item>
+                     <description>Exceptions are written with full stack traces on separate lines</description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Output format:</strong>
+               </para>
+               <para>
+                  Single line: <c>{LogLevel}: {Message}</c>
+               </para>
+               <para>
+                  Multiple lines: Each line is prefixed with <c>{LogLevel}: </c>
+               </para>
+               <para>
+                  With exception: Message line(s) followed by full exception.ToString()
+               </para>
+            </remarks>
+            <example>
+               <code>
+            // This is typically called by the logging framework, not directly
+            logger.Log(
+                LogLevel.Information, 
+                new EventId(1), 
+                "User logged in", 
+                null, 
+                (state, ex) => state.ToString()
+            );
+            // Output: Information: User logged in
+            
+            logger.Log(
+                LogLevel.Error, 
+                new EventId(2), 
+                "Error processing request", 
+                new InvalidOperationException("Bad state"), 
+                (state, ex) => $"{state}: {ex?.Message}"
+            );
+            // Output: 
+            // Error: Error processing request: Bad state
+            // System.InvalidOperationException: Bad state
+            //    at ...
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.Xunit.XunitLogger.IsEnabled(Microsoft.Extensions.Logging.LogLevel)">
+            <summary>
+               Checks if the given log level is enabled.
+            </summary>
+            <param name="logLevel">The log level to check.</param>
+            <returns>
+               Always returns <c>true</c>. All log levels are enabled by default.
+            </returns>
+            <remarks>
+               <para>
+                  This implementation always returns <c>true</c>, meaning all log levels are enabled.
+                  To filter log messages by level or category, use <see cref="T:Microsoft.Extensions.Logging.ILoggingBuilder"/> configuration
+                  in <see cref="M:Fuxion.Xunit.BaseTest`1.OnLoggingBuild(Microsoft.Extensions.Logging.ILoggingBuilder)"/> or when setting up the logger provider.
+               </para>
+            </remarks>
+            <example>
+               <code>
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Expensive debug operation result: {Result}", GetDebugInfo());
+            }
+            // Since this returns true, the LogDebug will always execute
+            // To actually filter, configure logging in OnLoggingBuild:
+            
+            protected override void OnLoggingBuild(ILoggingBuilder loggingBuilder)
+            {
+                loggingBuilder.SetMinimumLevel(LogLevel.Information);
+            }
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.Xunit.XunitLogger.BeginScope``1(``0)">
+            <summary>
+               Begins a logical operation scope.
+            </summary>
+            <typeparam name="TState">The type of the state object.</typeparam>
+            <param name="state">The state object for the scope.</param>
+            <returns>
+               An <see cref="T:System.IDisposable"/> that ends the logical operation scope when disposed.
+               Always returns a new instance of <see cref="T:Fuxion.Xunit.XunitScope"/>.
+            </returns>
+            <remarks>
+               <para>
+                  This implementation returns a simple scope object that does nothing when disposed.
+                  Log scopes are typically used to add context to log messages, but this xUnit logger
+                  doesn't maintain scope state.
+               </para>
+               <para>
+                  For more advanced scope tracking in tests, consider wrapping this logger or using
+                  a different logging provider that supports scopes.
+               </para>
+            </remarks>
+            <example>
+               <code>
+            using (logger.BeginScope("Processing order {OrderId}", orderId))
+            {
+                logger.LogInformation("Validating order");
+                logger.LogInformation("Saving order");
+            }
+            // Note: The scope information is not included in the output
+            // with this basic implementation
+            </code>
+            </example>
+        </member>
+        <member name="T:Fuxion.Xunit.XunitLoggerProvider">
+            <summary>
+               Provides a logging provider that creates <see cref="T:Fuxion.Xunit.XunitLogger"/> instances for xUnit test output.
+            </summary>
+            <remarks>
+               <para>
+                  This class implements <see cref="T:Microsoft.Extensions.Logging.ILoggerProvider"/> to integrate with Microsoft.Extensions.Logging
+                  infrastructure, creating loggers that write to xUnit's <see cref="T:Xunit.ITestOutputHelper"/>. It's designed
+                  to be registered with <see cref="T:Microsoft.Extensions.Logging.ILoggingBuilder"/> to enable logging to xUnit test output throughout
+                  the application.
+               </para>
+               <para>
+                  <strong>Key features:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>
+                        <strong>ILoggerProvider implementation:</strong> Integrates with standard .NET logging infrastructure
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Single output helper:</strong> All loggers created share the same <see cref="T:Xunit.ITestOutputHelper"/>
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Category support:</strong> Creates loggers for different categories, all writing to the same output
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Simple lifecycle:</strong> No resources to dispose, empty <see cref="M:Fuxion.Xunit.XunitLoggerProvider.Dispose"/> implementation
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Test isolation:</strong> Each test gets its own provider instance with its own output helper
+                     </description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Common use cases:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>Integrate application logging with xUnit test output</description>
+                  </item>
+                  <item>
+                     <description>Enable logging for services under test</description>
+                  </item>
+                  <item>
+                     <description>Debug Entity Framework Core, HTTP clients, and other logged components</description>
+                  </item>
+                  <item>
+                     <description>Used internally by <see cref="T:Fuxion.Xunit.BaseTest`1"/> for automatic logging setup</description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Integration notes:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>
+                        This provider is automatically registered by <see cref="T:Fuxion.Xunit.BaseTest`1"/> constructor
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        All loggers created by this provider write to the same test output, ensuring all logs appear in test results
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        Category names are ignored by <see cref="T:Fuxion.Xunit.XunitLogger"/>, but can be filtered via <see cref="T:Microsoft.Extensions.Logging.ILoggingBuilder"/>
+                     </description>
+                  </item>
+               </list>
+            </remarks>
+            <example>
+               <strong>Automatic usage via BaseTest:</strong>
+               <code>
+            public class MyTests : BaseTest&lt;MyTests&gt;
+            {
+                public MyTests(ITestOutputHelper output) : base(output)
+                {
+                    // XunitLoggerProvider is automatically registered
+                }
+                
+                [Fact]
+                public void Test_WithLogging()
+                {
+                    // All services can now log to test output
+                    Logger.LogInformation("Test log");
+                    var service = ServiceProvider.GetRequiredService&lt;IMyService&gt;();
+                    service.DoWork(); // Service's logs will appear in test output
+                }
+            }
+            </code>
+               <strong>Manual registration with ILoggingBuilder:</strong>
+               <code>
+            public class CustomTests
+            {
+                private readonly ILogger&lt;CustomTests&gt; _logger;
+                private readonly IServiceProvider _serviceProvider;
+                
+                public CustomTests(ITestOutputHelper output)
+                {
+                    var services = new ServiceCollection();
+                    
+                    // Register logging with XunitLoggerProvider
+                    services.AddLogging(builder =&gt;
+                    {
+                        builder.AddProvider(new XunitLoggerProvider(output));
+                        builder.SetMinimumLevel(LogLevel.Debug);
+                    });
+                    
+                    // Register services
+                    services.AddScoped&lt;IMyService, MyService&gt;();
+                    
+                    _serviceProvider = services.BuildServiceProvider();
+                    _logger = _serviceProvider.GetRequiredService&lt;ILogger&lt;CustomTests&gt;&gt;();
+                }
+                
+                [Fact]
+                public void Test_Something()
+                {
+                    _logger.LogInformation("Starting test");
+                    var service = _serviceProvider.GetRequiredService&lt;IMyService&gt;();
+                    service.Process();
+                    _logger.LogInformation("Test completed");
+                }
+            }
+            </code>
+               <strong>With Entity Framework Core:</strong>
+               <code>
+            public class DatabaseTests
+            {
+                private readonly ITestOutputHelper _output;
+                private readonly IServiceProvider _serviceProvider;
+                
+                public DatabaseTests(ITestOutputHelper output)
+                {
+                    _output = output;
+                    
+                    var services = new ServiceCollection();
+                    
+                    services.AddLogging(builder =&gt;
+                    {
+                        builder.AddProvider(new XunitLoggerProvider(output));
+                        // Filter to only show EF Core SQL queries
+                        builder.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Information);
+                    });
+                    
+                    services.AddDbContext&lt;MyDbContext&gt;(options =&gt;
+                    {
+                        options.UseInMemoryDatabase("TestDb");
+                        options.EnableSensitiveDataLogging();
+                    });
+                    
+                    _serviceProvider = services.BuildServiceProvider();
+                }
+                
+                [Fact]
+                public async Task Test_Query()
+                {
+                    using var scope = _serviceProvider.CreateScope();
+                    var db = scope.ServiceProvider.GetRequiredService&lt;MyDbContext&gt;();
+                    
+                    var users = await db.Users.Where(u =&gt; u.IsActive).ToListAsync();
+                    // SQL query will be logged to test output
+                }
+            }
+            </code>
+               <strong>Multiple category loggers:</strong>
+               <code>
+            public class MultiCategoryTests
+            {
+                public MultiCategoryTests(ITestOutputHelper output)
+                {
+                    var services = new ServiceCollection();
+                    var provider = new XunitLoggerProvider(output);
+                    
+                    services.AddLogging(builder =&gt;
+                    {
+                        builder.AddProvider(provider);
+                    });
+                    
+                    var sp = services.BuildServiceProvider();
+                    
+                    // Create loggers for different categories
+                    var logger1 = sp.GetRequiredService&lt;ILogger&lt;MyService&gt;&gt;();
+                    var logger2 = sp.GetRequiredService&lt;ILogger&lt;MyRepository&gt;&gt;();
+                    
+                    // Both write to the same test output
+                    logger1.LogInformation("Service log");
+                    logger2.LogInformation("Repository log");
+                }
+            }
+            </code>
+               <strong>Integration testing with WebApplicationFactory:</strong>
+               <code>
+            public class ApiIntegrationTests : IClassFixture&lt;WebApplicationFactory&lt;Program&gt;&gt;
+            {
+                private readonly WebApplicationFactory&lt;Program&gt; _factory;
+                private readonly ITestOutputHelper _output;
+                
+                public ApiIntegrationTests(
+                    WebApplicationFactory&lt;Program&gt; factory,
+                    ITestOutputHelper output)
+                {
+                    _output = output;
+                    _factory = factory.WithWebHostBuilder(builder =&gt;
+                    {
+                        builder.ConfigureLogging(logging =&gt;
+                        {
+                            logging.ClearProviders();
+                            logging.AddProvider(new XunitLoggerProvider(output));
+                        });
+                    });
+                }
+                
+                [Fact]
+                public async Task Test_ApiEndpoint()
+                {
+                    var client = _factory.CreateClient();
+                    var response = await client.GetAsync("/api/users");
+                    // All API logs appear in test output
+                    response.EnsureSuccessStatusCode();
+                }
+            }
+            </code>
+               <strong>Custom filtering:</strong>
+               <code>
+            public class FilteredLogTests
+            {
+                public FilteredLogTests(ITestOutputHelper output)
+                {
+                    var services = new ServiceCollection();
+                    
+                    services.AddLogging(builder =&gt;
+                    {
+                        builder.AddProvider(new XunitLoggerProvider(output));
+                        
+                        // Only show warnings and errors from Microsoft namespaces
+                        builder.AddFilter("Microsoft", LogLevel.Warning);
+                        
+                        // Show all logs from application
+                        builder.AddFilter("MyApp", LogLevel.Trace);
+                        
+                        // Hide specific noisy category
+                        builder.AddFilter("Microsoft.EntityFrameworkCore.Infrastructure", LogLevel.None);
+                    });
+                }
+            }
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.Xunit.XunitLoggerProvider.#ctor(Xunit.ITestOutputHelper)">
+            <summary>
+               Initializes a new instance of the <see cref="T:Fuxion.Xunit.XunitLoggerProvider"/> class.
+            </summary>
+            <param name="output">The xUnit test output helper to use for all created loggers.</param>
+            <remarks>
+               <para>
+                  All loggers created by this provider will share the same <paramref name="output"/> instance,
+                  ensuring all log messages from different categories appear in the same test output.
+               </para>
+               <para>
+                  The <paramref name="output"/> should be the <see cref="T:Xunit.ITestOutputHelper"/> instance provided
+                  to the test class constructor by xUnit.
+               </para>
+            </remarks>
+            <example>
+               <code>
+            public class MyTests
+            {
+                private readonly ILoggerFactory _loggerFactory;
+                
+                public MyTests(ITestOutputHelper output)
+                {
+                    var provider = new XunitLoggerProvider(output);
+                    _loggerFactory = LoggerFactory.Create(builder =&gt;
+                    {
+                        builder.AddProvider(provider);
+                    });
+                }
+            }
+            </code>
+            </example>
+        </member>
+        <member name="P:Fuxion.Xunit.XunitLoggerProvider.Output">
+            <summary>
+               Gets the xUnit test output helper used by all loggers created by this provider.
+            </summary>
+            <value>
+               The <see cref="T:Xunit.ITestOutputHelper"/> instance provided in the constructor.
+            </value>
+            <remarks>
+               All loggers created by <see cref="M:Fuxion.Xunit.XunitLoggerProvider.CreateLogger(System.String)"/> will write to this output helper.
+            </remarks>
+        </member>
+        <member name="M:Fuxion.Xunit.XunitLoggerProvider.Dispose">
+            <summary>
+               Performs no cleanup as this provider has no resources to dispose.
+            </summary>
+            <remarks>
+               <para>
+                  This implementation is empty because <see cref="T:Fuxion.Xunit.XunitLoggerProvider"/> doesn't hold any
+                  unmanaged resources or subscriptions that need cleanup. The <see cref="T:Xunit.ITestOutputHelper"/>
+                  is managed by the xUnit framework and shouldn't be disposed by this provider.
+               </para>
+            </remarks>
+        </member>
+        <member name="M:Fuxion.Xunit.XunitLoggerProvider.CreateLogger(System.String)">
+            <summary>
+               Creates a new <see cref="T:Fuxion.Xunit.XunitLogger"/> instance for the specified category.
+            </summary>
+            <param name="categoryName">
+               The category name for the logger. This is typically the fully qualified type name of the class
+               requesting the logger, but is not used by <see cref="T:Fuxion.Xunit.XunitLogger"/> itself.
+            </param>
+            <returns>
+               A new <see cref="T:Fuxion.Xunit.XunitLogger"/> instance that writes to <see cref="P:Fuxion.Xunit.XunitLoggerProvider.Output"/>.
+            </returns>
+            <remarks>
+               <para>
+                  All loggers created by this method share the same <see cref="P:Fuxion.Xunit.XunitLoggerProvider.Output"/> instance, regardless
+                  of the <paramref name="categoryName"/>. The category name can still be used for filtering
+                  via <see cref="T:Microsoft.Extensions.Logging.ILoggingBuilder"/> configuration.
+               </para>
+               <para>
+                  Each call to this method creates a new <see cref="T:Fuxion.Xunit.XunitLogger"/> instance, but they all
+                  write to the same test output, so log messages from different categories will be interleaved
+                  in the order they're written.
+               </para>
+            </remarks>
+            <example>
+               <code>
+            var provider = new XunitLoggerProvider(output);
+            
+            // Create loggers for different categories
+            var logger1 = provider.CreateLogger("MyApp.Services.UserService");
+            var logger2 = provider.CreateLogger("MyApp.Repositories.UserRepository");
+            
+            // Both write to the same test output
+            logger1.LogInformation("Service message");
+            logger2.LogInformation("Repository message");
+            
+            // Output:
+            // Information: Service message
+            // Information: Repository message
+            </code>
+            </example>
+        </member>
+        <member name="T:Fuxion.Xunit.XunitScope">
+            <summary>
+               Provides a minimal implementation of <see cref="T:System.IDisposable"/> for log scopes in xUnit tests.
+            </summary>
+            <remarks>
+               <para>
+                  This class is used by <see cref="T:Fuxion.Xunit.XunitLogger"/> to satisfy the <see cref="M:Microsoft.Extensions.Logging.ILogger.BeginScope``1(``0)"/>
+                  contract. It provides a no-op (no operation) implementation that does nothing when disposed.
+               </para>
+               <para>
+                  <strong>Key characteristics:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>
+                        <strong>No-op implementation:</strong> The <see cref="M:Fuxion.Xunit.XunitScope.Dispose"/> method is empty and performs no actions
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Lightweight:</strong> No state or resources to manage, minimal memory footprint
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Thread-safe:</strong> Safe to dispose from any thread as it performs no operations
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>IDisposable pattern:</strong> Properly implements the disposable pattern for use with <c>using</c> statements
+                     </description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Purpose:</strong>
+               </para>
+               <para>
+                  Log scopes in Microsoft.Extensions.Logging are typically used to add contextual information to log messages
+                  (such as request IDs, user IDs, or operation names). However, <see cref="T:Fuxion.Xunit.XunitLogger"/> doesn't maintain
+                  scope state or add scope information to log output. This class exists purely to fulfill the API contract.
+               </para>
+               <para>
+                  <strong>Design notes:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>
+                        This is an intentionally minimal implementation - adding scope tracking would complicate the simple
+                        xUnit logging scenario without significant benefit
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        For tests requiring scope information in output, consider using a more advanced logging provider
+                        or implementing a custom scope-aware logger
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        The class is public to allow direct instantiation if needed, though it's typically created by <see cref="T:Fuxion.Xunit.XunitLogger"/>
+                     </description>
+                  </item>
+               </list>
+            </remarks>
+            <example>
+               <strong>Automatic usage via XunitLogger:</strong>
+               <code>
+            public class MyTests : BaseTest&lt;MyTests&gt;
+            {
+                public MyTests(ITestOutputHelper output) : base(output) { }
+                
+                [Fact]
+                public void Test_WithScope()
+                {
+                    // BeginScope returns a XunitScope instance
+                    using (Logger.BeginScope("Processing order {OrderId}", 12345))
+                    {
+                        Logger.LogInformation("Validating order");
+                        Logger.LogInformation("Saving order");
+                    }
+                    // XunitScope.Dispose() is called here (does nothing)
+                    
+                    // Output:
+                    // Information: Validating order
+                    // Information: Saving order
+                    // Note: Scope information is NOT included in output
+                }
+            }
+            </code>
+               <strong>Multiple nested scopes:</strong>
+               <code>
+            [Fact]
+            public void Test_NestedScopes()
+            {
+                using (Logger.BeginScope("Request {RequestId}", "REQ-001"))
+                {
+                    Logger.LogInformation("Processing request");
+                    
+                    using (Logger.BeginScope("User {UserId}", "USER-123"))
+                    {
+                        Logger.LogInformation("Authenticating user");
+                        Logger.LogInformation("User authenticated");
+                    }
+                    
+                    Logger.LogInformation("Request completed");
+                }
+                // All XunitScope instances are disposed (no-op)
+                
+                // Output (without scope information):
+                // Information: Processing request
+                // Information: Authenticating user
+                // Information: User authenticated
+                // Information: Request completed
+            }
+            </code>
+               <strong>Direct instantiation (rarely needed):</strong>
+               <code>
+            // Manual scope creation
+            var scope = new XunitScope();
+            try
+            {
+                // Do work within scope
+                Logger.LogInformation("Working");
+            }
+            finally
+            {
+                scope.Dispose(); // Safe to call, does nothing
+            }
+            </code>
+               <strong>Understanding scope behavior:</strong>
+               <code>
+            [Fact]
+            public void Test_ScopeDoesNothing()
+            {
+                var logger = new XunitLogger(Output);
+                
+                // Create scope - returns XunitScope
+                IDisposable scope = logger.BeginScope("My Scope");
+                
+                // Scope does not affect log output
+                logger.LogInformation("Message inside scope");
+                
+                // Dispose does nothing
+                scope.Dispose();
+                
+                // Output:
+                // Information: Message inside scope
+                // (No scope information shown)
+            }
+            </code>
+               <strong>Comparison with scope-aware loggers:</strong>
+               <code>
+            // With XunitLogger (no scope info):
+            using (Logger.BeginScope("RequestId: {RequestId}", "REQ-001"))
+            {
+                Logger.LogInformation("Processing");
+            }
+            // Output: Information: Processing
+            
+            // With scope-aware logger like Console Logger:
+            // Output: Information: Processing
+            //         =&gt; RequestId: REQ-001
+            
+            // To get scope information in tests, you'd need to implement
+            // a custom logger or use a third-party logging library
+            </code>
+               <strong>Safe multiple disposal:</strong>
+               <code>
+            var scope = new XunitScope();
+            scope.Dispose(); // First dispose - does nothing
+            scope.Dispose(); // Second dispose - also safe, does nothing
+            scope.Dispose(); // Multiple calls are safe
+            
+            // No exceptions thrown, no side effects
+            </code>
+            </example>
+        </member>
+        <member name="M:Fuxion.Xunit.XunitScope.Dispose">
+            <summary>
+               Performs no cleanup operations.
+            </summary>
+            <remarks>
+               <para>
+                  This method has an empty implementation because <see cref="T:Fuxion.Xunit.XunitScope"/> has no resources
+                  to clean up, no state to persist, and no side effects to trigger. It exists purely to
+                  fulfill the <see cref="T:System.IDisposable"/> contract required by <see cref="M:Microsoft.Extensions.Logging.ILogger.BeginScope``1(``0)"/>.
+               </para>
+               <para>
+                  <strong>Thread safety:</strong>
+               </para>
+               <para>
+                  This method is thread-safe and can be called multiple times from different threads without
+                  any issues, as it performs no operations.
+               </para>
+               <para>
+                  <strong>Multiple calls:</strong>
+               </para>
+               <para>
+                  Calling <see cref="M:Fuxion.Xunit.XunitScope.Dispose"/> multiple times is safe and has no effect. There are no resources
+                  to dispose, so repeated calls are benign.
+               </para>
+            </remarks>
+            <example>
+               <code>
+            // Standard usage with using statement
+            using (var scope = new XunitScope())
+            {
+                // Work here
+            }
+            // Dispose() called automatically at end of using block
+            
+            // Manual disposal
+            var scope = new XunitScope();
+            scope.Dispose(); // Safe to call
+            scope.Dispose(); // Safe to call again
+            </code>
+            </example>
+        </member>
+        <member name="T:System.Runtime.CompilerServices.CallerArgumentExpressionAttribute">
+            <summary>
+               Provides a polyfill attribute for legacy .NET frameworks that allows capturing the expression passed to a parameter.
+            </summary>
+            <remarks>
+               <para>
+                  This attribute is a substitute implementation for frameworks that don't natively support
+                  <see cref="T:System.Runtime.CompilerServices.CallerArgumentExpressionAttribute"/>, which was introduced in C# 10 and .NET 6.
+                  It enables features like automatic expression capturing for improved diagnostics and logging
+                  in older framework versions.
+               </para>
+               <para>
+                  <strong>Framework support:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>
+                        <strong>Native support:</strong> .NET 6+, .NET Core 3.1+, .NET Standard 2.1+
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Polyfill needed:</strong> .NET Framework 4.x, .NET Standard 2.0, older .NET Core versions
+                     </description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Key features:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>
+                        <strong>Expression capture:</strong> Automatically captures the expression text passed as an argument
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Compile-time feature:</strong> Works at compile time, no runtime overhead
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Conditional compilation:</strong> Only compiled for legacy frameworks via <c>OLD_FRAMEWORKS</c> symbol
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Seamless integration:</strong> Provides same API as native implementation
+                     </description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Common use cases:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>Assertion methods that print variable names and values</description>
+                  </item>
+                  <item>
+                     <description>Logging methods that include expression context</description>
+                  </item>
+                  <item>
+                     <description>Validation methods with detailed error messages</description>
+                  </item>
+                  <item>
+                     <description>Diagnostic utilities that show code context</description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Important notes:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>
+                        This polyfill is only compiled when <c>OLD_FRAMEWORKS</c> is defined
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        The attribute must be in the <c>System.Runtime.CompilerServices</c> namespace
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        Requires C# 10+ compiler even when targeting older frameworks
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        Modern frameworks use the built-in implementation from the BCL
+                     </description>
+                  </item>
+               </list>
+            </remarks>
+            <example>
+               <strong>Basic assertion method:</strong>
+               <code>
+            public static void IsTrue(bool condition, 
+                [CallerArgumentExpression(nameof(condition))] string? expression = null)
+            {
+                if (!condition)
+                {
+                    throw new AssertionException($"Assertion failed: {expression}");
+                }
+                Console.WriteLine($"Pass: {expression}");
+            }
+            
+            // Usage
+            int count = GetCount();
+            IsTrue(count &gt; 0);
+            // Output: Pass: count &gt; 0
+            
+            IsTrue(user.IsActive);
+            // Output: Pass: user.IsActive
+            </code>
+               <strong>Logging with context:</strong>
+               <code>
+            public static void LogValue&lt;T&gt;(T value,
+                [CallerArgumentExpression(nameof(value))] string? expression = null)
+            {
+                Console.WriteLine($"{expression} = {value}");
+            }
+            
+            // Usage
+            var result = CalculateSum(10, 20);
+            LogValue(result);
+            // Output: result = 30
+            
+            LogValue(DateTime.Now);
+            // Output: DateTime.Now = 2024-01-15 10:30:00
+            </code>
+               <strong>Validation with descriptive errors:</strong>
+               <code>
+            public static void NotNull&lt;T&gt;(T? value,
+                [CallerArgumentExpression(nameof(value))] string? expression = null)
+                where T : class
+            {
+                if (value is null)
+                {
+                    throw new ArgumentNullException(expression, $"'{expression}' cannot be null");
+                }
+            }
+            
+            // Usage
+            NotNull(user);
+            // Throws: ArgumentNullException: 'user' cannot be null
+            
+            NotNull(repository.GetById(id));
+            // Throws: ArgumentNullException: 'repository.GetById(id)' cannot be null
+            </code>
+               <strong>xUnit test assertions (as in BaseTest):</strong>
+               <code>
+            public void PrintVariable(object? value,
+                [CallerArgumentExpression(nameof(value))] string? name = null)
+            {
+                Output.WriteLine($"{name} = {value}");
+            }
+            
+            public void IsTrue(bool? value,
+                [CallerArgumentExpression(nameof(value))] string? name = null)
+            {
+                Assert.True(value);
+                PrintVariable(value, name);
+            }
+            
+            // Usage in test
+            [Fact]
+            public void Test_Example()
+            {
+                var result = service.Process();
+                IsTrue(result.IsSuccess);
+                // Output: result.IsSuccess = True
+            }
+            </code>
+               <strong>Debug helpers:</strong>
+               <code>
+            public static class Debug
+            {
+                public static T Inspect&lt;T&gt;(T value,
+                    [CallerArgumentExpression(nameof(value))] string? expression = null)
+                {
+                    Console.WriteLine($"[DEBUG] {expression} = {value}");
+                    return value;
+                }
+            }
+            
+            // Usage - can be inserted inline
+            var total = Debug.Inspect(items.Sum(x =&gt; x.Price));
+            // Output: [DEBUG] items.Sum(x =&gt; x.Price) = 150.50
+            
+            return Debug.Inspect(repository.Query().Where(x =&gt; x.IsActive).ToList());
+            // Output: [DEBUG] repository.Query().Where(x =&gt; x.IsActive).ToList() = [...]
+            </code>
+               <strong>Conditional compilation setup:</strong>
+               <code><![CDATA[
+            <!-- In .csproj for .NET Framework 4.7.2 -->
+            <PropertyGroup>
+                <TargetFramework>net472</TargetFramework>
+                <LangVersion>10.0</LangVersion>
+                <DefineConstants>$(DefineConstants);OLD_FRAMEWORKS</DefineConstants>
+            </PropertyGroup>
+            
+            <!-- In .csproj for .NET 8 - no OLD_FRAMEWORKS needed -->
+            <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <LangVersion>12.0</LangVersion>
+            </PropertyGroup>
+            ]]></code>
+               <strong>Multi-parameter expression capture:</strong>
+               <code>
+            public static void AreEqual&lt;T&gt;(T expected, T actual,
+                [CallerArgumentExpression(nameof(expected))] string? expectedExpr = null,
+                [CallerArgumentExpression(nameof(actual))] string? actualExpr = null)
+            {
+                if (!EqualityComparer&lt;T&gt;.Default.Equals(expected, actual))
+                {
+                    throw new AssertionException(
+                        $"Expected {expectedExpr} ({expected}) to equal {actualExpr} ({actual})");
+                }
+            }
+            
+            // Usage
+            AreEqual(expectedCount, result.Count);
+            // Error: Expected expectedCount (10) to equal result.Count (5)
+            </code>
+               <strong>Guard clauses:</strong>
+               <code>
+            public static class Guard
+            {
+                public static void IsNotEmpty(string value,
+                    [CallerArgumentExpression(nameof(value))] string? paramName = null)
+                {
+                    if (string.IsNullOrEmpty(value))
+                    {
+                        throw new ArgumentException($"'{paramName}' cannot be null or empty", paramName);
+                    }
+                }
+                
+                public static void IsInRange(int value, int min, int max,
+                    [CallerArgumentExpression(nameof(value))] string? paramName = null)
+                {
+                    if (value &lt; min || value &gt; max)
+                    {
+                        throw new ArgumentOutOfRangeException(paramName,
+                            $"'{paramName}' ({value}) must be between {min} and {max}");
+                    }
+                }
+            }
+            
+            // Usage
+            public void ProcessUser(string username, int age)
+            {
+                Guard.IsNotEmpty(username);
+                Guard.IsInRange(age, 0, 120);
+                // ...
+            }
+            </code>
+            </example>
+        </member>
+        <member name="M:System.Runtime.CompilerServices.CallerArgumentExpressionAttribute.#ctor(System.String)">
+            <summary>
+               Provides a polyfill attribute for legacy .NET frameworks that allows capturing the expression passed to a parameter.
+            </summary>
+            <remarks>
+               <para>
+                  This attribute is a substitute implementation for frameworks that don't natively support
+                  <see cref="T:System.Runtime.CompilerServices.CallerArgumentExpressionAttribute"/>, which was introduced in C# 10 and .NET 6.
+                  It enables features like automatic expression capturing for improved diagnostics and logging
+                  in older framework versions.
+               </para>
+               <para>
+                  <strong>Framework support:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>
+                        <strong>Native support:</strong> .NET 6+, .NET Core 3.1+, .NET Standard 2.1+
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Polyfill needed:</strong> .NET Framework 4.x, .NET Standard 2.0, older .NET Core versions
+                     </description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Key features:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>
+                        <strong>Expression capture:</strong> Automatically captures the expression text passed as an argument
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Compile-time feature:</strong> Works at compile time, no runtime overhead
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Conditional compilation:</strong> Only compiled for legacy frameworks via <c>OLD_FRAMEWORKS</c> symbol
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        <strong>Seamless integration:</strong> Provides same API as native implementation
+                     </description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Common use cases:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>Assertion methods that print variable names and values</description>
+                  </item>
+                  <item>
+                     <description>Logging methods that include expression context</description>
+                  </item>
+                  <item>
+                     <description>Validation methods with detailed error messages</description>
+                  </item>
+                  <item>
+                     <description>Diagnostic utilities that show code context</description>
+                  </item>
+               </list>
+               <para>
+                  <strong>Important notes:</strong>
+               </para>
+               <list type="bullet">
+                  <item>
+                     <description>
+                        This polyfill is only compiled when <c>OLD_FRAMEWORKS</c> is defined
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        The attribute must be in the <c>System.Runtime.CompilerServices</c> namespace
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        Requires C# 10+ compiler even when targeting older frameworks
+                     </description>
+                  </item>
+                  <item>
+                     <description>
+                        Modern frameworks use the built-in implementation from the BCL
+                     </description>
+                  </item>
+               </list>
+            </remarks>
+            <example>
+               <strong>Basic assertion method:</strong>
+               <code>
+            public static void IsTrue(bool condition, 
+                [CallerArgumentExpression(nameof(condition))] string? expression = null)
+            {
+                if (!condition)
+                {
+                    throw new AssertionException($"Assertion failed: {expression}");
+                }
+                Console.WriteLine($"Pass: {expression}");
+            }
+            
+            // Usage
+            int count = GetCount();
+            IsTrue(count &gt; 0);
+            // Output: Pass: count &gt; 0
+            
+            IsTrue(user.IsActive);
+            // Output: Pass: user.IsActive
+            </code>
+               <strong>Logging with context:</strong>
+               <code>
+            public static void LogValue&lt;T&gt;(T value,
+                [CallerArgumentExpression(nameof(value))] string? expression = null)
+            {
+                Console.WriteLine($"{expression} = {value}");
+            }
+            
+            // Usage
+            var result = CalculateSum(10, 20);
+            LogValue(result);
+            // Output: result = 30
+            
+            LogValue(DateTime.Now);
+            // Output: DateTime.Now = 2024-01-15 10:30:00
+            </code>
+               <strong>Validation with descriptive errors:</strong>
+               <code>
+            public static void NotNull&lt;T&gt;(T? value,
+                [CallerArgumentExpression(nameof(value))] string? expression = null)
+                where T : class
+            {
+                if (value is null)
+                {
+                    throw new ArgumentNullException(expression, $"'{expression}' cannot be null");
+                }
+            }
+            
+            // Usage
+            NotNull(user);
+            // Throws: ArgumentNullException: 'user' cannot be null
+            
+            NotNull(repository.GetById(id));
+            // Throws: ArgumentNullException: 'repository.GetById(id)' cannot be null
+            </code>
+               <strong>xUnit test assertions (as in BaseTest):</strong>
+               <code>
+            public void PrintVariable(object? value,
+                [CallerArgumentExpression(nameof(value))] string? name = null)
+            {
+                Output.WriteLine($"{name} = {value}");
+            }
+            
+            public void IsTrue(bool? value,
+                [CallerArgumentExpression(nameof(value))] string? name = null)
+            {
+                Assert.True(value);
+                PrintVariable(value, name);
+            }
+            
+            // Usage in test
+            [Fact]
+            public void Test_Example()
+            {
+                var result = service.Process();
+                IsTrue(result.IsSuccess);
+                // Output: result.IsSuccess = True
+            }
+            </code>
+               <strong>Debug helpers:</strong>
+               <code>
+            public static class Debug
+            {
+                public static T Inspect&lt;T&gt;(T value,
+                    [CallerArgumentExpression(nameof(value))] string? expression = null)
+                {
+                    Console.WriteLine($"[DEBUG] {expression} = {value}");
+                    return value;
+                }
+            }
+            
+            // Usage - can be inserted inline
+            var total = Debug.Inspect(items.Sum(x =&gt; x.Price));
+            // Output: [DEBUG] items.Sum(x =&gt; x.Price) = 150.50
+            
+            return Debug.Inspect(repository.Query().Where(x =&gt; x.IsActive).ToList());
+            // Output: [DEBUG] repository.Query().Where(x =&gt; x.IsActive).ToList() = [...]
+            </code>
+               <strong>Conditional compilation setup:</strong>
+               <code><![CDATA[
+            <!-- In .csproj for .NET Framework 4.7.2 -->
+            <PropertyGroup>
+                <TargetFramework>net472</TargetFramework>
+                <LangVersion>10.0</LangVersion>
+                <DefineConstants>$(DefineConstants);OLD_FRAMEWORKS</DefineConstants>
+            </PropertyGroup>
+            
+            <!-- In .csproj for .NET 8 - no OLD_FRAMEWORKS needed -->
+            <PropertyGroup>
+                <TargetFramework>net8.0</TargetFramework>
+                <LangVersion>12.0</LangVersion>
+            </PropertyGroup>
+            ]]></code>
+               <strong>Multi-parameter expression capture:</strong>
+               <code>
+            public static void AreEqual&lt;T&gt;(T expected, T actual,
+                [CallerArgumentExpression(nameof(expected))] string? expectedExpr = null,
+                [CallerArgumentExpression(nameof(actual))] string? actualExpr = null)
+            {
+                if (!EqualityComparer&lt;T&gt;.Default.Equals(expected, actual))
+                {
+                    throw new AssertionException(
+                        $"Expected {expectedExpr} ({expected}) to equal {actualExpr} ({actual})");
+                }
+            }
+            
+            // Usage
+            AreEqual(expectedCount, result.Count);
+            // Error: Expected expectedCount (10) to equal result.Count (5)
+            </code>
+               <strong>Guard clauses:</strong>
+               <code>
+            public static class Guard
+            {
+                public static void IsNotEmpty(string value,
+                    [CallerArgumentExpression(nameof(value))] string? paramName = null)
+                {
+                    if (string.IsNullOrEmpty(value))
+                    {
+                        throw new ArgumentException($"'{paramName}' cannot be null or empty", paramName);
+                    }
+                }
+                
+                public static void IsInRange(int value, int min, int max,
+                    [CallerArgumentExpression(nameof(value))] string? paramName = null)
+                {
+                    if (value &lt; min || value &gt; max)
+                    {
+                        throw new ArgumentOutOfRangeException(paramName,
+                            $"'{paramName}' ({value}) must be between {min} and {max}");
+                    }
+                }
+            }
+            
+            // Usage
+            public void ProcessUser(string username, int age)
+            {
+                Guard.IsNotEmpty(username);
+                Guard.IsInRange(age, 0, 120);
+                // ...
+            }
+            </code>
+            </example>
+        </member>
+        <member name="P:System.Runtime.CompilerServices.CallerArgumentExpressionAttribute.ParameterName">
+            <summary>
+               Gets the name of the parameter whose expression should be captured.
+            </summary>
+            <value>
+               The name of the parameter in the same method whose argument expression will be captured.
+            </value>
+            <remarks>
+               <para>
+                  This property specifies which parameter's expression should be captured and passed to
+                  the parameter decorated with this attribute. The value must match the name of another
+                  parameter in the same method signature.
+               </para>
+               <para>
+                  When the compiler encounters this attribute, it automatically captures the textual
+                  representation of the expression passed to the specified parameter and provides it
+                  as the default value for the decorated parameter.
+               </para>
+            </remarks>
+            <example>
+               <code>
+            // Method signature
+            public void AssertTrue(bool condition,
+                [CallerArgumentExpression(nameof(condition))] string? expr = null)
+            {
+                // ParameterName is "condition"
+                // When called with: AssertTrue(x &gt; 5)
+                // expr will be: "x &gt; 5"
+            }
+            </code>
+            </example>
+        </member>
+        <member name="M:System.Runtime.CompilerServices.CollectionBuilderAttribute.#ctor(System.Type,System.String)">
+            <summary>
+            Initialize the attribute to refer to the <paramref name="methodName"/> method on the <paramref name="builderType"/> type.
+            </summary>
+            <param name="builderType">The type of the builder to use to construct the collection.</param>
+            <param name="methodName">The name of the method on the builder to use to construct the collection.</param>
+            <remarks>
+            <paramref name="methodName"/> must refer to a static method that accepts a single parameter of
+            type <see cref="T:System.ReadOnlySpan`1"/> and returns an instance of the collection being built containing
+            a copy of the data from that span.  In future releases of .NET, additional patterns may be supported.
+            </remarks>
+        </member>
+        <member name="P:System.Runtime.CompilerServices.CollectionBuilderAttribute.BuilderType">
+            <summary>
+            Gets the type of the builder to use to construct the collection.
+            </summary>
+        </member>
+        <member name="P:System.Runtime.CompilerServices.CollectionBuilderAttribute.MethodName">
+            <summary>
+            Gets the name of the method on the builder to use to construct the collection.
+            </summary>
+            <remarks>
+            This should match the metadata name of the target method.
+            For example, this might be ".ctor" if targeting the type's constructor.
+            </remarks>
+        </member>
+        <member name="T:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute">
+            <summary>
+            Indicates that compiler support for a particular feature is required for the location where this attribute is applied.
+            </summary>
+        </member>
+        <member name="M:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute.#ctor(System.String)">
+            <summary>
+            Creates a new instance of the <see cref="T:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute"/> type.
+            </summary>
+            <param name="featureName">The name of the feature to indicate.</param>
+        </member>
+        <member name="P:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute.FeatureName">
+            <summary>
+            The name of the compiler feature.
+            </summary>
+        </member>
+        <member name="P:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute.IsOptional">
+            <summary>
+            If true, the compiler can choose to allow access to the location where this attribute is applied if it does not understand <see cref="P:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute.FeatureName"/>.
+            </summary>
+        </member>
+        <member name="F:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute.RefStructs">
+            <summary>
+            The <see cref="P:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute.FeatureName"/> used for the ref structs C# feature.
+            </summary>
+        </member>
+        <member name="F:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute.RequiredMembers">
+            <summary>
+            The <see cref="P:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute.FeatureName"/> used for the required members C# feature.
+            </summary>
+        </member>
+        <member name="T:System.Runtime.CompilerServices.InterpolatedStringHandlerArgumentAttribute">
+            <summary>
+            Indicates which arguments to a method involving an interpolated string handler should be passed to that handler.
+            </summary>
+        </member>
+        <member name="M:System.Runtime.CompilerServices.InterpolatedStringHandlerArgumentAttribute.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:System.Runtime.CompilerServices.InterpolatedStringHandlerArgumentAttribute"/> class.
+            </summary>
+            <param name="argument">The name of the argument that should be passed to the handler.</param>
+            <remarks><see langword="null"/> may be used as the name of the receiver in an instance method.</remarks>
+        </member>
+        <member name="M:System.Runtime.CompilerServices.InterpolatedStringHandlerArgumentAttribute.#ctor(System.String[])">
+            <summary>
+            Initializes a new instance of the <see cref="T:System.Runtime.CompilerServices.InterpolatedStringHandlerArgumentAttribute"/> class.
+            </summary>
+            <param name="arguments">The names of the arguments that should be passed to the handler.</param>
+            <remarks><see langword="null"/> may be used as the name of the receiver in an instance method.</remarks>
+        </member>
+        <member name="P:System.Runtime.CompilerServices.InterpolatedStringHandlerArgumentAttribute.Arguments">
+            <summary>
+            Gets the names of the arguments that should be passed to the handler.
+            </summary>
+            <remarks><see langword="null"/> may be used as the name of the receiver in an instance method.</remarks>
+        </member>
+        <member name="T:System.Runtime.CompilerServices.InterpolatedStringHandlerAttribute">
+            <summary>
+            Indicates the attributed type is to be used as an interpolated string handler.
+            </summary>
+        </member>
+        <member name="T:System.Runtime.CompilerServices.IsExternalInit">
+            <summary>
+            Reserved to be used by the compiler for tracking metadata.
+            This class should not be used by developers in source code.
+            </summary>
+        </member>
+        <member name="T:System.Runtime.CompilerServices.ModuleInitializerAttribute">
+             <summary>
+             Used to indicate to the compiler that a method should be called
+             in its containing module's initializer.
+             </summary>
+             <remarks>
+             When one or more valid methods
+             with this attribute are found in a compilation, the compiler will
+             emit a module initializer which calls each of the attributed methods.
+            
+             Certain requirements are imposed on any method targeted with this attribute:
+             - The method must be `static`.
+             - The method must be an ordinary member method, as opposed to a property accessor, constructor, local function, etc.
+             - The method must be parameterless.
+             - The method must return `void`.
+             - The method must not be generic or be contained in a generic type.
+             - The method's effective accessibility must be `internal` or `public`.
+            
+             The specification for module initializers in the .NET runtime can be found here:
+             https://github.com/dotnet/runtime/blob/main/docs/design/specs/Ecma-335-Augments.md#module-initializer
+             </remarks>
+        </member>
+        <member name="T:System.Runtime.CompilerServices.OverloadResolutionPriorityAttribute">
+            <summary>
+            Specifies the priority of a member in overload resolution. When unspecified, the default priority is 0.
+            </summary>
+        </member>
+        <member name="M:System.Runtime.CompilerServices.OverloadResolutionPriorityAttribute.#ctor(System.Int32)">
+            <summary>
+            Initializes a new instance of the <see cref="T:System.Runtime.CompilerServices.OverloadResolutionPriorityAttribute"/> class.
+            </summary>
+            <param name="priority">The priority of the attributed member. Higher numbers are prioritized, lower numbers are deprioritized. 0 is the default if no attribute is present.</param>
+        </member>
+        <member name="P:System.Runtime.CompilerServices.OverloadResolutionPriorityAttribute.Priority">
+            <summary>
+            The priority of the member.
+            </summary>
+        </member>
+        <member name="T:System.Runtime.CompilerServices.ParamCollectionAttribute">
+            <summary>
+            Indicates that a method will allow a variable number of arguments in its invocation.
+            </summary>
+        </member>
+        <member name="T:System.Runtime.CompilerServices.RequiredMemberAttribute">
+            <summary>
+            Specifies that a type has required members or that a member is required.
+            </summary>
+        </member>
+        <member name="T:System.Runtime.CompilerServices.RequiresLocationAttribute">
+            <summary>
+            Reserved for use by a compiler for tracking metadata.
+            This attribute should not be used by developers in source code.
+            </summary>
+        </member>
+        <member name="T:System.Runtime.CompilerServices.SkipLocalsInitAttribute">
+            <summary>
+            Used to indicate to the compiler that the <c>.locals init</c> flag should not be set in method headers.
+            </summary>
+        </member>
+        <member name="M:System.Runtime.Versioning.RequiresPreviewFeaturesAttribute.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:System.Runtime.Versioning.RequiresPreviewFeaturesAttribute"/> class.
+            </summary>
+        </member>
+        <member name="M:System.Runtime.Versioning.RequiresPreviewFeaturesAttribute.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:System.Runtime.Versioning.RequiresPreviewFeaturesAttribute"/> class with the specified message.
+            </summary>
+            <param name="message">An optional message associated with this attribute instance.</param>
+        </member>
+        <member name="P:System.Runtime.Versioning.RequiresPreviewFeaturesAttribute.Message">
+            <summary>
+            Returns the optional message associated with this attribute instance.
+            </summary>
+        </member>
+        <member name="P:System.Runtime.Versioning.RequiresPreviewFeaturesAttribute.Url">
+            <summary>
+            Returns the optional URL associated with this attribute instance.
+            </summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.AllowNullAttribute">
+            <summary>
+            Specifies that null is allowed as an input even if the corresponding type disallows it.
+            </summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.ConstantExpectedAttribute">
+            <summary>
+            Indicates that the specified method parameter expects a constant.
+            </summary>
+            <remarks>
+            This can be used to inform tooling that a constant should be used as an argument for the annotated parameter.
+            </remarks>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.ConstantExpectedAttribute.Min">
+            <summary>
+            Indicates the minimum bound of the expected constant, inclusive.
+            </summary>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.ConstantExpectedAttribute.Max">
+            <summary>
+            Indicates the maximum bound of the expected constant, inclusive.
+            </summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.DisallowNullAttribute">
+            <summary>
+            Specifies that null is disallowed as an input even if the corresponding type allows it.
+            </summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute">
+            <summary>
+            Applied to a method that will never return under any circumstance.
+            </summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute">
+            <summary>
+            Specifies that the method will not return if the associated Boolean parameter is passed the specified value.
+            </summary>
+        </member>
+        <member name="M:System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute.#ctor(System.Boolean)">
+            <summary>
+            Initializes the attribute with the specified parameter value.
+            </summary>
+            <param name="parameterValue">
+            The condition parameter value. Code after the method will be considered unreachable
+            by diagnostics if the argument to the associated parameter matches this value.
+            </param>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute.ParameterValue">
+            <summary>
+            Gets the condition parameter value.
+            </summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.ExperimentalAttribute">
+            <summary>
+            Indicates that an API is experimental and it may change in the future.
+            </summary>
+            <remarks>
+            This attribute allows call sites to be flagged with a diagnostic that indicates that an experimental
+            feature is used. Authors can use this attribute to ship preview features in their assemblies.
+            </remarks>
+        </member>
+        <member name="M:System.Diagnostics.CodeAnalysis.ExperimentalAttribute.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:System.Diagnostics.CodeAnalysis.ExperimentalAttribute"/> class,
+            specifying the ID that the compiler will use when reporting a use of the API the attribute applies to.
+            </summary>
+            <param name="diagnosticId">The ID that the compiler will use when reporting a use of the API the attribute applies to.</param>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.ExperimentalAttribute.DiagnosticId">
+            <summary>
+            Gets the ID that the compiler will use when reporting a use of the API the attribute applies to.
+            </summary>
+            <value>The unique diagnostic ID.</value>
+            <remarks>
+            The diagnostic ID is shown in build output for warnings and errors.
+            <para>This property represents the unique ID that can be used to suppress the warnings or errors, if needed.</para>
+            </remarks>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.ExperimentalAttribute.UrlFormat">
+            <summary>
+            Gets or sets the URL for corresponding documentation.
+            The API accepts a format string instead of an actual URL, creating a generic URL that includes the diagnostic ID.
+            </summary>
+            <value>The format string that represents a URL to corresponding documentation.</value>
+            <remarks>An example format string is <c>https://contoso.com/obsoletion-warnings/{0}</c>.</remarks>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.MaybeNullAttribute">
+            <summary>
+            Specifies that an output may be null even if the corresponding type disallows it.
+            </summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute">
+            <summary>
+            Specifies that when a method returns <see cref="P:System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute.ReturnValue"/>, the parameter may be null even if the corresponding type disallows it.
+            </summary>
+        </member>
+        <member name="M:System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute.#ctor(System.Boolean)">
+            <summary>
+            Initializes the attribute with the specified return value condition.
+            </summary>
+            <param name="returnValue">The return value condition. If the method returns this value, the associated parameter may be null.</param>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute.ReturnValue">
+            <summary>
+            Gets the return value condition.
+            </summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.MemberNotNullAttribute">
+            <summary>
+            Specifies that the method or property will ensure that the listed field and property members have not-null values.
+            </summary>
+        </member>
+        <member name="M:System.Diagnostics.CodeAnalysis.MemberNotNullAttribute.#ctor(System.String)">
+            <summary>
+            Initializes the attribute with a field or property member.
+            </summary>
+            <param name="member">The field or property member that is promised to be not-null.</param>
+        </member>
+        <member name="M:System.Diagnostics.CodeAnalysis.MemberNotNullAttribute.#ctor(System.String[])">
+            <summary>
+            Initializes the attribute with the list of field and property members.
+            </summary>
+            <param name="members">The list of field and property members that are promised to be not-null.</param>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.MemberNotNullAttribute.Members">
+            <summary>
+            Gets field or property member names.
+            </summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute">
+            <summary>
+            Specifies that the method or property will ensure that the listed field and property
+            members have not-null values when returning with the specified return value condition.
+            </summary>
+        </member>
+        <member name="M:System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute.#ctor(System.Boolean,System.String)">
+            <summary>
+            Initializes the attribute with the specified return value condition and a field or property member.
+            </summary>
+            <param name="returnValue">The return value condition. If the method returns this value, the associated parameter will not be null.</param>
+            <param name="member">The field or property member that is promised to be not-null.</param>
+        </member>
+        <member name="M:System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute.#ctor(System.Boolean,System.String[])">
+            <summary>
+            Initializes the attribute with the specified return value condition and list of field and property members.
+            </summary>
+            <param name="returnValue">The return value condition. If the method returns this value, the associated parameter will not be null.</param>
+            <param name="members">The list of field and property members that are promised to be not-null.</param>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute.ReturnValue">
+            <summary>
+            Gets the return value condition.
+            </summary>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute.Members">
+            <summary>
+            Gets field or property member names.
+            </summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.NotNullAttribute">
+            <summary>
+            Specifies that an output will not be null even if the corresponding type allows it.
+            Specifies that an input argument was not null when the call returns.
+            </summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute">
+            <summary>
+            Specifies that the output will be non-null if the named parameter is non-null.
+            </summary>
+        </member>
+        <member name="M:System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute.#ctor(System.String)">
+            <summary>
+            Initializes the attribute with the associated parameter name.
+            </summary>
+            <param name="parameterName">The associated parameter name. The output will be non-null if the argument to the parameter specified is non-null.</param>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute.ParameterName">
+            <summary>
+            Gets the associated parameter name.
+            </summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.NotNullWhenAttribute">
+            <summary>
+            Specifies that when a method returns <see cref="P:System.Diagnostics.CodeAnalysis.NotNullWhenAttribute.ReturnValue"/>, the parameter will not be null even if the corresponding type allows it.
+            </summary>
+        </member>
+        <member name="M:System.Diagnostics.CodeAnalysis.NotNullWhenAttribute.#ctor(System.Boolean)">
+            <summary>
+            Initializes the attribute with the specified return value condition.
+            </summary>
+            <param name="returnValue">The return value condition. If the method returns this value, the associated parameter will not be null.</param>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.NotNullWhenAttribute.ReturnValue">
+            <summary>Gets the return value condition.</summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute">
+            <summary>
+            Specifies that this constructor sets all required members for the current type,
+            and callers do not need to set any required members themselves.
+            </summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute">
+            <summary>
+            Specifies the syntax used in a string.
+            </summary>
+        </member>
+        <member name="M:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.#ctor(System.String)">
+            <summary>
+            Initializes the <see cref="T:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute"/> with the identifier of the syntax used.
+            </summary>
+            <param name="syntax">The syntax identifier.</param>
+        </member>
+        <member name="M:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.#ctor(System.String,System.Object[])">
+            <summary>Initializes the <see cref="T:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute"/> with the identifier of the syntax used.</summary>
+            <param name="syntax">The syntax identifier.</param>
+            <param name="arguments">Optional arguments associated with the specific syntax employed.</param>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.Syntax">
+            <summary>Gets the identifier of the syntax used.</summary>
+        </member>
+        <member name="P:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.Arguments">
+            <summary>Optional arguments associated with the specific syntax employed.</summary>
+        </member>
+        <member name="F:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.CompositeFormat">
+            <summary>The syntax identifier for strings containing composite formats for string formatting.</summary>
+        </member>
+        <member name="F:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.DateOnlyFormat">
+            <summary>The syntax identifier for strings containing date format specifiers.</summary>
+        </member>
+        <member name="F:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.DateTimeFormat">
+            <summary>The syntax identifier for strings containing date and time format specifiers.</summary>
+        </member>
+        <member name="F:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.EnumFormat">
+            <summary>The syntax identifier for strings containing <see cref="T:System.Enum"/> format specifiers.</summary>
+        </member>
+        <member name="F:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.GuidFormat">
+            <summary>The syntax identifier for strings containing <see cref="T:System.Guid"/> format specifiers.</summary>
+        </member>
+        <member name="F:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.Json">
+            <summary>The syntax identifier for strings containing JavaScript Object Notation (JSON).</summary>
+        </member>
+        <member name="F:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.NumericFormat">
+            <summary>The syntax identifier for strings containing numeric format specifiers.</summary>
+        </member>
+        <member name="F:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.Regex">
+            <summary>The syntax identifier for strings containing regular expressions.</summary>
+        </member>
+        <member name="F:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.TimeOnlyFormat">
+            <summary>The syntax identifier for strings containing time format specifiers.</summary>
+        </member>
+        <member name="F:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.TimeSpanFormat">
+            <summary>The syntax identifier for strings containing <see cref="T:System.TimeSpan"/> format specifiers.</summary>
+        </member>
+        <member name="F:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.Uri">
+            <summary>The syntax identifier for strings containing URIs.</summary>
+        </member>
+        <member name="F:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute.Xml">
+            <summary>The syntax identifier for strings containing XML.</summary>
+        </member>
+        <member name="T:System.Diagnostics.CodeAnalysis.UnscopedRefAttribute">
+            <summary>
+            Used to indicate a byref escapes and is not scoped.
+            </summary>
+            <remarks>
+            <para>
+            There are several cases where the C# compiler treats a <see langword="ref"/> as implicitly
+            <see langword="scoped"/> - where the compiler does not allow the <see langword="ref"/> to escape the method.
+            </para>
+            <para>
+            For example:
+            <list type="number">
+                <item><see langword="this"/> for <see langword="struct"/> instance methods.</item>
+                <item><see langword="ref"/> parameters that refer to <see langword="ref"/> <see langword="struct"/> types.</item>
+                <item><see langword="out"/> parameters.</item>
+            </list>
+            </para>
+            <para>
+            This attribute is used in those instances where the <see langword="ref"/> should be allowed to escape.
+            </para>
+            <para>
+            Applying this attribute, in any form, has impact on consumers of the applicable API. It is necessary for
+            API authors to understand the lifetime implications of applying this attribute and how it may impact their users.
+            </para>
+            </remarks>
+        </member>
+        <member name="T:System.Index">
+            <summary>Represent a type can be used to index a collection either from the start or the end.</summary>
+            <remarks>
+            Index is used by the C# compiler to support the new index syntax
+            <code>
+            int[] someArray = new int[5] { 1, 2, 3, 4, 5 } ;
+            int lastElement = someArray[^1]; // lastElement = 5
+            </code>
+            </remarks>
+        </member>
+        <member name="M:System.Index.#ctor(System.Int32,System.Boolean)">
+            <summary>Construct an Index using a value and indicating if the index is from the start or from the end.</summary>
+            <param name="value">The index value. it has to be zero or positive number.</param>
+            <param name="fromEnd">Indicating if the index is from the start or from the end.</param>
+            <remarks>
+            If the Index constructed from the end, index value 1 means pointing at the last element and index value 0 means pointing at beyond last element.
+            </remarks>
+        </member>
+        <member name="P:System.Index.Start">
+            <summary>Create an Index pointing at first element.</summary>
+        </member>
+        <member name="P:System.Index.End">
+            <summary>Create an Index pointing at beyond last element.</summary>
+        </member>
+        <member name="M:System.Index.FromStart(System.Int32)">
+            <summary>Create an Index from the start at the position indicated by the value.</summary>
+            <param name="value">The index value from the start.</param>
+        </member>
+        <member name="M:System.Index.FromEnd(System.Int32)">
+            <summary>Create an Index from the end at the position indicated by the value.</summary>
+            <param name="value">The index value from the end.</param>
+        </member>
+        <member name="P:System.Index.Value">
+            <summary>Returns the index value.</summary>
+        </member>
+        <member name="P:System.Index.IsFromEnd">
+            <summary>Indicates whether the index is from the start or the end.</summary>
+        </member>
+        <member name="M:System.Index.GetOffset(System.Int32)">
+            <summary>Calculate the offset from the start using the giving collection length.</summary>
+            <param name="length">The length of the collection that the Index will be used with. length has to be a positive value</param>
+            <remarks>
+            For performance reason, we don't validate the input length parameter and the returned offset value against negative values.
+            we don't validate either the returned offset is greater than the input length.
+            It is expected Index will be used with collections which always have non negative length/count. If the returned offset is negative and
+            then used to index a collection will get out of range exception which will be same affect as the validation.
+            </remarks>
+        </member>
+        <member name="M:System.Index.Equals(System.Object)">
+            <summary>Indicates whether the current Index object is equal to another object of the same type.</summary>
+            <param name="value">An object to compare with this object</param>
+        </member>
+        <member name="M:System.Index.Equals(System.Index)">
+            <summary>Indicates whether the current Index object is equal to another Index object.</summary>
+            <param name="other">An object to compare with this object</param>
+        </member>
+        <member name="M:System.Index.GetHashCode">
+            <summary>Returns the hash code for this instance.</summary>
+        </member>
+        <member name="M:System.Index.op_Implicit(System.Int32)~System.Index">
+            <summary>Converts integer number to an Index.</summary>
+        </member>
+        <member name="M:System.Index.ToString">
+            <summary>Converts the value of the current Index object to its equivalent string representation.</summary>
+        </member>
+        <member name="T:System.Range">
+            <summary>Represent a range has start and end indexes.</summary>
+            <remarks>
+            Range is used by the C# compiler to support the range syntax.
+            <code>
+            int[] someArray = new int[5] { 1, 2, 3, 4, 5 };
+            int[] subArray1 = someArray[0..2]; // { 1, 2 }
+            int[] subArray2 = someArray[1..^0]; // { 2, 3, 4, 5 }
+            </code>
+            </remarks>
+        </member>
+        <member name="P:System.Range.Start">
+            <summary>Represent the inclusive start index of the Range.</summary>
+        </member>
+        <member name="P:System.Range.End">
+            <summary>Represent the exclusive end index of the Range.</summary>
+        </member>
+        <member name="M:System.Range.#ctor(System.Index,System.Index)">
+            <summary>Construct a Range object using the start and end indexes.</summary>
+            <param name="start">Represent the inclusive start index of the range.</param>
+            <param name="end">Represent the exclusive end index of the range.</param>
+        </member>
+        <member name="M:System.Range.Equals(System.Object)">
+            <summary>Indicates whether the current Range object is equal to another object of the same type.</summary>
+            <param name="value">An object to compare with this object</param>
+        </member>
+        <member name="M:System.Range.Equals(System.Range)">
+            <summary>Indicates whether the current Range object is equal to another Range object.</summary>
+            <param name="other">An object to compare with this object</param>
+        </member>
+        <member name="M:System.Range.GetHashCode">
+            <summary>Returns the hash code for this instance.</summary>
+        </member>
+        <member name="M:System.Range.ToString">
+            <summary>Converts the value of the current Range object to its equivalent string representation.</summary>
+        </member>
+        <member name="M:System.Range.StartAt(System.Index)">
+            <summary>Create a Range object starting from start index to the end of the collection.</summary>
+        </member>
+        <member name="M:System.Range.EndAt(System.Index)">
+            <summary>Create a Range object starting from first element in the collection to the end Index.</summary>
+        </member>
+        <member name="P:System.Range.All">
+            <summary>Create a Range object starting from first element to the end.</summary>
+        </member>
+        <member name="M:System.Range.GetOffsetAndLength(System.Int32)">
+            <summary>Calculate the start offset and length of range object using a collection length.</summary>
+            <param name="length">The length of the collection that the range will be used with. length has to be a positive value.</param>
+            <remarks>
+            For performance reason, we don't validate the input length parameter against negative values.
+            It is expected Range will be used with collections which always have non negative length/count.
+            We validate the range is inside the length scope though.
+            </remarks>
+        </member>
     </members>
 </doc>

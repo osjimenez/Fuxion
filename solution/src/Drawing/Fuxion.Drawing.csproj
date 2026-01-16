@@ -5,6 +5,7 @@
 		<Title>Fuxion Drawing</Title>
 		<PackageId>Fuxion.Drawing</PackageId>
 		<Description>Fuxion library for drawing</Description>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>

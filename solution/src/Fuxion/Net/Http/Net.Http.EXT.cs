@@ -15,18 +15,58 @@ using Fuxion.Reflection;
 
 namespace Fuxion.Net.Http;
 
+/// <summary>
+/// Provides extension methods for converting <see cref="HttpResponseMessage"/> to Fuxion <see cref="Response"/> objects.
+/// </summary>
+/// <remarks>
+/// <para>
+/// This class enables seamless integration between HTTP client operations and Fuxion's Response pattern,
+/// providing rich error handling, payload extraction, and RFC 7807 Problem Details support.
+/// </para>
+/// <para>
+/// Key features:
+/// </para>
+/// <list type="bullet">
+/// <item><description>Automatic HTTP status code to ErrorType mapping</description></item>
+/// <item><description>RFC 7807 Problem Details deserialization</description></item>
+/// <item><description>JSON payload extraction with type safety</description></item>
+/// <item><description>Stream and byte array support for file downloads</description></item>
+/// <item><description>Rich extension data (status codes, content types, headers)</description></item>
+/// </list>
+/// </remarks>
 public static class Extensions
 {
+	/// <summary>Key for accessing inner Problem Details from Response extensions.</summary>
 	public const string InnerProblemKey = "inner-problem";
+	
+	/// <summary>Key for accessing JSON content as JsonElement from Response extensions.</summary>
 	public const string JsonContentKey = "json-content";
+	
+	/// <summary>Key for accessing JSON deserialization errors from Response extensions.</summary>
 	public const string JsonErrorKey = "json-error";
+	
+	/// <summary>Key for accessing string content from Response extensions.</summary>
 	public const string StringContentKey = "string-content";
+	
+	/// <summary>Key for accessing payloads from Problem Details extensions.</summary>
 	public const string PayloadKey = "payload";
+	
+	/// <summary>Key for accessing exceptions from Response extensions.</summary>
 	public const string ExceptionKey = "exception";
+	
+	/// <summary>Key for accessing HTTP status codes from Response extensions.</summary>
 	public const string StatusCodeKey = "status-code";
+	
+	/// <summary>Key for accessing reason phrases from Response extensions.</summary>
 	public const string ReasonPhraseKey = "reason-phrase";
+	
+	/// <summary>Key for accessing content length headers from Response extensions.</summary>
 	public const string ContentLengthKey = "content-length";
+	
+	/// <summary>Key for accessing content type headers from Response extensions.</summary>
 	public const string ContentTypeKey = "content-type";
+	
+	/// <summary>Key for accessing file names from Content-Disposition headers.</summary>
 	public const string FileNameKey = "file-name";
 
 	// Internal helper that performs the heavy lifting
@@ -75,13 +115,13 @@ public static class Extensions
 #endif
 		);
 
-		
+
 		if (!strContent.IsNullOrEmpty())
 		{
-			
+
 			if (res.Content.Headers.ContentType?.MediaType == "application/problem+json")
 			{
-				var problemResponse = strContent.Fx.Json.Deserialize<ResponseProblemDetails>(options:jsonOptions);
+				var problemResponse = strContent.Fx.Json.Deserialize<ResponseProblemDetails>(options: jsonOptions);
 				if (problemResponse.IsSuccess)
 				{
 					problem = problemResponse.Payload;
@@ -91,14 +131,14 @@ public static class Extensions
 			if (problem is null)
 			{
 				var ele = strContent.Fx.Json.SerializeToElement();
-				if(ele.IsError)
+				if (ele.IsError)
 					extensions.Add((StringContentKey, strContent));
 				extensions.Add(ele.Payload.ValueKind == JsonValueKind.String
 					? (StringContentKey, ele.Payload)
 					: (JsonContentKey, ele.Payload));
 				if (deserializationType is not null)
 				{
-					var deserializationResponse = strContent.Fx.Json.Deserialize(deserializationType, options:jsonOptions);
+					var deserializationResponse = strContent.Fx.Json.Deserialize(deserializationType, options: jsonOptions);
 					if (deserializationResponse.IsSuccess)
 						deserializedBody = deserializationResponse.Payload;
 					else
@@ -124,14 +164,14 @@ public static class Extensions
 
 		if (res.IsSuccessStatusCode)
 			if (extensions.Any(e => e.Item1 == StringContentKey))
-				return Response.SuccessMessage(extensions.First(e => e.Item1 == StringContentKey)
+				return Response.Get.SuccessMessage(extensions.First(e => e.Item1 == StringContentKey)
 					.Item2?.ToString() ?? string.Empty, extensions);
 			else
-				return Response.Success(extensions);
+				return Response.Get.Success(extensions);
 
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
-		return Response
+		return Response.Get
 			.ErrorMessage(
 				problem?.Detail
 				?? extensions.FirstOrDefault(e => e.Item1 == StringContentKey).Item2?.ToString()
@@ -148,14 +188,14 @@ public static class Extensions
 		if (res.IsSuccessStatusCode)
 		{
 			if (deserializedBody is TPayload payload)
-				return Response.SuccessPayload(payload, extensions: extensions);
+				return Response.Get.SuccessPayload(payload, extensions: extensions);
 			if (extensions.Any(e => e.Item1 == JsonContentKey))
-				return Response
+				return Response.Get
 					.InvalidData($"The content of the response isn't '{typeof(TPayload).GetSignature()}' type.",
 						extensions: extensions,
 						exception: exception)
 					.AsPayload<TPayload>();
-			return Response
+			return Response.Get
 				.InvalidData("The content of the response isn't a valid json.",
 					extensions: extensions,
 					exception: exception)
@@ -163,10 +203,10 @@ public static class Extensions
 		}
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
-		return Response
+		return Response.Get
 			.ErrorMessage(
 				problem?.Detail
-				?? extensions.FirstOrDefault(e=>e.Item1==StringContentKey).Item2?.ToString()
+				?? extensions.FirstOrDefault(e => e.Item1 == StringContentKey).Item2?.ToString()
 				?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.",
 				type: errorType,
 				extensions: extensions,
@@ -174,6 +214,15 @@ public static class Extensions
 			.AsPayload<TPayload>();
 	}
 
+	/// <summary>
+	/// Maps HTTP status codes to Fuxion ErrorType values.
+	/// </summary>
+	/// <param name="statusCode">The HTTP status code to map.</param>
+	/// <returns>The corresponding <see cref="ErrorType"/>.</returns>
+	/// <remarks>
+	/// This method provides comprehensive mapping for all standard HTTP 4xx and 5xx status codes
+	/// based on their semantic meaning. The mappings follow RFC 7231 and related HTTP specifications.
+	/// </remarks>
 	static ErrorType HttpStatusCodeToErrorType(HttpStatusCode statusCode)
 		=> statusCode switch
 		{
@@ -266,31 +315,136 @@ public static class Extensions
 			var _ => ErrorType.Critical
 		};
 
-	// New C# 14 extension syntax blocks
-
-	// Task<HttpResponseMessage> receivers
+	/// <summary>
+	/// Extension methods for Task&lt;HttpResponseMessage&gt; to convert to Response objects.
+	/// </summary>
 	extension(Task<HttpResponseMessage> me)
 	{
+		/// <summary>
+		/// Converts an HTTP response to a Fuxion Response object asynchronously.
+		/// </summary>
+		/// <param name="jsonOptions">Optional JSON serialization options.</param>
+		/// <param name="ct">Cancellation token.</param>
+		/// <returns>A Response object containing success/error information and extensions with HTTP metadata.</returns>
+		/// <remarks>
+		/// This overload doesn't deserialize the response body into a typed payload.
+		/// Use the generic overload if you need typed payload extraction.
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// var response = await httpClient.GetAsync("/api/endpoint").AsResponseAsync();
+		/// if (response.IsSuccess)
+		/// {
+		///     // Access status code
+		///     var statusCode = response.Extensions[Extensions.StatusCodeKey];
+		/// }
+		/// </code>
+		/// </example>
 		public async Task<Response> AsResponseAsync(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 			=> await Extensions.AsResponseFromMessageAsync(await me, jsonOptions, ct);
 
+		/// <summary>
+		/// Converts an HTTP response to a Fuxion Response&lt;TPayload&gt; object asynchronously with automatic JSON deserialization.
+		/// </summary>
+		/// <typeparam name="TPayload">The type to deserialize the response body into. Can be Stream or byte[] for binary content.</typeparam>
+		/// <param name="jsonOptions">Optional JSON serialization options.</param>
+		/// <param name="ct">Cancellation token.</param>
+		/// <returns>A Response&lt;TPayload&gt; object containing the deserialized payload on success or error information.</returns>
+		/// <remarks>
+		/// <para>Special handling for specific payload types:</para>
+		/// <list type="bullet">
+		/// <item><description>Stream: Returns the response stream directly (useful for file downloads)</description></item>
+		/// <item><description>byte[]: Returns the response bytes directly</description></item>
+		/// <item><description>Other types: Attempts JSON deserialization</description></item>
+		/// </list>
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// // JSON payload
+		/// var response = await httpClient.GetAsync("/api/users/1")
+		///     .AsResponseAsync&lt;User&gt;();
+		/// if (response.IsSuccess)
+		/// {
+		///     var user = response.Payload;
+		///     Console.WriteLine(user.Name);
+		/// }
+		/// 
+		/// // File download
+		/// var fileResponse = await httpClient.GetAsync("/api/files/download")
+		///     .AsResponseAsync&lt;Stream&gt;();
+		/// if (fileResponse.IsSuccess)
+		/// {
+		///     await using var stream = fileResponse.Payload;
+		///     // Save stream to file...
+		/// }
+		/// </code>
+		/// </example>
 		public async Task<Response<TPayload>> AsResponseAsync<TPayload>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 			=> await Extensions.AsResponseFromMessageAsync<TPayload>(await me, jsonOptions, ct);
 	}
 
-	// HttpResponseMessage receivers
+	/// <summary>
+	/// Extension methods for HttpResponseMessage to convert to Response objects.
+	/// </summary>
 	extension(HttpResponseMessage res)
 	{
+		/// <summary>
+		/// Converts this HTTP response to a Fuxion Response object asynchronously.
+		/// </summary>
+		/// <param name="jsonOptions">Optional JSON serialization options.</param>
+		/// <param name="ct">Cancellation token.</param>
+		/// <returns>A Response object containing success/error information and extensions with HTTP metadata.</returns>
+		/// <example>
+		/// <code>
+		/// HttpResponseMessage httpResponse = await httpClient.GetAsync("/api/endpoint");
+		/// var response = await httpResponse.AsResponseAsync();
+		/// </code>
+		/// </example>
 		public async Task<Response> AsResponseAsync(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 			=> await Extensions.AsResponseFromMessageAsync(res, jsonOptions, ct);
 
+		/// <summary>
+		/// Converts this HTTP response to a Fuxion Response&lt;TPayload&gt; object asynchronously with automatic JSON deserialization.
+		/// </summary>
+		/// <typeparam name="TPayload">The type to deserialize the response body into.</typeparam>
+		/// <param name="jsonOptions">Optional JSON serialization options.</param>
+		/// <param name="ct">Cancellation token.</param>
+		/// <returns>A Response&lt;TPayload&gt; object containing the deserialized payload on success or error information.</returns>
+		/// <example>
+		/// <code>
+		/// HttpResponseMessage httpResponse = await httpClient.PostAsync("/api/users", content);
+		/// var response = await httpResponse.AsResponseAsync&lt;User&gt;();
+		/// </code>
+		/// </example>
 		public async Task<Response<TPayload>> AsResponseAsync<TPayload>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 			=> await Extensions.AsResponseFromMessageAsync<TPayload>(res, jsonOptions, ct);
 	}
 
-	// IResponse receivers
+	/// <summary>
+	/// Extension methods for IResponse to extract Problem Details.
+	/// </summary>
 	extension(IResponse me)
 	{
+		/// <summary>
+		/// Attempts to extract RFC 7807 Problem Details from the response extensions.
+		/// </summary>
+		/// <param name="problem">When this method returns true, contains the Problem Details; otherwise, null.</param>
+		/// <returns>true if Problem Details were found; otherwise, false.</returns>
+		/// <remarks>
+		/// This method looks for the <see cref="InnerProblemKey"/> in the response extensions.
+		/// Problem Details are automatically extracted when the response Content-Type is "application/problem+json".
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// var response = await httpClient.GetAsync("/api/endpoint").AsResponseAsync();
+		/// if (!response.IsSuccess &amp;&amp; response.TryGetProblemDetails(out var problem))
+		/// {
+		///     Console.WriteLine($"Problem Type: {problem.Type}");
+		///     Console.WriteLine($"Problem Title: {problem.Title}");
+		///     Console.WriteLine($"Problem Detail: {problem.Detail}");
+		/// }
+		/// </code>
+		/// </example>
 		public bool TryGetProblemDetails([NotNullWhen(true)] out ResponseProblemDetails? problem)
 		{
 			if (me.Extensions.TryGetValue(InnerProblemKey, out var obj) && obj is ResponseProblemDetails res)
@@ -303,9 +457,36 @@ public static class Extensions
 		}
 	}
 
-	// ResponseProblemDetails receivers
+	/// <summary>
+	/// Extension methods for ResponseProblemDetails to extract typed payloads.
+	/// </summary>
 	extension(ResponseProblemDetails problem)
 	{
+		/// <summary>
+		/// Attempts to extract and deserialize a typed payload from Problem Details extensions.
+		/// </summary>
+		/// <typeparam name="TPayload">The type to deserialize the payload into.</typeparam>
+		/// <param name="payload">When this method returns true, contains the deserialized payload; otherwise, default.</param>
+		/// <param name="jsonOptions">Optional JSON serialization options.</param>
+		/// <returns>true if a payload was successfully extracted and deserialized; otherwise, false.</returns>
+		/// <remarks>
+		/// This method looks for the <see cref="PayloadKey"/> in the Problem Details extensions
+		/// and attempts to deserialize it as a JsonElement to the specified type.
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// if (response.TryGetProblemDetails(out var problem))
+		/// {
+		///     if (problem.TryGetPayload&lt;ValidationErrors&gt;(out var errors))
+		///     {
+		///         foreach (var error in errors.Errors)
+		///         {
+		///             Console.WriteLine($"Field {error.Field}: {error.Message}");
+		///         }
+		///     }
+		/// }
+		/// </code>
+		/// </example>
 		public bool TryGetPayload<TPayload>([NotNullWhen(true)] out TPayload? payload, JsonSerializerOptions? jsonOptions = null)
 		{
 			if (problem.Extensions.TryGetValue(PayloadKey, out var obj) && obj is JsonElement jsonElement)

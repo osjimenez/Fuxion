@@ -1,24 +1,25 @@
 using System;
 using System.Collections.Generic;
+using Fuxion;
 using Fuxion.Text.Json;
 using Fuxion.Xunit;
 using Xunit;
 
-namespace Fuxion.Test;
+namespace Test.Fuxion;
 
 public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(output)
 {
-	public Response GetSuccess() => Response.Success();
-	public Response GetSuccessMessage() => Response.SuccessMessage("message");
-	public Response GetSuccessMessageWithExtensions() => Response.SuccessMessage("message", [("Extension", 123.456)]);
-	public Response<int> GetSuccessWithPayload() => Response.SuccessPayload(123);
+	public Response GetSuccess() => Response.Get.Success();
+	public Response GetSuccessMessage() => Response.Get.SuccessMessage("message");
+	public Response GetSuccessMessageWithExtensions() => Response.Get.SuccessMessage("message", [("Extension", 123.456)]);
+	public Response<int> GetSuccessWithPayload() => Response.Get.SuccessPayload(123);
 	public Response<int> GetSuccessWithPayloadAndExtensions()
-		=> Response.SuccessPayload(123, extensions: [("Extension", 123.456)]);
-	public Response GetError() => Response.ErrorMessage("message");
-	public Response<int> GetErrorWithPayload() => Response.ErrorPayload(123, "message");
-	public Response GetNotFound() => Response.NotFound("message");
-	public Response<int> GetNotFoundWithPayload() => Response.NotFound("message", 123);
-	public Response<int> GetNotFoundWithPayloadAndExtensions() => Response.NotFound("message", 123, extensions: [("Extension", 123.456)]);
+		=> Response.Get.SuccessPayload(123, extensions: [("Extension", 123.456)]);
+	public Response GetError() => Response.Get.ErrorMessage("message");
+	public Response<int> GetErrorWithPayload() => Response.Get.ErrorPayload(123, "message");
+	public Response GetNotFound() => Response.Get.NotFound("message");
+	public Response<int> GetNotFoundWithPayload() => Response.Get.NotFound("message", 123);
+	public Response<int> GetNotFoundWithPayloadAndExtensions() => Response.Get.NotFound("message", 123, extensions: [("Extension", 123.456)]);
 	public CustomError GetCustomError() => Response.Custom("message", "customData");
 	[Fact]
 	public void ImplicitConversion()
@@ -29,23 +30,23 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 		Assert.Equal(123, val);
 
 		return;
-		int OkInt() => Response.SuccessPayload(123);
-		int ErrorInt() => Response.ErrorPayload<int>(456, "message");
+		int OkInt() => Response.Get.SuccessPayload(123);
+		int ErrorInt() => Response.Get.ErrorPayload<int>(456, "message");
 		Response<int> OkResponse() => 123;
 	}
 	[Fact]
 	public void Success()
 	{
-		var s1 = Response.Success();
+		var s1 = Response.Get.Success();
 
 		Assert.Null(s1.Message);
 		Assert.Throws<InvalidOperationException>(() => s1.AsPayload<string?>().Payload);
-		var s2 = Response.SuccessMessage("message");
+		var s2 = Response.Get.SuccessMessage("message");
 		Assert.NotNull(s2.Message);
-		var s3 = Response.SuccessPayload(payload: "payload");
+		var s3 = Response.Get.SuccessPayload(payload: "payload");
 		Assert.Null(s3.Message);
 		Assert.NotNull(s3.Payload);
-		var s4 = Response.SuccessPayload(123);
+		var s4 = Response.Get.SuccessPayload(123);
 		Assert.Null(s4.Message);
 		Assert.Equal(123, s4.Payload);
 	}
@@ -69,18 +70,18 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 
 		var results = new[]
 		{
-			Response.Success(),
-			Response.SuccessMessage("message", [("Extension", 123.456)]),
-			Response.SuccessPayload(123, "message"),
-			Response.NotFound("message"),
-			Response.ErrorPayload(new Payload("Bob", 25), "message", extensions: [("Extension", 123.456)])
+			Response.Get.Success(),
+			Response.Get.SuccessMessage("message", [("Extension", 123.456)]),
+			Response.Get.SuccessPayload(123, "message"),
+			Response.Get.NotFound("message"),
+			Response.Get.ErrorPayload(new Payload("Bob", 25), "message", extensions: [("Extension", 123.456)])
 		};
 		PrintVariable(results.Fx.Json.Serialize(true).Payload);
 		PrintVariable(results.CombineResponses().Fx.Json.Serialize(true).Payload);
 
-		IsTrue(GetNotFound().IsNotFound());
+		IsTrue(GetNotFound().IsNotFound);
 		IsTrue(GetNotFound().IsErrorType(ErrorType.NotFound));
-		IsTrue(GetNotFoundWithPayload().IsNotFound());
+		IsTrue(GetNotFoundWithPayload().IsNotFound);
 	}
 	[Fact]
 	public void Exception()
@@ -98,12 +99,12 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 			} catch (Exception ex)
 			{
 				PrintVariable(ex.Fx.Json.Serialize(true).Payload);
-				return Response.Critical("Exception", exception: ex).AsPayload<int>();
+				return Response.Get.Critical("Exception", exception: ex).AsPayload<int>();
 			}
 		}
 		Response<int> Do2()
 		{
-			return Response.SuccessPayload(dic[1]);
+			return Response.Get.SuccessPayload(dic[1]);
 		}
 	}
 	[Fact]
@@ -125,18 +126,18 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 		Response<int> Do(int val)
 			=> val switch
 			{
-				1 => Response.Success().AsPayload<int>(),
-				2 => Response.SuccessMessage("message").AsPayload<int>(),
-				3 => Response.SuccessPayload(123),
-				var _ => Response.Critical("").AsPayload<int>()
+				1 => Response.Get.Success().AsPayload<int>(),
+				2 => Response.Get.SuccessMessage("message").AsPayload<int>(),
+				3 => Response.Get.SuccessPayload(123),
+				var _ => Response.Get.Critical("").AsPayload<int>()
 			};
 		Response Do2(int val)
 			=> val switch
 			{
-				1 => Response.Success(),
-				2 => Response.SuccessMessage("message"),
-				3 => Response.SuccessPayload(123),
-				var _ => Response.Critical("")
+				1 => Response.Get.Success(),
+				2 => Response.Get.SuccessMessage("message"),
+				3 => Response.Get.SuccessPayload(123),
+				var _ => Response.Get.Critical("")
 			};
 	}
 }

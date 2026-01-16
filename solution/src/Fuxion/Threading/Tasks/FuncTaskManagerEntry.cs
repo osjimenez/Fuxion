@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Fuxion.Threading.Tasks;
 
-class FuncTaskManagerEntry<TResult> : TaskManagerEntry
+internal class FuncTaskManagerEntry<TResult> : TaskManagerEntry
 {
 	public FuncTaskManagerEntry(Func<TResult> func, TaskScheduler? scheduler, TaskCreationOptions options, ConcurrencyProfile concurrencyProfile = default, Delegate? @delegate = null) : base(
 		@delegate ?? func, scheduler, options, concurrencyProfile) =>

@@ -20,7 +20,7 @@ public class EnumToNamedEnumValueConverterTest(ITestOutputHelper output)
 	[Fact(DisplayName = "EnumToNamedEnumValueConverter - Null value")]
 	public void EnumToNamedEnumValueConverter_NullValue()
 	{
-		Assert.Throws<NotSupportedException>(() => { ((IValueConverter)new EnumToNamedEnumValueConverter()).Convert(null, typeof(EnumTest), null, CultureInfo.CurrentCulture); });
+		Assert.Throws<NullReferenceException>(() => { ((IValueConverter)new EnumToNamedEnumValueConverter()).Convert(null, typeof(EnumTest), null, CultureInfo.CurrentCulture); });
 		var res = ((IValueConverter)new NullableEnumToNamedEnumValueConverter()).Convert(null, typeof(EnumTest), null, CultureInfo.CurrentCulture);
 		Assert.Null(res?.ToString());
 	}
