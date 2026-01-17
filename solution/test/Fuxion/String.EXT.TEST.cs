@@ -453,94 +453,94 @@ public class StringExtensionsTest(ITestOutputHelper output) : BaseTest<StringExt
 	#endregion
 
 	#region AllIndexesOf
-	[Fact]
-	public void AllIndexesOf_FindsMultipleOccurrences()
-	{
-		var text = "hello world, hello universe";
-		var response = text.AllIndexesOf("hello");
+	//[Fact]
+	//public void AllIndexesOf_FindsMultipleOccurrences()
+	//{
+	//	var text = "hello world, hello universe";
+	//	var response = text.AllIndexesOf("hello");
 		
-		PrintVariable(response.IsSuccess);
-		IsTrue(response.IsSuccess);
+	//	PrintVariable(response.IsSuccess);
+	//	IsTrue(response.IsSuccess);
 		
-		Assert.NotNull(response.Payload);
-		var indexes = response.Payload;
-		PrintVariable(indexes);
-		Assert.Equal(2, indexes.Length);
-		Assert.Equal(0, indexes[0]);
-		Assert.Equal(13, indexes[1]);
-	}
+	//	Assert.NotNull(response.Payload);
+	//	var indexes = response.Payload;
+	//	PrintVariable(indexes);
+	//	Assert.Equal(2, indexes.Length);
+	//	Assert.Equal(0, indexes[0]);
+	//	Assert.Equal(13, indexes[1]);
+	//}
 
-	[Fact]
-	public void AllIndexesOf_CaseInsensitive()
-	{
-		var text = "Hello HELLO hello";
-		var response = text.AllIndexesOf("hello", StringComparison.OrdinalIgnoreCase);
+	//[Fact]
+	//public void AllIndexesOf_CaseInsensitive()
+	//{
+	//	var text = "Hello HELLO hello";
+	//	var response = text.AllIndexesOf("hello", StringComparison.OrdinalIgnoreCase);
 		
-		PrintVariable(response.IsSuccess);
-		IsTrue(response.IsSuccess);
+	//	PrintVariable(response.IsSuccess);
+	//	IsTrue(response.IsSuccess);
 		
-		Assert.NotNull(response.Payload);
-		var indexes = response.Payload;
-		PrintVariable(indexes);
-		Assert.Equal(3, indexes.Length);
-		Assert.Equal(0, indexes[0]);
-		Assert.Equal(6, indexes[1]);
-		Assert.Equal(12, indexes[2]);
-	}
+	//	Assert.NotNull(response.Payload);
+	//	var indexes = response.Payload;
+	//	PrintVariable(indexes);
+	//	Assert.Equal(3, indexes.Length);
+	//	Assert.Equal(0, indexes[0]);
+	//	Assert.Equal(6, indexes[1]);
+	//	Assert.Equal(12, indexes[2]);
+	//}
 
-	[Fact]
-	public void AllIndexesOf_NoMatches_ReturnsEmptyArray()
-	{
-		var text = "hello world";
-		var response = text.AllIndexesOf("xyz");
+	//[Fact]
+	//public void AllIndexesOf_NoMatches_ReturnsEmptyArray()
+	//{
+	//	var text = "hello world";
+	//	var response = text.AllIndexesOf("xyz");
 		
-		PrintVariable(response.IsSuccess);
-		IsTrue(response.IsSuccess);
+	//	PrintVariable(response.IsSuccess);
+	//	IsTrue(response.IsSuccess);
 		
-		Assert.NotNull(response.Payload);
-		var indexes = response.Payload;
-		PrintVariable(indexes);
-		Assert.Empty(indexes);
-	}
+	//	Assert.NotNull(response.Payload);
+	//	var indexes = response.Payload;
+	//	PrintVariable(indexes);
+	//	Assert.Empty(indexes);
+	//}
 
-	[Fact]
-	public void AllIndexesOf_EmptySearchValue_ReturnsError()
-	{
-		var text = "hello world";
-		var response = text.AllIndexesOf("");
+	//[Fact]
+	//public void AllIndexesOf_EmptySearchValue_ReturnsError()
+	//{
+	//	var text = "hello world";
+	//	var response = text.AllIndexesOf("");
 		
-		PrintVariable(response.IsError);
-		IsTrue(response.IsError);
-		PrintVariable(response);
-	}
+	//	PrintVariable(response.IsError);
+	//	IsTrue(response.IsError);
+	//	PrintVariable(response);
+	//}
 
-	[Fact]
-	public void AllIndexesOf_NullSearchValue_ReturnsError()
-	{
-		var text = "hello world";
-		var response = text.AllIndexesOf(null!);
+	//[Fact]
+	//public void AllIndexesOf_NullSearchValue_ReturnsError()
+	//{
+	//	var text = "hello world";
+	//	var response = text.AllIndexesOf(null);
 		
-		PrintVariable(response.IsError);
-		IsTrue(response.IsError);
-		PrintVariable(response);
-	}
+	//	PrintVariable(response.IsError);
+	//	IsTrue(response.IsError);
+	//	PrintVariable(response);
+	//}
 
-	[Fact]
-	public void AllIndexesOf_OverlappingMatches()
-	{
-		var text = "aaa";
-		var response = text.AllIndexesOf("aa");
+	//[Fact]
+	//public void AllIndexesOf_OverlappingMatches()
+	//{
+	//	var text = "aaa";
+	//	var response = text.AllIndexesOf("aa");
 		
-		PrintVariable(response.IsSuccess);
-		IsTrue(response.IsSuccess);
+	//	PrintVariable(response.IsSuccess);
+	//	IsTrue(response.IsSuccess);
 		
-		Assert.NotNull(response.Payload);
-		var indexes = response.Payload;
-		PrintVariable(indexes);
-		// Should find "aa" at position 0, then skip to position 2 (no overlapping)
-		Assert.Single(indexes);
-		Assert.Equal(0, indexes[0]);
-	}
+	//	Assert.NotNull(response.Payload);
+	//	var indexes = response.Payload;
+	//	PrintVariable(indexes);
+	//	// Should find "aa" at position 0, then skip to position 2 (no overlapping)
+	//	Assert.Single(indexes);
+	//	Assert.Equal(0, indexes[0]);
+	//}
 	#endregion
 
 	#region Cross-format conversion tests

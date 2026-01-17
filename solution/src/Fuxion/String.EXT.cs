@@ -462,95 +462,95 @@ public static class StringExtensions
 		public string ToKebabCaseUpper(CultureInfo? culture = null)
 			=> string.Join("-", SplitIntoWords(me).Select(w => w.ToUpper(culture ?? CultureInfo.CurrentCulture)));
 
-		/// <summary>
-		/// Finds all starting indexes of occurrences of a specified substring within the string.
-		/// </summary>
-		/// <param name="value">The substring to search for.</param>
-		/// <param name="comparisonType">
-		/// The string comparison rules to use. Defaults to <see cref="StringComparison.Ordinal"/>.
-		/// </param>
-		/// <returns>
-		/// A <see cref="Response{T}"/> whose payload contains an array of all starting indexes where <paramref name="value"/> occurs,
-		/// or an error response when <paramref name="value"/> is <c>null</c> or empty.
-		/// If no occurrences are found, returns an empty array.
-		/// </returns>
-		/// <example>
-		/// <code>
-		/// var text = "hello world, hello universe";
-		/// var response = text.AllIndexesOf("hello");
-		/// if (response.IsSuccess)
-		/// {
-		///     var indexes = response.Payload;  // [0, 13]
-		/// }
-		/// 
-		/// // Case-insensitive search
-		/// var text2 = "Hello HELLO hello";
-		/// var response2 = text2.AllIndexesOf("hello", StringComparison.OrdinalIgnoreCase);
-		/// // Returns: [0, 6, 12]
-		/// 
-		/// // No matches
-		/// var response3 = "test".AllIndexesOf("xyz");  // Returns: []
-		/// 
-		/// // Error case
-		/// var response4 = "test".AllIndexesOf("");  // Returns error response
-		/// </code>
-		/// </example>
-		public Response<int[]> AllIndexesOf(string value, StringComparison comparisonType = StringComparison.Ordinal)
-		{
-			if (string.IsNullOrEmpty(value))
-				return Response.Get.InvalidData("Source string is null or empty.").AsPayload<int[]>();
+		///// <summary>
+		///// Finds all starting indexes of occurrences of a specified substring within the string.
+		///// </summary>
+		///// <param name="value">The substring to search for.</param>
+		///// <param name="comparisonType">
+		///// The string comparison rules to use. Defaults to <see cref="StringComparison.Ordinal"/>.
+		///// </param>
+		///// <returns>
+		///// A <see cref="Response{T}"/> whose payload contains an array of all starting indexes where <paramref name="value"/> occurs,
+		///// or an error response when <paramref name="value"/> is <c>null</c> or empty.
+		///// If no occurrences are found, returns an empty array.
+		///// </returns>
+		///// <example>
+		///// <code>
+		///// var text = "hello world, hello universe";
+		///// var response = text.AllIndexesOf("hello");
+		///// if (response.IsSuccess)
+		///// {
+		/////     var indexes = response.Payload;  // [0, 13]
+		///// }
+		///// 
+		///// // Case-insensitive search
+		///// var text2 = "Hello HELLO hello";
+		///// var response2 = text2.AllIndexesOf("hello", StringComparison.OrdinalIgnoreCase);
+		///// // Returns: [0, 6, 12]
+		///// 
+		///// // No matches
+		///// var response3 = "test".AllIndexesOf("xyz");  // Returns: []
+		///// 
+		///// // Error case
+		///// var response4 = "test".AllIndexesOf("");  // Returns error response
+		///// </code>
+		///// </example>
+		//public Response<int[]> AllIndexesOf(string? value, StringComparison comparisonType = StringComparison.Ordinal)
+		//{
+		//	if (value.IsNullOrEmpty())
+		//		return Response.Get.InvalidData("Source string is null or empty.").AsPayload<int[]>();
 
-			var indexes = new List<int>();
-			for (var index = 0; ; index += value.Length)
-			{
-				index = me.IndexOf(value, index, comparisonType);
-				if (index == -1) break;
-				indexes.Add(index);
-			}
+		//	var indexes = new List<int>();
+		//	for (var index = 0; ; index += value.Length)
+		//	{
+		//		index = me.IndexOf(value, index, comparisonType);
+		//		if (index == -1) break;
+		//		indexes.Add(index);
+		//	}
 
-			return indexes.ToArray();
-		}
+		//	return indexes.ToArray();
+		//}
 
-		/// <summary>
-		/// Formats the string using the specified parameters.
-		/// This is a convenience wrapper around <see cref="string.Format(string, object[])"/>.
-		/// </summary>
-		/// <param name="params">
-		/// An array of objects to format into the string. The string should contain format placeholders
-		/// like <c>{0}</c>, <c>{1}</c>, etc., which will be replaced by the corresponding parameter values.
-		/// </param>
-		/// <returns>
-		/// A formatted string with all placeholders replaced by their corresponding parameter values.
-		/// </returns>
-		/// <exception cref="FormatException">
-		/// Thrown when the format string is invalid or when there's a mismatch between format items and parameters.
-		/// </exception>
-		/// <remarks>
-		/// This extension method provides a more fluent syntax for string formatting by allowing
-		/// the format string to be the subject of the operation rather than a parameter.
-		/// </remarks>
-		/// <example>
-		/// <code>
-		/// // Traditional approach
-		/// var message1 = string.Format("Hello {0}, you have {1} messages", "John", 5);
-		/// 
-		/// // Extension method approach (more fluent)
-		/// var message2 = "Hello {0}, you have {1} messages".Format("John", 5);
-		/// // Returns: "Hello John, you have 5 messages"
-		/// 
-		/// // With multiple parameters
-		/// var path = "C:\\{0}\\{1}\\{2}.txt".Format("Users", "Documents", "file");
-		/// // Returns: "C:\Users\Documents\file.txt"
-		/// 
-		/// // With format specifiers
-		/// var price = "Total: {0:C}".Format(123.45);
-		/// // Returns: "Total: $123.45" (depends on current culture)
-		/// 
-		/// var date = "Today is {0:yyyy-MM-dd}".Format(DateTime.Now);
-		/// // Returns: "Today is 2024-01-15"
-		/// </code>
-		/// </example>
-		public string Format(params object?[] @params) => string.Format(me, @params);
+		///// <summary>
+		///// Formats the string using the specified parameters.
+		///// This is a convenience wrapper around <see cref="string.Format(string, object[])"/>.
+		///// </summary>
+		///// <param name="params">
+		///// An array of objects to format into the string. The string should contain format placeholders
+		///// like <c>{0}</c>, <c>{1}</c>, etc., which will be replaced by the corresponding parameter values.
+		///// </param>
+		///// <returns>
+		///// A formatted string with all placeholders replaced by their corresponding parameter values.
+		///// </returns>
+		///// <exception cref="FormatException">
+		///// Thrown when the format string is invalid or when there's a mismatch between format items and parameters.
+		///// </exception>
+		///// <remarks>
+		///// This extension method provides a more fluent syntax for string formatting by allowing
+		///// the format string to be the subject of the operation rather than a parameter.
+		///// </remarks>
+		///// <example>
+		///// <code>
+		///// // Traditional approach
+		///// var message1 = string.Format("Hello {0}, you have {1} messages", "John", 5);
+		///// 
+		///// // Extension method approach (more fluent)
+		///// var message2 = "Hello {0}, you have {1} messages".Format("John", 5);
+		///// // Returns: "Hello John, you have 5 messages"
+		///// 
+		///// // With multiple parameters
+		///// var path = "C:\\{0}\\{1}\\{2}.txt".Format("Users", "Documents", "file");
+		///// // Returns: "C:\Users\Documents\file.txt"
+		///// 
+		///// // With format specifiers
+		///// var price = "Total: {0:C}".Format(123.45);
+		///// // Returns: "Total: $123.45" (depends on current culture)
+		///// 
+		///// var date = "Today is {0:yyyy-MM-dd}".Format(DateTime.Now);
+		///// // Returns: "Today is 2024-01-15"
+		///// </code>
+		///// </example>
+		//public string Format(params object?[] @params) => string.Format(me, @params);
 	}
 
 	extension([NotNullWhen(false)] string? me)
@@ -694,132 +694,132 @@ public static class StringExtensions
 		public bool IsNeitherNullNorWhiteSpace() => !string.IsNullOrWhiteSpace(me);
 	}
 
-	/// <summary>
-	/// Extension methods for string arrays to perform advanced text search operations.
-	/// </summary>
-	extension(string[] me)
-	{
-		/// <summary>
-		/// Searches for all occurrences of a text pattern within an array of strings and returns their positions.
-		/// The search treats the array as a continuous text stream, handling matches that span multiple array elements.
-		/// </summary>
-		/// <param name="text">The text pattern to search for in the array elements.</param>
-		/// <param name="comparisonType">
-		/// The string comparison rules to use. Affects case sensitivity and culture-specific comparison.
-		/// </param>
-		/// <returns>
-		/// A list of tuples where each tuple contains:
-		/// <list type="bullet">
-		/// <item><description><strong>Start:</strong> (ItemIndex, PositionIndex) - The array index and character position where the match begins</description></item>
-		/// <item><description><strong>End:</strong> (ItemIndex, PositionIndex) - The array index and character position where the match ends</description></item>
-		/// </list>
-		/// Returns an empty list if no matches are found or if the search text is null/empty.
-		/// </returns>
-		/// <remarks>
-		/// <para>
-		/// This method is particularly useful for searching text that has been split into logical segments
-		/// (like lines, paragraphs, or tokens) but where matches may cross segment boundaries.
-		/// </para>
-		/// <para>
-		/// <strong>Algorithm:</strong>
-		/// </para>
-		/// <list type="number">
-		/// <item><description>Concatenates all array elements into a single string</description></item>
-		/// <item><description>Finds all occurrences of the search text using <see cref="AllIndexesOf"/></description></item>
-		/// <item><description>Maps each occurrence back to the original array structure, identifying start and end positions</description></item>
-		/// <item><description>Handles matches that span multiple array elements</description></item>
-		/// </list>
-		/// <para>
-		/// <strong>Position indexing:</strong> PositionIndex is 0-based and refers to the character position
-		/// within the specific array element (ItemIndex).
-		/// </para>
-		/// </remarks>
-		/// <example>
-		/// <code>
-		/// var lines = new[]
-		/// {
-		///     "Hello wor",
-		///     "ld! This is",
-		///     " a test."
-		/// };
-		/// 
-		/// // Search for "world" which spans elements 0 and 1
-		/// var results = lines.SearchTextInElements("world", StringComparison.Ordinal);
-		/// // Results:
-		/// // [
-		/// //   Start: (ItemIndex: 0, PositionIndex: 6),  // "wor" starts at index 6 in element 0
-		/// //   End:   (ItemIndex: 1, PositionIndex: 1)   // "ld" ends at index 1 in element 1
-		/// // ]
-		/// 
-		/// // Search within single element
-		/// var results2 = lines.SearchTextInElements("test", StringComparison.Ordinal);
-		/// // Results:
-		/// // [
-		/// //   Start: (ItemIndex: 2, PositionIndex: 3),  // starts at index 3 in element 2
-		/// //   End:   (ItemIndex: 2, PositionIndex: 6)   // ends at index 6 in element 2
-		/// // ]
-		/// 
-		/// // Case-insensitive search
-		/// var results3 = lines.SearchTextInElements("HELLO", StringComparison.OrdinalIgnoreCase);
-		/// // Results:
-		/// // [
-		/// //   Start: (ItemIndex: 0, PositionIndex: 0),
-		/// //   End:   (ItemIndex: 0, PositionIndex: 4)
-		/// // ]
-		/// 
-		/// // No matches
-		/// var results4 = lines.SearchTextInElements("xyz", StringComparison.Ordinal);
-		/// // Returns: empty list []
-		/// 
-		/// // Practical use case: highlighting search results in a multi-line text editor
-		/// foreach (var match in results)
-		/// {
-		///     Console.WriteLine($"Found from element {match.Start.ItemIndex} " +
-		///                       $"position {match.Start.PositionIndex} " +
-		///                       $"to element {match.End.ItemIndex} " +
-		///                       $"position {match.End.PositionIndex}");
-		/// }
-		/// </code>
-		/// </example>
-		public List<((int ItemIndex, int PositionIndex) Start, (int ItemIndex, int PositionIndex) End)> SearchTextInElements(string text, StringComparison comparisonType)
-		{
-			// Concateno el texto de todos los elementos
-			var allText = me.Aggregate("", (a, c) => a + c);
-			// Busco todas las apariciones del texto buscado
-			var indexesResponse = allText.AllIndexesOf(text, comparisonType);
-			if (indexesResponse.IsError)
-				return [];
+	///// <summary>
+	///// Extension methods for string arrays to perform advanced text search operations.
+	///// </summary>
+	//extension(string[] me)
+	//{
+	//	/// <summary>
+	//	/// Searches for all occurrences of a text pattern within an array of strings and returns their positions.
+	//	/// The search treats the array as a continuous text stream, handling matches that span multiple array elements.
+	//	/// </summary>
+	//	/// <param name="text">The text pattern to search for in the array elements.</param>
+	//	/// <param name="comparisonType">
+	//	/// The string comparison rules to use. Affects case sensitivity and culture-specific comparison.
+	//	/// </param>
+	//	/// <returns>
+	//	/// A list of tuples where each tuple contains:
+	//	/// <list type="bullet">
+	//	/// <item><description><strong>Start:</strong> (ItemIndex, PositionIndex) - The array index and character position where the match begins</description></item>
+	//	/// <item><description><strong>End:</strong> (ItemIndex, PositionIndex) - The array index and character position where the match ends</description></item>
+	//	/// </list>
+	//	/// Returns an empty list if no matches are found or if the search text is null/empty.
+	//	/// </returns>
+	//	/// <remarks>
+	//	/// <para>
+	//	/// This method is particularly useful for searching text that has been split into logical segments
+	//	/// (like lines, paragraphs, or tokens) but where matches may cross segment boundaries.
+	//	/// </para>
+	//	/// <para>
+	//	/// <strong>Algorithm:</strong>
+	//	/// </para>
+	//	/// <list type="number">
+	//	/// <item><description>Concatenates all array elements into a single string</description></item>
+	//	/// <item><description>Finds all occurrences of the search text using <see cref="AllIndexesOf"/></description></item>
+	//	/// <item><description>Maps each occurrence back to the original array structure, identifying start and end positions</description></item>
+	//	/// <item><description>Handles matches that span multiple array elements</description></item>
+	//	/// </list>
+	//	/// <para>
+	//	/// <strong>Position indexing:</strong> PositionIndex is 0-based and refers to the character position
+	//	/// within the specific array element (ItemIndex).
+	//	/// </para>
+	//	/// </remarks>
+	//	/// <example>
+	//	/// <code>
+	//	/// var lines = new[]
+	//	/// {
+	//	///     "Hello wor",
+	//	///     "ld! This is",
+	//	///     " a test."
+	//	/// };
+	//	/// 
+	//	/// // Search for "world" which spans elements 0 and 1
+	//	/// var results = lines.SearchTextInElements("world", StringComparison.Ordinal);
+	//	/// // Results:
+	//	/// // [
+	//	/// //   Start: (ItemIndex: 0, PositionIndex: 6),  // "wor" starts at index 6 in element 0
+	//	/// //   End:   (ItemIndex: 1, PositionIndex: 1)   // "ld" ends at index 1 in element 1
+	//	/// // ]
+	//	/// 
+	//	/// // Search within single element
+	//	/// var results2 = lines.SearchTextInElements("test", StringComparison.Ordinal);
+	//	/// // Results:
+	//	/// // [
+	//	/// //   Start: (ItemIndex: 2, PositionIndex: 3),  // starts at index 3 in element 2
+	//	/// //   End:   (ItemIndex: 2, PositionIndex: 6)   // ends at index 6 in element 2
+	//	/// // ]
+	//	/// 
+	//	/// // Case-insensitive search
+	//	/// var results3 = lines.SearchTextInElements("HELLO", StringComparison.OrdinalIgnoreCase);
+	//	/// // Results:
+	//	/// // [
+	//	/// //   Start: (ItemIndex: 0, PositionIndex: 0),
+	//	/// //   End:   (ItemIndex: 0, PositionIndex: 4)
+	//	/// // ]
+	//	/// 
+	//	/// // No matches
+	//	/// var results4 = lines.SearchTextInElements("xyz", StringComparison.Ordinal);
+	//	/// // Returns: empty list []
+	//	/// 
+	//	/// // Practical use case: highlighting search results in a multi-line text editor
+	//	/// foreach (var match in results)
+	//	/// {
+	//	///     Console.WriteLine($"Found from element {match.Start.ItemIndex} " +
+	//	///                       $"position {match.Start.PositionIndex} " +
+	//	///                       $"to element {match.End.ItemIndex} " +
+	//	///                       $"position {match.End.PositionIndex}");
+	//	/// }
+	//	/// </code>
+	//	/// </example>
+	//	public List<((int ItemIndex, int PositionIndex) Start, (int ItemIndex, int PositionIndex) End)> SearchTextInElements(string text, StringComparison comparisonType)
+	//	{
+	//		// Concateno el texto de todos los elementos
+	//		var allText = me.Aggregate("", (a, c) => a + c);
+	//		// Busco todas las apariciones del texto buscado
+	//		var indexesResponse = allText.AllIndexesOf(text, comparisonType);
+	//		if (indexesResponse.IsError)
+	//			return [];
 
-			var indexes = indexesResponse.Payload;
-			List<((int ItemIndex, int PositionIndex) Start, (int ItemIndex, int PositionIndex) End)> res = [];
-			foreach (var index in indexes)
-			{
-				var counter = 0;
-				var startItemIndex = 0;
-				var startIndexInItem = 0;
-				for (; startItemIndex < me.Length; startItemIndex++)
-				{
-					counter += me[startItemIndex].Length;
-					if (counter > index)
-					{
-						startIndexInItem = me[startItemIndex].Length - (counter - index);
-						break;
-					}
-				}
-				var endItemIndex = startItemIndex;
-				var endIndexInItem = 0;
-				for (; endItemIndex < me.Length; endItemIndex++)
-				{
-					if (endItemIndex != startItemIndex) counter += me[endItemIndex].Length;
-					if (counter >= index + text.Length)
-					{
-						endIndexInItem = me[endItemIndex].Length - 1 - (counter - (index + text.Length));
-						break;
-					}
-				}
-				res.Add(((startItemIndex, startIndexInItem), (endItemIndex, endIndexInItem)));
-			}
-			return res;
-		}
-	}
+	//		var indexes = indexesResponse.Payload;
+	//		List<((int ItemIndex, int PositionIndex) Start, (int ItemIndex, int PositionIndex) End)> res = [];
+	//		foreach (var index in indexes)
+	//		{
+	//			var counter = 0;
+	//			var startItemIndex = 0;
+	//			var startIndexInItem = 0;
+	//			for (; startItemIndex < me.Length; startItemIndex++)
+	//			{
+	//				counter += me[startItemIndex].Length;
+	//				if (counter > index)
+	//				{
+	//					startIndexInItem = me[startItemIndex].Length - (counter - index);
+	//					break;
+	//				}
+	//			}
+	//			var endItemIndex = startItemIndex;
+	//			var endIndexInItem = 0;
+	//			for (; endItemIndex < me.Length; endItemIndex++)
+	//			{
+	//				if (endItemIndex != startItemIndex) counter += me[endItemIndex].Length;
+	//				if (counter >= index + text.Length)
+	//				{
+	//					endIndexInItem = me[endItemIndex].Length - 1 - (counter - (index + text.Length));
+	//					break;
+	//				}
+	//			}
+	//			res.Add(((startItemIndex, startIndexInItem), (endItemIndex, endIndexInItem)));
+	//		}
+	//		return res;
+	//	}
+	//}
 }

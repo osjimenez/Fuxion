@@ -126,11 +126,11 @@
 	</ItemGroup>
 
 	<!-- ========================================== -->
-	<!-- XML DOCUMENTATION: Copy English to _docs   -->
+	<!-- XML DOCUMENTATION: Copy English to ~$docs   -->
 	<!-- ========================================== -->
 	<!-- 
 	After each build, automatically copy the generated English XML documentation 
-	to _docs/en/ for easier translation workflow.
+	to ~$docs/en/ for easier translation workflow.
 	This runs after compilation but only for the first target framework to avoid 
 	multiple unnecessary copies (the XML is the same for all frameworks).
 	-->
@@ -140,11 +140,11 @@
 		
 		<PropertyGroup>
 			<_EnglishXmlSource>$(OutputPath)$(AssemblyName).xml</_EnglishXmlSource>
-			<_EnglishXmlDest>_docs\en\$(AssemblyName).xml</_EnglishXmlDest>
+			<_EnglishXmlDest>~$docs\en\$(AssemblyName).xml</_EnglishXmlDest>
 		</PropertyGroup>
 		
 		<!-- Create directory if it doesn't exist -->
-		<MakeDir Directories="_docs\en" Condition="!Exists('_docs\en')" />
+		<MakeDir Directories="~$docs\en" Condition="!Exists('~$docs\en')" />
 		
 		<!-- Copy XML file (only if source exists and is different from destination) -->
 		<Copy SourceFiles="$(_EnglishXmlSource)" 
@@ -162,14 +162,14 @@
 	<!-- ========================================== -->
 	<!-- 
 	This target is called once per TargetFramework during pack for all projects in src/
-	It automatically includes Spanish XML documentation if the file exists at _docs/es/{AssemblyName}.xml
+	It automatically includes Spanish XML documentation if the file exists at ~$docs/es/{AssemblyName}.xml
 	
 	IMPORTANT: The Exists() condition is evaluated INSIDE the target (not as a Condition attribute)
 	to ensure it works correctly with multi-targeting scenarios where TargetFramework changes
 	-->
 	<Target Name="IncludeSpanishXmlInPackage">
 		<PropertyGroup>
-			<_SpanishXmlPath>_docs\es\$(AssemblyName).xml</_SpanishXmlPath>
+			<_SpanishXmlPath>~$docs\es\$(AssemblyName).xml</_SpanishXmlPath>
 		</PropertyGroup>
 		
 		<ItemGroup Condition="Exists('$(_SpanishXmlPath)')">
