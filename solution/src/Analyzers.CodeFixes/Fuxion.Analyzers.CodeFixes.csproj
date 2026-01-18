@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>$(StandardFrameworks)</TargetFrameworks>
+		<TargetFramework>$(StandardFramework)</TargetFramework>
 		<Title>Fuxion Analyzers Code Fixes</Title>
 		<PackageId>Fuxion.Analyzers.CodeFixes</PackageId>
 		<Description>Code fix providers for Fuxion analyzers. Provides automatic fixes for FXPD, FXJN, FXLQ and other Fuxion diagnostics.</Description>

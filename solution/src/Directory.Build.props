@@ -70,12 +70,12 @@
 		<Message Text="[Analyzers Build] Building Fuxion.Analyzers from: $(FuxionAnalyzersProject)" Importance="high" />
 		<MSBuild Projects="$(FuxionAnalyzersProject)" 
 		         Targets="Build" 
-		         Properties="Configuration=$(Configuration)" />
+		         Properties="Configuration=$(Configuration);TargetFramework=$(StandardFramework)" />
 		
 		<Message Text="[Analyzers Build] Building Fuxion.Analyzers.CodeFixes from: $(FuxionAnalyzersCodeFixesProject)" Importance="high" />
 		<MSBuild Projects="$(FuxionAnalyzersCodeFixesProject)" 
 		         Targets="Build" 
-		         Properties="Configuration=$(Configuration)" />
+		         Properties="Configuration=$(Configuration);TargetFramework=$(StandardFramework)" />
 	</Target>
 
 	<!-- ========================================== -->

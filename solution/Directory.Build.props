@@ -15,8 +15,8 @@
 		<!-- TARGET FRAMEWORKS -->
 		<OldFrameworks>net472</OldFrameworks>
 		<IsOldFrameworks Condition="'$(TargetFramework)' == 'net472'">true</IsOldFrameworks>
-		<StandardFrameworks>netstandard2.0</StandardFrameworks>
-		<IsStandardFrameworks Condition="'$(TargetFramework)' == 'netstandard2.0'">true</IsStandardFrameworks>
+		<StandardFramework>netstandard2.0</StandardFramework>
+		<IsStandardFramework Condition="'$(TargetFramework)' == 'netstandard2.0'">true</IsStandardFramework>
 		<CoreFrameworks>net8.0;net9.0;net10.0</CoreFrameworks>
 		<IsCoreFrameworks Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net9.0' Or '$(TargetFramework)' == 'net10.0'">true</IsCoreFrameworks>
 		<CoreWindowsFrameworks>net8.0-windows;net9.0-windows;net10.0-windows</CoreWindowsFrameworks>
@@ -26,9 +26,9 @@
 		<!-- To bellow, only are variables, you don't need touch this -->
 
 		<IsCoreOrOldFrameworks Condition="'$(IsCoreFrameworks)' == 'true' Or '$(IsOldFrameworks)' == 'true'">true</IsCoreOrOldFrameworks>
-		<IsStandardOrOldFrameworks Condition="'$(IsStandardFrameworks)' == 'true' Or '$(IsOldFrameworks)' == 'true'">true</IsStandardOrOldFrameworks>
+		<IsStandardOrOldFrameworks Condition="'$(IsStandardFramework)' == 'true' Or '$(IsOldFrameworks)' == 'true'">true</IsStandardOrOldFrameworks>
 
-		<DefaultFrameworks>$(StandardFrameworks);$(OldFrameworks);$(CoreFrameworks)</DefaultFrameworks>
+		<DefaultFrameworks>$(StandardFramework);$(OldFrameworks);$(CoreFrameworks)</DefaultFrameworks>
 		<CoreAndOldFrameworks>$(OldFrameworks);$(CoreFrameworks)</CoreAndOldFrameworks>
 		<WindowsFrameworks>$(OldFrameworks);$(CoreWindowsFrameworks)</WindowsFrameworks>
 	</PropertyGroup>

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFramework>$(StandardFramework)</TargetFramework>
 		<Title>Fuxion Analyzers</Title>
 		<PackageId>Fuxion.Analyzers</PackageId>
 		<Description>Roslyn analyzers for Fuxion library. Provides compile-time diagnostics for Pods, Json, Linq and other Fuxion features.</Description>
