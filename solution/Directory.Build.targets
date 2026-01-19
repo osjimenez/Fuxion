@@ -24,9 +24,10 @@
 	<Target Name="FuxionTools_GenerateVersionProps_IfAvailable"
 			BeforeTargets="PrepareForBuild"
 			AfterTargets="FuxionTools_Build_IfAvailable"
-			Condition="'$(DesignTimeBuild)' != 'true' And Exists('$(FuxionTools_EntryDll)') And !Exists('$(FuxionTools_GeneratedProps)')">
+			Condition="'$(DesignTimeBuild)' != 'true' And Exists('$(FuxionTools_EntryDll)')">
 		<MakeDir Directories="$(FuxionTools_CacheDir)" />
-		<Exec Command="dotnet exec &quot;$(FuxionTools_EntryDll)&quot; version --output &quot;$(FuxionTools_GeneratedProps)&quot; --config &quot;$(FuxionTools_ConfigFile)&quot;" />
+		<Exec Command="dotnet exec &quot;$(FuxionTools_EntryDll)&quot; version --output &quot;$(FuxionTools_GeneratedProps)&quot; --config &quot;$(FuxionTools_ConfigFile)&quot; --non-interactive"
+			  EnvironmentVariables="TargetFramework=$(TargetFramework);TargetFrameworkIdentifier=$(TargetFrameworkIdentifier);TargetFrameworkVersion=$(TargetFrameworkVersion)" />
 	</Target>
 
 	<Import Project="$(FuxionTools_GeneratedProps)" Condition="Exists('$(FuxionTools_GeneratedProps)')" />
