@@ -30,5 +30,5 @@
 			  EnvironmentVariables="TargetFramework=$(TargetFramework);TargetFrameworkIdentifier=$(TargetFrameworkIdentifier);TargetFrameworkVersion=$(TargetFrameworkVersion)" />
 	</Target>
 
-	<Import Project="$(FuxionTools_GeneratedProps)" Condition="Exists('$(FuxionTools_GeneratedProps)')" />
+	<Import Project="$(FuxionTools_GeneratedProps)" Condition="Exists('$(FuxionTools_GeneratedProps)') And '$(FuxionToolsVersioningEnabled)' != 'false'" />
 </Project>
