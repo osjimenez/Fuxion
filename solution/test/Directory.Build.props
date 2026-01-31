@@ -1,7 +1,6 @@
 <Project>
-
-	<Import Project="..\\Directory.Build.props" Condition="Exists('..\\Directory.Build.props')" />
-
+	<Import Project="..\\.config\\Project.Test.props" />
+	<Import Project="..\\.config\\Analyzers.Reference.props" />
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>

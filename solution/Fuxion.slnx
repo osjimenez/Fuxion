@@ -3,6 +3,13 @@
     <Platform Name="Any CPU" />
     <Platform Name="x64" />
   </Configurations>
+  <Folder Name="/repo/solution/.config/">
+    <File Path=".config/AnalyzersPack.props" />
+    <File Path=".config/AnalyzersReference.props" />
+    <File Path=".config/DefaultNuget.props" />
+    <File Path=".config/DefaultProject.props" />
+    <File Path=".config/Documentation.props" />
+  </Folder>
   <Folder Name="/src/">
     <File Path="src/Directory.Build.props" />
     <File Path="src/icon.png" />

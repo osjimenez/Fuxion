@@ -1,0 +1,62 @@
+<Project>
+	
+	<!-- ========================================== -->
+	<!-- ANALYZER PATHS: Centralized configuration  -->
+	<!-- Available to ALL projects (src/ and test/) -->
+	<!-- ========================================== -->
+	<PropertyGroup>
+		<!-- Base directories (relative to solution root) -->
+		<FuxionAnalyzersAbstractionsDir>$(MSBuildThisFileDirectory)..\src\Analyzers.Abstractions\</FuxionAnalyzersAbstractionsDir>
+		<FuxionAnalyzersDir>$(MSBuildThisFileDirectory)..\src\Analyzers\</FuxionAnalyzersDir>
+		<FuxionAnalyzersCodeFixesDir>$(MSBuildThisFileDirectory)..\src\Analyzers.CodeFixes\</FuxionAnalyzersCodeFixesDir>
+		
+		<!-- Project files -->
+		<FuxionAnalyzersAbstractionsProject>$(FuxionAnalyzersAbstractionsDir)Fuxion.Analyzers.Abstractions.csproj</FuxionAnalyzersAbstractionsProject>
+		<FuxionAnalyzersProject>$(FuxionAnalyzersDir)Fuxion.Analyzers.csproj</FuxionAnalyzersProject>
+		<FuxionAnalyzersCodeFixesProject>$(FuxionAnalyzersCodeFixesDir)Fuxion.Analyzers.CodeFixes.csproj</FuxionAnalyzersCodeFixesProject>
+		
+		<!-- Output DLLs (relative to project bin folder) -->
+		<FuxionAnalyzersAbstractionsDll>$(FuxionAnalyzersAbstractionsDir)bin\$(Configuration)\netstandard2.0\Fuxion.Analyzers.Abstractions.dll</FuxionAnalyzersAbstractionsDll>
+		<FuxionAnalyzersDll>$(FuxionAnalyzersDir)bin\$(Configuration)\netstandard2.0\Fuxion.Analyzers.dll</FuxionAnalyzersDll>
+		<FuxionAnalyzersCodeFixesDll>$(FuxionAnalyzersCodeFixesDir)bin\$(Configuration)\netstandard2.0\Fuxion.Analyzers.CodeFixes.dll</FuxionAnalyzersCodeFixesDll>
+		
+		<!-- NuGet package path for analyzers -->
+		<AnalyzersPackagePath>analyzers/dotnet/cs</AnalyzersPackagePath>
+	</PropertyGroup>
+
+	<!-- ========================================== -->
+	<!-- AUTO-REFERENCE ANALYZERS: All projects     -->
+	<!-- Automatically adds analyzer references     -->
+	<!-- to ALL projects except the analyzers       -->
+	<!-- themselves and explicitly excluded ones    -->
+	<!-- ========================================== -->
+	<ItemGroup Condition="'$(MSBuildProjectName)' != 'Fuxion.Analyzers.Abstractions'
+			   And '$(MSBuildProjectName)' != 'Fuxion.Analyzers'
+			   And '$(MSBuildProjectName)' != 'Fuxion.Analyzers.CodeFixes'
+			   And '$(MSBuildProjectName)' != 'Fuxion.Lab.AppHost'">
+		<!-- Abstractions Project Reference (for [RequiresNotNull] attribute) -->
+		<ProjectReference Include="$(FuxionAnalyzersAbstractionsProject)" Condition="Exists('$(FuxionAnalyzersAbstractionsProject)')">
+			<ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+			<PrivateAssets>none</PrivateAssets>
+		</ProjectReference>
+		
+		<!-- Analyzer Project Reference (compile-time checks) -->
+		<ProjectReference Include="$(FuxionAnalyzersProject)" Condition="Exists('$(FuxionAnalyzersProject)')">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<OutputItemType>Analyzer</OutputItemType>
+			<PrivateAssets>all</PrivateAssets>
+		</ProjectReference>
+		
+		<!-- CodeFix Project Reference (quick fixes) -->
+		<ProjectReference Include="$(FuxionAnalyzersCodeFixesProject)" Condition="Exists('$(FuxionAnalyzersCodeFixesProject)')">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<OutputItemType>Analyzer</OutputItemType>
+			<PrivateAssets>all</PrivateAssets>
+		</ProjectReference>
+
+		<!-- Force-load in VS (important) -->
+		<Analyzer Include="$(FuxionAnalyzersDll)" Condition="Exists('$(FuxionAnalyzersDll)')" />
+		<Analyzer Include="$(FuxionAnalyzersCodeFixesDll)" Condition="Exists('$(FuxionAnalyzersCodeFixesDll)')" />
+	</ItemGroup>
+	
+</Project>

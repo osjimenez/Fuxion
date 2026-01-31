@@ -1,6 +1,6 @@
 <br/><br/>
 <p align="center">
-  <image src="./res/logo/Assets/full_light.svg" alt="Fuxion logo" width="300px">
+  <image src="solution/.config/full_logo.svg" alt="Fuxion full logo" width="300px">
 </p>
 <br/><br/>
 

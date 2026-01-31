@@ -1,0 +1,36 @@
+<Project>
+	
+	<PropertyGroup>
+		
+		<!-- Author -->
+		<Authors>Oscar Jimenez</Authors>
+
+		<!-- Product -->
+		<Product>Fuxion</Product>
+		<ProductName>Fuxion</ProductName>
+
+		<!-- Icon -->
+		<PackageIcon>icon.png</PackageIcon>
+
+		<!-- Output -->
+		<PackageOutputPath>$(SolutionDir)..\~$publish\nupkgs</PackageOutputPath>
+
+		<!-- README -->
+		<PackageReadmeFile>NUGET_README.md</PackageReadmeFile>
+
+		<!-- Skipped warnings -->
+		<!-- NU5104 Allows us to publish stable packages with pre-release dependencies -->
+		<!--<NoWarn>$(NoWarn);NU5104</NoWarn>-->
+		
+	</PropertyGroup>
+
+	<ItemGroup>
+
+		<!-- Icon file -->
+		<None Include="$(MSBuildThisFileDirectory)/$(PackageIcon)" Pack="true" PackagePath="\" />
+
+		<!-- README file -->
+		<None Include="$(PackageReadmeFile)" Pack="true" PackagePath="\" />
+	</ItemGroup>
+	
+</Project>

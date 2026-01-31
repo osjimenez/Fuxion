@@ -1,0 +1,10 @@
+<Project>
+	
+	<Import Project="Project.Default.props" />
+	
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+	
+</Project>

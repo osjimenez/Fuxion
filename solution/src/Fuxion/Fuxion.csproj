@@ -6,9 +6,6 @@
 
 		<PackageId>Fuxion</PackageId>
 		<Description>Fuxion library with built-in Roslyn analyzers for compile-time safety checks</Description>
-
-		<!--<UpdateAssemblyInfo>true</UpdateAssemblyInfo>
-		<GitVersionTargetFramework>net8.0</GitVersionTargetFramework>-->
 	</PropertyGroup>
 
 	<ItemGroup>

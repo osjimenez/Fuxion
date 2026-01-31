@@ -26,7 +26,14 @@
 	<PropertyGroup>
 		<NetStableVersion>10.0.2</NetStableVersion>
 	</PropertyGroup>
-	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0' Or '$(TargetFramework)' == 'net10.0-windows' Or '$(TargetFramework)' == 'net9.0' Or '$(TargetFramework)' == 'net9.0-windows' Or '$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net8.0-windows' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
+	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0'
+			   Or '$(TargetFramework)' == 'net10.0-windows10.0.19041'
+			   Or '$(TargetFramework)' == 'net9.0'
+			   Or '$(TargetFramework)' == 'net9.0-windows10.0.19041'
+			   Or '$(TargetFramework)' == 'net8.0'
+			   Or '$(TargetFramework)' == 'net8.0-windows10.0.19041'
+			   Or '$(TargetFramework)' == 'net472'
+			   Or '$(TargetFramework)' == 'netstandard2.0'">
 		<PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(NetStableVersion)" />
 		<PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="$(NetStableVersion)" />
 		<PackageVersion Include="System.Drawing.Common" Version="$(NetStableVersion)" />
@@ -38,7 +45,8 @@
 	<PropertyGroup>
 		<EntityFrameworkCore10Version>10.0.2</EntityFrameworkCore10Version>
 	</PropertyGroup>
-	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0' Or '$(TargetFramework)' == 'net10.0-windows'">
+	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0'
+			   Or '$(TargetFramework)' == 'net10.0-windows10.0.19041'">
 		<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(EntityFrameworkCore10Version)" />
 		<PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(EntityFrameworkCore10Version)" />
 		<PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EntityFrameworkCore10Version)" />
@@ -47,7 +55,12 @@
 	<PropertyGroup>
 		<EntityFrameworkCore9Version>9.0.11</EntityFrameworkCore9Version>
 	</PropertyGroup>
-	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0' Or '$(TargetFramework)' == 'net9.0-windows' Or '$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net8.0-windows' Or '$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
+	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0'
+			   Or '$(TargetFramework)' == 'net9.0-windows10.0.19041'
+			   Or '$(TargetFramework)' == 'net8.0'
+			   Or '$(TargetFramework)' == 'net8.0-windows10.0.19041'
+			   Or '$(TargetFramework)' == 'net472'
+			   Or '$(TargetFramework)' == 'netstandard2.0'">
 		<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(EntityFrameworkCore9Version)" />
 		<PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(EntityFrameworkCore9Version)" />
 		<PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EntityFrameworkCore9Version)" />
