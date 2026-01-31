@@ -12,7 +12,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Dataset\Test.Dataset.csproj" />
+		<ProjectReference Include="$(Test_DatasetProjectPath)" />
 	</ItemGroup>
 
 </Project>

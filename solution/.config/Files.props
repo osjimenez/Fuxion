@@ -1,0 +1,22 @@
+<Project>
+	
+	<PropertyGroup>
+
+		<!-- PROPS -->
+		<Analyzers_Reference_Prop>$(MSBuildThisFileDirectory)props\Analyzers.Reference.props</Analyzers_Reference_Prop>
+		<Documentation_Prop>$(MSBuildThisFileDirectory)props\Documentation.props</Documentation_Prop>
+		<Core_Frameworks_Prop>$(MSBuildThisFileDirectory)props\Core.Frameworks.props</Core_Frameworks_Prop>
+		<Core_Paths_Prop>$(MSBuildThisFileDirectory)props\Core.Paths.props</Core_Paths_Prop>
+		<Nuget_Metadata_Prop>$(MSBuildThisFileDirectory)props\Nuget.Metadata.props</Nuget_Metadata_Prop>
+		<Nuget_Config_OpenSource_Prop>$(MSBuildThisFileDirectory)props\Nuget.Config.OpenSource.props</Nuget_Config_OpenSource_Prop>
+		<Nuget_Pack_Analyzers_Prop>$(MSBuildThisFileDirectory)props\Nuget.Pack.Analyzers.props</Nuget_Pack_Analyzers_Prop>
+		<Project_Default_Prop>$(MSBuildThisFileDirectory)props\Project.Default.props</Project_Default_Prop>
+		<Project_Test_Prop>$(MSBuildThisFileDirectory)props\Project.Test.props</Project_Test_Prop>
+
+		<!-- TARGETS -->
+		<Nuget_Pack_Analyzers_Target>$(MSBuildThisFileDirectory)targets\Nuget.Pack.Analyzers.targets</Nuget_Pack_Analyzers_Target>
+		<Documentation_Target>$(MSBuildThisFileDirectory)targets\Documentation.targets</Documentation_Target>
+		
+	</PropertyGroup>
+	
+</Project>

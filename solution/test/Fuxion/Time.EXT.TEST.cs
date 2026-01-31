@@ -1,8 +1,10 @@
 ﻿using System;
+using Fuxion;
 using Fuxion.Xunit;
+using Test.Fuxion;
 using Xunit;
 
-namespace Fuxion.Test;
+namespace Test.Fuxion;
 
 public class TimeExtensionsTest(ITestOutputHelper output) : BaseTest<TimeExtensionsTest>(output)
 {

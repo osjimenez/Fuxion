@@ -11,9 +11,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\src\Xunit\Fuxion.Xunit.csproj" />
-		<ProjectReference Include="..\..\src\AspNetCore\Fuxion.AspNetCore.csproj" />
-		<ProjectReference Include="..\AspNetCore.Service\Test.AspNetCore.Service.csproj" />
+		<ProjectReference Include="$(XunitProjectPath)" />
+		<ProjectReference Include="$(AspNetCoreProjectPath)" />
+		<ProjectReference Include="$(Test_AspNetCore_ServiceProjectPath)" />
 	</ItemGroup>
-    
+
 </Project>

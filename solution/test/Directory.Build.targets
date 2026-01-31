@@ -1,0 +1,7 @@
+<Project>
+
+	<!-- Tools -->
+	<Import Project="$(Tools_Build_Target)" />
+	<Import Project="$(Tools_Versioning_Target)" />
+
+</Project>

@@ -3,16 +3,18 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Fuxion.AspNetCore.Service;
+using Fuxion;
+using Fuxion.AspNetCore;
 using Fuxion.Net.Http;
 using Fuxion.Text.Json;
 using Fuxion.Xunit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Test.AspNetCore.Service;
 using Xunit;
 using static Fuxion.Net.Http.Extensions;
 
-namespace Fuxion.AspNetCore.Test;
+namespace Test.AspNetCore;
 
 public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Program> factory) : BaseTest<ResponseTest>(output), IClassFixture<WebApplicationFactory<Program>>
 {

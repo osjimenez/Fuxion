@@ -1,0 +1,26 @@
+<Project>
+	
+	<!-- ========================================== -->
+	<!-- ANALYZERS: Pack into NuGet package         -->
+	<!-- ========================================== -->
+	<!-- 
+	Automatically includes Fuxion analyzers in ALL packages created from src/ projects.
+	The analyzers are placed in the standard 'analyzers/dotnet/cs' path.
+	Excludes the analyzer projects themselves to avoid self-packaging.
+	-->
+	<ItemGroup Condition="'$(MSBuildProjectName)' != '$(Analyzers_AbstractionsProjectName)'
+			   And '$(MSBuildProjectName)' != '$(AnalyzersProjectName)'
+			   And '$(MSBuildProjectName)' != '$(Analyzers_CodeFixProjectName)'">
+		<!-- Pack Analyzer DLL -->
+		<None Include="$(AnalyzersProjectArtifact)"
+		      Pack="true"
+		      PackagePath="$(AnalyzersPackagePath)"
+		      Visible="false" />
+
+		<!-- Pack CodeFix DLL -->
+		<None Include="$(Analyzers_CodeFixProjectArtifact)"
+		      Pack="true"
+		      PackagePath="$(AnalyzersPackagePath)"
+		      Visible="false" />
+	</ItemGroup>
+</Project>

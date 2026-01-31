@@ -1,8 +1,10 @@
-﻿using Fuxion.Xunit;
+﻿using Fuxion;
+using Fuxion.Xunit;
 using System;
+using Test.Fuxion;
 using Xunit;
 
-namespace Fuxion.Test;
+namespace Test.Fuxion;
 
 public class StringExtensionsTest(ITestOutputHelper output) : BaseTest<StringExtensionsTest>(output)
 {

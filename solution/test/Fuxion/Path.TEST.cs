@@ -1,14 +1,10 @@
 ﻿using Fuxion.Xunit;
-using Xunit;
-
-namespace Fuxion.Test;
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Fuxion;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+using Xunit;
+using System;
+
+namespace Test.Fuxion;
 
 public class StringTest(ITestOutputHelper output) : BaseTest<StringTest>(output)
 {

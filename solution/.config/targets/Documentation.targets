@@ -1,0 +1,63 @@
+<Project>
+	
+	<!-- ========================================== -->
+	<!-- XML DOCUMENTATION: Copy English to ~$docs   -->
+	<!-- ========================================== -->
+	<!-- 
+	After each build, automatically copy the generated English XML documentation 
+	to ~$docs/en/ for easier translation workflow.
+	This runs after compilation but only for the first target framework to avoid 
+	multiple unnecessary copies (the XML is the same for all frameworks).
+	-->
+	<Target Name="CopyEnglishXmlDocs"
+	        AfterTargets="CoreCompile"
+	        Condition="'$(GenerateDocumentationFile)' == 'true'
+			And '$(TargetFramework)' != ''">
+
+		<PropertyGroup>
+			<_EnglishXmlSource>$(OutputPath)$(AssemblyName).xml</_EnglishXmlSource>
+			<_EnglishXmlDest>~$docs\en\$(AssemblyName).xml</_EnglishXmlDest>
+		</PropertyGroup>
+
+		<!-- Create directory if it doesn't exist -->
+		<MakeDir Directories="~$docs\en" Condition="!Exists('~$docs\en')" />
+
+		<!-- Copy XML file (only if source exists and is different from destination) -->
+		<Copy SourceFiles="$(_EnglishXmlSource)"
+		      DestinationFiles="$(_EnglishXmlDest)"
+		      Condition="Exists('$(_EnglishXmlSource)')"
+		      SkipUnchangedFiles="true" />
+
+		<Message Text="[English XML] Copied documentation to: $(_EnglishXmlDest)"
+		         Importance="normal"
+		         Condition="Exists('$(_EnglishXmlSource)')" />
+	</Target>
+
+	<!-- ========================================== -->
+	<!-- XML DOCUMENTATION: Spanish Satellite        -->
+	<!-- ========================================== -->
+	<!-- 
+	This target is called once per TargetFramework during pack for all projects in src/
+	It automatically includes Spanish XML documentation if the file exists at ~$docs/es/{AssemblyName}.xml
+	
+	IMPORTANT: The Exists() condition is evaluated INSIDE the target (not as a Condition attribute)
+	to ensure it works correctly with multi-targeting scenarios where TargetFramework changes
+	-->
+	<Target Name="IncludeSpanishXmlInPackage">
+		<PropertyGroup>
+			<_SpanishXmlPath>~$docs\es\$(AssemblyName).xml</_SpanishXmlPath>
+		</PropertyGroup>
+
+		<ItemGroup Condition="Exists('$(_SpanishXmlPath)')">
+			<TfmSpecificPackageFile Include="$(_SpanishXmlPath)">
+				<PackagePath>lib/$(TargetFramework)/es</PackagePath>
+			</TfmSpecificPackageFile>
+		</ItemGroup>
+
+		<Message Text="[Spanish XML] $(AssemblyName) - TFM: $(TargetFramework) - File exists: $(Exists('$(_SpanishXmlPath)'))" Importance="high" />
+		<Message Text="[Spanish XML] $(AssemblyName) - Adding documentation for $(TargetFramework): lib/$(TargetFramework)/es/$(AssemblyName).xml"
+		         Importance="high"
+		         Condition="Exists('$(_SpanishXmlPath)')" />
+	</Target>
+	
+</Project>

@@ -1,0 +1,13 @@
+<Project>
+
+	<!-- Nuget -->
+	<Import Project="$(Nuget_Pack_Analyzers_Target)" />
+
+	<!-- Documentation -->
+	<Import Project="$(Documentation_Target)" />
+	
+	<!-- Tools -->
+	<Import Project="$(Tools_Build_Target)" />
+	<Import Project="$(Tools_Versioning_Target)" />
+
+</Project>

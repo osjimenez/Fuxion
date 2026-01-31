@@ -1,0 +1,37 @@
+<Project>
+	
+	<PropertyGroup>
+
+		<Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+		
+		<!-- SRC -->
+		<FuxionProjectPath>$(MSBuildThisFileDirectory)..\..\src\Fuxion\Fuxion.csproj</FuxionProjectPath>
+		<AnalyzersProjectDirPath>$(MSBuildThisFileDirectory)..\..\src\Analyzers</AnalyzersProjectDirPath>
+		<AnalyzersProjectName>Fuxion.Analyzers</AnalyzersProjectName>
+		<AnalyzersProjectPath>$(AnalyzersProjectDirPath)\$(AnalyzersProjectName).csproj</AnalyzersProjectPath>
+		<AnalyzersProjectArtifact>$(AnalyzersProjectDirPath)\bin\$(Configuration)\$(StandardFramework)\$(AnalyzersProjectName).dll</AnalyzersProjectArtifact>
+		<Analyzers_AbstractionsProjectDirPath>$(MSBuildThisFileDirectory)..\..\src\Analyzers.Abstractions</Analyzers_AbstractionsProjectDirPath>
+		<Analyzers_AbstractionsProjectName>Fuxion.Analyzers.Abstractions</Analyzers_AbstractionsProjectName>
+		<Analyzers_AbstractionsProjectPath>$(Analyzers_AbstractionsProjectDirPath)\$(Analyzers_AbstractionsProjectName).csproj</Analyzers_AbstractionsProjectPath>
+		<Analyzers_AbstractionsProjectArtifact>$(Analyzers_AbstractionsProjectDirPath)\bin\$(Configuration)\$(StandardFramework)\$(Analyzers_AbstractionsProjectName).dll</Analyzers_AbstractionsProjectArtifact>
+		<Analyzers_CodeFixProjectDirPath>$(MSBuildThisFileDirectory)..\..\src\Analyzers.CodeFixes</Analyzers_CodeFixProjectDirPath>
+		<Analyzers_CodeFixProjectName>Fuxion.Analyzers.CodeFixes</Analyzers_CodeFixProjectName>
+		<Analyzers_CodeFixProjectPath>$(Analyzers_CodeFixProjectDirPath)\$(Analyzers_CodeFixProjectName).csproj</Analyzers_CodeFixProjectPath>
+		<Analyzers_CodeFixProjectArtifact>$(Analyzers_CodeFixProjectDirPath)\bin\$(Configuration)\$(StandardFramework)\$(Analyzers_CodeFixProjectName).dll</Analyzers_CodeFixProjectArtifact>
+		<AnalyzersPackagePath>analyzers/dotnet/cs</AnalyzersPackagePath>
+		<AspNetProjectPath>$(MSBuildThisFileDirectory)..\..\src\AspNet\Fuxion.AspNet.csproj</AspNetProjectPath>
+		<AspNetCoreProjectPath>$(MSBuildThisFileDirectory)..\..\src\AspNetCore\Fuxion.AspNetCore.csproj</AspNetCoreProjectPath>
+		<XunitProjectPath>$(MSBuildThisFileDirectory)..\..\src\Xunit\Fuxion.Xunit.csproj</XunitProjectPath>
+
+		<!-- TEST -->
+		<Test_AspNetCoreProjectPath>$(MSBuildThisFileDirectory)..\..\test\AspNetCore\Test.AspNetCore.csproj</Test_AspNetCoreProjectPath>
+		<Test_AspNetCore_ServiceProjectPath>$(MSBuildThisFileDirectory)..\..\test\AspNetCore.Service\Test.AspNetCore.Service.csproj</Test_AspNetCore_ServiceProjectPath>
+		<Test_DatasetProjectPath>$(MSBuildThisFileDirectory)..\..\test\Dataset\Test.Dataset.csproj</Test_DatasetProjectPath>
+		<Test_Dataset_EntityFrameworkProjectPath>$(MSBuildThisFileDirectory)..\..\test\Dataset.EntityFramework\Test.Dataset.EntityFramework.csproj</Test_Dataset_EntityFrameworkProjectPath>
+		<Test_Dataset_EntityFrameworkCore_MongoDBProjectPath>$(MSBuildThisFileDirectory)..\..\test\Dataset.EntityFrameworkCore.MongoDB\Test.Dataset.EntityFrameworkCore.MongoDB.csproj</Test_Dataset_EntityFrameworkCore_MongoDBProjectPath>
+		<Test_Dataset_EntityFrameworkCore_SqlServerProjectPath>$(MSBuildThisFileDirectory)..\..\test\Dataset.EntityFrameworkCore.SqlServer\Test.Dataset.EntityFrameworkCore.SqlServer.csproj</Test_Dataset_EntityFrameworkCore_SqlServerProjectPath>
+		<Test_FuxionProjectPath>$(MSBuildThisFileDirectory)..\..\test\Fuxion\Test.Fuxion.csproj</Test_FuxionProjectPath>
+		
+	</PropertyGroup>
+	
+</Project>

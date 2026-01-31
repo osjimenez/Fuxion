@@ -24,7 +24,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Fuxion\Fuxion.csproj" />
+		<ProjectReference Include="$(FuxionProjectPath)" />
 	</ItemGroup>
 
 </Project>

@@ -5,9 +5,10 @@ using System.Text.Json.Serialization;
 using Fuxion.Xunit;
 using Xunit;
 
-namespace Fuxion.Test;
+namespace Test.Fuxion;
 
-using Fuxion.Text.Json;
+using global::Fuxion;
+using global::Fuxion.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;

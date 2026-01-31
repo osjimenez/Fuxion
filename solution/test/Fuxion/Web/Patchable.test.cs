@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using Fuxion;
 using Fuxion.Text.Json;
 using Fuxion.Web;
 using Fuxion.Xunit;
@@ -8,7 +9,7 @@ using Microsoft.CSharp.RuntimeBinder;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
-namespace Fuxion.Test.Web;
+namespace Test.Fuxion.Web;
 
 public class PatcherTest(ITestOutputHelper output) : BaseTest<PatcherTest>(output)
 {

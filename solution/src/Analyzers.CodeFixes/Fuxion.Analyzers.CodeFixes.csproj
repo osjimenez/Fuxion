@@ -2,24 +2,15 @@
 
 	<PropertyGroup>
 		<TargetFramework>$(StandardFramework)</TargetFramework>
-		<Title>Fuxion Analyzers Code Fixes</Title>
-		<PackageId>Fuxion.Analyzers.CodeFixes</PackageId>
-		<Description>Code fix providers for Fuxion analyzers. Provides automatic fixes for FXPD, FXJN, FXLQ and other Fuxion diagnostics.</Description>
-		<PackageTags>fuxion;analyzers;roslyn;csharp;codefixes</PackageTags>
 
 		<!-- Required for code fix providers -->
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		
-		<!-- Packaging configuration -->
-		<IsPackable>true</IsPackable>
-		<IncludeBuildOutput>false</IncludeBuildOutput>
-		<SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
-		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-		<DevelopmentDependency>true</DevelopmentDependency>
+		<!-- Disable Nuget -->
+		<IsPackable>false</IsPackable>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- Roslyn dependencies - versions managed centrally in Directory.Packages.props -->
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all" />
 		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -28,12 +19,7 @@
 
 	<ItemGroup>
 		<!-- Reference to the analyzers project to share DiagnosticIds -->
-		<ProjectReference Include="..\Analyzers\Fuxion.Analyzers.csproj" PrivateAssets="all" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<!-- Pack code fix provider DLL into NuGet -->
-		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		<ProjectReference Include="$(AnalyzersProjectPath)" PrivateAssets="all" />
 	</ItemGroup>
 
 </Project>

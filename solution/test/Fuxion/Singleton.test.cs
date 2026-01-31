@@ -1,7 +1,8 @@
-﻿using System;
+﻿using Fuxion;
+using System;
 using Xunit;
 
-namespace Fuxion.Test;
+namespace Test.Fuxion;
 
 public class SingletonTest
 {

@@ -1,15 +1,16 @@
+using Fuxion.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Fuxion.Text.Json.Serialization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Net.Http.Headers;
 using static Fuxion.Net.Http.Extensions;
 
 namespace Fuxion.AspNetCore;
@@ -62,6 +63,7 @@ public static class ResponseExtensions
 		bool enableRangeProcessing,
 		bool fullSerialization)
 	{
+		Debug.WriteLine(Fx.Metadata.Fuxion_AspNetCore.Project.Name);
 		if (me.IsSuccess)
 			if (me is IResponse<object?> { Payload: not null } me2)
 				if (me2.Payload is Stream stream)

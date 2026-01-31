@@ -1,0 +1,33 @@
+<Project>
+	
+	<PropertyGroup>
+		
+		<!-- Language -->
+		<LangVersion>preview</LangVersion>
+
+		<!-- Nullable -->
+		<Nullable>enable</Nullable>
+
+		<!-- Usings -->
+		<ImplicitUsings>disable</ImplicitUsings>
+
+		<!-- Packable -->
+		<IsPackable>false</IsPackable>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+
+		<!-- Warnings -->
+		<WarningsAsErrors>Nullable</WarningsAsErrors>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+		
+	</PropertyGroup>
+
+	<!-- PolySharp library allows us to use the latest language features in older frameworks -->
+	<ItemGroup Condition="'$(IsStandardOrOldFrameworks)' == 'true'">
+		<PackageReference Include="PolySharp">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+</Project>

@@ -4,11 +4,13 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Fuxion;
 using Fuxion.Reflection;
 using Fuxion.Xunit;
+using Test.Fuxion;
 using Xunit;
 
-namespace Fuxion.Test.Reflection;
+namespace Test.Fuxion.Reflection;
 public class ReflectionExtensionTest(ITestOutputHelper output) : BaseTest<SystemExtensionsTest>(output)
 {
 	[Fact(DisplayName = "Method - GetSignature - 0 generic - 0 arguments")]

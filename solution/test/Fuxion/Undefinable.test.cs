@@ -1,15 +1,13 @@
 ﻿using Fuxion.Xunit;
 using Xunit;
-
-namespace Fuxion.Test;
-
+using Fuxion;
 using Fuxion.Text.Json;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
+
+namespace Test.Fuxion;
+
+
 
 public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTest>(output)
 {

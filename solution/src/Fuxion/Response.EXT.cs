@@ -345,12 +345,14 @@ public static class ResponseExtensions
 	extension(IEnumerable<IResponse> me)
 	{
 		/// <summary>
-		/// Combines multiple responses into a single response containing all responses.
+		/// Combines multiple responses into a single payload response while preserving error semantics.
 		/// </summary>
-		/// <param name="message">Optional message for the combined response.</param>
+		/// <param name="successMessage">Optional message used when all responses are successful.</param>
 		/// <returns>
-		/// A Response&lt;IEnumerable&lt;IResponse&gt;&gt; that is successful only if all responses are successful.
-		/// If any response is an error, returns an error response containing only the failed responses.
+		/// A <see cref="Response{TPayload}"/> whose payload is always the original input sequence.
+		/// If all responses are successful, returns <c>SuccessPayload</c> with <paramref name="successMessage"/>.
+		/// If exactly one response fails, returns that error (including type/exception/extensions) converted to payload form.
+		/// If multiple responses fail, returns a generic error payload with concatenated error messages.
 		/// </returns>
 		/// <example>
 		/// <code>
@@ -364,17 +366,32 @@ public static class ResponseExtensions
 		/// var combinedResult = responses.CombineResponses("Validation completed");
 		/// if (combinedResult.IsError)
 		/// {
-		///     foreach (var error in combinedResult.Payload)
+		///     foreach (var item in combinedResult.Payload)
 		///     {
-		///         Console.WriteLine(error.Message);
+		///         if (item.IsError) Console.WriteLine(item.Message);
 		///     }
 		/// }
 		/// </code>
 		/// </example>
-		public Response<IEnumerable<IResponse>> CombineResponses(string? message = null)
+		public Response<IEnumerable<IResponse>> CombineResponses(string? successMessage = null)
 		{
-			if (me.Any(r => r.IsError)) return new(false, me.Where(r => r.IsError), message);
-			return new(true, me, message);
+			var errors = me.Where(r => r.IsError).ToList();
+			return errors.Count switch
+			{
+				0 => Response.Get.SuccessPayload(me, successMessage),
+				1 => errors[0] is Response res
+					? res.AsPayload<IEnumerable<IResponse>>()
+					: new(
+						errors[0].IsSuccess,
+						me,
+						errors[0].Message,
+						errors[0].ErrorType,
+						errors[0].Exception)
+					{
+						Extensions = errors[0].Extensions
+					},
+				_ => Response.Get.ErrorPayload(me, string.Join("\r\n", errors.Select(r => r.Message)))
+			};
 		}
 	}
 

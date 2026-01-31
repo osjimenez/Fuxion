@@ -10,8 +10,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\src\Fuxion\Fuxion.csproj" />
-		<ProjectReference Include="..\..\src\Xunit\Fuxion.Xunit.csproj" />
+		<ProjectReference Include="$(FuxionProjectPath)" />
+		<ProjectReference Include="$(XunitProjectPath)" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(IsFrameworkTargetFramework)' == 'true'">

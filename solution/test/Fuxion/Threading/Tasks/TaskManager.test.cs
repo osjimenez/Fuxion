@@ -6,12 +6,13 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Fuxion;
 using Fuxion.Reflection;
 using Fuxion.Threading.Tasks;
 using Fuxion.Xunit;
 using Xunit;
 
-namespace Fuxion.Test.Threading.Tasks;
+namespace Test.Fuxion.Threading.Tasks;
 
 public class TaskManagerTest(ITestOutputHelper output) : BaseTest<TaskManagerTest>(output)
 {

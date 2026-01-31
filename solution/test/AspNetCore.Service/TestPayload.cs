@@ -1,4 +1,4 @@
-namespace Fuxion.AspNetCore.Service;
+namespace Test.AspNetCore.Service;
 
 public class TestPayload
 {

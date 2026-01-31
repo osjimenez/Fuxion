@@ -1,0 +1,41 @@
+<Project>
+	
+	<PropertyGroup>
+		<!-- TARGET FRAMEWORKS -->
+		<OldFrameworks>net472</OldFrameworks>
+		<IsOldFrameworks Condition="'$(TargetFramework)' == 'net472'">true</IsOldFrameworks>
+		<StandardFramework>netstandard2.0</StandardFramework>
+		<IsStandardFramework Condition="'$(TargetFramework)' == 'netstandard2.0'">true</IsStandardFramework>
+		<CoreFrameworks>net8.0;net9.0;net10.0</CoreFrameworks>
+		<IsCoreFrameworks Condition="'$(TargetFramework)' == 'net8.0'
+						  Or '$(TargetFramework)' == 'net9.0'
+						  Or '$(TargetFramework)' == 'net10.0'">true</IsCoreFrameworks>
+		<CoreWindowsFrameworks>net8.0-windows10.0.19041;net9.0-windows10.0.19041;net10.0-windows10.0.19041</CoreWindowsFrameworks>
+		<LatestCoreFramework>net10.0</LatestCoreFramework>
+		<LatestCoreWindowsFramework>net10.0-windows10.0.19041</LatestCoreWindowsFramework>
+
+		<!-- To bellow, only are variables, you don't need touch this -->
+
+		<IsCoreOrOldFrameworks Condition="'$(IsCoreFrameworks)' == 'true'
+							   Or '$(IsOldFrameworks)' == 'true'">true</IsCoreOrOldFrameworks>
+		<IsStandardOrOldFrameworks Condition="'$(IsStandardFramework)' == 'true'
+								   Or '$(IsOldFrameworks)' == 'true'">true</IsStandardOrOldFrameworks>
+
+		<DefaultFrameworks>$(StandardFramework);$(OldFrameworks);$(CoreFrameworks)</DefaultFrameworks>
+		<CoreAndOldFrameworks>$(OldFrameworks);$(CoreFrameworks)</CoreAndOldFrameworks>
+		<WindowsFrameworks>$(OldFrameworks);$(CoreWindowsFrameworks)</WindowsFrameworks>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(IsStandardFramework)' == 'true'">
+		<DefineConstants>$(DefineConstants);STANDARD_FRAMEWORK</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(IsOldFrameworks)' == 'true'">
+		<DefineConstants>$(DefineConstants);OLD_FRAMEWORKS</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(IsStandardOrOldFrameworks)' == 'true'">
+		<DefineConstants>$(DefineConstants);STANDARD_OR_OLD_FRAMEWORKS</DefineConstants>
+	</PropertyGroup>
+	
+</Project>

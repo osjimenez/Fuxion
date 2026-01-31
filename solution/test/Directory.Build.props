@@ -1,8 +1,17 @@
 <Project>
-	<Import Project="..\\.config\\Project.Test.props" />
-	<Import Project="..\\.config\\Analyzers.Reference.props" />
-	<PropertyGroup>
-		<OutputType>Exe</OutputType>
-		<IsPackable>false</IsPackable>
-	</PropertyGroup>
+
+	<!-- Files -->
+	<Import Project="$(MSBuildThisFileDirectory)..\.config\Files.props" />
+	<Import Project="$(MSBuildThisFileDirectory)..\..\..\solution\.config\Files.props"
+	        Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\solution\.config\Files.props')"/>
+	<!-- Core -->
+	<Import Project="$(Core_Frameworks_Prop)" />
+	<Import Project="$(Core_Paths_Prop)" />
+	<Import Project="$(Core_Paths_Plus_Prop)" Condition="Exists('$(Core_Paths_Plus_Prop)')"/>
+	<!-- Project -->
+	<Import Project="$(Project_Default_Prop)" />
+	<Import Project="$(Project_Test_Prop)" />
+	<!-- Analyzers -->
+	<Import Project="$(Analyzers_Reference_Prop)" />
+	
 </Project>

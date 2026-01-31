@@ -1,7 +1,7 @@
 ﻿using Fuxion.Collections.Generic;
 using Xunit;
 
-namespace Fuxion.Test.Collections.Generic;
+namespace Test.Fuxion.Collections.Generic;
 
 public class GenericEqualityComparerTest
 {

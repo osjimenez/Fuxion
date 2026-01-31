@@ -1,0 +1,18 @@
+<Project>
+	
+	<PropertyGroup>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<!-- Hook into NuGet pack pipeline for Spanish XML documentation -->
+		<TargetsForTfmSpecificContentInPackage>
+			$(TargetsForTfmSpecificContentInPackage);
+			IncludeSpanishXmlInPackage;
+			IncludeAnalyzersAbstractionsInPackage
+		</TargetsForTfmSpecificContentInPackage>
+
+		<!-- Skipped warnings -->
+		<!-- CS1591 Allows us to compile without filling in documentation for public members -->
+		<!--<NoWarn>$(NoWarn);CS1591</NoWarn>-->
+		
+	</PropertyGroup>
+	
+</Project>

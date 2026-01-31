@@ -1,10 +1,12 @@
 using System;
 using System.Net;
 using System.Text.Json;
+using Fuxion;
+using Fuxion.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 
-namespace Fuxion.AspNetCore.Service.Endpoints;
+namespace Test.AspNetCore.Service.Endpoints;
 
 public class TestEndpoint : IEndpoint
 {

@@ -1,0 +1,51 @@
+<Project>
+	
+	<!-- ========================================== -->
+	<!-- ANALYZERS: Build before packing            -->
+	<!-- ========================================== -->
+	<!-- 
+	Builds the Fuxion analyzers before creating NuGet packages.
+	This ensures analyzer DLLs are up-to-date when packing any project in src/
+	Excludes the analyzer projects themselves to avoid circular dependencies.
+	-->
+	<Target Name="BuildAnalyzersBeforePack"
+	        BeforeTargets="GenerateNuspec"
+	        Condition="'$(MSBuildProjectName)' != '$(Analyzers_AbstractionsProjectName)'
+			And '$(MSBuildProjectName)' != '$(AnalyzersProjectName)'
+			And '$(MSBuildProjectName)' != '$(Analyzers_CodeFixProjectName)'">
+
+		<MSBuild Projects="$(Analyzers_AbstractionsProjectPath)"
+		         Targets="Build"
+		         Properties="Configuration=$(Configuration)" />
+
+		<MSBuild Projects="$(AnalyzersProjectPath)"
+		         Targets="Build"
+		         Properties="Configuration=$(Configuration);TargetFramework=$(StandardFramework)" />
+
+		<MSBuild Projects="$(Analyzers_CodeFixProjectPath)"
+		         Targets="Build"
+		         Properties="Configuration=$(Configuration);TargetFramework=$(StandardFramework)" />
+	</Target>
+
+	<!-- ========================================== -->
+	<!-- ANALYZERS: Pack Abstractions into lib/     -->
+	<!-- ========================================== -->
+	<!-- 
+	Packages Fuxion.Analyzers.Abstractions.dll as a regular library dependency (in lib/).
+	This is necessary because it contains the [RequiresNotNull] attribute that users need at runtime.
+	The DLL is included for each target framework to ensure compatibility.
+	-->
+	<Target Name="IncludeAnalyzersAbstractionsInPackage"
+	        Condition="'$(MSBuildProjectName)' != '$(Analyzers_AbstractionsProjectName)'
+			And '$(MSBuildProjectName)' != '$(AnalyzersProjectName)'
+			And '$(MSBuildProjectName)' != '$(Analyzers_CodeFixProjectName)'">
+
+		<ItemGroup>
+			<TfmSpecificPackageFile Include="$(Analyzers_AbstractionsProjectArtifact)">
+				<PackagePath>lib/$(TargetFramework)</PackagePath>
+			</TfmSpecificPackageFile>
+		</ItemGroup>
+
+	</Target>
+
+</Project>

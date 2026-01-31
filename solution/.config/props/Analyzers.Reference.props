@@ -1,0 +1,32 @@
+<Project>
+
+	<ItemGroup Condition="'$(MSBuildProjectName)' != 'Fuxion.Analyzers.Abstractions'
+			   And '$(MSBuildProjectName)' != 'Fuxion.Analyzers'
+			   And '$(MSBuildProjectName)' != 'Fuxion.Analyzers.CodeFixes'
+			   And '$(MSBuildProjectName)' != 'Fuxion.Lab.AppHost'">
+
+		<ProjectReference Include="$(Analyzers_AbstractionsProjectPath)">
+			<ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+			<PrivateAssets>none</PrivateAssets>
+		</ProjectReference>
+		
+		<!-- Analyzer Project Reference (compile-time checks) -->
+		<ProjectReference Include="$(AnalyzersProjectPath)">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<OutputItemType>Analyzer</OutputItemType>
+			<PrivateAssets>all</PrivateAssets>
+		</ProjectReference>
+		
+		<!-- CodeFix Project Reference (quick fixes) -->
+		<ProjectReference Include="$(Analyzers_CodeFixProjectPath)">
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<OutputItemType>Analyzer</OutputItemType>
+			<PrivateAssets>all</PrivateAssets>
+		</ProjectReference>
+
+		<!-- Force-load in VS (important) -->
+		<Analyzer Include="$(AnalyzersProjectArtifact)" />
+		<Analyzer Include="$(Analyzers_CodeFixProjectArtifact)" />
+	</ItemGroup>
+	
+</Project>

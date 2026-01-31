@@ -1,0 +1,61 @@
+<Project>
+	<!--
+	This file wires the optional `Fuxion.Tools` versioning tool into the build.
+	It builds the tool if missing, generates a shared `version.g.props`, and imports it for projects.
+	-->
+	<PropertyGroup>
+		<!--
+			This repo can be built standalone.
+			When it's checked out as a submodule under the Fuxion-plus super-repo,
+			the tool may be available in the parent solution and will be used.
+			If the tool isn't available, versioning is skipped.
+		-->
+		<!-- Parent solution that hosts the tool. -->
+		<FuxionTools_ParentSolutionDir>$(MSBuildThisFileDirectory)..\..\solution\</FuxionTools_ParentSolutionDir>
+		<!-- Tool project path. -->
+		<FuxionTools_Project>$(FuxionTools_ParentSolutionDir)tools\Tools\Fuxion.Tools.csproj</FuxionTools_Project>
+		<!-- Tool entrypoint assembly path. -->
+		<FuxionTools_EntryDll>$(FuxionTools_ParentSolutionDir)tools\Tools\bin\$(Configuration)\net10.0\Fuxion.Tools.dll</FuxionTools_EntryDll>
+		<!-- Tool configuration file path. -->
+		<FuxionTools_ConfigFile>$(FuxionTools_ParentSolutionDir)fuxion-tools.json</FuxionTools_ConfigFile>
+
+		<!-- Shared cache directory for generated props. -->
+		<FuxionTools_CacheDir>$(FuxionTools_ParentSolutionDir)~$fuxion.tools\build\</FuxionTools_CacheDir>
+		<!-- Generated props file produced by the tool. -->
+		<FuxionTools_GeneratedProps>$(FuxionTools_CacheDir)version.g.props</FuxionTools_GeneratedProps>
+	</PropertyGroup>
+
+	<!-- Builds the tool once so the next target can execute it. -->
+	<!-- REMOVED
+	And !Exists('$(FuxionTools_EntryDll)')
+	And Exists('$(FuxionTools_Project)')
+	-->
+	<Target Name="FuxionTools_Build_IfAvailable"
+			BeforeTargets="PrepareForBuild"
+			Condition="'$(DesignTimeBuild)' != 'true'
+			And '$(FuxionToolsVersioningEnabled)' != 'false'">
+		<Exec Command="dotnet build &quot;$(FuxionTools_Project)&quot; -c $(Configuration)" />
+	</Target>
+
+	<!--
+	Generates `version.g.props` before building projects.
+	It runs after `FuxionTools_Build_IfAvailable` so the tool exists when executed.
+	-->
+	<!-- REMOVED
+	Exists('$(FuxionTools_EntryDll)')
+	-->
+	<Target Name="FuxionTools_GenerateVersionProps_IfAvailable"
+			BeforeTargets="PrepareForBuild"
+			AfterTargets="FuxionTools_Build_IfAvailable"
+			Condition="'$(DesignTimeBuild)' != 'true'
+			And '$(FuxionToolsVersioningEnabled)' != 'false'">
+		<MakeDir Directories="$(FuxionTools_CacheDir)" />
+		<Exec Command="dotnet exec &quot;$(FuxionTools_EntryDll)&quot; version --output &quot;$(FuxionTools_GeneratedProps)&quot; --config &quot;$(FuxionTools_ConfigFile)&quot; --non-interactive"
+			  EnvironmentVariables="TargetFramework=$(TargetFramework);TargetFrameworkIdentifier=$(TargetFrameworkIdentifier);TargetFrameworkVersion=$(TargetFrameworkVersion)" />
+	</Target>
+
+	<!-- Imports generated version properties for consumers. -->
+	<!-- REMOVED: Exists('$(FuxionTools_GeneratedProps)') />-->
+	<Import Project="$(FuxionTools_GeneratedProps)"
+			Condition="'$(FuxionToolsVersioningEnabled)' != 'false' And Exists('$(FuxionTools_GeneratedProps)')" />
+</Project>

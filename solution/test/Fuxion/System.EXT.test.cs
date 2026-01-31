@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Fuxion;
 using Fuxion.Collections.Generic;
 using Fuxion.Reflection;
 using Fuxion.Resources;
@@ -9,9 +10,10 @@ using Fuxion.Text.Json;
 using Fuxion.Threading.Tasks;
 using Fuxion.Xunit;
 using Microsoft.Extensions.Logging;
+using Test.Fuxion;
 using Xunit;
 
-namespace Fuxion.Test;
+namespace Test.Fuxion;
 
 public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExtensionsTest>(output)
 {

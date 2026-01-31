@@ -2,11 +2,12 @@ using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Fuxion;
 using Fuxion.Text.Json;
 using Fuxion.Xunit;
 using Xunit;
 
-namespace Fuxion.Test.Text.Json.Serialization;
+namespace Test.Fuxion.Text.Json.Serialization;
 
 public class FallbackConverterTest(ITestOutputHelper output) : BaseTest<FallbackConverterTest>(output)
 {

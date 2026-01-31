@@ -5,8 +5,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\src\Fuxion\Fuxion.csproj" />
-		<ProjectReference Include="..\..\src\AspNetCore\Fuxion.AspNetCore.csproj" />
+		<ProjectReference Include="$(FuxionProjectPath)" />
+		<ProjectReference Include="$(AspNetCoreProjectPath)" />
 	</ItemGroup>
 
 </Project>

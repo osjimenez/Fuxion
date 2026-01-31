@@ -1,8 +1,10 @@
 using System;
-using Fuxion.AspNetCore.Service.Endpoints;
+using Fuxion;
+using Fuxion.AspNetCore;
+using Test.AspNetCore.Service.Endpoints;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Fuxion.AspNetCore.Service.Controllers;
+namespace Test.AspNetCore.Service.Controllers;
 
 [ApiController]
 [Route("controller")]
