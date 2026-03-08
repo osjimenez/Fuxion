@@ -48,11 +48,17 @@
 		      Visible="false" />
 
 		<!-- Pack CodeFixes DLL into NuGet (from sibling project) -->
-		<!-- Note: CodeFixes project must be built BEFORE packaging this project -->
-		<None Include="..\Analyzers.CodeFixes\$(OutputPath)\Fuxion.Analyzers.CodeFixes.dll"
+		<None Include="$(Analyzers_CodeFixProjectArtifact)"
 		      Pack="true"
 		      PackagePath="analyzers/dotnet/cs"
 		      Visible="false"/>
 	</ItemGroup>
+
+	<Target Name="BuildCodeFixesBeforePack"
+	        BeforeTargets="GenerateNuspec">
+		<MSBuild Projects="$(Analyzers_CodeFixProjectPath)"
+		         Targets="Build"
+		         Properties="Configuration=$(Configuration);TargetFramework=$(StandardFramework)" />
+	</Target>
 
 </Project>
