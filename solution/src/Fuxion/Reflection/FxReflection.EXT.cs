@@ -540,7 +540,7 @@ public static partial class ReflectionExtensions
 		/// // Returns: false
 		/// </code>
 		/// </example>
-		public bool IsSubclassOfGenericDefinition(Type genericDefinition) => GetSubclassOfGenericDefinition(me, genericDefinition) is not null;
+		public bool IsSubclassOfGenericDefinition(Type genericDefinition) => me.GetSubclassOfGenericDefinition(genericDefinition) is not null;
 		/// <summary>
 		/// Gets the concrete type in the inheritance hierarchy that matches the specified raw generic type.
 		/// </summary>
