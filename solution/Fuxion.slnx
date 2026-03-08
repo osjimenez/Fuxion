@@ -3,15 +3,38 @@
     <Platform Name="Any CPU" />
     <Platform Name="x64" />
   </Configurations>
-  <Folder Name="/repo/solution/.config/">
-    <File Path=".config/AnalyzersPack.props" />
-    <File Path=".config/AnalyzersReference.props" />
-    <File Path=".config/DefaultNuget.props" />
-    <File Path=".config/DefaultProject.props" />
-    <File Path=".config/Documentation.props" />
+  <Folder Name="/.config/">
+    <File Path=".config/Files.props" />
+    <File Path=".config/full_logo.svg" />
+    <File Path=".config/icon.png" />
+  </Folder>
+  <Folder Name="/.config/props/">
+    <File Path=".config/props/Analyzers.Reference.props" />
+    <File Path=".config/props/Core.Frameworks.props" />
+    <File Path=".config/props/Core.Paths.props" />
+    <File Path=".config/props/Documentation.props" />
+    <File Path=".config/props/Nuget.Config.OpenSource.props" />
+    <File Path=".config/props/Nuget.Metadata.props" />
+    <File Path=".config/props/Nuget.Pack.Analyzers.props" />
+    <File Path=".config/props/Project.Default.props" />
+    <File Path=".config/props/Project.Test.props" />
+  </Folder>
+  <Folder Name="/.config/targets/">
+    <File Path=".config/targets/Documentation.targets" />
+    <File Path=".config/targets/Nuget.Pack.Analyzers.targets" />
+  </Folder>
+  <Folder Name="/.repo/">
+    <File Path="../.gitattributes" />
+    <File Path="../.gitignore" />
+    <File Path="../LICENSE" />
+    <File Path="../README.md" />
+  </Folder>
+  <Folder Name="/.repo/solution/">
+    <File Path="Directory.Packages.props" />
   </Folder>
   <Folder Name="/src/">
     <File Path="src/Directory.Build.props" />
+    <File Path="src/Directory.Build.targets" />
     <File Path="src/icon.png" />
     <Project Path="src/Analyzers.Abstractions/Fuxion.Analyzers.Abstractions.csproj" />
     <Project Path="src/Analyzers.CodeFixes/Fuxion.Analyzers.CodeFixes.csproj" />
@@ -26,6 +49,7 @@
   </Folder>
   <Folder Name="/test/">
     <File Path="test/Directory.Build.props" />
+    <File Path="test/Directory.Build.targets" />
     <Project Path="test/AspNetCore.Service/Test.AspNetCore.Service.csproj" />
     <Project Path="test/AspNetCore/Test.AspNetCore.csproj" />
     <Project Path="test/Dataset.EntityFramework/Test.Dataset.EntityFramework.csproj" />
@@ -34,20 +58,5 @@
     <Project Path="test/Dataset/Test.Dataset.csproj" />
     <Project Path="test/Fuxion/Test.Fuxion.csproj" />
     <Project Path="test/Windows/Test.Windows.csproj" />
-  </Folder>
-  <Folder Name="/repo/solution/">
-    <File Path="Directory.Build.props" />
-    <File Path="Directory.Packages.props" />
-  </Folder>
-  <Folder Name="/repo/">
-    <File Path="../.gitattributes" />
-    <File Path="../.gitignore" />
-    <File Path="../GitVersion.yml" />
-    <File Path="../LICENSE" />
-    <File Path="../README.md" />
-  </Folder>
-  <Folder Name="/repo/.github/" />
-  <Folder Name="/repo/.github/workflows/">
-    <File Path="../.github/workflows/dotnet-core.yml" />
   </Folder>
 </Solution>

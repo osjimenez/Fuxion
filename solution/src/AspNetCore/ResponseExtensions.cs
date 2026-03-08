@@ -63,7 +63,6 @@ public static class ResponseExtensions
 		bool enableRangeProcessing,
 		bool fullSerialization)
 	{
-		Debug.WriteLine(Fx.Metadata.Fuxion_AspNetCore.Project.Name);
 		if (me.IsSuccess)
 			if (me is IResponse<object?> { Payload: not null } me2)
 				if (me2.Payload is Stream stream)

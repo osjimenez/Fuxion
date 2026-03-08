@@ -9,12 +9,13 @@
 |Package|Stable|Preview|
 |:------|:---:|:-:|
 |Fuxion |[![NuGet Version](https://img.shields.io/nuget/v/Fuxion?style=for-the-badge&logo=nuget&label=NuGet.org)](https://www.nuget.org/packages/Fuxion)|[![MyGet Version](https://img.shields.io/myget/fuxion/vpre/Fuxion?style=for-the-badge&logo=nuget&label=MyGet.org)](https://www.myget.org/feed/fuxion/package/nuget/Fuxion)|
+|Fuxion.Analyzers |[![NuGet Version](https://img.shields.io/nuget/v/Fuxion.Analyzers?style=for-the-badge&logo=nuget&label=NuGet.org)](https://www.nuget.org/packages/Fuxion.Analyzers)|[![MyGet Version](https://img.shields.io/myget/fuxion/vpre/Fuxion.Analyzers?style=for-the-badge&logo=nuget&label=MyGet.org)](https://www.myget.org/feed/fuxion/package/nuget/Fuxion.Analyzers)|
+|Fuxion.Analyzers.Abstractions |[![NuGet Version](https://img.shields.io/nuget/v/Fuxion.Analyzers.Abstractions?style=for-the-badge&logo=nuget&label=NuGet.org)](https://www.nuget.org/packages/Fuxion.Analyzers.Abstractions)|[![MyGet Version](https://img.shields.io/myget/fuxion/vpre/Fuxion.Analyzers.Abstractions?style=for-the-badge&logo=nuget&label=MyGet.org)](https://www.myget.org/feed/fuxion/package/nuget/Fuxion.Analyzers.Abstractions)|
 |Fuxion.AspNet|[![NuGet Version](https://img.shields.io/nuget/v/Fuxion.AspNet?style=for-the-badge&logo=nuget&label=NuGet.org)](https://www.nuget.org/packages/Fuxion.AspNet)|[![MyGet Version](https://img.shields.io/myget/fuxion/vpre/Fuxion.AspNet?style=for-the-badge&logo=nuget&label=MyGet.org)](https://www.myget.org/feed/fuxion/package/nuget/Fuxion.AspNet)|
 |Fuxion.AspNetCore|[![NuGet Version](https://img.shields.io/nuget/v/Fuxion.AspNetCore?style=for-the-badge&logo=nuget&label=NuGet.org)](https://www.nuget.org/packages/Fuxion.AspNetCore)|[![MyGet Version](https://img.shields.io/myget/fuxion/vpre/Fuxion.AspNetCore?style=for-the-badge&logo=nuget&label=MyGet.org)](https://www.myget.org/feed/fuxion/package/nuget/Fuxion.AspNetCore)|
-|.|.|.|
+|Fuxion.Xunit|[![NuGet Version](https://img.shields.io/nuget/v/Fuxion.Xunit?style=for-the-badge&logo=nuget&label=NuGet.org)](https://www.nuget.org/packages/Fuxion.Xunit)|[![MyGet Version](https://img.shields.io/myget/fuxion/vpre/Fuxion.Xunit?style=for-the-badge&logo=nuget&label=MyGet.org)](https://www.myget.org/feed/fuxion/package/nuget/Fuxion.Xunit)|
 
-</p>
-<br/><br/>
+<p/>
 
 This a personal and undocumented repository that contains many helpers and some patterns to build .NET  applications
 
