@@ -20,7 +20,7 @@
 		<PackageOutputPath>$(SolutionDir)..\~$publish\nupkgs</PackageOutputPath>
 
 		<!-- README -->
-		<PackageReadmeFile>NUGET_README.md</PackageReadmeFile>
+		<PackageReadmeFile>PACKAGE_README.md</PackageReadmeFile>
 
 		<!-- Skipped warnings -->
 		<!-- NU5104 Allows us to publish stable packages with pre-release dependencies -->
