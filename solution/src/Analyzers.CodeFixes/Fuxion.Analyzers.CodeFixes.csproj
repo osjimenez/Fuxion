@@ -8,6 +8,7 @@
 		
 		<!-- Disable Nuget -->
 		<IsPackable>false</IsPackable>
+
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -18,8 +19,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- Reference to the analyzers project to share DiagnosticIds -->
-		<ProjectReference Include="$(AnalyzersProjectPath)" PrivateAssets="all" />
+		<ProjectReference Include="$(Analyzers_AbstractionsProjectPath)" PrivateAssets="none" />
 	</ItemGroup>
 
 </Project>

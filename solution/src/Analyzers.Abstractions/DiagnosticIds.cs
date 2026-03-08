@@ -1,4 +1,4 @@
-namespace Fuxion.Analyzers;
+namespace Fuxion.Analyzers.Abstractions;
 
 /// <summary>
 /// Centralized diagnostic IDs for all Fuxion analyzers.

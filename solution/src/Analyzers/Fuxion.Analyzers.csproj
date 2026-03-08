@@ -12,6 +12,9 @@
 
 		<!-- Analyzer packaging configuration -->
 		<IncludeBuildOutput>false</IncludeBuildOutput>
+
+		<!-- Remove Symbols package -->
+		<IncludeSymbols>false</IncludeSymbols>
 		
 		<SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
 		<!-- CHANGED: Allow Abstractions dependency -->
@@ -36,8 +39,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- Reference to Abstractions -->
-		<ProjectReference Include="..\Analyzers.Abstractions\Fuxion.Analyzers.Abstractions.csproj" PrivateAssets="none" />
+		<ProjectReference Include="$(Analyzers_AbstractionsProjectPath)" PrivateAssets="none" />
 	</ItemGroup>
 
 	<ItemGroup>
