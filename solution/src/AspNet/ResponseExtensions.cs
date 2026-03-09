@@ -771,7 +771,7 @@ file class Factory(Func<CancellationToken, Task<HttpResponseMessage>> func) : IH
 			Title = title,
 			Detail = detail,
 			Extensions = extensions ?? new(StringComparer.Ordinal)
-		}.Fx.Json.Serialize(options: ResponseExtensions.JsonSerializerOptions != null ? new(ResponseExtensions.JsonSerializerOptions) : null).PayloadOrError(
+		}.Fx.Json.Serialize(options: ResponseExtensions.JsonSerializerOptions != null ? new(ResponseExtensions.JsonSerializerOptions) : null).PayloadOrFallback(
 				r => throw new JsonException("Error serializing response problem", r.Exception)),
 			Encoding.UTF8,
 			"application/problem+json"));

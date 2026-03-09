@@ -325,18 +325,43 @@ public static class ResponseExtensions
 		public async Task<T> MatchAsync<T>(Func<Response<TPayload>, T> success, Func<Response<TPayload>, Task<T>> error) => me.IsSuccess ? success(me) : await error(me);
 		
 		/// <summary>
-		/// Returns the payload if successful, otherwise executes an error handler function.
+		/// Returns the payload if successful; otherwise computes a fallback value from the error response.
 		/// </summary>
-		/// <param name="error">Function to execute if the response is an error, returning a fallback payload.</param>
-		/// <returns>The response payload on success, or the result of the error function.</returns>
+		/// <param name="fallback">Function that receives the error response and returns an alternative payload value.</param>
+		/// <returns>The response payload when successful; otherwise the value returned by <paramref name="fallback"/>.</returns>
+		/// <remarks>
+		/// This method is useful when you want to recover from errors with context-aware logic.
+		/// If you just need the type default value on error, use <see cref="PayloadOrDefault"/>.
+		/// </remarks>
 		/// <example>
 		/// <code>
 		/// Response&lt;User&gt; response = GetUser(id);
-		/// var user = response.PayloadOrError(err => new User { Name = "Guest" });
+		/// var user = response.PayloadOrFallback(err => new User { Name = "Guest" });
 		/// // Always returns a User, either from response or default Guest
 		/// </code>
 		/// </example>
-		public TPayload PayloadOrError(Func<Response<TPayload>, TPayload> error) => me.IsSuccess ? me.Payload : error(me);
+		public TPayload PayloadOrFallback(Func<Response<TPayload>, TPayload> fallback) => me.IsSuccess ? me.Payload : fallback(me);
+
+		/// <summary>
+		/// Returns the payload if successful; otherwise returns the default value of <typeparamref name="TPayload"/>.
+		/// </summary>
+		/// <returns>
+		/// The response payload when successful; otherwise <c>default</c>.
+		/// For reference types, this is <c>null</c>.
+		/// </returns>
+		/// <remarks>
+		/// Use this when a simple default-on-error behavior is enough and no error-specific fallback logic is required.
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// Response&lt;int&gt; quantityResponse = GetQuantity();
+		/// int quantity = quantityResponse.PayloadOrDefault();
+		/// 
+		/// Response&lt;User&gt; userResponse = GetUser(id);
+		/// User? user = userResponse.PayloadOrDefault();
+		/// </code>
+		/// </example>
+		public TPayload? PayloadOrDefault() => me.IsSuccess ? me.Payload : default;
 	}
 
 	/// <summary>

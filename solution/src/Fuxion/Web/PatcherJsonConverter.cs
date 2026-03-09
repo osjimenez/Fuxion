@@ -577,7 +577,7 @@ public class PatcherJsonConverter<T> : JsonConverter<Patcher<T>> where T : class
 		foreach (var pvk in value.Properties)
 		{
 			writer.WritePropertyName(pvk.Key);
-			writer.WriteRawValue(pvk.Value.Value.Fx.Json.Serialize(options: options).PayloadOrError(r =>
+			writer.WriteRawValue(pvk.Value.Value.Fx.Json.Serialize(options: options).PayloadOrFallback(r =>
 				throw new JsonException($"Error writing '{value.GetType().GetSignature()}'.", r.Exception)));
 		}
 
