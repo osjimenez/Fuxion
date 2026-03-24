@@ -196,16 +196,6 @@ public class Response(bool isSuccess, string? message = null, object? errorType 
 	/// </code>
 	/// </example>
 	public static implicit operator bool(Response response) => response.IsSuccess;
-	
-	/// <summary>
-	/// Gets the Response factory methods for creating Response instances.
-	/// </summary>
-	/// <value>An instance providing access to static factory methods like Success(), Error(), etc.</value>
-	/// <remarks>
-	/// This property provides a fluent API for creating Response objects through the ResponseExtensions class.
-	/// Used as: <c>Response.Get.Success()</c>, <c>Response.Get.Error()</c>, etc.
-	/// </remarks>
-	public static ResponseExtensions.ResponseGetExtensions Get { get; } = new();
 }
 
 /// <summary>

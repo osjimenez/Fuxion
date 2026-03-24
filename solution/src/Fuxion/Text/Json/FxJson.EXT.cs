@@ -92,23 +92,6 @@ namespace Fuxion.Text.Json;
 /// </example>
 public static class JsonExtensions
 {
-	//extension(string? me)
-	//{
-	//	[Obsolete("Este método ha sido sustituido por la nueva sintaxis (string).Fx.Json.Deserialize(). Solo funciona en Visual Studio 2026 o superior.")]
-	//	public object? DeserializeFromJson(Type type, bool formatted = false, JsonSerializerOptions? options = null)
-	//		=> me.Fx.Json.Deserialize(type, formatted, options).Payload;
-	//	[Obsolete("Este método ha sido sustituido por la nueva sintaxis (string).Fx.Json.Deserialize(). Solo funciona en Visual Studio 2026 o superior.")]
-	//	public T? DeserializeFromJson<T>(bool formatted = false, JsonSerializerOptions? options = null)
-	//		=> me.Fx.Json.Deserialize<T>(formatted, options).Payload;
-	//}
-
-	//extension<T>(T? me)
-	//{
-	//	[Obsolete("Este método ha sido sustituido por la nueva sintaxis (string).Fx.Json.Serialize(). Solo funciona en Visual Studio 2026 o superior.")]
-	//	public string? SerializeToJson(bool formatted = false, JsonSerializerOptions? options = null, bool errorIfNull = false)
-	//		=> me.Fx.Json.Serialize(formatted, options).Payload;
-	//}
-
 	/// <summary>
 	/// Provides a <see cref="JsonTypeInfoResolver"/> that combines private constructor support with alphabetical property ordering.
 	/// </summary>
@@ -262,7 +245,6 @@ public static class JsonExtensions
 	const string FormattedKey = "Fuxion_JsonSerializerOptions_Formatted_SingletonKey";
 	extension(JsonSerializerOptions me)
 	{
-
 		/// <summary>
 		/// Gets or sets the singleton instance of <see cref="JsonSerializerOptions"/> configured for Fuxion formatted serialization.
 		/// </summary>

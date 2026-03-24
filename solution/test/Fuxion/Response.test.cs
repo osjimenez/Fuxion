@@ -20,7 +20,7 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 	public Response GetNotFound() => Response.Get.NotFound("message");
 	public Response<int> GetNotFoundWithPayload() => Response.Get.NotFound("message", 123);
 	public Response<int> GetNotFoundWithPayloadAndExtensions() => Response.Get.NotFound("message", 123, extensions: [("Extension", 123.456)]);
-	public CustomError GetCustomError() => Response.Custom("message", "customData");
+	public CustomError GetCustomError() => Response.Get.Custom("message", "customData");
 	[Fact]
 	public void ImplicitConversion()
 	{
@@ -151,8 +151,8 @@ public class CustomError(string message, string customData) : Response(false, me
 
 file static class CustomErrorExtensions
 {
-	extension(Response)
+	extension(ResponseGetExtensionsContainer.ResponseGetExtensions me)
 	{
-		public static CustomError Custom(string message, string customData) => new(message, customData);
+		public CustomError Custom(string message, string customData) => new(message, customData);
 	}
 }

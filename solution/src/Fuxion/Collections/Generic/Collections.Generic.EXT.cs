@@ -192,7 +192,26 @@ public static class CollectionsExtensions
 	/// </code>
 	/// </example>
 	public static bool IsNullOrEmpty<T>([NotNullWhen(false)]this IEnumerable<T>? me) => me == null || !me.Any();
-	
+
+	/// <summary>
+	/// Determines whether a sequence is neither null nor empty.
+	/// </summary>
+	/// <typeparam name="T">The type of elements in the sequence.</typeparam>
+	/// <param name="me">The sequence to check.</param>
+	/// <returns>true if the sequence is not null and contains at least one element; otherwise, false.</returns>
+	/// <example>
+	/// <code>
+	/// List&lt;int&gt;? nullList = null;
+	/// var emptyList = new List&lt;int&gt;();
+	/// var filledList = new List&lt;int&gt; { 1, 2, 3 };
+	/// 
+	/// nullList.IsNeitherNullNorEmpty();   // false
+	/// emptyList.IsNeitherNullNorEmpty();  // false
+	/// filledList.IsNeitherNullNorEmpty(); // true
+	/// </code>
+	/// </example>
+	public static bool IsNeitherNullNorEmpty<T>([NotNullWhen(true)] this IEnumerable<T>? me) => me != null && me.Any();
+
 	/// <summary>
 	/// Removes statistical outliers from a sequence of integers using the interquartile range (IQR) method.
 	/// </summary>

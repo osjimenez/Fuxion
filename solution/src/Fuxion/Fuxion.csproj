@@ -41,6 +41,9 @@
 		<Compile Update="Response.EXT.cs">
 			<DependentUpon>Response.cs</DependentUpon>
 		</Compile>
+		<Compile Update="Response.Get.EXT.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
 		<Compile Update="Response.ErrorType.cs">
 			<DependentUpon>Response.cs</DependentUpon>
 		</Compile>

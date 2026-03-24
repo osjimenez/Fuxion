@@ -1,7 +1,6 @@
-﻿using System.ComponentModel;
+﻿using Fuxion;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
-
-namespace Fuxion;
 
 /// <summary>
 ///    Provides the entry point for all Fuxion extension methods through the <c>.Fx</c> property.
@@ -83,89 +82,92 @@ public static class FuxionExtensions
 	}
 }
 
-/// <summary>
-///    Container for Fuxion-specific extension methods.
-///    This class wraps an object and provides access to Fuxion functionality.
-/// </summary>
-/// <typeparam name="T">The type of the wrapped object.</typeparam>
-/// <param name="me">The object being wrapped.</param>
-/// <remarks>
-///    <para>
-///       This class serves as an extension point where Fuxion-specific functionality can be added
-///       through additional extension methods. It inherits from <see cref="Extensions{T}" /> which
-///       provides the base infrastructure.
-///    </para>
-///    <para>
-///       Developers can extend Fuxion functionality by creating extension methods on this type:
-///    </para>
-///    <code>
-/// public static class MyFuxionExtensions
-/// {
-///     public static string MyCustomExtension&lt;T&gt;(this FuxionExtensions&lt;T&gt; fx)
-///     {
-///         var value = fx.Value;
-///         // Custom logic here
-///         return $"Processed: {value}";
-///     }
-/// }
-/// 
-/// // Usage:
-/// var obj = new MyClass();
-/// var result = obj.Fx.MyCustomExtension();
-/// </code>
-/// </remarks>
-public class FuxionExtensions<T>(T me) : Extensions<T>(me);
-
-/// <summary>
-///    Base class for extension containers that wrap an object and provide extensibility.
-/// </summary>
-/// <typeparam name="T">The type of the wrapped object.</typeparam>
-/// <param name="me">The object being wrapped.</param>
-/// <remarks>
-///    <para>
-///       This abstract class provides the foundation for the Fuxion extension pattern.
-///       It stores the wrapped object and provides access to it through the <see cref="Value" /> property.
-///    </para>
-///    <para>
-///       The class is marked as abstract to prevent direct instantiation, encouraging the use of
-///       derived classes like <see cref="FuxionExtensions{T}" />.
-///    </para>
-/// </remarks>
-public abstract class Extensions<T>(T me)
+namespace Fuxion
 {
 	/// <summary>
-	///    Gets the wrapped object.
+	///    Container for Fuxion-specific extension methods.
+	///    This class wraps an object and provides access to Fuxion functionality.
 	/// </summary>
-	/// <value>The original object that was wrapped by this extension container.</value>
+	/// <typeparam name="T">The type of the wrapped object.</typeparam>
+	/// <param name="me">The object being wrapped.</param>
 	/// <remarks>
 	///    <para>
-	///       This property allows extension methods to access the original object being extended.
-	///       It is marked with <see cref="EditorBrowsableAttribute" /> set to <see cref="EditorBrowsableState.Never" />
-	///       to hide it from IntelliSense, keeping the API surface clean for consumers.
+	///       This class serves as an extension point where Fuxion-specific functionality can be added
+	///       through additional extension methods. It inherits from <see cref="Extensions{T}" /> which
+	///       provides the base infrastructure.
 	///    </para>
 	///    <para>
-	///       The getter is aggressively inlined for performance optimization since it's frequently accessed
-	///       by extension methods.
+	///       Developers can extend Fuxion functionality by creating extension methods on this type:
 	///    </para>
-	/// </remarks>
-	/// <example>
 	///    <code>
-	/// // Inside a custom extension method:
-	/// public static string ToUpperExtension(this FuxionExtensions&lt;string&gt; fx)
+	/// public static class MyFuxionExtensions
 	/// {
-	///     string original = fx.Value; // Access the wrapped string
-	///     return original.ToUpper();
+	///     public static string MyCustomExtension&lt;T&gt;(this FuxionExtensions&lt;T&gt; fx)
+	///     {
+	///         var value = fx.Value;
+	///         // Custom logic here
+	///         return $"Processed: {value}";
+	///     }
 	/// }
 	/// 
 	/// // Usage:
-	/// string text = "hello";
-	/// string upper = text.Fx.ToUpperExtension(); // "HELLO"
+	/// var obj = new MyClass();
+	/// var result = obj.Fx.MyCustomExtension();
 	/// </code>
-	/// </example>
-	[EditorBrowsable(EditorBrowsableState.Never)]
-	public T Value
+	/// </remarks>
+	public class FuxionExtensions<T>(T me) : Extensions<T>(me);
+
+	/// <summary>
+	///    Base class for extension containers that wrap an object and provide extensibility.
+	/// </summary>
+	/// <typeparam name="T">The type of the wrapped object.</typeparam>
+	/// <param name="me">The object being wrapped.</param>
+	/// <remarks>
+	///    <para>
+	///       This abstract class provides the foundation for the Fuxion extension pattern.
+	///       It stores the wrapped object and provides access to it through the <see cref="Value" /> property.
+	///    </para>
+	///    <para>
+	///       The class is marked as abstract to prevent direct instantiation, encouraging the use of
+	///       derived classes like <see cref="FuxionExtensions{T}" />.
+	///    </para>
+	/// </remarks>
+	public abstract class Extensions<T>(T me)
 	{
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get => me;
+		/// <summary>
+		///    Gets the wrapped object.
+		/// </summary>
+		/// <value>The original object that was wrapped by this extension container.</value>
+		/// <remarks>
+		///    <para>
+		///       This property allows extension methods to access the original object being extended.
+		///       It is marked with <see cref="EditorBrowsableAttribute" /> set to <see cref="EditorBrowsableState.Never" />
+		///       to hide it from IntelliSense, keeping the API surface clean for consumers.
+		///    </para>
+		///    <para>
+		///       The getter is aggressively inlined for performance optimization since it's frequently accessed
+		///       by extension methods.
+		///    </para>
+		/// </remarks>
+		/// <example>
+		///    <code>
+		/// // Inside a custom extension method:
+		/// public static string ToUpperExtension(this FuxionExtensions&lt;string&gt; fx)
+		/// {
+		///     string original = fx.Value; // Access the wrapped string
+		///     return original.ToUpper();
+		/// }
+		/// 
+		/// // Usage:
+		/// string text = "hello";
+		/// string upper = text.Fx.ToUpperExtension(); // "HELLO"
+		/// </code>
+		/// </example>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public T Value
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => me;
+		}
 	}
 }
