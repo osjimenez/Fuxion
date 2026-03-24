@@ -95,7 +95,7 @@ public static class DataAnnotationsExtensions
 		}
 	}
 
-	extension<T>(ValidationExtensions<T> me)
+	extension<T>(ValidationExtensions<T?> me)
 	{
 		/// <summary>
 		///    Validates the wrapped value and converts the result into a <see cref="IResponse" />.

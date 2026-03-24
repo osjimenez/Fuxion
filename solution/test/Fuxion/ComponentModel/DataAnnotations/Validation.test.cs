@@ -13,6 +13,12 @@ public class ValidationTest(ITestOutputHelper output) : BaseTest<ValidationTest>
 	[Fact]
 	public void ValidateModel()
 	{
+		var mm = new Model()
+		{
+			Name = ""
+		};
+		var tt = mm.Fx.Validation.ToResponse();
+
 		Model? model = null;
 
 		var res = model.Fx.Validation.ToResponse();
