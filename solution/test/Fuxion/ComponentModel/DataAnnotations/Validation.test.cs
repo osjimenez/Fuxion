@@ -17,10 +17,12 @@ public class ValidationTest(ITestOutputHelper output) : BaseTest<ValidationTest>
 
 		var res = model.Fx.Validation.ToResponse();
 		IsTrue(res.IsError);
+		IsTrue(res.Extensions.ValidationResults.IsDefined);
 		PrintVariable(res.Fx.Json.Serialize(true).PayloadOrDefault());
 
 		res = model.Fx.Validation.ToResponse(true);
 		IsTrue(res.IsSuccess);
+		IsTrue(res.Extensions.ValidationResults.IsUndefined);
 		PrintVariable(res.Fx.Json.Serialize(true).PayloadOrDefault());
 
 		model = new()
@@ -30,6 +32,7 @@ public class ValidationTest(ITestOutputHelper output) : BaseTest<ValidationTest>
 		};
 		res = model.Fx.Validation.ToResponse();
 		IsTrue(res.IsError);
+		IsTrue(res.Extensions.ValidationResults.IsDefined);
 		PrintVariable(res.Fx.Json.Serialize(true).PayloadOrDefault());
 
 		model.Name = "Alice";
@@ -38,6 +41,7 @@ public class ValidationTest(ITestOutputHelper output) : BaseTest<ValidationTest>
 
 		res = model.Fx.Validation.ToResponse();
 		IsTrue(res.IsSuccess);
+		IsTrue(res.Extensions.ValidationResults.IsUndefined);
 		PrintVariable(res.Fx.Json.Serialize(true).PayloadOrDefault());
 	}
 

@@ -36,60 +36,358 @@ namespace Fuxion.Net.Http;
 /// </remarks>
 public static class Extensions
 {
-	/// <summary>Key for accessing inner Problem Details from Response extensions.</summary>
-	public const string InnerProblemKey = "inner-problem";
-	
-	/// <summary>Key for accessing JSON content as JsonElement from Response extensions.</summary>
-	public const string JsonContentKey = "json-content";
-	
-	/// <summary>Key for accessing JSON deserialization errors from Response extensions.</summary>
-	public const string JsonErrorKey = "json-error";
-	
-	/// <summary>Key for accessing string content from Response extensions.</summary>
-	public const string StringContentKey = "string-content";
-	
-	/// <summary>Key for accessing payloads from Problem Details extensions.</summary>
-	public const string PayloadKey = "payload";
-	
-	/// <summary>Key for accessing exceptions from Response extensions.</summary>
-	public const string ExceptionKey = "exception";
-	
-	/// <summary>Key for accessing HTTP status codes from Response extensions.</summary>
-	public const string StatusCodeKey = "status-code";
-	
-	/// <summary>Key for accessing reason phrases from Response extensions.</summary>
-	public const string ReasonPhraseKey = "reason-phrase";
-	
-	/// <summary>Key for accessing content length headers from Response extensions.</summary>
-	public const string ContentLengthKey = "content-length";
-	
-	/// <summary>Key for accessing content type headers from Response extensions.</summary>
-	public const string ContentTypeKey = "content-type";
-	
-	/// <summary>Key for accessing file names from Content-Disposition headers.</summary>
-	public const string FileNameKey = "file-name";
+	private const string InnerProblemKey = "inner-problem";
+	private const string StatusCodeKey = "status-code";
+	private const string PayloadKey = "payload";
+	private const string ReasonPhraseKey = "reason-phrase";
+	private const string ExceptionKey = "exception";
+	private const string JsonContentKey = "json-content";
+	private const string JsonErrorKey = "json-error";
+	private const string StringContentKey = "string-content";
+	private const string ContentLengthKey = "content-length";
+	private const string ContentTypeKey = "content-type";
+	private const string FileNameKey = "file-name";
+	extension(ResponseExtensionsDictionary me)
+	{
+		/// <summary>
+      /// Gets or sets the RFC 7807 problem details extracted from the HTTP response content.
+		/// </summary>
+     /// <value>
+		/// A <see cref="Undefinable{T}"/> containing the inner <see cref="ResponseProblemDetails"/> value,
+		/// or <see cref="Undefinable{T}.Undefined"/> when no problem details were captured.
+		/// </value>
+		/// <remarks>
+		/// This property maps to the <c>"inner-problem"</c> extension entry and is typically populated when
+		/// the response content type is <c>application/problem+json</c>.
+		/// </remarks>
+		public Undefinable<ResponseProblemDetails> InnerProblem
+		{
+			get
+				=> me.TryGetValue(InnerProblemKey, out var val)
+					? val switch
+					{
+						Undefinable<ResponseProblemDetails> und => und,
+						ResponseProblemDetails res => res,
+						_ => Undefinable<ResponseProblemDetails>.Undefined
+					}
+					: Undefinable<ResponseProblemDetails>.Undefined;
+			set
+			{
+				if (value.IsUndefined)
+					me.Remove(InnerProblemKey);
+				else
+					me[InnerProblemKey] = value;
+			}
+		}
+		
+		/// <summary>
+      /// Gets or sets the HTTP status code associated with the response.
+		/// </summary>
+     /// <value>
+		/// A <see cref="Undefinable{T}"/> containing the numeric HTTP status code,
+		/// or <see cref="Undefinable{T}.Undefined"/> when it is not available.
+		/// </value>
+		public Undefinable<int> StatusCode
+		{
+			get
+				=> me.TryGetValue(StatusCodeKey, out var val)
+					? val switch
+					{
+						Undefinable<int> und => und,
+						int res => res,
+						_ => Undefinable<int>.Undefined
+					}
+					: Undefinable<int>.Undefined;
+			set
+			{
+				if (value.IsUndefined)
+					me.Remove(StatusCodeKey);
+				else
+					me[StatusCodeKey] = value;
+			}
+		}
+
+		/// <summary>
+      /// Gets or sets the deserialized payload extracted from the HTTP response.
+		/// </summary>
+     /// <value>
+		/// A <see cref="Undefinable{T}"/> containing the payload object,
+		/// or <see cref="Undefinable{T}.Undefined"/> when no payload was extracted.
+		/// </value>
+		/// <remarks>
+		/// This property provides typed access to the <c>"payload"</c> extension entry.
+		/// It can contain any deserialized object captured during response processing.
+		/// </remarks>
+		public Undefinable<object> Payload
+		{
+			get
+				=> me.TryGetValue(PayloadKey, out var val)
+					? val switch
+					{
+						Undefinable<object> und => und,
+						not null => val,
+						_ => Undefinable<object>.Undefined
+					}
+					: Undefinable<object>.Undefined;
+			set
+			{
+				if (value.IsUndefined)
+					me.Remove(PayloadKey);
+				else
+					me[PayloadKey] = value;
+			}
+		}
+
+		/// <summary>
+      /// Gets or sets the HTTP reason phrase associated with the response.
+		/// </summary>
+      /// <value>
+		/// A <see cref="Undefinable{T}"/> containing the reason phrase,
+		/// or <see cref="Undefinable{T}.Undefined"/> when it is not available.
+		/// </value>
+		public Undefinable<string> ReasonPhrase
+		{
+			get
+				=> me.TryGetValue(ReasonPhraseKey, out var val)
+					? val switch
+					{
+						Undefinable<string> und => und,
+						string res => res,
+						_ => Undefinable<string>.Undefined
+					}
+					: Undefinable<string>.Undefined;
+			set
+			{
+				if (value.IsUndefined)
+					me.Remove(ReasonPhraseKey);
+				else
+					me[ReasonPhraseKey] = value;
+			}
+		}
+
+		/// <summary>
+      /// Gets or sets the serialized exception details produced while processing or deserializing the HTTP response.
+		/// </summary>
+    /// <value>
+		/// A <see cref="Undefinable{T}"/> containing a <see cref="JsonElement"/> with exception information,
+		/// or <see cref="Undefinable{T}.Undefined"/> when no exception details are present.
+		/// </value>
+		public Undefinable<JsonElement> Exception
+		{
+			get
+				=> me.TryGetValue(ExceptionKey, out var val)
+					? val switch
+					{
+						Undefinable<JsonElement> und => und,
+						JsonElement res => res,
+						_ => Undefinable<JsonElement>.Undefined
+					}
+					: Undefinable<JsonElement>.Undefined;
+			set
+			{
+				if (value.IsUndefined)
+					me.Remove(ExceptionKey);
+				else
+					me[ExceptionKey] = value;
+			}
+		}
+
+		/// <summary>
+      /// Gets or sets the JSON content extracted from the HTTP response body.
+		/// </summary>
+     /// <value>
+		/// A <see cref="Undefinable{T}"/> containing the parsed JSON content as a <see cref="JsonElement"/>,
+		/// or <see cref="Undefinable{T}.Undefined"/> when the body is not valid JSON or no JSON content was captured.
+		/// </value>
+		public Undefinable<JsonElement> JsonContent
+		{
+			get
+				=> me.TryGetValue(JsonContentKey, out var val)
+					? val switch
+					{
+						Undefinable<JsonElement> und => und,
+						JsonElement res => res,
+						_ => Undefinable<JsonElement>.Undefined
+					}
+					: Undefinable<JsonElement>.Undefined;
+			set
+			{
+				if (value.IsUndefined)
+					me.Remove(JsonContentKey);
+				else
+					me[JsonContentKey] = value;
+			}
+		}
+
+		/// <summary>
+      /// Gets or sets the JSON error content generated while attempting to deserialize the HTTP response body.
+		/// </summary>
+    /// <value>
+		/// A <see cref="Undefinable{T}"/> containing the serialized deserialization error as a <see cref="JsonElement"/>,
+		/// or <see cref="Undefinable{T}.Undefined"/> when no JSON error information is available.
+		/// </value>
+		public Undefinable<JsonElement> JsonError
+		{
+			get
+				=> me.TryGetValue(JsonErrorKey, out var val)
+					? val switch
+					{
+						Undefinable<JsonElement> und => und,
+						JsonElement res => res,
+						_ => Undefinable<JsonElement>.Undefined
+					}
+					: Undefinable<JsonElement>.Undefined;
+			set
+			{
+				if (value.IsUndefined)
+					me.Remove(JsonErrorKey);
+				else
+					me[JsonErrorKey] = value;
+			}
+		}
+
+		/// <summary>
+      /// Gets or sets the string content extracted from the HTTP response body.
+		/// </summary>
+     /// <value>
+		/// A <see cref="Undefinable{T}"/> containing the response body as plain text,
+		/// or <see cref="Undefinable{T}.Undefined"/> when no string content was captured.
+		/// </value>
+		/// <remarks>
+		/// This property is typically used when the response body is not valid JSON or when the JSON payload itself is a string value.
+		/// </remarks>
+		public Undefinable<string> StringContent
+		{
+			get
+				=> me.TryGetValue(StringContentKey, out var val)
+					? val switch
+					{
+						Undefinable<string> und => und,
+						string res => res,
+						_ => Undefinable<string>.Undefined
+					}
+					: Undefinable<string>.Undefined;
+			set
+			{
+				if (value.IsUndefined)
+					me.Remove(StringContentKey);
+				else
+					me[StringContentKey] = value;
+			}
+		}
+
+		/// <summary>
+      /// Gets or sets the content length reported by the HTTP response.
+		/// </summary>
+    /// <value>
+		/// A <see cref="Undefinable{T}"/> containing the content length in bytes,
+		/// or <see cref="Undefinable{T}.Undefined"/> when the header is not present.
+		/// </value>
+		public Undefinable<long> ContentLength
+		{
+			get
+				=> me.TryGetValue(ContentLengthKey, out var val)
+					? val switch
+					{
+						Undefinable<long> und => und,
+						long res => res,
+						_ => Undefinable<long>.Undefined
+					}
+					: Undefinable<long>.Undefined;
+			set
+			{
+				if (value.IsUndefined)
+					me.Remove(ContentLengthKey);
+				else
+					me[ContentLengthKey] = value;
+			}
+		}
+
+		/// <summary>
+      /// Gets or sets the media type reported by the HTTP response content.
+		/// </summary>
+    /// <value>
+		/// A <see cref="Undefinable{T}"/> containing the content type media value,
+		/// or <see cref="Undefinable{T}.Undefined"/> when the header is not present.
+		/// </value>
+		public Undefinable<string> ContentType
+		{
+			get
+				=> me.TryGetValue(ContentTypeKey, out var val)
+					? val switch
+					{
+						Undefinable<string> und => und,
+						string res => res,
+						_ => Undefinable<string>.Undefined
+					}
+					: Undefinable<string>.Undefined;
+			set
+			{
+				if (value.IsUndefined)
+					me.Remove(ContentTypeKey);
+				else
+					me[ContentTypeKey] = value;
+			}
+		}
+
+		/// <summary>
+      /// Gets or sets the file name reported by the HTTP content disposition header.
+		/// </summary>
+    /// <value>
+		/// A <see cref="Undefinable{T}"/> containing the file name,
+		/// or <see cref="Undefinable{T}.Undefined"/> when the response does not provide one.
+		/// </value>
+		/// <remarks>
+		/// This property is mainly useful for download scenarios where the server includes a suggested file name.
+		/// </remarks>
+		public Undefinable<string> FileName
+		{
+			get
+				=> me.TryGetValue(FileNameKey, out var val)
+					? val switch
+					{
+						Undefinable<string> und => und,
+						string res => res,
+						_ => Undefinable<string>.Undefined
+					}
+					: Undefinable<string>.Undefined;
+			set
+			{
+				if (value.IsUndefined)
+					me.Remove(FileNameKey);
+				else
+					me[FileNameKey] = value;
+			}
+		}
+	}
 
 	// Internal helper that performs the heavy lifting
-	static async Task<(List<(string, object?)> Extensions, ResponseProblemDetails? Problem, object? DeserializedBody, Exception? DeserializationException)> DoAsResponse(
+	static async Task<(ResponseExtensionsDictionary Extensions, ResponseProblemDetails? Problem, object? DeserializedBody, Exception? DeserializationException)> DoAsResponse(
 		HttpResponseMessage res,
 		Type? deserializationType = null,
 		JsonSerializerOptions? jsonOptions = null,
 		CancellationToken ct = default)
 	{
-		List<(string, object?)> extensions =
-		[
-			(StatusCodeKey, (int)res.StatusCode),
-			(ReasonPhraseKey, res.ReasonPhrase)
-		];
+		ResponseExtensionsDictionary extensions = new()
+		{
+			StatusCode = (int)res.StatusCode,
+			ReasonPhrase = res.ReasonPhrase is null ? Undefinable<string>.Undefined : res.ReasonPhrase
+		};
 		ResponseProblemDetails? problem = null;
 		object? deserializedBody = null;
 		Exception? deserializationException = null;
 
 		if (deserializationType is not null && typeof(Stream).IsAssignableFrom(deserializationType))
 		{
-			extensions.Add((ContentLengthKey, res.Content.Headers.ContentLength));
-			extensions.Add((ContentTypeKey, res.Content.Headers.ContentType?.MediaType));
-			extensions.Add((FileNameKey, res.Content.Headers.ContentDisposition?.FileName));
+			extensions.ContentLength = res.Content.Headers.ContentLength is null // INFO Cannot use ?? because we need implicit conversion from long to Undefinable<long>
+				? Undefinable<long>.Undefined
+				: res.Content.Headers.ContentLength.Value;
+			extensions.ContentType = res.Content.Headers.ContentType?.MediaType is null // INFO Cannot use ?? because we need implicit conversion from string to Undefinable<string>
+				? Undefinable<string>.Undefined
+				: res.Content.Headers.ContentType.MediaType;
+			extensions.FileName = res.Content.Headers.ContentDisposition?.FileName is null // INFO Cannot use ?? because we need implicit conversion from string to Undefinable<string>
+				? Undefinable<string>.Undefined
+				: res.Content.Headers.ContentDisposition.FileName;
 			return (extensions, problem, await res.Content.ReadAsStreamAsync(
 #if !STANDARD_OR_OLD_FRAMEWORKS
 				ct
@@ -99,9 +397,15 @@ public static class Extensions
 
 		if (deserializationType is not null && typeof(byte[]).IsAssignableFrom(deserializationType))
 		{
-			extensions.Add((ContentLengthKey, res.Content.Headers.ContentLength));
-			extensions.Add((ContentTypeKey, res.Content.Headers.ContentType?.MediaType));
-			extensions.Add((FileNameKey, res.Content.Headers.ContentDisposition?.FileName));
+			extensions.ContentLength = res.Content.Headers.ContentLength is null // INFO Cannot use ?? because we need implicit conversion from long to Undefinable<long>
+				? Undefinable<long>.Undefined
+				: res.Content.Headers.ContentLength.Value;
+			extensions.ContentType = res.Content.Headers.ContentType?.MediaType is null // INFO Cannot use ?? because we need implicit conversion from string to Undefinable<string>
+				? Undefinable<string>.Undefined
+				: res.Content.Headers.ContentType.MediaType;
+			extensions.FileName = res.Content.Headers.ContentDisposition?.FileName is null // INFO Cannot use ?? because we need implicit conversion from string to Undefinable<string>
+				? Undefinable<string>.Undefined
+				: res.Content.Headers.ContentDisposition.FileName;
 			return (extensions, problem, await res.Content.ReadAsByteArrayAsync(
 #if !STANDARD_OR_OLD_FRAMEWORKS
 				ct
@@ -116,7 +420,7 @@ public static class Extensions
 		);
 
 
-		if (!strContent.IsNullOrEmpty())
+		if (strContent.IsNeitherNullNorWhiteSpace())
 		{
 
 			if (res.Content.Headers.ContentType?.MediaType == "application/problem+json")
@@ -125,17 +429,20 @@ public static class Extensions
 				if (problemResponse.IsSuccess)
 				{
 					problem = problemResponse.Payload;
-					extensions.Add((InnerProblemKey, problem));
+					extensions.InnerProblem = problem;
 				}
 			}
 			if (problem is null)
 			{
 				var ele = strContent.Fx.Json.SerializeToElement();
 				if (ele.IsError)
-					extensions.Add((StringContentKey, strContent));
-				extensions.Add(ele.Payload.ValueKind == JsonValueKind.String
-					? (StringContentKey, ele.Payload)
-					: (JsonContentKey, ele.Payload));
+					extensions.StringContent = strContent;
+				if (ele.Payload.ValueKind == JsonValueKind.String)
+					extensions.StringContent = ele.Payload.GetString() == null
+						? Undefinable<string>.Undefined
+						: ele.Payload.ToString();
+				else
+					extensions.JsonContent = ele.Payload;
 				if (deserializationType is not null)
 				{
 					var deserializationResponse = strContent.Fx.Json.Deserialize(deserializationType, options: jsonOptions);
@@ -146,9 +453,9 @@ public static class Extensions
 						if (deserializationResponse.Exception is not null)
 						{
 							deserializationException = deserializationResponse.Exception;
-							var tt = deserializationResponse.Exception.Fx.Json.SerializeToElement(options: jsonOptions);
-							if (tt.IsSuccess)
-								extensions.Add((JsonErrorKey, tt.Payload));
+							var jsonErrorExceptionSerializationResponse = deserializationResponse.Exception.Fx.Json.SerializeToElement(options: jsonOptions);
+							if (jsonErrorExceptionSerializationResponse.IsSuccess)
+								extensions.JsonError = jsonErrorExceptionSerializationResponse.Payload;
 						}
 					}
 				}
@@ -163,21 +470,21 @@ public static class Extensions
 		var (extensions, problem, _, exception) = await DoAsResponse(res, null, jsonOptions, ct);
 
 		if (res.IsSuccessStatusCode)
-			if (extensions.Any(e => e.Item1 == StringContentKey))
-				return Response.Get.SuccessMessage(extensions.First(e => e.Item1 == StringContentKey)
-					.Item2?.ToString() ?? string.Empty, extensions);
+			if (extensions.Any(e => e.Key == StringContentKey))
+				return Response.Get.SuccessMessage(extensions.First(e => e.Key == StringContentKey)
+					.Value?.ToString() ?? string.Empty, extensions.ToEnumerable());
 			else
-				return Response.Get.Success(extensions);
+				return Response.Get.Success(extensions.ToEnumerable());
 
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
 		return Response.Get
 			.ErrorMessage(
 				problem?.Detail
-				?? extensions.FirstOrDefault(e => e.Item1 == StringContentKey).Item2?.ToString()
+				?? extensions.FirstOrDefault(e => e.Key == StringContentKey).Value?.ToString()
 				?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.",
 				type: errorType,
-				extensions: extensions,
+				extensions: extensions.ToEnumerable(),
 				exception: exception);
 	}
 
@@ -188,16 +495,16 @@ public static class Extensions
 		if (res.IsSuccessStatusCode)
 		{
 			if (deserializedBody is TPayload payload)
-				return Response.Get.SuccessPayload(payload, extensions: extensions);
-			if (extensions.Any(e => e.Item1 == JsonContentKey))
+				return Response.Get.SuccessPayload(payload, extensions: extensions.ToEnumerable());
+			if (extensions.JsonContent.IsDefined)
 				return Response.Get
 					.InvalidData($"The content of the response isn't '{typeof(TPayload).GetSignature()}' type.",
-						extensions: extensions,
+						extensions: extensions.ToEnumerable(),
 						exception: exception)
 					.AsPayload<TPayload>();
 			return Response.Get
 				.InvalidData("The content of the response isn't a valid json.",
-					extensions: extensions,
+					extensions: extensions.ToEnumerable(),
 					exception: exception)
 				.AsPayload<TPayload>();
 		}
@@ -206,10 +513,10 @@ public static class Extensions
 		return Response.Get
 			.ErrorMessage(
 				problem?.Detail
-				?? extensions.FirstOrDefault(e => e.Item1 == StringContentKey).Item2?.ToString()
+				?? extensions.FirstOrDefault(e => e.Key == StringContentKey).Value?.ToString()
 				?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.",
 				type: errorType,
-				extensions: extensions,
+				extensions: extensions.ToEnumerable(),
 				exception: exception)
 			.AsPayload<TPayload>();
 	}
@@ -418,43 +725,6 @@ public static class Extensions
 		/// </example>
 		public async Task<Response<TPayload>> AsResponseAsync<TPayload>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 			=> await Extensions.AsResponseFromMessageAsync<TPayload>(res, jsonOptions, ct);
-	}
-
-	/// <summary>
-	/// Extension methods for IResponse to extract Problem Details.
-	/// </summary>
-	extension(Response me)
-	{
-		/// <summary>
-		/// Attempts to extract RFC 7807 Problem Details from the response extensions.
-		/// </summary>
-		/// <param name="problem">When this method returns true, contains the Problem Details; otherwise, null.</param>
-		/// <returns>true if Problem Details were found; otherwise, false.</returns>
-		/// <remarks>
-		/// This method looks for the <see cref="InnerProblemKey"/> in the response extensions.
-		/// Problem Details are automatically extracted when the response Content-Type is "application/problem+json".
-		/// </remarks>
-		/// <example>
-		/// <code>
-		/// var response = await httpClient.GetAsync("/api/endpoint").AsResponseAsync();
-		/// if (!response.IsSuccess &amp;&amp; response.TryGetProblemDetails(out var problem))
-		/// {
-		///     Console.WriteLine($"Problem Type: {problem.Type}");
-		///     Console.WriteLine($"Problem Title: {problem.Title}");
-		///     Console.WriteLine($"Problem Detail: {problem.Detail}");
-		/// }
-		/// </code>
-		/// </example>
-		public bool TryGetProblemDetails([NotNullWhen(true)] out ResponseProblemDetails? problem)
-		{
-			if (me.Extensions.TryGetValue(InnerProblemKey, out var obj) && obj is ResponseProblemDetails res)
-			{
-				problem = res;
-				return true;
-			}
-			problem = null;
-			return false;
-		}
 	}
 
 	/// <summary>

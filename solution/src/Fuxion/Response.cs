@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text.Json.Serialization;
 using Fuxion.Reflection;
 using Fuxion.Text.Json.Serialization;
@@ -226,7 +227,8 @@ public class Response(bool isSuccess, string? message = null, object? errorType 
 	/// </code>
 	/// </example>
 	[JsonExtensionData]
-	public IDictionary<string, object?> Extensions { get; init; } = new Dictionary<string, object?>(StringComparer.Ordinal);
+	public ResponseExtensionsDictionary Extensions { get; init; } = new(StringComparer.Ordinal);
+	//public IDictionary<string, object?> Extensions { get; init; } = new Dictionary<string, object?>(StringComparer.Ordinal);
 
 	/// <summary>
 	///    Implicitly converts a Response to a boolean value.
@@ -468,4 +470,41 @@ public class Response<TPayload>(bool isSuccess, TPayload payload, string? messag
 		payload = Payload;
 		return true;
 	}
+}
+
+/// <summary>
+/// Represents a specialized dictionary for storing response extension metadata.
+/// </summary>
+/// <param name="comparer">The string comparer used to compare extension keys.</param>
+/// <remarks>
+/// This type is used by <see cref="Response.Extensions"/> to store arbitrary metadata associated with a response,
+/// such as correlation identifiers, validation details, transport-specific information, or other custom values.
+/// </remarks>
+public class ResponseExtensionsDictionary(IEqualityComparer<string> comparer) : Dictionary<string, object?>(comparer)
+{
+	/// <summary>
+   /// Initializes a new instance of the <see cref="ResponseExtensionsDictionary"/> class from an enumerable sequence of key/value pairs.
+	/// </summary>
+  /// <param name="extensions">The extension entries to copy into the dictionary.</param>
+	public ResponseExtensionsDictionary(IEnumerable<(string Property, object? Value)>? extensions = null) : this(StringComparer.Ordinal)
+	{
+		if(extensions is not null)
+			foreach (var item in extensions)
+				Add(item.Property, item.Value);
+	}
+	/// <summary>
+   /// Initializes a new instance of the <see cref="ResponseExtensionsDictionary"/> class from an existing dictionary.
+	/// </summary>
+  /// <param name="dictionary">The dictionary whose entries will be copied into the new instance.</param>
+	public ResponseExtensionsDictionary(IDictionary<string , object?> dictionary) : this(StringComparer.Ordinal)
+	{
+		foreach (var item in dictionary)
+			Add(item.Key, item.Value);
+	}
+	/// <summary>
+   /// Converts the dictionary contents to an enumerable sequence of tuples.
+	/// </summary>
+ /// <returns>An enumerable sequence containing each extension entry as a <c>(Property, Value)</c> tuple.</returns>
+	public IEnumerable<(string Property, object? Value)> ToEnumerable()
+		=> this.Select(kvp => (kvp.Key, kvp.Value));
 }

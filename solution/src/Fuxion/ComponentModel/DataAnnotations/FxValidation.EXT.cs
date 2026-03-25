@@ -94,6 +94,56 @@ public static class DataAnnotationsExtensions
 			get => new(me.Value);
 		}
 	}
+	const string ValidationResultsKey = "validation-results";
+
+	extension(ResponseExtensionsDictionary me)
+	{
+		/// <summary>
+      /// Gets or sets the validation results stored in the response extensions dictionary.
+		/// </summary>
+      /// <value>
+		/// A <see cref="Undefinable{T}"/> containing the list of <see cref="ValidationResult"/> items associated with the response,
+		/// or <see cref="Undefinable{T}.Undefined"/> when no validation results are present.
+		/// </value>
+		/// <remarks>
+		/// This property provides typed access to the extension entry identified by <c>"validation-results"</c>.
+		/// Setting the value to <see cref="Undefinable{T}.Undefined"/> removes the entry from the dictionary.
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// var extensions = new ResponseExtensionsDictionary();
+		/// extensions.ValidationResults = new List&lt;ValidationResult&gt;
+		/// {
+		///     new("Email is required", new[] { "Email" })
+		/// };
+		/// 
+		/// if (!extensions.ValidationResults.IsUndefined)
+		/// {
+		///     foreach (var error in extensions.ValidationResults.Value)
+		///         Console.WriteLine(error.ErrorMessage);
+		/// }
+		/// </code>
+		/// </example>
+		public Undefinable<List<ValidationResult>> ValidationResults
+		{
+			get
+				=> me.TryGetValue(ValidationResultsKey, out var val)
+					? val switch
+					{
+						Undefinable<List<ValidationResult>> und => und,
+						List<ValidationResult> res => res,
+						_ => Undefinable<List<ValidationResult>>.Undefined
+					}
+					: Undefinable<List<ValidationResult>>.Undefined;
+			set
+			{
+				if (value.IsUndefined)
+					me.Remove(ValidationResultsKey);
+				else
+					me[ValidationResultsKey] = value;
+			}
+		}
+	}
 
 	extension<T>(ValidationExtensions<T?> me)
 	{
@@ -124,21 +174,29 @@ public static class DataAnnotationsExtensions
 		///     Console.WriteLine(response.Message);
 		/// </code>
 		/// </example>
-		public Response<List<ValidationResult>> ToResponse(bool nullValueIsValid = false)
+		public Response ToResponse(bool nullValueIsValid = false)
 		{
 			if (me.Value is null)
 				return nullValueIsValid
-					? Response.Get.SuccessPayload<List<ValidationResult>>([])
-					: Response.Get.InvalidData("Value is null").AsPayload<List<ValidationResult>>();
+					? Response.Get.Success()
+					: Response.Get.InvalidData(
+						"Value is null",
+						extensions: new ResponseExtensionsDictionary()
+						{
+							ValidationResults = new List<ValidationResult>([new("Value is null")])
+						}.ToEnumerable());
 
 			List<ValidationResult> validation = [];
 			Validator.TryValidateObject(me.Value, new(me.Value), validation, true);
 
 			return validation.IsNullOrEmpty()
-				? Response.Get.SuccessPayload<List<ValidationResult>>([])
+				? Response.Get.Success()
 				: Response.Get.InvalidData(
 					string.Join("\r\n", validation.Select(v => v.ErrorMessage)),
-					validation);
+					extensions: new ResponseExtensionsDictionary()
+					{
+						ValidationResults = validation
+					}.ToEnumerable());
 		}
 	}
 }

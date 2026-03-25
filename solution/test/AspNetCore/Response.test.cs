@@ -1,3 +1,5 @@
+#define XUNIT_NULLABLE
+
 using System;
 using System.Net;
 using System.Net.Http.Json;
@@ -64,8 +66,12 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
 			var str = await res.Content.ReadAsStringAsync();
 			var problem = str.Fx.Json.Deserialize<ProblemDetails>(options: jsonOptions).Payload;
-			Assert.Equal("Error message", problem?.Detail);
-			var payload = ((JsonElement)problem?.Extensions[PayloadKey]!).Deserialize<TestPayload>(jsonOptions);
+			Assert.NotNull(problem);
+			Assert.Equal("Error message", problem.Detail);
+			var ext = new ResponseExtensionsDictionary(problem.Extensions);
+			Assert.True(ext.Payload.IsDefined);
+			Assert.NotNull(ext.Payload.Value);
+			var payload = ((JsonElement)ext.Payload.Value!).Deserialize<TestPayload>(jsonOptions);
 			Assert.Equal("Test name", payload?.FirstName);
 			Assert.Equal(123, payload?.Age);
 		}
@@ -85,8 +91,12 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
 			var str = await res.Content.ReadAsStringAsync();
 			var problem = str.Fx.Json.Deserialize<ProblemDetails>(options: jsonOptions).Payload;
-			Assert.Equal("Error message", problem?.Detail);
-			var payload = ((JsonElement)problem?.Extensions[PayloadKey]!).Deserialize<TestPayload>(jsonOptions);
+			Assert.NotNull(problem);
+			Assert.Equal("Error message", problem.Detail);
+			var ext = new ResponseExtensionsDictionary(problem.Extensions);
+			Assert.True(ext.Payload.IsDefined);
+			Assert.NotNull(ext.Payload.Value);
+			var payload = ((JsonElement)ext.Payload.Value!).Deserialize<TestPayload>(jsonOptions);
 			Assert.Equal("Test name", payload?.FirstName);
 			Assert.Equal(123, payload?.Age);
 		}
@@ -99,8 +109,11 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			var str = await res.Content.ReadAsStringAsync();
 			PrintVariable(str);
 			var problem = str.Fx.Json.Deserialize<ProblemDetails>(options: jsonOptions).Payload;
-			var exception = (JsonElement)problem?.Extensions[ExceptionKey]!;
-			Assert.Equal("Not implemented", exception.GetProperty("Message").GetString());
+			Assert.NotNull(problem);
+			var ext = new ResponseExtensionsDictionary(problem.Extensions);
+			Assert.True(ext.Exception.IsDefined);
+			Assert.NotNull(ext.Exception.Value);
+			Assert.Equal("Not implemented", ext.Exception.Value.GetProperty("Message").GetString());
 		}
 	}
 	[Fact]
@@ -122,20 +135,20 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			var res = await cli.GetAsync($"{prefix}test-empty-success")
 				.AsResponseAsync();
 			Assert.True(res.IsSuccess);
-			Assert.Equal(204, res.Extensions[StatusCodeKey]);
+			Assert.Equal(204, res.Extensions.StatusCode.Value);
 		}
 		{
 			var res = await cli.GetAsync($"{prefix}test-message-success")
 				.AsResponseAsync();
 			Assert.True(res.IsSuccess);
-			Assert.Equal(200, res.Extensions[StatusCodeKey]);
+			Assert.Equal(200, res.Extensions.StatusCode.Value);
 			Assert.Equal("Success message", res.Message);
 		}
 		{
 			var res = await cli.GetAsync($"{prefix}test-payload-success")
 				.AsResponseAsync<TestPayload>(jsonOptions);
 			Assert.True(res.IsSuccess);
-			Assert.Equal(200, res.Extensions[StatusCodeKey]);
+			Assert.Equal(200, res.Extensions.StatusCode.Value);
 			Assert.Equal("Test name", res.Payload?.FirstName);
 			Assert.Equal(123, res.Payload?.Age);
 		}
@@ -154,20 +167,22 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			var res = await cli.GetAsync($"{prefix}test-message-error")
 				.AsResponseAsync(jsonOptions);
 			Assert.False(res.IsSuccess);
-			Assert.Equal(500, res.Extensions[StatusCodeKey]);
-			Assert.True(res.TryGetProblemDetails(out var problem));
-			Assert.Equal(500, problem.Status);
-			Assert.Equal("Error message", problem.Detail);
+			Assert.Equal(500, res.Extensions.StatusCode.Value);
+			Assert.NotNull(res.Extensions.InnerProblem);
+			Assert.True(res.Extensions.InnerProblem.IsDefined);
+			Assert.Equal(500, res.Extensions.InnerProblem.Value.Status);
+			Assert.Equal("Error message", res.Extensions.InnerProblem.Value.Detail);
 		}
 		{
 			var res = await cli.GetAsync($"{prefix}test-payload-error")
 				.AsResponseAsync(jsonOptions);
 			Assert.False(res.IsSuccess);
-			Assert.Equal(500, res.Extensions[StatusCodeKey]);
-			Assert.True(res.TryGetProblemDetails(out var problem));
-			Assert.Equal(500, problem.Status);
-			Assert.Equal("Error message", problem.Detail);
-			Assert.True(problem.TryGetPayload<TestPayload>(out var payload, jsonOptions));
+			Assert.Equal(500, res.Extensions.StatusCode.Value);
+			Assert.NotNull(res.Extensions.InnerProblem);
+			Assert.True(res.Extensions.InnerProblem.IsDefined);
+			Assert.Equal(500, res.Extensions.InnerProblem.Value.Status);
+			Assert.Equal("Error message", res.Extensions.InnerProblem.Value.Detail);
+			Assert.True(res.Extensions.InnerProblem.Value.TryGetPayload<TestPayload>(out var payload, jsonOptions));
 			Assert.Equal("Test name", payload.FirstName);
 			Assert.Equal(123, payload.Age);
 		}
@@ -177,19 +192,21 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			var res = await cli.GetAsync($"{prefix}test-message-bad-request")
 				.AsResponseAsync<TestPayload>(jsonOptions);
 			Assert.False(res.IsSuccess);
-			Assert.Equal(400, res.Extensions[StatusCodeKey]);
-			Assert.True(res.TryGetProblemDetails(out var problem));
-			Assert.Equal(400, problem.Status);
-			Assert.Equal("Error message", problem.Detail);
+			Assert.Equal(400, res.Extensions.StatusCode.Value);
+			Assert.NotNull(res.Extensions.InnerProblem);
+			Assert.True(res.Extensions.InnerProblem.IsDefined);
+			Assert.Equal(400, res.Extensions.InnerProblem.Value.Status);
+			Assert.Equal("Error message", res.Extensions.InnerProblem.Value.Detail);
 		}
 		{
 			var res = await cli.GetAsync($"{prefix}test-payload-bad-request")
 				.AsResponseAsync<TestPayload>(jsonOptions);
 			Assert.False(res.IsSuccess);
-			Assert.Equal(400, res.Extensions[StatusCodeKey]);
-			Assert.True(res.TryGetProblemDetails(out var problem));
-			Assert.Equal(400, problem.Status);
-			Assert.Equal("Error message", problem.Detail);
+			Assert.Equal(400, res.Extensions.StatusCode.Value);
+			Assert.NotNull(res.Extensions.InnerProblem);
+			Assert.True(res.Extensions.InnerProblem.IsDefined);
+			Assert.Equal(400, res.Extensions.InnerProblem.Value.Status);
+			Assert.Equal("Error message", res.Extensions.InnerProblem.Value.Detail);
 		}
 
 		// EXCEPTION
@@ -199,10 +216,11 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 
 			PrintVariable(res.Fx.Json.Serialize(true).Payload);
 			Assert.False(res.IsSuccess);
-			Assert.Equal(500, res.Extensions[StatusCodeKey]);
-			Assert.True(res.TryGetProblemDetails(out var problem));
-			Assert.Equal(500, problem.Status);
-			Assert.Equal("NotImplementedException: Not implemented", problem.Detail);
+			Assert.Equal(500, res.Extensions.StatusCode.Value);
+			Assert.NotNull(res.Extensions.InnerProblem);
+			Assert.True(res.Extensions.InnerProblem.IsDefined);
+			Assert.Equal(500, res.Extensions.InnerProblem.Value.Status);
+			Assert.Equal("NotImplementedException: Not implemented", res.Extensions.InnerProblem.Value.Detail);
 		}
 	}
 	[Fact]

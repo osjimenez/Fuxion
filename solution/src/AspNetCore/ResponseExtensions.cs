@@ -6,6 +6,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Fuxion.Net.Http;
 using Fuxion.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -93,27 +94,27 @@ public static class ResponseExtensions
 			return Results.NoContent();
 		}
 
-		var extensions = me.Extensions.ToDictionary();
-		extensions.Remove(StatusCodeKey);
-		extensions.Remove(ReasonPhraseKey);
-		if (me.TryGetPayload(out var payload2) && payload2 is not Stream) extensions[PayloadKey] = payload2;
+		me.Extensions.StatusCode = Undefinable<int>.Undefined;
+		me.Extensions.ReasonPhrase = Undefinable<string>.Undefined;
+
+		if (me.TryGetPayload(out var payload2) && payload2 is not Stream) me.Extensions.Payload = payload2;
 		if (IncludeException && me.Exception is not null)
-			extensions[ExceptionKey] = JsonSerializer.SerializeToElement(me.Exception, options: new()
+			me.Extensions.Exception = JsonSerializer.SerializeToElement(me.Exception, options: new()
 			{
 				Converters = { new ExceptionConverter() }
 			});
 
 		return me.ErrorType switch
 		{
-			ErrorType.NotFound => Results.Problem(me.Message, statusCode: StatusCodes.Status404NotFound, title: "Not found", extensions: extensions),
-			ErrorType.PermissionDenied => Results.Problem(me.Message, statusCode: StatusCodes.Status403Forbidden, title: "Forbidden", extensions: extensions),
-			ErrorType.InvalidData => Results.Problem(me.Message, statusCode: StatusCodes.Status400BadRequest, title: "Bad request", extensions: extensions),
-			ErrorType.Conflict => Results.Problem(me.Message, statusCode: StatusCodes.Status409Conflict, title: "Conflict", extensions: extensions),
-			ErrorType.Critical => Results.Problem(me.Message, statusCode: StatusCodes.Status500InternalServerError, title: "Internal server error", extensions: extensions),
-			ErrorType.NotSupported => Results.Problem(me.Message, statusCode: StatusCodes.Status501NotImplemented, title: "Not implemented", extensions: extensions),
-			ErrorType.Unavailable => Results.Problem(me.Message, statusCode: StatusCodes.Status503ServiceUnavailable, title: "Service unavailable", extensions: extensions),
-			ErrorType.Timeout => Results.Problem(me.Message, statusCode: StatusCodes.Status408RequestTimeout, title: "Request timeout", extensions: extensions),
-			_ => Results.Problem(me.Message, statusCode: StatusCodes.Status500InternalServerError, title: "Internal server error", extensions: extensions)
+			ErrorType.NotFound => Results.Problem(me.Message, statusCode: StatusCodes.Status404NotFound, title: "Not found", extensions: me.Extensions),
+			ErrorType.PermissionDenied => Results.Problem(me.Message, statusCode: StatusCodes.Status403Forbidden, title: "Forbidden", extensions: me.Extensions),
+			ErrorType.InvalidData => Results.Problem(me.Message, statusCode: StatusCodes.Status400BadRequest, title: "Bad request", extensions: me.Extensions),
+			ErrorType.Conflict => Results.Problem(me.Message, statusCode: StatusCodes.Status409Conflict, title: "Conflict", extensions: me.Extensions),
+			ErrorType.Critical => Results.Problem(me.Message, statusCode: StatusCodes.Status500InternalServerError, title: "Internal server error", extensions: me.Extensions),
+			ErrorType.NotSupported => Results.Problem(me.Message, statusCode: StatusCodes.Status501NotImplemented, title: "Not implemented", extensions: me.Extensions),
+			ErrorType.Unavailable => Results.Problem(me.Message, statusCode: StatusCodes.Status503ServiceUnavailable, title: "Service unavailable", extensions: me.Extensions),
+			ErrorType.Timeout => Results.Problem(me.Message, statusCode: StatusCodes.Status408RequestTimeout, title: "Request timeout", extensions: me.Extensions),
+			_ => Results.Problem(me.Message, statusCode: StatusCodes.Status500InternalServerError, title: "Internal server error", extensions: me.Extensions)
 		};
 	}
 
@@ -224,48 +225,53 @@ public static class ResponseExtensions
 	private static string GetTypeFromStatusCode(HttpStatusCode status)
 		=> status switch
 		{
-			HttpStatusCode.Continue => "https://tools.ietf.org/html/rfc7231#section-6.2.1",
-			HttpStatusCode.SwitchingProtocols => "https://tools.ietf.org/html/rfc7231#section-6.2.2",
-			HttpStatusCode.OK => "https://tools.ietf.org/html/rfc7231#section-6.3.1",
-			HttpStatusCode.Created => "https://tools.ietf.org/html/rfc7231#section-6.3.2",
-			HttpStatusCode.Accepted => "https://tools.ietf.org/html/rfc7231#section-6.3.3",
-			HttpStatusCode.NonAuthoritativeInformation => "https://tools.ietf.org/html/rfc7231#section-6.3.4",
-			HttpStatusCode.NoContent => "https://tools.ietf.org/html/rfc7231#section-6.3.5",
-			HttpStatusCode.ResetContent => "https://tools.ietf.org/html/rfc7231#section-6.3.6",
-			HttpStatusCode.PartialContent => "https://tools.ietf.org/html/rfc7233#section-4.1",
-			HttpStatusCode.MultipleChoices => "https://tools.ietf.org/html/rfc7231#section-6.4.1",
-			HttpStatusCode.MovedPermanently => "https://tools.ietf.org/html/rfc7231#section-6.4.2",
-			HttpStatusCode.Found => "https://tools.ietf.org/html/rfc7231#section-6.4.3",
-			HttpStatusCode.SeeOther => "https://tools.ietf.org/html/rfc7231#section-6.4.4",
-			HttpStatusCode.NotModified => "https://tools.ietf.org/html/rfc7232#section-4.1",
-			HttpStatusCode.UseProxy => "https://tools.ietf.org/html/rfc7231#section-6.4.5",
-			HttpStatusCode.Unused => "https://tools.ietf.org/html/rfc7231#section-6.4.6",
-			HttpStatusCode.TemporaryRedirect => "https://tools.ietf.org/html/rfc7231#section-6.4.7",
-			HttpStatusCode.BadRequest => "https://tools.ietf.org/html/rfc7231#section-6.5.1",
-			HttpStatusCode.Unauthorized => "https://tools.ietf.org/html/rfc7235#section-3.1",
-			HttpStatusCode.PaymentRequired => "https://tools.ietf.org/html/rfc7231#section-6.5.2",
-			HttpStatusCode.Forbidden => "https://tools.ietf.org/html/rfc7231#section-6.5.3",
-			HttpStatusCode.NotFound => "https://tools.ietf.org/html/rfc7231#section-6.5.4",
-			HttpStatusCode.MethodNotAllowed => "https://tools.ietf.org/html/rfc7231#section-6.5.5",
-			HttpStatusCode.NotAcceptable => "https://tools.ietf.org/html/rfc7231#section-6.5.6",
-			HttpStatusCode.ProxyAuthenticationRequired => "https://tools.ietf.org/html/rfc7235#section-3.2",
-			HttpStatusCode.RequestTimeout => "https://tools.ietf.org/html/rfc7231#section-6.5.7",
-			HttpStatusCode.Conflict => "https://tools.ietf.org/html/rfc7231#section-6.5.8",
-			HttpStatusCode.Gone => "https://tools.ietf.org/html/rfc7231#section-6.5.9",
-			HttpStatusCode.LengthRequired => "https://tools.ietf.org/html/rfc7231#section-6.5.10",
-			HttpStatusCode.PreconditionFailed => "https://tools.ietf.org/html/rfc7232#section-4.2",
-			HttpStatusCode.RequestEntityTooLarge => "https://tools.ietf.org/html/rfc7231#section-6.5.11",
-			HttpStatusCode.RequestUriTooLong => "https://tools.ietf.org/html/rfc7231#section-6.5.12",
-			HttpStatusCode.UnsupportedMediaType => "https://tools.ietf.org/html/rfc7231#section-6.5.13",
-			HttpStatusCode.RequestedRangeNotSatisfiable => "https://tools.ietf.org/html/rfc7233#section-4.4",
-			HttpStatusCode.ExpectationFailed => "https://tools.ietf.org/html/rfc7231#section-6.5.14",
-			HttpStatusCode.UpgradeRequired => "https://tools.ietf.org/html/rfc7231#section-6.5.15",
-			HttpStatusCode.InternalServerError => "https://tools.ietf.org/html/rfc7231#section-6.6.1",
-			HttpStatusCode.NotImplemented => "https://tools.ietf.org/html/rfc7231#section-6.6.2",
-			HttpStatusCode.BadGateway => "https://tools.ietf.org/html/rfc7231#section-6.6.3",
-			HttpStatusCode.ServiceUnavailable => "https://tools.ietf.org/html/rfc7231#section-6.6.4",
-			HttpStatusCode.GatewayTimeout => "https://tools.ietf.org/html/rfc7231#section-6.6.5",
-			HttpStatusCode.HttpVersionNotSupported => "https://tools.ietf.org/html/rfc7231#section-6.6.6",
+			HttpStatusCode.Continue => "https://www.rfc-editor.org/rfc/rfc9110#name-100-continue",
+			HttpStatusCode.SwitchingProtocols => "https://www.rfc-editor.org/rfc/rfc9110#name-101-switching-protocols",
+
+			HttpStatusCode.OK => "https://www.rfc-editor.org/rfc/rfc9110#name-200-ok",
+			HttpStatusCode.Created => "https://www.rfc-editor.org/rfc/rfc9110#name-201-created",
+			HttpStatusCode.Accepted => "https://www.rfc-editor.org/rfc/rfc9110#name-202-accepted",
+			HttpStatusCode.NonAuthoritativeInformation => "https://www.rfc-editor.org/rfc/rfc9110#name-203-non-authoritative-info",
+			HttpStatusCode.NoContent => "https://www.rfc-editor.org/rfc/rfc9110#name-204-no-content",
+			HttpStatusCode.ResetContent => "https://www.rfc-editor.org/rfc/rfc9110#name-205-reset-content",
+			HttpStatusCode.PartialContent => "https://www.rfc-editor.org/rfc/rfc9110#name-206-partial-content",
+
+			HttpStatusCode.MultipleChoices => "https://www.rfc-editor.org/rfc/rfc9110#name-300-multiple-choices",
+			HttpStatusCode.MovedPermanently => "https://www.rfc-editor.org/rfc/rfc9110#name-301-moved-permanently",
+			HttpStatusCode.Found => "https://www.rfc-editor.org/rfc/rfc9110#name-302-found",
+			HttpStatusCode.SeeOther => "https://www.rfc-editor.org/rfc/rfc9110#name-303-see-other",
+			HttpStatusCode.NotModified => "https://www.rfc-editor.org/rfc/rfc9110#name-304-not-modified",
+			HttpStatusCode.UseProxy => "https://www.rfc-editor.org/rfc/rfc9110#name-305-use-proxy",
+			HttpStatusCode.Unused => "https://www.rfc-editor.org/rfc/rfc9110#name-306-unused",
+			HttpStatusCode.TemporaryRedirect => "https://www.rfc-editor.org/rfc/rfc9110#name-307-temporary-redirect",
+
+			HttpStatusCode.BadRequest => "https://www.rfc-editor.org/rfc/rfc9110#name-400-bad-request",
+			HttpStatusCode.Unauthorized => "https://www.rfc-editor.org/rfc/rfc9110#name-401-unauthorized",
+			HttpStatusCode.PaymentRequired => "https://www.rfc-editor.org/rfc/rfc9110#name-402-payment-required",
+			HttpStatusCode.Forbidden => "https://www.rfc-editor.org/rfc/rfc9110#name-403-forbidden",
+			HttpStatusCode.NotFound => "https://www.rfc-editor.org/rfc/rfc9110#name-404-not-found",
+			HttpStatusCode.MethodNotAllowed => "https://www.rfc-editor.org/rfc/rfc9110#name-405-method-not-allowed",
+			HttpStatusCode.NotAcceptable => "https://www.rfc-editor.org/rfc/rfc9110#name-406-not-acceptable",
+			HttpStatusCode.ProxyAuthenticationRequired => "https://www.rfc-editor.org/rfc/rfc9110#name-407-proxy-authentication-re",
+			HttpStatusCode.RequestTimeout => "https://www.rfc-editor.org/rfc/rfc9110#name-408-request-timeout",
+			HttpStatusCode.Conflict => "https://www.rfc-editor.org/rfc/rfc9110#name-409-conflict",
+			HttpStatusCode.Gone => "https://www.rfc-editor.org/rfc/rfc9110#name-410-gone",
+			HttpStatusCode.LengthRequired => "https://www.rfc-editor.org/rfc/rfc9110#name-411-length-required",
+			HttpStatusCode.PreconditionFailed => "https://www.rfc-editor.org/rfc/rfc9110#name-412-precondition-failed",
+			HttpStatusCode.RequestEntityTooLarge => "https://www.rfc-editor.org/rfc/rfc9110#name-413-content-too-large",
+			HttpStatusCode.RequestUriTooLong => "https://www.rfc-editor.org/rfc/rfc9110#name-414-uri-too-long",
+			HttpStatusCode.UnsupportedMediaType => "https://www.rfc-editor.org/rfc/rfc9110#name-415-unsupported-media-type",
+			HttpStatusCode.RequestedRangeNotSatisfiable => "https://www.rfc-editor.org/rfc/rfc9110#name-416-range-not-satisfiable",
+			HttpStatusCode.ExpectationFailed => "https://www.rfc-editor.org/rfc/rfc9110#name-417-expectation-failed",
+			HttpStatusCode.UpgradeRequired => "https://www.rfc-editor.org/rfc/rfc9110#name-426-upgrade-required",
+
+			HttpStatusCode.InternalServerError => "https://www.rfc-editor.org/rfc/rfc9110#name-500-internal-server-error",
+			HttpStatusCode.NotImplemented => "https://www.rfc-editor.org/rfc/rfc9110#name-501-not-implemented",
+			HttpStatusCode.BadGateway => "https://www.rfc-editor.org/rfc/rfc9110#name-502-bad-gateway",
+			HttpStatusCode.ServiceUnavailable => "https://www.rfc-editor.org/rfc/rfc9110#name-503-service-unavailable",
+			HttpStatusCode.GatewayTimeout => "https://www.rfc-editor.org/rfc/rfc9110#name-504-gateway-timeout",
+			HttpStatusCode.HttpVersionNotSupported => "https://www.rfc-editor.org/rfc/rfc9110#name-505-http-version-not-suppor",
+
 			_ => throw new NotImplementedException($"Status code '{status}' is not supported")
 		};
 
@@ -273,23 +279,6 @@ public static class ResponseExtensions
 	extension<TPayload>(Task<Response<TPayload>> me)
 		where TPayload : Stream
 	{
-		///// <summary>
-		///// Converts an async response with a <see cref="Stream"/> payload to a file stream result for minimal APIs.
-		///// </summary>
-		///// <param name="contentType">The content type of the file.</param>
-		///// <param name="fileDownloadName">The filename to use for the download.</param>
-		///// <param name="lastModified">The last modified date of the file.</param>
-		///// <param name="entityTag">The entity tag for cache validation.</param>
-		///// <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
-		///// <returns>A task that represents the asynchronous operation. The task result contains an <see cref="IResult"/>.</returns>
-		//public async Task<IResult> ToApiFileStreamResultAsync(
-		//	string? contentType = null,
-		//	string? fileDownloadName = null,
-		//	DateTimeOffset? lastModified = null,
-		//	EntityTagHeaderValue? entityTag = null,
-		//	bool enableRangeProcessing = false)
-		//	=> ToApiResultCore(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
-
 		/// <summary>
 		///    Converts an async response with a <see cref="Stream" /> payload to a result for minimal APIs.
 		/// </summary>
@@ -300,23 +289,6 @@ public static class ResponseExtensions
 		/// <returns>A task that represents the asynchronous operation. The task result contains an <see cref="IResult" />.</returns>
 		public async Task<IResult> ToApiResultAsync(bool fullSerialization = false)
 			=> ToApiResultCore(await me, null, null, null, null, false, fullSerialization);
-
-		///// <summary>
-		///// Converts an async response with a <see cref="Stream"/> payload to a file stream action result for MVC controllers.
-		///// </summary>
-		///// <param name="contentType">The content type of the file.</param>
-		///// <param name="fileDownloadName">The filename to use for the download.</param>
-		///// <param name="lastModified">The last modified date of the file.</param>
-		///// <param name="entityTag">The entity tag for cache validation.</param>
-		///// <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
-		///// <returns>A task that represents the asynchronous operation. The task result contains an <see cref="IActionResult"/>.</returns>
-		//public async Task<IActionResult> ToApiFileStreamActionResultAsync(
-		//	string? contentType = null,
-		//	string? fileDownloadName = null,
-		//	DateTimeOffset? lastModified = null,
-		//	EntityTagHeaderValue? entityTag = null,
-		//	bool enableRangeProcessing = false)
-		//	=> ToApiActionResultCore(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
 
 		/// <summary>
 		///    Converts an async response with a <see cref="Stream" /> payload to an action result for MVC controllers.

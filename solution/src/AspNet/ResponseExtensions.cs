@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http;
+using Fuxion.Net.Http;
 using Fuxion.Text.Json;
 using Fuxion.Text.Json.Serialization;
 using static Fuxion.Net.Http.Extensions;
@@ -376,21 +377,10 @@ public static class ResponseExtensions
 						{
 							ContentDisposition = new("attachment")
 							{
-								FileName = fileDownloadName ??
-								           (me.Extensions.TryGetValue(FileNameKey, out var fileNameExt) &&
-								            fileNameExt is string fn
-									           ? fn
-									           : null)
+								FileName = fileDownloadName ??(me.Extensions.FileName.IsDefined ? me.Extensions.FileName.Value : null)
 							},
-							ContentType = new(contentType ??
-							                  (me.Extensions.TryGetValue(ContentTypeKey, out var contentTypeExt) &&
-							                   contentTypeExt is string con
-								                  ? con
-								                  : null)),
-							ContentLength =
-								me.Extensions.TryGetValue(ContentLengthKey, out var extension) && extension is long length
-									? length
-									: -1
+							ContentType = new(contentType ?? (me.Extensions.ContentType.IsDefined ? me.Extensions.ContentType.Value : null)),
+							ContentLength = me.Extensions.ContentLength.IsDefined ? me.Extensions.ContentLength.Value : -1
 						}
 					});
 				if (payload is IEnumerable<byte> bytes)
@@ -400,21 +390,10 @@ public static class ResponseExtensions
 						{
 							ContentDisposition = new("attachment")
 							{
-								FileName = fileDownloadName ??
-								           (me.Extensions.TryGetValue(FileNameKey, out var fileNameExt) &&
-								            fileNameExt is string fn
-									           ? fn
-									           : null)
+								FileName = fileDownloadName ?? (me.Extensions.FileName.IsDefined ? me.Extensions.FileName.Value : null)
 							},
-							ContentType = new(contentType ??
-							                  (me.Extensions.TryGetValue(ContentTypeKey, out var contentTypeExt) &&
-							                   contentTypeExt is string con
-								                  ? con
-								                  : null)),
-							ContentLength =
-								me.Extensions.TryGetValue(ContentLengthKey, out var extension) && extension is long length
-									? length
-									: -1
+							ContentType = new(contentType ?? (me.Extensions.ContentType.IsDefined ? me.Extensions.ContentType.Value : null)),
+							ContentLength = me.Extensions.ContentLength.IsDefined ? me.Extensions.ContentLength.Value : -1
 						}
 					});
 				if (payload is string str)
@@ -444,11 +423,10 @@ public static class ResponseExtensions
 			return Factory.NoContent();
 		}
 
-		var extensions = me.Extensions.ToDictionary(e => e.Key, e => e.Value);
-		extensions.Remove(StatusCodeKey);
-		extensions.Remove(ReasonPhraseKey);
+		me.Extensions.StatusCode = Undefinable<int>.Undefined;
+		me.Extensions.ReasonPhrase = Undefinable<string>.Undefined;
 
-		if (me.TryGetPayload(out var payload2) && payload2 is not Stream) extensions[PayloadKey] = payload2;
+		if (me.TryGetPayload(out var payload2) && payload2 is not Stream) me.Extensions.Payload = payload2;
 		if (IncludeException && me.Exception is not null)
 		{
 			var jsonOptions = JsonSerializerOptions is null
@@ -465,23 +443,20 @@ public static class ResponseExtensions
 					res.Converters.Add(new ExceptionConverter());
 					return res;
 				});
-			extensions[ExceptionKey] = JsonSerializer.SerializeToElement(me.Exception, jsonOptions);
+			me.Extensions.Exception = JsonSerializer.SerializeToElement(me.Exception, jsonOptions);
 		}
 
 		return me.ErrorType switch
 		{
-			ErrorType.NotFound => Factory.Problem(me.Message, HttpStatusCode.NotFound, "Not found", extensions),
-			ErrorType.PermissionDenied => Factory.Problem(me.Message, HttpStatusCode.Forbidden, "Forbidden", extensions),
-			ErrorType.InvalidData => Factory.Problem(me.Message, HttpStatusCode.BadRequest, "Bad request", extensions),
-			ErrorType.Conflict => Factory.Problem(me.Message, HttpStatusCode.Conflict, "Conflict", extensions),
-			ErrorType.Critical => Factory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error",
-				extensions),
-			ErrorType.NotSupported => Factory.Problem(me.Message, HttpStatusCode.NotImplemented, "Not implemented",
-				extensions),
-			ErrorType.Unavailable => Factory.Problem(me.Message, HttpStatusCode.ServiceUnavailable, "Service unavailable",
-				extensions),
-			ErrorType.Timeout => Factory.Problem(me.Message, HttpStatusCode.RequestTimeout, "Request timeout", extensions),
-			_ => Factory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error", extensions)
+			ErrorType.NotFound => Factory.Problem(me.Message, HttpStatusCode.NotFound, "Not found", me.Extensions),
+			ErrorType.PermissionDenied => Factory.Problem(me.Message, HttpStatusCode.Forbidden, "Forbidden", me.Extensions),
+			ErrorType.InvalidData => Factory.Problem(me.Message, HttpStatusCode.BadRequest, "Bad request", me.Extensions),
+			ErrorType.Conflict => Factory.Problem(me.Message, HttpStatusCode.Conflict, "Conflict", me.Extensions),
+			ErrorType.Critical => Factory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error", me.Extensions),
+			ErrorType.NotSupported => Factory.Problem(me.Message, HttpStatusCode.NotImplemented, "Not implemented", me.Extensions),
+			ErrorType.Unavailable => Factory.Problem(me.Message, HttpStatusCode.ServiceUnavailable, "Service unavailable", me.Extensions),
+			ErrorType.Timeout => Factory.Problem(me.Message, HttpStatusCode.RequestTimeout, "Request timeout", me.Extensions),
+			_ => Factory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error", me.Extensions)
 		};
 	}
 

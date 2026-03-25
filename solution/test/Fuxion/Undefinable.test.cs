@@ -152,6 +152,21 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 		IsTrue(sample.String.IsDefined);
 		Assert.Null(sample.String.Value);
 	}
+
+	[Fact]
+	public void ImplicitConversion()
+	{
+		string? val = null;
+
+		// INFO Cannot use ?? because we need implicit conversion from string to Undefinable<string>
+		// If conversion is from Undefinable<string> to string throw in runtime because cannot access Value of undefined value
+
+		// Undefinable<string> und = val ?? Undefinable<string>.Undefined;
+
+		Undefinable<string> und = val is null ? Undefinable<string>.Undefined : val;
+
+		Assert.True(und.IsUndefined);
+	}
 }
 
 file record UndefinableSample(

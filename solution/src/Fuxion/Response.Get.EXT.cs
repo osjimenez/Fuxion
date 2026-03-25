@@ -155,7 +155,7 @@ public static class ResponseGetExtensionsContainer
 		public Response Success(IEnumerable<(string Property, object? Value)>? extensions = null)
 			=> new(true)
 			{
-				Extensions = extensions?.ToDictionary(t => t.Property, t => t.Value) ?? []
+				Extensions = new(extensions)
 			};
 
 		/// <summary>
@@ -191,7 +191,7 @@ public static class ResponseGetExtensionsContainer
 		public Response SuccessMessage(string message, IEnumerable<(string Property, object? Value)>? extensions = null)
 			=> new(true, message)
 			{
-				Extensions = extensions?.ToDictionary(t => t.Property, t => t.Value) ?? []
+				Extensions = new(extensions)
 			};
 
 		/// <summary>
@@ -244,7 +244,7 @@ public static class ResponseGetExtensionsContainer
 		public Response<TPayload> SuccessPayload<TPayload>(TPayload payload, string? message = null, IEnumerable<(string Property, object? Value)>? extensions = null)
 			=> new(true, payload, message)
 			{
-				Extensions = extensions?.ToDictionary(t => t.Property, t => t.Value) ?? []
+				Extensions = new(extensions)
 			};
 
 		/// <summary>
@@ -303,7 +303,7 @@ public static class ResponseGetExtensionsContainer
 		public Response ErrorMessage(string message, object? type = null, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
 			=> new(false, message, type, exception)
 			{
-				Extensions = extensions?.ToDictionary(t => t.Property, t => t.Value) ?? []
+				Extensions = new(extensions)
 			};
 
 		/// <summary>
@@ -377,7 +377,7 @@ public static class ResponseGetExtensionsContainer
 			IEnumerable<(string Property, object? Value)>? extensions = null)
 			=> new(false, payload, message, type, exception)
 			{
-				Extensions = extensions?.ToDictionary(t => t.Property, t => t.Value) ?? []
+				Extensions = new(extensions)
 			};
 
 		/// <summary>
@@ -566,7 +566,7 @@ public static class ResponseGetExtensionsContainer
 		/// }
 		/// </code>
 		/// </example>
-		public Response InvalidData(string message, Exception? exception = null, List<(string Property, object? Value)>? extensions = null)
+		public Response InvalidData(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
 			=> Response.Get.ErrorMessage(message, ErrorType.InvalidData, exception, extensions);
 
 		/// <summary>
