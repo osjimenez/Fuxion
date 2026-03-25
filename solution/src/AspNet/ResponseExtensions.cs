@@ -1,5 +1,3 @@
-using Fuxion.Text.Json;
-using Fuxion.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,12 +9,14 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http;
+using Fuxion.Text.Json;
+using Fuxion.Text.Json.Serialization;
 using static Fuxion.Net.Http.Extensions;
 
 namespace Fuxion.AspNet;
 
 /// <summary>
-///    Provides extension methods for converting <see cref="IResponse" /> and <see cref="Response{T}" /> objects
+///    Provides extension methods for converting <see cref="Response" /> and <see cref="Response{T}" /> objects
 ///    to ASP.NET Web API <see cref="IHttpActionResult" /> instances with support for various payload types
 ///    including streams, byte arrays, strings, and complex objects.
 /// </summary>
@@ -32,7 +32,8 @@ namespace Fuxion.AspNet;
 ///    <list type="bullet">
 ///       <item>
 ///          <description>
-///             <strong>Automatic status code mapping:</strong> Maps <see cref="ErrorType" /> to appropriate HTTP status codes
+///             <strong>Automatic status code mapping:</strong> Maps <see cref="ErrorType" /> to appropriate HTTP status
+///             codes
 ///          </description>
 ///       </item>
 ///       <item>
@@ -47,7 +48,8 @@ namespace Fuxion.AspNet;
 ///       </item>
 ///       <item>
 ///          <description>
-///             <strong>File download support:</strong> Specialized methods for file streams and byte arrays with content disposition
+///             <strong>File download support:</strong> Specialized methods for file streams and byte arrays with content
+///             disposition
 ///          </description>
 ///       </item>
 ///       <item>
@@ -75,35 +77,51 @@ namespace Fuxion.AspNet;
 ///          <description>HTTP Status Code</description>
 ///       </listheader>
 ///       <item>
-///          <term><see cref="ErrorType.NotFound" /></term>
+///          <term>
+///             <see cref="ErrorType.NotFound" />
+///          </term>
 ///          <description>404 Not Found</description>
 ///       </item>
 ///       <item>
-///          <term><see cref="ErrorType.PermissionDenied" /></term>
+///          <term>
+///             <see cref="ErrorType.PermissionDenied" />
+///          </term>
 ///          <description>403 Forbidden</description>
 ///       </item>
 ///       <item>
-///          <term><see cref="ErrorType.InvalidData" /></term>
+///          <term>
+///             <see cref="ErrorType.InvalidData" />
+///          </term>
 ///          <description>400 Bad Request</description>
 ///       </item>
 ///       <item>
-///          <term><see cref="ErrorType.Conflict" /></term>
+///          <term>
+///             <see cref="ErrorType.Conflict" />
+///          </term>
 ///          <description>409 Conflict</description>
 ///       </item>
 ///       <item>
-///          <term><see cref="ErrorType.Critical" /></term>
+///          <term>
+///             <see cref="ErrorType.Critical" />
+///          </term>
 ///          <description>500 Internal Server Error</description>
 ///       </item>
 ///       <item>
-///          <term><see cref="ErrorType.NotSupported" /></term>
+///          <term>
+///             <see cref="ErrorType.NotSupported" />
+///          </term>
 ///          <description>501 Not Implemented</description>
 ///       </item>
 ///       <item>
-///          <term><see cref="ErrorType.Unavailable" /></term>
+///          <term>
+///             <see cref="ErrorType.Unavailable" />
+///          </term>
 ///          <description>503 Service Unavailable</description>
 ///       </item>
 ///       <item>
-///          <term><see cref="ErrorType.Timeout" /></term>
+///          <term>
+///             <see cref="ErrorType.Timeout" />
+///          </term>
 ///          <description>408 Request Timeout</description>
 ///       </item>
 ///    </list>
@@ -116,12 +134,14 @@ namespace Fuxion.AspNet;
 ///    <list type="bullet">
 ///       <item>
 ///          <description>
-///             <see cref="IncludeException" />: Controls whether exception details are included in error responses (default: true)
+///             <see cref="IncludeException" />: Controls whether exception details are included in error responses
+///             (default: true)
 ///          </description>
 ///       </item>
 ///       <item>
 ///          <description>
-///             <see cref="JsonSerializerOptions" />: Custom JSON serialization options (default: null, uses default options)
+///             <see cref="JsonSerializerOptions" />: Custom JSON serialization options (default: null, uses default
+///             options)
 ///          </description>
 ///       </item>
 ///    </list>
@@ -267,7 +287,7 @@ public static class ResponseExtensions
 
 	// Core helper used by all extensions
 	/// <summary>
-	///    Core implementation method that converts an <see cref="IResponse" /> to an <see cref="IHttpActionResult" />.
+	///    Core implementation method that converts an <see cref="Response" /> to an <see cref="IHttpActionResult" />.
 	/// </summary>
 	/// <param name="me">The response to convert.</param>
 	/// <param name="contentType">The content type for the response. If null, uses value from response extensions or defaults.</param>
@@ -339,68 +359,96 @@ public static class ResponseExtensions
 	///       </item>
 	///    </list>
 	/// </remarks>
-	static IHttpActionResult ToApiResultCore(
-		IResponse me,
+	private static IHttpActionResult ToApiResultCore(
+		Response me,
 		string? contentType,
 		string? fileDownloadName,
 		bool fullSerialization)
 	{
 		if (me.IsSuccess)
-			if (me is IResponse<object?> { Payload: not null } me2)
-				if (me2.Payload is Stream stream)
+		{
+			if (me.TryGetPayload(out var payload))
+			{
+				if (payload is Stream stream)
 					return Factory.Ok(new StreamContent(stream)
 					{
 						Headers =
 						{
 							ContentDisposition = new("attachment")
 							{
-								FileName = fileDownloadName ?? (me.Extensions.TryGetValue(FileNameKey, out var fileNameExt) && fileNameExt is string fn ? fn : null),
+								FileName = fileDownloadName ??
+								           (me.Extensions.TryGetValue(FileNameKey, out var fileNameExt) &&
+								            fileNameExt is string fn
+									           ? fn
+									           : null)
 							},
-							ContentType = new(contentType ?? (me.Extensions.TryGetValue(ContentTypeKey, out var contentTypeExt) && contentTypeExt is string con ? con : null)),
-							ContentLength = me.Extensions.TryGetValue(ContentLengthKey, out var extension) && extension is long length ? length : -1,
+							ContentType = new(contentType ??
+							                  (me.Extensions.TryGetValue(ContentTypeKey, out var contentTypeExt) &&
+							                   contentTypeExt is string con
+								                  ? con
+								                  : null)),
+							ContentLength =
+								me.Extensions.TryGetValue(ContentLengthKey, out var extension) && extension is long length
+									? length
+									: -1
 						}
 					});
-				else if (me2.Payload is IEnumerable<byte> bytes)
+				if (payload is IEnumerable<byte> bytes)
 					return Factory.Ok(new ByteArrayContent(bytes.ToArray())
 					{
 						Headers =
 						{
 							ContentDisposition = new("attachment")
 							{
-								FileName = fileDownloadName ?? (me.Extensions.TryGetValue(FileNameKey, out var fileNameExt) && fileNameExt is string fn ? fn : null)
+								FileName = fileDownloadName ??
+								           (me.Extensions.TryGetValue(FileNameKey, out var fileNameExt) &&
+								            fileNameExt is string fn
+									           ? fn
+									           : null)
 							},
-							ContentType = new(contentType ?? (me.Extensions.TryGetValue(ContentTypeKey, out var contentTypeExt) && contentTypeExt is string con ? con : null)),
-							ContentLength = me.Extensions.TryGetValue(ContentLengthKey, out var extension) && extension is long length ? length : -1
+							ContentType = new(contentType ??
+							                  (me.Extensions.TryGetValue(ContentTypeKey, out var contentTypeExt) &&
+							                   contentTypeExt is string con
+								                  ? con
+								                  : null)),
+							ContentLength =
+								me.Extensions.TryGetValue(ContentLengthKey, out var extension) && extension is long length
+									? length
+									: -1
 						}
 					});
-				else if (me2.Payload is string str)
+				if (payload is string str)
 					return fullSerialization
-						? me2.Fx.Json.Serialize(options: JsonSerializerOptions != null ? new(JsonSerializerOptions) : null).Match(
-							r => Factory.Ok(new StringContent(r.Payload, Encoding.UTF8, "application/json")),
-							r => throw new JsonException("Error serializing response", r.Exception))
+						? me.Fx.Json.Serialize(options: JsonSerializerOptions != null ? new(JsonSerializerOptions) : null)
+							.Match(
+								r => Factory.Ok(new StringContent(r.Payload, Encoding.UTF8, "application/json")),
+								r => throw new JsonException("Error serializing response", r.Exception))
 						: Factory.Ok(new StringContent(str, Encoding.UTF8, contentType ?? "text/plain"));
-				else
-					return fullSerialization
-						? me2.Fx.Json.Serialize(options: JsonSerializerOptions != null ? new(JsonSerializerOptions) : null).Match(
+				return fullSerialization
+					? me.Fx.Json.Serialize(options: JsonSerializerOptions != null ? new(JsonSerializerOptions) : null)
+						.Match(
 							r => Factory.Ok(new StringContent(r.Payload, Encoding.UTF8, "application/json")),
 							r => throw new JsonException("Error serializing response", r.Exception))
-						: me2.Payload.Fx.Json.Serialize(options: JsonSerializerOptions != null ? new(JsonSerializerOptions) : null).Match(
+					: payload.Fx.Json
+						.Serialize(options: JsonSerializerOptions != null ? new(JsonSerializerOptions) : null).Match(
 							r => Factory.Ok(new StringContent(r.Payload, Encoding.UTF8, "application/json")),
 							r => throw new JsonException("Error serializing response", r.Exception));
-			else if (me.Message is not null || fullSerialization)
+			}
+
+			if (me.Message is not null || fullSerialization)
 				return fullSerialization
 					? me.Fx.Json.Serialize(options: JsonSerializerOptions != null ? new(JsonSerializerOptions) : null).Match(
 						r => Factory.Ok(new StringContent(r.Payload, Encoding.UTF8, "application/json")),
 						r => throw new JsonException("Error serializing response", r.Exception))
 					: Factory.Ok(new StringContent(me.Message, Encoding.UTF8, contentType ?? "text/plain"));
-			else
-				return Factory.NoContent();
+			return Factory.NoContent();
+		}
 
 		var extensions = me.Extensions.ToDictionary(e => e.Key, e => e.Value);
 		extensions.Remove(StatusCodeKey);
 		extensions.Remove(ReasonPhraseKey);
 
-		if (me is IResponse<object?> { Payload: not null and not Stream } me3) extensions[PayloadKey] = me3.Payload;
+		if (me.TryGetPayload(out var payload2) && payload2 is not Stream) extensions[PayloadKey] = payload2;
 		if (IncludeException && me.Exception is not null)
 		{
 			var jsonOptions = JsonSerializerOptions is null
@@ -426,55 +474,18 @@ public static class ResponseExtensions
 			ErrorType.PermissionDenied => Factory.Problem(me.Message, HttpStatusCode.Forbidden, "Forbidden", extensions),
 			ErrorType.InvalidData => Factory.Problem(me.Message, HttpStatusCode.BadRequest, "Bad request", extensions),
 			ErrorType.Conflict => Factory.Problem(me.Message, HttpStatusCode.Conflict, "Conflict", extensions),
-			ErrorType.Critical => Factory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error", extensions),
-			ErrorType.NotSupported => Factory.Problem(me.Message, HttpStatusCode.NotImplemented, "Not implemented", extensions),
-			ErrorType.Unavailable => Factory.Problem(me.Message, HttpStatusCode.ServiceUnavailable, "Service unavailable", extensions),
+			ErrorType.Critical => Factory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error",
+				extensions),
+			ErrorType.NotSupported => Factory.Problem(me.Message, HttpStatusCode.NotImplemented, "Not implemented",
+				extensions),
+			ErrorType.Unavailable => Factory.Problem(me.Message, HttpStatusCode.ServiceUnavailable, "Service unavailable",
+				extensions),
 			ErrorType.Timeout => Factory.Problem(me.Message, HttpStatusCode.RequestTimeout, "Request timeout", extensions),
-			var _ => Factory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error", extensions)
+			_ => Factory.Problem(me.Message, HttpStatusCode.InternalServerError, "Internal server error", extensions)
 		};
 	}
 
 	// Task<IResponse<TPayload>> receivers (general)
-	extension<TPayload>(Task<IResponse<TPayload>> me)
-	{
-		/// <summary>
-		///    Converts a <see cref="Task{IResponse}" /> to a <see cref="Task{IHttpActionResult}" />.
-		/// </summary>
-		/// <param name="fullSerialization">
-		///    If <c>true</c>, serializes the entire Response object including metadata (IsSuccess, ErrorType, etc.).
-		///    If <c>false</c>, only serializes the payload value or message.
-		/// </param>
-		/// <returns>
-		///    A task that represents the asynchronous operation. The task result contains an
-		///    <see cref="IHttpActionResult" /> representing the HTTP response.
-		/// </returns>
-		/// <remarks>
-		///    This is the primary extension method for converting generic async response tasks.
-		///    Use specialized methods like 'ToApiFileStreamResultAsync' for file downloads.
-		/// </remarks>
-		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false)
-			=> ToApiResultCore(await me, null, null, fullSerialization);
-	}
-	extension(Task<IResponse<string>> me)
-	{
-		/// <summary>
-		///    Converts a <see cref="Task{IResponse}" /> with string payload to a <see cref="Task{IHttpActionResult}" />.
-		/// </summary>
-		/// <param name="fullSerialization">
-		///    If <c>true</c>, serializes the entire Response object.
-		///    If <c>false</c>, returns the string payload directly.
-		/// </param>
-		/// <param name="contentType">
-		///    The content type for the response. Default is "text/plain".
-		///    Ignored if <paramref name="fullSerialization" /> is <c>true</c> (uses "application/json").
-		/// </param>
-		/// <returns>
-		///    A task that represents the asynchronous operation. The task result contains an
-		///    <see cref="IHttpActionResult" /> with the string content.
-		/// </returns>
-		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false, string contentType = "text/plain ")
-			=> ToApiResultCore(await me, contentType, null, fullSerialization);
-	}
 	// Task<Response<TPayload>> receivers (general)
 	extension<TPayload>(Task<Response<TPayload>> me)
 	{
@@ -492,6 +503,7 @@ public static class ResponseExtensions
 		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false)
 			=> ToApiResultCore(await me, null, null, fullSerialization);
 	}
+
 	extension(Task<Response<string>> me)
 	{
 		/// <summary>
@@ -508,35 +520,12 @@ public static class ResponseExtensions
 		///    A task that represents the asynchronous operation. The task result contains an
 		///    <see cref="IHttpActionResult" /> with the string content.
 		/// </returns>
-		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false, string contentType = "text/plain ")
+		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false,
+			string contentType = "text/plain ")
 			=> ToApiResultCore(await me, contentType, null, fullSerialization);
 	}
 
 	// Stream payload specializations
-	extension<TPayload>(Task<IResponse<TPayload>> me) where TPayload : Stream
-	{
-		/// <summary>
-		///    Converts a <see cref="Task{IResponse}" /> with <see cref="Stream" /> payload to a file download result.
-		/// </summary>
-		/// <param name="contentType">
-		///    The MIME content type for the file. If null, attempts to retrieve from response extensions using
-		///    <see cref="Extensions" />.ContentTypeKey.
-		/// </param>
-		/// <param name="fileDownloadName">
-		///    The filename for the Content-Disposition header. If null, attempts to retrieve from response extensions using
-		///    <see cref="Extensions" />.FileNameKey.
-		/// </param>
-		/// <returns>
-		///    A task that represents the asynchronous operation. The task result contains an
-		///    <see cref="IHttpActionResult" /> with the stream as downloadable content.
-		/// </returns>
-		/// <remarks>
-		///    The response includes a Content-Disposition header with "attachment" disposition,
-		///    making browsers prompt for download rather than displaying inline.
-		/// </remarks>
-		public async Task<IHttpActionResult> ToApiFileStreamResultAsync(string? contentType = null, string? fileDownloadName = null)
-			=> ToApiResultCore(await me, contentType, fileDownloadName, false);
-	}
 	extension<TPayload>(Task<Response<TPayload>> me) where TPayload : Stream
 	{
 		/// <summary>
@@ -548,13 +537,15 @@ public static class ResponseExtensions
 		///    A task that represents the asynchronous operation. The task result contains an
 		///    <see cref="IHttpActionResult" /> with the stream as downloadable content.
 		/// </returns>
-		public async Task<IHttpActionResult> ToApiFileStreamResultAsync(string? contentType = null, string? fileDownloadName = null)
+		public async Task<IHttpActionResult> ToApiFileStreamResultAsync(string? contentType = null,
+			string? fileDownloadName = null)
 			=> ToApiResultCore(await me, contentType, fileDownloadName, false);
 	}
-	extension<TPayload>(IResponse<TPayload> me) where TPayload : Stream
+
+	extension<TPayload>(Response<TPayload> me) where TPayload : Stream
 	{
 		/// <summary>
-		///    Converts an <see cref="IResponse" /> with <see cref="Stream" /> payload to a file download result.
+		///    Converts an <see cref="Response" /> with <see cref="Stream" /> payload to a file download result.
 		/// </summary>
 		/// <param name="contentType">The MIME content type for the file.</param>
 		/// <param name="fileDownloadName">The filename for the Content-Disposition header.</param>
@@ -564,28 +555,6 @@ public static class ResponseExtensions
 	}
 
 	// Bytes payload specializations
-	extension<TPayload>(Task<IResponse<TPayload>> me) where TPayload : IEnumerable<byte>
-	{
-		/// <summary>
-		///    Converts a <see cref="Task{IResponse}" /> with byte array payload to a file download result.
-		/// </summary>
-		/// <param name="contentType">
-		///    The MIME content type for the file. If null, attempts to retrieve from response extensions.
-		/// </param>
-		/// <param name="fileDownloadName">
-		///    The filename for the Content-Disposition header. If null, attempts to retrieve from response extensions.
-		/// </param>
-		/// <returns>
-		///    A task that represents the asynchronous operation. The task result contains an
-		///    <see cref="IHttpActionResult" /> with the bytes as downloadable content.
-		/// </returns>
-		/// <remarks>
-		///    The byte sequence is converted to an array and sent as ByteArrayContent with
-		///    a Content-Disposition attachment header.
-		/// </remarks>
-		public async Task<IHttpActionResult> ToApiFileBytesResultAsync(string? contentType = null, string? fileDownloadName = null)
-			=> ToApiResultCore(await me, contentType, fileDownloadName, false);
-	}
 	extension<TPayload>(Task<Response<TPayload>> me) where TPayload : IEnumerable<byte>
 	{
 		/// <summary>
@@ -597,13 +566,15 @@ public static class ResponseExtensions
 		///    A task that represents the asynchronous operation. The task result contains an
 		///    <see cref="IHttpActionResult" /> with the bytes as downloadable content.
 		/// </returns>
-		public async Task<IHttpActionResult> ToApiFileBytesResultAsync(string? contentType = null, string? fileDownloadName = null)
+		public async Task<IHttpActionResult> ToApiFileBytesResultAsync(string? contentType = null,
+			string? fileDownloadName = null)
 			=> ToApiResultCore(await me, contentType, fileDownloadName, false);
 	}
-	extension<TPayload>(IResponse<TPayload> me) where TPayload : IEnumerable<byte>
+
+	extension<TPayload>(Response<TPayload> me) where TPayload : IEnumerable<byte>
 	{
 		/// <summary>
-		///    Converts an <see cref="IResponse" /> with byte array payload to a file download result.
+		///    Converts an <see cref="Response" /> with byte array payload to a file download result.
 		/// </summary>
 		/// <param name="contentType">The MIME content type for the file.</param>
 		/// <param name="fileDownloadName">The filename for the Content-Disposition header.</param>
@@ -612,27 +583,6 @@ public static class ResponseExtensions
 			=> ToApiResultCore(me, contentType, fileDownloadName, false);
 	}
 
-	// Non-generic IResponse and Task wrappers
-	extension(Task<IResponse> me)
-	{
-		/// <summary>
-		///    Converts a <see cref="Task{IResponse}" /> (non-generic) to a <see cref="Task{IHttpActionResult}" />.
-		/// </summary>
-		/// <param name="fullSerialization">
-		///    If <c>true</c>, serializes the entire Response object.
-		///    If <c>false</c>, returns the message only or 204 No Content if no message.
-		/// </param>
-		/// <returns>
-		///    A task that represents the asynchronous operation. The task result contains an
-		///    <see cref="IHttpActionResult" />.
-		/// </returns>
-		/// <remarks>
-		///    Use this for responses that don't have a payload, such as delete operations
-		///    or commands that only indicate success/failure.
-		/// </remarks>
-		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false)
-			=> ToApiResultCore(await me, null, null, fullSerialization);
-	}
 	extension(Task<Response> me)
 	{
 		/// <summary>
@@ -649,10 +599,11 @@ public static class ResponseExtensions
 		public async Task<IHttpActionResult> ToApiResultAsync(bool fullSerialization = false)
 			=> ToApiResultCore(await me, null, null, fullSerialization);
 	}
-	extension(IResponse me)
+
+	extension(Response me)
 	{
 		/// <summary>
-		///    Converts an <see cref="IResponse" /> (non-generic) to an <see cref="IHttpActionResult" />.
+		///    Converts an <see cref="Response" /> (non-generic) to an <see cref="IHttpActionResult" />.
 		/// </summary>
 		/// <param name="fullSerialization">
 		///    If <c>true</c>, serializes the entire Response object.
@@ -678,7 +629,8 @@ public static class ResponseExtensions
 /// </remarks>
 file class FuncHttpActionResult(Func<CancellationToken, Task<HttpResponseMessage>> func) : IHttpActionResult
 {
-	Task<HttpResponseMessage> IHttpActionResult.ExecuteAsync(CancellationToken cancellationToken) => func(cancellationToken);
+	Task<HttpResponseMessage> IHttpActionResult.ExecuteAsync(CancellationToken cancellationToken)
+		=> func(cancellationToken);
 }
 
 /// <summary>
@@ -763,16 +715,20 @@ file class Factory(Func<CancellationToken, Task<HttpResponseMessage>> func) : IH
 	///       The response is serialized using the configured <see cref="ResponseExtensions.JsonSerializerOptions" />.
 	///    </para>
 	/// </remarks>
-	public static Factory Problem(string? detail, HttpStatusCode statusCode, string title, Dictionary<string, object?>? extensions)
+	public static Factory Problem(string? detail, HttpStatusCode statusCode, string title,
+		Dictionary<string, object?>? extensions)
 		=> Create(statusCode, new StringContent(new ResponseProblemDetails
-		{
-			Type = GetTypeFromStatusCode(statusCode),
-			Status = (int)statusCode,
-			Title = title,
-			Detail = detail,
-			Extensions = extensions ?? new(StringComparer.Ordinal)
-		}.Fx.Json.Serialize(options: ResponseExtensions.JsonSerializerOptions != null ? new(ResponseExtensions.JsonSerializerOptions) : null).PayloadOrFallback(
-				r => throw new JsonException("Error serializing response problem", r.Exception)),
+				{
+					Type = GetTypeFromStatusCode(statusCode),
+					Status = (int)statusCode,
+					Title = title,
+					Detail = detail,
+					Extensions = extensions ?? new(StringComparer.Ordinal)
+				}.Fx.Json
+				.Serialize(options: ResponseExtensions.JsonSerializerOptions != null
+					? new(ResponseExtensions.JsonSerializerOptions)
+					: null)
+				.PayloadOrFallback(r => throw new JsonException("Error serializing response problem", r.Exception)),
 			Encoding.UTF8,
 			"application/problem+json"));
 
@@ -830,7 +786,7 @@ file class Factory(Func<CancellationToken, Task<HttpResponseMessage>> func) : IH
 	///       The URLs point to the official HTTP Semantics specification (RFC 9110) hosted at httpwg.org.
 	///    </para>
 	/// </remarks>
-	static string GetTypeFromStatusCode(HttpStatusCode status)
+	private static string GetTypeFromStatusCode(HttpStatusCode status)
 		=> status switch
 		{
 			HttpStatusCode.Continue => "https://httpwg.org/specs/rfc9110.html#section-15.2.1", // 100
@@ -880,7 +836,9 @@ file class Factory(Func<CancellationToken, Task<HttpResponseMessage>> func) : IH
 			HttpStatusCode.GatewayTimeout => "https://httpwg.org/specs/rfc9110.html#section-15.6.5", // 504
 			HttpStatusCode.HttpVersionNotSupported => "https://httpwg.org/specs/rfc9110.html#section-15.6.6", // 505
 
-			var _ => throw new NotImplementedException($"Status code '{status}' is not supported")
+			_ => throw new NotImplementedException($"Status code '{status}' is not supported")
 		};
-	Task<HttpResponseMessage> IHttpActionResult.ExecuteAsync(CancellationToken cancellationToken) => func(cancellationToken);
+
+	Task<HttpResponseMessage> IHttpActionResult.ExecuteAsync(CancellationToken cancellationToken)
+		=> func(cancellationToken);
 }

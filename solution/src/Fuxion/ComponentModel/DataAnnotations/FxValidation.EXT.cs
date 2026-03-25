@@ -98,7 +98,7 @@ public static class DataAnnotationsExtensions
 	extension<T>(ValidationExtensions<T?> me)
 	{
 		/// <summary>
-		///    Validates the wrapped value and converts the result into a <see cref="IResponse" />.
+		///    Validates the wrapped value and converts the result into a <see cref="Response" />.
 		/// </summary>
 		/// <param name="nullValueIsValid">
 		///    When <see langword="true" />, a <see langword="null" /> value is considered valid and produces a success response.
@@ -124,18 +124,18 @@ public static class DataAnnotationsExtensions
 		///     Console.WriteLine(response.Message);
 		/// </code>
 		/// </example>
-		public IResponse ToResponse(bool nullValueIsValid = false)
+		public Response<List<ValidationResult>> ToResponse(bool nullValueIsValid = false)
 		{
 			if (me.Value is null)
 				return nullValueIsValid
-					? Response.Get.Success()
-					: Response.Get.InvalidData("Value is null");
+					? Response.Get.SuccessPayload<List<ValidationResult>>([])
+					: Response.Get.InvalidData("Value is null").AsPayload<List<ValidationResult>>();
 
 			List<ValidationResult> validation = [];
 			Validator.TryValidateObject(me.Value, new(me.Value), validation, true);
 
 			return validation.IsNullOrEmpty()
-				? Response.Get.Success()
+				? Response.Get.SuccessPayload<List<ValidationResult>>([])
 				: Response.Get.InvalidData(
 					string.Join("\r\n", validation.Select(v => v.ErrorMessage)),
 					validation);

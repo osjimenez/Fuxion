@@ -85,7 +85,7 @@ public enum ErrorType
 	/// </code>
 	/// </example>
 	NotFound,
-	
+
 	/// <summary>
 	/// The request lacks valid authentication credentials or the authenticated user lacks necessary permissions.
 	/// </summary>
@@ -114,7 +114,7 @@ public enum ErrorType
 	/// </code>
 	/// </example>
 	PermissionDenied,
-	
+
 	/// <summary>
 	/// The request contains invalid or malformed data that fails validation.
 	/// </summary>
@@ -149,7 +149,7 @@ public enum ErrorType
 	/// </code>
 	/// </example>
 	InvalidData,
-	
+
 	/// <summary>
 	/// The request conflicts with the current state of the resource or with another concurrent operation.
 	/// </summary>
@@ -184,7 +184,7 @@ public enum ErrorType
 	/// </code>
 	/// </example>
 	Conflict,
-	
+
 	/// <summary>
 	/// An unexpected or critical error occurred on the server.
 	/// </summary>
@@ -215,7 +215,7 @@ public enum ErrorType
 	/// </code>
 	/// </example>
 	Critical,
-	
+
 	/// <summary>
 	/// The request uses an unsupported feature, protocol, or media type.
 	/// </summary>
@@ -244,7 +244,7 @@ public enum ErrorType
 	/// </code>
 	/// </example>
 	NotSupported,
-	
+
 	/// <summary>
 	/// The service is temporarily unavailable due to maintenance, overload, or external dependency failure.
 	/// </summary>
@@ -278,7 +278,7 @@ public enum ErrorType
 	/// </code>
 	/// </example>
 	Unavailable,
-	
+
 	/// <summary>
 	/// The request or an intermediate operation timed out.
 	/// </summary>
@@ -310,5 +310,34 @@ public enum ErrorType
 	/// }
 	/// </code>
 	/// </example>
-	Timeout
+	Timeout,
+
+	/// <summary>
+	/// The operation resulted in multiple errors with different error categories.
+	/// </summary>
+	/// <remarks>
+	/// <para>Use when:</para>
+	/// <list type="bullet">
+	/// <item><description>Multiple responses are aggregated and their <see cref="Response.ErrorType"/> values differ</description></item>
+	/// <item><description>A batch or composite operation fails for more than one reason</description></item>
+	/// <item><description>No single error category accurately represents the combined failure</description></item>
+	/// </list>
+	/// <para>
+	/// This value is especially useful in response aggregation scenarios such as <c>CombineResponses</c>,
+	/// where several individual errors must be represented as a single summarized error.
+	/// </para>
+	/// </remarks>
+	/// <example>
+	/// <code>
+	/// var responses = new[]
+	/// {
+	///     Response.Get.NotFound("User not found"),
+	///     Response.Get.InvalidData("Email is required")
+	/// };
+	/// 
+	/// var combined = responses.CombineResponses();
+	/// // combined.ErrorType == ErrorType.Combined
+	/// </code>
+	/// </example>
+	Combined
 }

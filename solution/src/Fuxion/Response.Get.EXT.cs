@@ -69,7 +69,7 @@ public static class ResponseGetExtensionsContainer
 	/// <summary>
 	/// Error type checking extension methods for IResponse.
 	/// </summary>
-	extension(IResponse me)
+	extension(Response me)
 	{
 		/// <summary>Checks if the response indicates a resource was not found.</summary>
 		public bool IsNotFound

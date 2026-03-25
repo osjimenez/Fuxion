@@ -423,7 +423,7 @@ public static class Extensions
 	/// <summary>
 	/// Extension methods for IResponse to extract Problem Details.
 	/// </summary>
-	extension(IResponse me)
+	extension(Response me)
 	{
 		/// <summary>
 		/// Attempts to extract RFC 7807 Problem Details from the response extensions.
