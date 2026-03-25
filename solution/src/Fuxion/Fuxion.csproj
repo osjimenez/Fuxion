@@ -31,10 +31,6 @@
 			<Generator>PublicResXFileCodeGenerator</Generator>
 			<LastGenOutput>Strings.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
-
-		<Compile Update="Response.INT.cs">
-			<DependentUpon>Response.cs</DependentUpon>
-		</Compile>
 		<Compile Update="Response.ProblemDetails.cs">
 			<DependentUpon>Response.cs</DependentUpon>
 		</Compile>

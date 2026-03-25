@@ -383,7 +383,7 @@ public readonly struct Undefinable<T> : IUndefinable<T>
 	/// }
 	/// </code>
 	/// </example>
-	public static Undefinable<T> Undefined => new(default!, false);
+	public static readonly Undefinable<T> Undefined = new(default!, false);
 
 	/// <summary>
 	/// Returns a string representation of the undefinable value.
