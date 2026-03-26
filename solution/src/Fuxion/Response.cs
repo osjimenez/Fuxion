@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json.Serialization;
+using Fuxion.Collections.Generic;
 using Fuxion.Reflection;
 using Fuxion.Text.Json.Serialization;
 
@@ -94,21 +95,8 @@ namespace Fuxion;
 /// }
 /// </code>
 /// </example>
-[DebuggerDisplay("{DebuggerDisplay,nq}")]
 public class Response(bool isSuccess, string? message = null, object? errorType = null, Exception? exception = null)
 {
-	/// <summary>
-	///    Gets the string representation used by the debugger display.
-	/// </summary>
-	protected string DebuggerDisplay
-		 => IsSuccess
-			 ? string.IsNullOrWhiteSpace(Message)
-				 ? "Success"
-				 : $"Success - {Message}"
-			 : string.IsNullOrWhiteSpace(Message)
-				 ? ErrorType?.ToString() ?? "Error"
-				 : $"{ErrorType?.ToString() ?? "Error"} - {Message}";
-
 	/// <summary>
 	///    Gets a value indicating whether the operation was successful.
 	/// </summary>
@@ -228,7 +216,6 @@ public class Response(bool isSuccess, string? message = null, object? errorType 
 	/// </example>
 	[JsonExtensionData]
 	public ResponseExtensionsDictionary Extensions { get; init; } = new(StringComparer.Ordinal);
-	//public IDictionary<string, object?> Extensions { get; init; } = new Dictionary<string, object?>(StringComparer.Ordinal);
 
 	/// <summary>
 	///    Implicitly converts a Response to a boolean value.
@@ -269,6 +256,20 @@ public class Response(bool isSuccess, string? message = null, object? errorType 
 	{
 		payload = null;
 		return false;
+	}
+
+	/// <summary>
+	///    Returns a human-readable string representation of the response.
+	/// </summary>
+	/// <returns>
+	///    A string in the format <c>"Success"</c>, <c>"Success - Message"</c>,
+	///    <c>"ErrorType"</c>, or <c>"ErrorType - Message"</c> depending on the response state.
+	/// </returns>
+	public override string ToString()
+	{
+		var status = IsSuccess ? "Success" : ErrorType?.ToString() ?? "Error";
+		var messagePart = string.IsNullOrWhiteSpace(Message) ? null : Message;
+		return string.Join(" - ", new[] { status, messagePart }.Where(p => p is not null));
 	}
 }
 
@@ -327,7 +328,6 @@ public class Response(bool isSuccess, string? message = null, object? errorType 
 /// Response&lt;string&gt; result = "Success!"; // Creates success response with payload
 /// </code>
 /// </example>
-[DebuggerDisplay("{DebuggerDisplay,nq}")]
 public class Response<TPayload>(bool isSuccess, TPayload payload, string? message = null, object? type = null, Exception? exception = null)
 	: Response(isSuccess, message, type, exception)
 {
@@ -470,6 +470,65 @@ public class Response<TPayload>(bool isSuccess, TPayload payload, string? messag
 		payload = Payload;
 		return true;
 	}
+
+	/// <summary>
+	/// Returns the payload if successful; otherwise computes a fallback value from the error response.
+	/// </summary>
+	/// <param name="fallback">Function that receives the error response and returns an alternative payload value.</param>
+	/// <returns>The response payload when successful; otherwise the value returned by <paramref name="fallback"/>.</returns>
+	/// <remarks>
+	/// This method is useful when you want to recover from errors with context-aware logic.
+	/// If you just need the type default value on error, use <see cref="PayloadOrDefault"/>.
+	/// </remarks>
+	/// <example>
+	/// <code>
+	/// Response&lt;User&gt; response = GetUser(id);
+	/// var user = response.PayloadOrFallback(err => new User { Name = "Guest" });
+	/// // Always returns a User, either from response or default Guest
+	/// </code>
+	/// </example>
+	public TPayload PayloadOrFallback(Func<Response<TPayload>, TPayload> fallback) => IsSuccess ? Payload : fallback(this);
+
+	/// <summary>
+	/// Returns the payload if successful; otherwise returns the default value of <typeparamref name="TPayload"/>.
+	/// </summary>
+	/// <returns>
+	/// The response payload when successful; otherwise <c>default</c>.
+	/// For reference types, this is <c>null</c>.
+	/// </returns>
+	/// <remarks>
+	/// Use this when a simple default-on-error behavior is enough and no error-specific fallback logic is required.
+	/// </remarks>
+	/// <example>
+	/// <code>
+	/// Response&lt;int&gt; quantityResponse = GetQuantity();
+	/// int quantity = quantityResponse.PayloadOrDefault();
+	/// 
+	/// Response&lt;User&gt; userResponse = GetUser(id);
+	/// User? user = userResponse.PayloadOrDefault();
+	/// </code>
+	/// </example>
+	public TPayload? PayloadOrDefault() => IsSuccess ? Payload : default;
+
+	/// <summary>
+	///    Returns a human-readable string representation of the response, including the payload type when present.
+	/// </summary>
+	/// <returns>
+	///    A string combining status, optional payload type signature, and optional message, separated by <c>" - "</c>.
+	///    Examples: <c>"Success"</c>, <c>"Success - User"</c>, <c>"Success - User - Created"</c>,
+	///    <c>"NotFound"</c>, <c>"NotFound - User - User not found"</c>.
+	/// </returns>
+	/// <remarks>
+	///    The payload type signature is obtained via <c>typeof(TPayload).GetSignature()</c> for a compact, readable representation.
+	///    It is only included when <see cref="Payload"/> is not <see langword="null"/>.
+	/// </remarks>
+	public override string ToString()
+	{
+		var status = IsSuccess ? "Success" : ErrorType?.ToString() ?? "Error";
+		var payloadPart = Payload is not null ? typeof(TPayload).GetSignature() : null;
+		var messagePart = string.IsNullOrWhiteSpace(Message) ? null : Message;
+		return string.Join(" - ", new[] { status, payloadPart, messagePart }.Where(p => p is not null));
+	}
 }
 
 /// <summary>
@@ -483,28 +542,32 @@ public class Response<TPayload>(bool isSuccess, TPayload payload, string? messag
 public class ResponseExtensionsDictionary(IEqualityComparer<string> comparer) : Dictionary<string, object?>(comparer)
 {
 	/// <summary>
-   /// Initializes a new instance of the <see cref="ResponseExtensionsDictionary"/> class from an enumerable sequence of key/value pairs.
+	/// Initializes a new instance of the <see cref="ResponseExtensionsDictionary"/> class from an enumerable sequence of key/value pairs.
 	/// </summary>
-  /// <param name="extensions">The extension entries to copy into the dictionary.</param>
-	public ResponseExtensionsDictionary(IEnumerable<(string Property, object? Value)>? extensions = null) : this(StringComparer.Ordinal)
+	/// <param name="extensions">The extension entries to copy into the dictionary.</param>
+	/// <param name="comparer">The string comparer used to compare extension keys.</param>
+	public ResponseExtensionsDictionary(IEnumerable<(string Property, object? Value)>? extensions = null, IEqualityComparer<string>? comparer = null)
+		: this(comparer ?? StringComparer.Ordinal)
 	{
-		if(extensions is not null)
+		if (extensions is not null)
 			foreach (var item in extensions)
 				Add(item.Property, item.Value);
 	}
 	/// <summary>
-   /// Initializes a new instance of the <see cref="ResponseExtensionsDictionary"/> class from an existing dictionary.
+	/// Initializes a new instance of the <see cref="ResponseExtensionsDictionary"/> class from an existing dictionary.
 	/// </summary>
-  /// <param name="dictionary">The dictionary whose entries will be copied into the new instance.</param>
-	public ResponseExtensionsDictionary(IDictionary<string , object?> dictionary) : this(StringComparer.Ordinal)
+	/// <param name="dictionary">The dictionary whose entries will be copied into the new instance.</param>
+	/// <param name="comparer">The string comparer used to compare extension keys.</param>
+	public ResponseExtensionsDictionary(IDictionary<string, object?> dictionary, IEqualityComparer<string>? comparer = null) 
+		: this(comparer ?? StringComparer.Ordinal)
 	{
 		foreach (var item in dictionary)
 			Add(item.Key, item.Value);
 	}
 	/// <summary>
-   /// Converts the dictionary contents to an enumerable sequence of tuples.
+	/// Converts the dictionary contents to an enumerable sequence of tuples.
 	/// </summary>
- /// <returns>An enumerable sequence containing each extension entry as a <c>(Property, Value)</c> tuple.</returns>
+	/// <returns>An enumerable sequence containing each extension entry as a <c>(Property, Value)</c> tuple.</returns>
 	public IEnumerable<(string Property, object? Value)> ToEnumerable()
 		=> this.Select(kvp => (kvp.Key, kvp.Value));
 }

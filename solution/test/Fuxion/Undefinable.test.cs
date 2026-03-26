@@ -167,6 +167,16 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 
 		Assert.True(und.IsUndefined);
 	}
+
+	[Fact]
+	public void Default()
+	{
+		Undefinable<string> und1 = default;
+		IsTrue(und1.IsUndefined);
+
+		Undefinable<int> und2 = default;
+		IsTrue(und2.IsUndefined);
+	}
 }
 
 file record UndefinableSample(

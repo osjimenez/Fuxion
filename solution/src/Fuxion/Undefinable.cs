@@ -58,7 +58,7 @@ public interface IUndefinable<out T>
 	/// Always check <see cref="IsDefined"/> before accessing this property, or use <see cref="ValueOrDefault"/> for safe access.
 	/// </remarks>
 	T Value { get; }
-	
+
 	/// <summary>
 	/// Gets a value indicating whether the value has been defined (set).
 	/// </summary>
@@ -68,7 +68,7 @@ public interface IUndefinable<out T>
 	/// When <c>false</c>, accessing <see cref="Value"/> will throw <see cref="UndefinedException"/>.
 	/// </remarks>
 	bool IsDefined { get; }
-	
+
 	/// <summary>
 	/// Gets a value indicating whether the value is undefined (not set).
 	/// </summary>
@@ -77,7 +77,7 @@ public interface IUndefinable<out T>
 	/// This is the logical inverse of <see cref="IsDefined"/>. Provided for code readability.
 	/// </remarks>
 	bool IsUndefined { get; }
-	
+
 	/// <summary>
 	/// Gets the value if defined, or the default value of <typeparamref name="T"/> if undefined.
 	/// </summary>
@@ -89,7 +89,7 @@ public interface IUndefinable<out T>
 	/// This property provides safe access to the value without throwing exceptions.
 	/// For reference types, returns <c>null</c> when undefined. For value types, returns the default value.
 	/// </remarks>
-	T? ValueOrDefault { get; }
+	T? ValueOrDefault();
 }
 
 /// <summary>
@@ -292,7 +292,7 @@ public readonly struct Undefinable<T> : IUndefinable<T>
 	/// </code>
 	/// </example>
 	public static implicit operator T(Undefinable<T> undefinable) => undefinable.Value;
-	
+
 	/// <summary>
 	/// Implicitly converts a value of type <typeparamref name="T"/> to <see cref="Undefinable{T}"/>.
 	/// </summary>
@@ -353,16 +353,39 @@ public readonly struct Undefinable<T> : IUndefinable<T>
 	/// <example>
 	/// <code>
 	/// var defined = new Undefinable&lt;int&gt;(42);
-	/// Console.WriteLine(defined.ValueOrDefault);  // 42
+	/// Console.WriteLine(defined.ValueOrDefault());  // 42
 	/// 
 	/// var undefined = Undefinable&lt;int&gt;.Undefined;
-	/// Console.WriteLine(undefined.ValueOrDefault);  // 0 (default for int)
+	/// Console.WriteLine(undefined.ValueOrDefault());  // 0 (default for int)
 	/// 
 	/// var undefinedString = Undefinable&lt;string&gt;.Undefined;
-	/// Console.WriteLine(undefinedString.ValueOrDefault ?? "default");  // "default"
+	/// Console.WriteLine(undefinedString.ValueOrDefault() ?? "default");  // "default"
 	/// </code>
 	/// </example>
-	public T? ValueOrDefault => IsDefined ? Value : default;
+	public T? ValueOrDefault() => IsDefined ? Value : default;
+
+	/// <summary>
+	/// Gets the value if defined; otherwise returns the specified fallback value.
+	/// </summary>
+	/// <param name="fallback">The value to return when this instance is undefined.</param>
+	/// <returns>
+	/// The current <see cref="Value"/> when <see cref="IsDefined"/> is <see langword="true"/>;
+	/// otherwise, <paramref name="fallback"/>.
+	/// </returns>
+	/// <remarks>
+	/// This method provides safe access to the underlying value without throwing <see cref="UndefinedException"/>.
+	/// Unlike <see cref="ValueOrDefault"/>, it allows the caller to supply an explicit fallback value.
+	/// </remarks>
+	/// <example>
+	/// <code>
+	/// var defined = new Undefinable&lt;int&gt;(42);
+	/// Console.WriteLine(defined.ValueOrFallback(10));  // 42
+	/// 
+	/// var undefined = Undefinable&lt;int&gt;.Undefined;
+	/// Console.WriteLine(undefined.ValueOrFallback(10));  // 10
+	/// </code>
+	/// </example>
+	public T ValueOrFallback(T fallback) => IsDefined ? Value : fallback;
 
 	/// <summary>
 	/// Gets a static instance representing an undefined value.
@@ -623,7 +646,8 @@ public class UndefinableConverter<T> : JsonConverter<Undefinable<T?>>
 			writer.WriteStartArray();
 			writer.WriteNullValue();
 			writer.WriteEndArray();
-		} else
+		}
+		else
 			JsonSerializer.Serialize(writer, value.Value, options);
 	}
 }
