@@ -10,6 +10,31 @@ using System.Text.Json.Serialization;
 namespace Fuxion;
 
 /// <summary>
+/// PEND DOC
+/// </summary>
+public interface IUndefinable
+{
+	/// <summary>
+	/// Gets a value indicating whether the value has been defined (set).
+	/// </summary>
+	/// <value><c>true</c> if the value is defined; <c>false</c> if undefined.</value>
+	/// <remarks>
+	/// When <c>true</c>, the <see cref="IUndefinable{T}.Value"/> property can be safely accessed.
+	/// When <c>false</c>, accessing <see cref="IUndefinable{T}.Value"/> will throw <see cref="UndefinedException"/>.
+	/// </remarks>
+	bool IsDefined { get; }
+
+	/// <summary>
+	/// Gets a value indicating whether the value is undefined (not set).
+	/// </summary>
+	/// <value><c>true</c> if the value is undefined; <c>false</c> if defined.</value>
+	/// <remarks>
+	/// This is the logical inverse of <see cref="IsDefined"/>. Provided for code readability.
+	/// </remarks>
+	bool IsUndefined { get; }
+}
+
+/// <summary>
 /// Defines the contract for types that can represent undefined values.
 /// </summary>
 /// <typeparam name="T">The type of the value when defined.</typeparam>
@@ -47,42 +72,23 @@ namespace Fuxion;
 ///     user.Email = update.Email.Value;  // Sets to null
 /// </code>
 /// </example>
-public interface IUndefinable<out T>
+public interface IUndefinable<out T> : IUndefinable
 {
 	/// <summary>
 	/// Gets the value if it is defined.
 	/// </summary>
 	/// <value>The defined value of type <typeparamref name="T"/>.</value>
-	/// <exception cref="UndefinedException">Thrown when attempting to access the value while <see cref="IsDefined"/> is <c>false</c>.</exception>
+	/// <exception cref="UndefinedException">Thrown when attempting to access the value while <see cref="IUndefinable.IsDefined"/> is <c>false</c>.</exception>
 	/// <remarks>
-	/// Always check <see cref="IsDefined"/> before accessing this property, or use <see cref="ValueOrDefault"/> for safe access.
+	/// Always check <see cref="IUndefinable.IsDefined"/> before accessing this property, or use <see cref="ValueOrDefault"/> for safe access.
 	/// </remarks>
 	T Value { get; }
-
-	/// <summary>
-	/// Gets a value indicating whether the value has been defined (set).
-	/// </summary>
-	/// <value><c>true</c> if the value is defined; <c>false</c> if undefined.</value>
-	/// <remarks>
-	/// When <c>true</c>, the <see cref="Value"/> property can be safely accessed.
-	/// When <c>false</c>, accessing <see cref="Value"/> will throw <see cref="UndefinedException"/>.
-	/// </remarks>
-	bool IsDefined { get; }
-
-	/// <summary>
-	/// Gets a value indicating whether the value is undefined (not set).
-	/// </summary>
-	/// <value><c>true</c> if the value is undefined; <c>false</c> if defined.</value>
-	/// <remarks>
-	/// This is the logical inverse of <see cref="IsDefined"/>. Provided for code readability.
-	/// </remarks>
-	bool IsUndefined { get; }
 
 	/// <summary>
 	/// Gets the value if defined, or the default value of <typeparamref name="T"/> if undefined.
 	/// </summary>
 	/// <value>
-	/// The defined value if <see cref="IsDefined"/> is <c>true</c>; 
+	/// The defined value if <see cref="IUndefinable.IsDefined"/> is <c>true</c>; 
 	/// otherwise, <c>default(T)</c>.
 	/// </value>
 	/// <remarks>
@@ -439,10 +445,10 @@ public readonly struct Undefinable<T> : IUndefinable<T>
 /// <remarks>
 /// <para>
 /// This exception is thrown when accessing the <see cref="IUndefinable{T}.Value"/> property
-/// of an <see cref="Undefinable{T}"/> where <see cref="IUndefinable{T}.IsDefined"/> is <c>false</c>.
+/// of an <see cref="Undefinable{T}"/> where <see cref="IUndefinable.IsDefined"/> is <c>false</c>.
 /// </para>
 /// <para>
-/// To avoid this exception, always check <see cref="IUndefinable{T}.IsDefined"/> before accessing
+/// To avoid this exception, always check <see cref="IUndefinable.IsDefined"/> before accessing
 /// <see cref="IUndefinable{T}.Value"/>, or use <see cref="IUndefinable{T}.ValueOrDefault"/> for safe access.
 /// </para>
 /// </remarks>
@@ -617,7 +623,7 @@ public class UndefinableConverter<T> : JsonConverter<Undefinable<T?>>
 		if (reader.TokenType == JsonTokenType.StartArray)
 		{
 			var node = JsonNode.Parse(ref reader);
-			if (node is JsonArray ja && ja.Count == 1 && ja[0] == null) return Undefinable<T?>.Undefined;
+			if (node is JsonArray { Count: 1 } ja && ja[0] == null) return Undefinable<T?>.Undefined;
 			return new(node.Deserialize<T>(options));
 		}
 
@@ -635,8 +641,8 @@ public class UndefinableConverter<T> : JsonConverter<Undefinable<T?>>
 	/// Serialization format:
 	/// </para>
 	/// <list type="bullet">
-	/// <item><description>If <see cref="IUndefinable{T}.IsUndefined"/> is <c>true</c> ? writes <c>[null]</c></description></item>
-	/// <item><description>If <see cref="IUndefinable{T}.IsDefined"/> is <c>true</c> ? writes the actual value (which may be null)</description></item>
+	/// <item><description>If <see cref="IUndefinable.IsUndefined"/> is <c>true</c> ? writes <c>[null]</c></description></item>
+	/// <item><description>If <see cref="IUndefinable.IsDefined"/> is <c>true</c> ? writes the actual value (which may be null)</description></item>
 	/// </list>
 	/// </remarks>
 	public override void Write(Utf8JsonWriter writer, Undefinable<T?> value, JsonSerializerOptions options)
@@ -651,3 +657,4 @@ public class UndefinableConverter<T> : JsonConverter<Undefinable<T?>>
 			JsonSerializer.Serialize(writer, value.Value, options);
 	}
 }
+

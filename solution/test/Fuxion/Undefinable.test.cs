@@ -4,6 +4,7 @@ using Fuxion;
 using Fuxion.Text.Json;
 using System;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Test.Fuxion;
 
@@ -101,7 +102,7 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 			Undefinable<int>.Undefined,
 			Undefinable<int?>.Undefined,
 			Undefinable<string>.Undefined,
-			Undefinable<string?>.Undefined,
+			null,//Undefinable<string?>.Undefined,
 			Undefinable<DateTime>.Undefined,
 			Undefinable<DateTime?>.Undefined,
 			Undefinable<UndefinableObject>.Undefined,
@@ -119,7 +120,7 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 		var undefinedJson = JsonSerializer.Serialize(undefinedSample, options);
 
 		Output.WriteLine(definedJson ?? "null");
-		//Output.WriteLine(undefinedJson);
+		PrintVariable(undefinedJson);
 	}
 
 	[Fact(DisplayName = "Nullables")]
@@ -181,14 +182,14 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 
 file record UndefinableSample(
 	string Demo,
-	Undefinable<int> Integer,
-	Undefinable<int?> NullableInteger,
-	Undefinable<string> String,
-	Undefinable<string?> NullableString,
-	Undefinable<DateTime> DateTime,
-	Undefinable<DateTime?> NullableDateTime,
-	Undefinable<UndefinableObject> Object,
-	Undefinable<UndefinableObject?> NullableObject);
+	[property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] Undefinable<int> Integer,
+	[property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] Undefinable<int?> NullableInteger,
+	[property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] Undefinable<string> String,
+	[property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] Undefinable<string?> NullableString,
+	[property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] Undefinable<DateTime> DateTime,
+	[property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] Undefinable<DateTime?> NullableDateTime,
+	[property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] Undefinable<UndefinableObject> Object,
+	[property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] Undefinable<UndefinableObject?> NullableObject);
 file record UndefinableObject(
-	Undefinable<int> Integer,
-	Undefinable<int?> NullableInteger);
+	[property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] Undefinable<int> Integer,
+	[property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] Undefinable<int?> NullableInteger);
