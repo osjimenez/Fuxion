@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Fuxion;
 using Fuxion.AspNetCore;
 using Fuxion.Net.Http;
+using Fuxion.Reflection;
 using Fuxion.Text.Json;
 using Fuxion.Xunit;
 using Microsoft.AspNetCore.Mvc;
@@ -65,13 +66,10 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			PrintVariable(res.StatusCode);
 			Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
 			var str = await res.Content.ReadAsStringAsync();
-			var problem = str.Fx.Json.Deserialize<ProblemDetails>(options: jsonOptions).Payload;
+			var problem = str.Fx.Json.Deserialize<ResponseProblemDetails>(options: jsonOptions).Payload;
 			Assert.NotNull(problem);
 			Assert.Equal("Error message", problem.Detail);
-			var ext = new ResponseExtensionsDictionary(problem.Extensions);
-			Assert.True(ext.Payload.IsDefined);
-			Assert.NotNull(ext.Payload.Value);
-			var payload = ((JsonElement)ext.Payload.Value!).Deserialize<TestPayload>(jsonOptions);
+			var payload = problem.PayloadOrDefault<TestPayload>(jsonOptions);
 			Assert.Equal("Test name", payload?.FirstName);
 			Assert.Equal(123, payload?.Age);
 		}
@@ -82,7 +80,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			PrintVariable(res.StatusCode);
 			Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
 			var str = await res.Content.ReadAsStringAsync();
-			var problem = str.Fx.Json.Deserialize<ProblemDetails>(options: jsonOptions).Payload;
+			var problem = str.Fx.Json.Deserialize<ResponseProblemDetails>(options: jsonOptions).Payload;
 			Assert.Equal("Error message", problem?.Detail);
 		}
 		{
@@ -90,13 +88,11 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			PrintVariable(res.StatusCode);
 			Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
 			var str = await res.Content.ReadAsStringAsync();
-			var problem = str.Fx.Json.Deserialize<ProblemDetails>(options: jsonOptions).Payload;
+			PrintVariable(str);
+			var problem = str.Fx.Json.Deserialize<ResponseProblemDetails>(options: jsonOptions).Payload;
 			Assert.NotNull(problem);
 			Assert.Equal("Error message", problem.Detail);
-			var ext = new ResponseExtensionsDictionary(problem.Extensions);
-			Assert.True(ext.Payload.IsDefined);
-			Assert.NotNull(ext.Payload.Value);
-			var payload = ((JsonElement)ext.Payload.Value!).Deserialize<TestPayload>(jsonOptions);
+			var payload = problem.PayloadOrDefault<TestPayload>(jsonOptions);
 			Assert.Equal("Test name", payload?.FirstName);
 			Assert.Equal(123, payload?.Age);
 		}
@@ -134,12 +130,14 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 		{
 			var res = await cli.GetAsync($"{prefix}test-empty-success")
 				.AsResponseAsync();
+			PrintVariable(res.Fx.Json.Serialize(true).Payload);
 			Assert.True(res.IsSuccess);
 			Assert.Equal(204, res.Extensions.StatusCode.Value);
 		}
 		{
 			var res = await cli.GetAsync($"{prefix}test-message-success")
 				.AsResponseAsync();
+			PrintVariable(res.Fx.Json.Serialize(true).Payload);
 			Assert.True(res.IsSuccess);
 			Assert.Equal(200, res.Extensions.StatusCode.Value);
 			Assert.Equal("Success message", res.Message);
@@ -147,20 +145,12 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 		{
 			var res = await cli.GetAsync($"{prefix}test-payload-success")
 				.AsResponseAsync<TestPayload>(jsonOptions);
+			PrintVariable(res.Fx.Json.Serialize(true).Payload);
 			Assert.True(res.IsSuccess);
 			Assert.Equal(200, res.Extensions.StatusCode.Value);
 			Assert.Equal("Test name", res.Payload?.FirstName);
 			Assert.Equal(123, res.Payload?.Age);
 		}
-		//{
-		//	var res = await cli.GetAsync($"{prefix}test-payload-success")
-		//		.AsResponseAsync<DateTime>(jsonOptions);
-		//	Assert.False(res.IsSuccess);
-		//	Assert.Equal(200, res.Extensions[StatusCodeKey]);
-		//	Assert.Equal(default, res.Payload);
-		//	Assert.Equal(ErrorType.InvalidData, res.ErrorType);
-		//	Assert.True(res.Extensions.ContainsKey("json-content"));
-		//}
 
 		// ERROR
 		{
@@ -213,7 +203,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 		{
 			var res = await cli.GetAsync($"{prefix}test-message-exception")
 				.AsResponseAsync(jsonOptions);
-
+			
 			PrintVariable(res.Fx.Json.Serialize(true).Payload);
 			Assert.False(res.IsSuccess);
 			Assert.Equal(500, res.Extensions.StatusCode.Value);

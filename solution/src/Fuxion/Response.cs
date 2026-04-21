@@ -95,7 +95,7 @@ namespace Fuxion;
 /// }
 /// </code>
 /// </example>
-public class Response(bool isSuccess, string? message = null, object? errorType = null, Exception? exception = null)
+public class Response(bool isSuccess, string? message = null, object? errorType = null, Exception? exception = null) : IResponse
 {
 	/// <summary>
 	///    Gets a value indicating whether the operation was successful.
@@ -280,7 +280,7 @@ public class Response(bool isSuccess, string? message = null, object? errorType 
 /// <param name="isSuccess">Indicates whether the operation succeeded.</param>
 /// <param name="payload">The payload value (required for success, typically null/default for failure).</param>
 /// <param name="message">Optional message describing the result.</param>
-/// <param name="type">Optional error type categorization.</param>
+/// <param name="errorType">Optional error type categorization.</param>
 /// <param name="exception">Optional exception that caused the failure.</param>
 /// <remarks>
 ///    <para>
@@ -328,8 +328,8 @@ public class Response(bool isSuccess, string? message = null, object? errorType 
 /// Response&lt;string&gt; result = "Success!"; // Creates success response with payload
 /// </code>
 /// </example>
-public class Response<TPayload>(bool isSuccess, TPayload payload, string? message = null, object? type = null, Exception? exception = null)
-	: Response(isSuccess, message, type, exception)
+public class Response<TPayload>(bool isSuccess, TPayload payload, string? message = null, object? errorType = null, Exception? exception = null)
+	: Response(isSuccess, message, errorType, exception), IResponse<TPayload>
 {
 	/// <summary>
 	///    Gets a value indicating whether the operation was successful.

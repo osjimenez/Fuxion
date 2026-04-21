@@ -23,7 +23,7 @@ namespace Fuxion;
 /// <item><description>Response combination methods for aggregating multiple results</description></item>
 /// </list>
 /// </remarks>
-public static class ResponseExtensions
+public static partial class ResponseExtensions
 {
 	/// <summary>
 	/// Extension methods for Response class.

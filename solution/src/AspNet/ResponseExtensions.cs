@@ -591,24 +591,6 @@ public static class ResponseExtensions
 }
 
 /// <summary>
-///    Internal implementation of <see cref="IHttpActionResult" /> that uses a factory function
-///    to generate <see cref="HttpResponseMessage" /> instances.
-/// </summary>
-/// <param name="func">
-///    A function that takes a <see cref="CancellationToken" /> and returns a
-///    <see cref="Task{HttpResponseMessage}" />.
-/// </param>
-/// <remarks>
-///    This file-scoped class provides a lightweight wrapper for creating custom HTTP action results
-///    without the overhead of creating dedicated classes for each response type.
-/// </remarks>
-file class FuncHttpActionResult(Func<CancellationToken, Task<HttpResponseMessage>> func) : IHttpActionResult
-{
-	Task<HttpResponseMessage> IHttpActionResult.ExecuteAsync(CancellationToken cancellationToken)
-		=> func(cancellationToken);
-}
-
-/// <summary>
 ///    Factory class for creating <see cref="IHttpActionResult" /> instances with various HTTP status codes
 ///    and content types, including RFC 7807 Problem Details support.
 /// </summary>

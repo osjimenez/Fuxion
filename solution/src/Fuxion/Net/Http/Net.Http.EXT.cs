@@ -425,37 +425,42 @@ public static class Extensions
 
 			if (res.Content.Headers.ContentType?.MediaType == "application/problem+json")
 			{
-				var problemResponse = strContent.Fx.Json.Deserialize<ResponseProblemDetails>(options: jsonOptions);
-				if (problemResponse.IsSuccess)
+				var deserializationProblemRes = strContent.Fx.Json.Deserialize<ResponseProblemDetails>(options: jsonOptions);
+				if (deserializationProblemRes.IsSuccess)
 				{
-					problem = problemResponse.Payload;
+					problem = deserializationProblemRes.Payload;
 					extensions.InnerProblem = problem;
 				}
 			}
 			if (problem is null)
 			{
-				var ele = strContent.Fx.Json.SerializeToElement();
-				if (ele.IsError)
+				try
+				{
+					var element = JsonElement.Parse(strContent);
+					if (element.ValueKind == JsonValueKind.String)
+						extensions.StringContent = element.GetString() == null
+							? Undefinable<string>.Undefined
+							: element.ToString();
+					else
+						extensions.JsonContent = element;
+				}
+				catch 
+				{
 					extensions.StringContent = strContent;
-				if (ele.Payload.ValueKind == JsonValueKind.String)
-					extensions.StringContent = ele.Payload.GetString() == null
-						? Undefinable<string>.Undefined
-						: ele.Payload.ToString();
-				else
-					extensions.JsonContent = ele.Payload;
+				}
 				if (deserializationType is not null)
 				{
-					var deserializationResponse = strContent.Fx.Json.Deserialize(deserializationType, options: jsonOptions);
-					if (deserializationResponse.IsSuccess)
-						deserializedBody = deserializationResponse.Payload;
+					var deserializationRes = strContent.Fx.Json.Deserialize(deserializationType, options: jsonOptions);
+					if (deserializationRes.IsSuccess)
+						deserializedBody = deserializationRes.Payload;
 					else
 					{
-						if (deserializationResponse.Exception is not null)
+						if (deserializationRes.Exception is not null)
 						{
-							deserializationException = deserializationResponse.Exception;
-							var jsonErrorExceptionSerializationResponse = deserializationResponse.Exception.Fx.Json.SerializeToElement(options: jsonOptions);
-							if (jsonErrorExceptionSerializationResponse.IsSuccess)
-								extensions.JsonError = jsonErrorExceptionSerializationResponse.Payload;
+							deserializationException = deserializationRes.Exception;
+							var jsonErrorExceptionSerializationRes = deserializationRes.Exception.Fx.Json.SerializeToElement(options: jsonOptions);
+							if (jsonErrorExceptionSerializationRes.IsSuccess)
+								extensions.JsonError = jsonErrorExceptionSerializationRes.Payload;
 						}
 					}
 				}
@@ -774,5 +779,23 @@ public static class Extensions
 			payload = default;
 			return false;
 		}
+		/// <summary>
+		/// PEND DOC
+		/// </summary>
+		/// <typeparam name="TPayload"></typeparam>
+		/// <param name="jsonOptions"></param>
+		/// <returns></returns>
+		public TPayload? PayloadOrDefault<TPayload>(JsonSerializerOptions? jsonOptions = null)
+			=> problem.TryGetPayload<TPayload>(out var payload, jsonOptions) ? payload : default;
+
+		/// <summary>
+		/// PEND DOC
+		/// </summary>
+		/// <typeparam name="TPayload"></typeparam>
+		/// <param name="fallback"></param>
+		/// <param name="jsonOptions"></param>
+		/// <returns></returns>
+		public TPayload PayloadOrFallback<TPayload>(Func<ResponseProblemDetails, TPayload> fallback, JsonSerializerOptions? jsonOptions = null) 
+			=> problem.TryGetPayload<TPayload>(out var payload, jsonOptions) ? payload : fallback(problem);
 	}
 }

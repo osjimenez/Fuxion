@@ -13,8 +13,14 @@ namespace Fuxion;
 /// <item><description>Typed error checking methods (IsNotFound, IsInvalidData, etc.)</description></item>
 /// </list>
 /// </remarks>
-public static class ResponseGetExtensionsContainer
+public static partial class ResponseExtensions
 {
+	/// <summary>
+	/// PEND DOC
+	/// </summary>
+	public static bool IncludeCodeSource { get; set; } = true;
+	
+	
 	/// <summary>
 	/// Factory methods for creating Response objects (accessed via Response.Get).
 	/// </summary>
@@ -168,6 +174,15 @@ public static class ResponseGetExtensionsContainer
 		/// <param name="extensions">
 		/// Optional collection of key-value pairs to add to the response's Extensions dictionary.
 		/// </param>
+		/// <param name="callerMemeberName">
+		/// PEND DOC
+		/// </param>
+		/// <param name="filePath">
+		/// PEND DOC
+		/// </param>
+		/// <param name="lineNumber">
+		/// PEND DOC
+		/// </param>
 		/// <returns>A successful Response with IsSuccess = true and the specified message.</returns>
 		/// <remarks>
 		/// Use this when you want to provide feedback about what succeeded.
@@ -188,11 +203,25 @@ public static class ResponseGetExtensionsContainer
 		/// );
 		/// </code>
 		/// </example>
-		public Response SuccessMessage(string message, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> new(true, message)
+		public Response SuccessMessage(
+			string message,
+			IEnumerable<(string Property, object? Value)>? extensions = null,
+			[CallerMemberName] string? callerMemeberName = null,
+			[CallerFilePath] string? filePath = null,
+			[CallerLineNumber] int? lineNumber = null)
+		{
+			var res = new Response(true, message)
 			{
 				Extensions = new(extensions)
 			};
+			if (IncludeCodeSource && callerMemeberName is not null) res.Extensions.Add("code-source", new
+			{
+				Caller = callerMemeberName,
+				File = filePath,
+				Line = lineNumber
+			});
+			return res;
+		}
 
 		/// <summary>
 		/// Creates a successful response with a typed payload containing the operation's result data.

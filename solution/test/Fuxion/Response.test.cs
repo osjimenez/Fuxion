@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using Fuxion;
 using Fuxion.Text.Json;
+using Fuxion.Text.Json.Serialization;
 using Fuxion.Xunit;
 using Xunit;
 
@@ -20,7 +22,7 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 	public Response GetNotFound() => Response.Get.NotFound("message");
 	public Response<int> GetNotFoundWithPayload() => Response.Get.NotFound("message", 123);
 	public Response<int> GetNotFoundWithPayloadAndExtensions() => Response.Get.NotFound("message", 123, extensions: [("Extension", 123.456)]);
-	public CustomError GetCustomError() => Response.Get.Custom("message", "customData");
+	public IResponse GetCustomError() => Response.Get.Custom("message", "customData");
 	[Fact]
 	public void ImplicitConversion()
 	{
@@ -82,6 +84,12 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 		IsTrue(GetNotFound().IsNotFound);
 		IsTrue(GetNotFound().IsErrorType(ErrorType.NotFound));
 		IsTrue(GetNotFoundWithPayload().IsNotFound);
+	}
+
+	[Fact]
+	public void SerializeCustom()
+	{
+		PrintVariable(GetCustomError().Fx.Json.Serialize(true).PayloadOrFallback(r=>throw r.Exception ?? new Exception("NOOOOOO")));
 	}
 	[Fact]
 	public void Exception()
@@ -151,7 +159,7 @@ public class CustomError(string message, string customData) : Response(false, me
 
 file static class CustomErrorExtensions
 {
-	extension(ResponseGetExtensionsContainer.ResponseGetExtensions me)
+	extension(ResponseExtensions.ResponseGetExtensions me)
 	{
 		public CustomError Custom(string message, string customData) => new(message, customData);
 	}
