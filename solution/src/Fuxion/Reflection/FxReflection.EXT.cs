@@ -328,12 +328,12 @@ public static partial class ReflectionExtensions
 		public IResponse<Stream> GetResourceStream(string folder, string fileName)
 		{
 			if (assembly.FullName is null)
-				return ResponseExt.Get.Critical("Assembly.FullName is null").AsPayload<Stream>();
+				return Response.Get.Critical("Assembly.FullName is null").AsPayload<Stream>();
 			var resourceName = assembly.FullName.Split(',')[0] + "." + folder.Replace("\\", ".").Replace("/", ".") + "." + fileName;
 			var res = assembly.GetManifestResourceStream(resourceName);
 			return res is null
-				? ResponseExt.Get.NotFound($"Resource with name '{resourceName}' was not found on assembly").AsPayload<Stream>()
-				: ResponseExt.Get.SuccessPayload(res);
+				? Response.Get.NotFound($"Resource with name '{resourceName}' was not found on assembly").AsPayload<Stream>()
+				: Response.Get.SuccessPayload(res);
 		}
 
 		/// <summary>
@@ -367,7 +367,7 @@ public static partial class ReflectionExtensions
 		/// </example>
 		public IResponse<string> GetResourceAsString(string folder, string fileName) =>
 			GetResourceStream(assembly, folder, fileName).Match(
-				r => ResponseExt.Get.SuccessPayload(new StreamReader(r.Payload!).ReadToEnd()),
+				r => Response.Get.SuccessPayload(new StreamReader(r.Payload!).ReadToEnd()),
 				r => r.AsPayload<string>());
 
 		/// <summary>
@@ -416,7 +416,7 @@ public static partial class ReflectionExtensions
 		/// </example>
 		public async Task<IResponse<string>> GetResourceAsStringAsync(string folder, string fileName, CancellationToken ct = default) =>
 			await GetResourceStream(assembly, folder, fileName).MatchAsync(
-				async r => ResponseExt.Get.SuccessPayload(await new StreamReader(r.Payload!).ReadToEndAsync(
+				async r => Response.Get.SuccessPayload(await new StreamReader(r.Payload!).ReadToEndAsync(
 #if !STANDARD_OR_OLD_FRAMEWORKS
 				ct
 #endif

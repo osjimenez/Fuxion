@@ -476,14 +476,14 @@ public static class Extensions
 
 		if (res.IsSuccessStatusCode)
 			if (extensions.Any(e => e.Key == StringContentKey))
-				return ResponseExt.Get.SuccessMessage(extensions.First(e => e.Key == StringContentKey)
+				return Response.Get.SuccessMessage(extensions.First(e => e.Key == StringContentKey)
 					.Value?.ToString() ?? string.Empty, extensions.ToEnumerable());
 			else
-				return ResponseExt.Get.Success(extensions.ToEnumerable());
+				return Response.Get.Success(extensions.ToEnumerable());
 
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
-		return ResponseExt.Get
+		return Response.Get
 			.ErrorMessage(
 				problem?.Detail
 				?? extensions.FirstOrDefault(e => e.Key == StringContentKey).Value?.ToString()
@@ -500,14 +500,14 @@ public static class Extensions
 		if (res.IsSuccessStatusCode)
 		{
 			if (deserializedBody is TPayload payload)
-				return ResponseExt.Get.SuccessPayload(payload, extensions: extensions.ToEnumerable());
+				return Response.Get.SuccessPayload(payload, extensions: extensions.ToEnumerable());
 			if (extensions.JsonContent.IsDefined)
-				return ResponseExt.Get
+				return Response.Get
 					.InvalidData($"The content of the response isn't '{typeof(TPayload).GetSignature()}' type.",
 						extensions: extensions.ToEnumerable(),
 						exception: exception)
 					.AsPayload<TPayload>();
-			return ResponseExt.Get
+			return Response.Get
 				.InvalidData("The content of the response isn't a valid json.",
 					extensions: extensions.ToEnumerable(),
 					exception: exception)
@@ -515,7 +515,7 @@ public static class Extensions
 		}
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
-		return ResponseExt.Get
+		return Response.Get
 			.ErrorMessage(
 				problem?.Detail
 				?? extensions.FirstOrDefault(e => e.Key == StringContentKey).Value?.ToString()

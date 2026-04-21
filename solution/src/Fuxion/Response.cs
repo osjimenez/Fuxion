@@ -13,10 +13,7 @@ namespace Fuxion;
 /// <summary>
 /// PEND DOC
 /// </summary>
-public class ResponseExt
-{
-	
-}
+public class Response;
 
 /// <summary>
 ///    Represents the result of an operation with success/failure information and optional metadata.

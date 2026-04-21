@@ -339,7 +339,7 @@ public static class TimeExtensions
 		/// </example>
 		public IResponse<long> ToEpochSeconds(bool errorIfPrior1970 = false)
 			=> me.ToEpochMilliseconds(errorIfPrior1970).Match(
-				r => ResponseExt.Get.SuccessPayload(r.Payload / 1000),
+				r => Response.Get.SuccessPayload(r.Payload / 1000),
 				r => r);
 
 		/// <summary>
@@ -361,9 +361,9 @@ public static class TimeExtensions
 		public IResponse<long> ToEpochMilliseconds(bool errorIfPrior1970 = false)
 			=> (me.Value - EpochStartTime).TotalMilliseconds switch
 			{
-				< 0 when errorIfPrior1970 => ResponseExt.Get
+				< 0 when errorIfPrior1970 => Response.Get
 					.InvalidData("DateTime cannot be prior 1/1/1970 to be converted to EPOCH date").AsPayload<long>(),
-				var r => ResponseExt.Get.SuccessPayload((long)r)
+				var r => Response.Get.SuccessPayload((long)r)
 			};
 	}
 

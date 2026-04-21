@@ -546,7 +546,7 @@ public static class JsonExtensions
 		public IResponse<T> Deserialize<T>(bool formatted = false, JsonSerializerOptions? options = null)
 		{
 			if (me.Value.IsNullOrWhiteSpace())
-				return ResponseExt.Get.Critical(
+				return Response.Get.Critical(
 						$"The string cannot be deserialized as '{typeof(T).GetSignature()}' because source string is null, empty or only white spaces")
 					.AsPayload<T>();
 
@@ -554,12 +554,12 @@ public static class JsonExtensions
 			{
 				var res = JsonSerializer.Deserialize<T>(me.Value, (formatted, options).ToFinalOptions());
 				return res is null
-					? ResponseExt.Get.Critical($"Deserialization produced a null result").AsPayload<T>()
-					: ResponseExt.Get.SuccessPayload<T>(res);
+					? Response.Get.Critical($"Deserialization produced a null result").AsPayload<T>()
+					: Response.Get.SuccessPayload<T>(res);
 			}
 			catch (Exception ex)
 			{
-				return ResponseExt.Get.Exception(ex).AsPayload<T>();
+				return Response.Get.Exception(ex).AsPayload<T>();
 			}
 		}
 
@@ -603,11 +603,11 @@ public static class JsonExtensions
 				var res = JsonSerializer.Deserialize<T>(me.Value, (formatted,options).ToFinalOptions());
 				return res is null
 					? null
-					: ResponseExt.Get.SuccessPayload<T>(res);
+					: Response.Get.SuccessPayload<T>(res);
 			}
 			catch (Exception ex)
 			{
-				return ResponseExt.Get.Exception(ex).AsPayload<T>();
+				return Response.Get.Exception(ex).AsPayload<T>();
 			}
 		}
 		
@@ -643,7 +643,7 @@ public static class JsonExtensions
 		public IResponse<object> Deserialize(Type type, bool formatted = false, JsonSerializerOptions? options = null)
 		{
 			if (me.Value.IsNullOrWhiteSpace())
-				return ResponseExt.Get
+				return Response.Get
 					.Critical($"The string cannot be deserialized as '{type.GetSignature()}' because source string is null, empty or only white spaces")
 					.AsPayload<object>();
 
@@ -651,12 +651,12 @@ public static class JsonExtensions
 			{
 				var res = JsonSerializer.Deserialize(me.Value, type, (formatted, options).ToFinalOptions());
 				return res is null
-					? ResponseExt.Get.Critical("Deserialization produced a null result").AsPayload<object>()
-					: ResponseExt.Get.SuccessPayload(res);
+					? Response.Get.Critical("Deserialization produced a null result").AsPayload<object>()
+					: Response.Get.SuccessPayload(res);
 			}
 			catch (Exception ex)
 			{
-				return ResponseExt.Get.Exception(ex).AsPayload<object>();
+				return Response.Get.Exception(ex).AsPayload<object>();
 			}
 		}
 
@@ -701,11 +701,11 @@ public static class JsonExtensions
 				var res = JsonSerializer.Deserialize(me.Value, type, (formatted,options).ToFinalOptions());
 				return res is null
 					? null
-					: ResponseExt.Get.SuccessPayload(res);
+					: Response.Get.SuccessPayload(res);
 			}
 			catch (Exception ex)
 			{
-				return ResponseExt.Get.Exception(ex).AsPayload<object>();
+				return Response.Get.Exception(ex).AsPayload<object>();
 			}
 		}
 	}
@@ -756,14 +756,14 @@ public static class JsonExtensions
 			try
 			{
 				if (errorIfNull && me.Value is null)
-					return ResponseExt.Get.Critical($"The object cannot be serialized as '{typeof(T).GetSignature()}' because source object is null")
+					return Response.Get.Critical($"The object cannot be serialized as '{typeof(T).GetSignature()}' because source object is null")
 						.AsPayload<string>();
 
-				return ResponseExt.Get.SuccessPayload(JsonSerializer.Serialize(me.Value, (formatted, options).ToFinalOptions()));
+				return Response.Get.SuccessPayload(JsonSerializer.Serialize(me.Value, (formatted, options).ToFinalOptions()));
 			}
 			catch (Exception ex)
 			{
-				return ResponseExt.Get.Exception(ex).AsPayload<string>();
+				return Response.Get.Exception(ex).AsPayload<string>();
 			}
 		}
 
@@ -800,18 +800,18 @@ public static class JsonExtensions
 			try
 			{
 				if (me.Value is null)
-					return ResponseExt.Get
+					return Response.Get
 						.Critical($"The object cannot be serialized as '{typeof(T).GetSignature()}' because source object is null")
 						.AsPayload<JsonNode>();
 
 				var res = JsonSerializer.SerializeToNode(me.Value, (formatted, options).ToFinalOptions());
 				return res is null
-					? ResponseExt.Get.Critical($"The object cannot be serializer as '{typeof(T).GetSignature()}' because result was null").AsPayload<JsonNode>()
-					: ResponseExt.Get.SuccessPayload(res);
+					? Response.Get.Critical($"The object cannot be serializer as '{typeof(T).GetSignature()}' because result was null").AsPayload<JsonNode>()
+					: Response.Get.SuccessPayload(res);
 			}
 			catch (Exception ex)
 			{
-				return ResponseExt.Get.Exception(ex).AsPayload<JsonNode>();
+				return Response.Get.Exception(ex).AsPayload<JsonNode>();
 			}
 		}
 
@@ -852,16 +852,16 @@ public static class JsonExtensions
 			try
 			{
 				if (errorIfNull && me.Value is null)
-					return ResponseExt.Get
+					return Response.Get
 						.Critical(
 							$"The object cannot be serialized as '{typeof(T).GetSignature()}' because source object is null")
 						.AsPayload<JsonElement>();
 				
-				return ResponseExt.Get.SuccessPayload(JsonSerializer.SerializeToElement(me.Value, (formatted, options).ToFinalOptions()));
+				return Response.Get.SuccessPayload(JsonSerializer.SerializeToElement(me.Value, (formatted, options).ToFinalOptions()));
 			}
 			catch (Exception ex)
 			{
-				return ResponseExt.Get.Exception(ex).AsPayload<JsonElement>();
+				return Response.Get.Exception(ex).AsPayload<JsonElement>();
 			}
 		}
 	}
@@ -911,7 +911,7 @@ public static class JsonExtensions
 			try
 			{
 				if (errorIfNull && me.Value is null)
-					return ResponseExt.Get
+					return Response.Get
 						.Critical("The Exception cannot be serialized because source Exception is null")
 						.AsPayload<string>();
 
@@ -924,11 +924,11 @@ public static class JsonExtensions
 				else if (!finalOptions.Converters.Any(c => c.GetType().IsSubclassOf(typeof(ExceptionConverter))))
 					finalOptions.Converters.Add(new ExceptionConverter());
 
-				return ResponseExt.Get.SuccessPayload(JsonSerializer.Serialize(me.Value, finalOptions));
+				return Response.Get.SuccessPayload(JsonSerializer.Serialize(me.Value, finalOptions));
 			}
 			catch (Exception ex)
 			{
-				return ResponseExt.Get.Exception(ex).AsPayload<string>();
+				return Response.Get.Exception(ex).AsPayload<string>();
 			}
 		}
 
@@ -972,7 +972,7 @@ public static class JsonExtensions
 			try
 			{
 				if (me.Value is null)
-					return ResponseExt.Get
+					return Response.Get
 						.Critical(
 							$"The Exception cannot be serialized because source Exception is null")
 						.AsPayload<JsonNode>();
@@ -988,13 +988,13 @@ public static class JsonExtensions
 
 				var res = JsonSerializer.SerializeToNode(me.Value, finalOptions);
 				if (res is null)
-					return ResponseExt.Get.Critical($"The Exception cannot be serializer as '{me.Value?.GetType().GetSignature()}' because result was null")
+					return Response.Get.Critical($"The Exception cannot be serializer as '{me.Value?.GetType().GetSignature()}' because result was null")
 						.AsPayload<JsonNode>();
-				return ResponseExt.Get.SuccessPayload(res);
+				return Response.Get.SuccessPayload(res);
 			}
 			catch (Exception ex)
 			{
-				return ResponseExt.Get.Exception(ex).AsPayload<JsonNode>();
+				return Response.Get.Exception(ex).AsPayload<JsonNode>();
 			}
 		}
 
@@ -1042,7 +1042,7 @@ public static class JsonExtensions
 			try
 			{
 				if (errorIfNull && me.Value is null)
-					return ResponseExt.Get
+					return Response.Get
 						.Critical(
 							$"The Exception cannot be serialized because source Exception is null")
 						.AsPayload<JsonElement>();
@@ -1056,11 +1056,11 @@ public static class JsonExtensions
 				else if (!finalOptions.Converters.Any(c => c.GetType().IsSubclassOf(typeof(ExceptionConverter))))
 					finalOptions.Converters.Add(new ExceptionConverter());
 
-				return ResponseExt.Get.SuccessPayload(JsonSerializer.SerializeToElement(me.Value, finalOptions));
+				return Response.Get.SuccessPayload(JsonSerializer.SerializeToElement(me.Value, finalOptions));
 			}
 			catch (Exception ex)
 			{
-				return ResponseExt.Get.Exception(ex).AsPayload<JsonElement>();
+				return Response.Get.Exception(ex).AsPayload<JsonElement>();
 			}
 		}
 	}

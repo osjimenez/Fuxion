@@ -285,7 +285,7 @@ public static partial class ResponseExtensions
 			var errors = me.Where(r => r.IsError).ToList();
 			return errors.Count switch
 			{
-				0 => ResponseExt.Get.SuccessPayload(me, successMessage),
+				0 => Response.Get.SuccessPayload(me, successMessage),
 				1 => new ResponseBase<IEnumerable<IResponse>> (
 						errors[0].IsSuccess,
 						includeSucessResponses ? me : errors,
@@ -295,7 +295,7 @@ public static partial class ResponseExtensions
 				{
 					Extensions = errors[0].Extensions
 				},
-				_ => ResponseExt.Get.ErrorPayload(
+				_ => Response.Get.ErrorPayload(
 					includeSucessResponses ? me : errors,
 					string.Join("\r\n", errors.Select(r => r.Message)),
 					errors.GroupBy(e => e.ErrorType).Count() == 1

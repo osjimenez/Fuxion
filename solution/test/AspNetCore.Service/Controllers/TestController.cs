@@ -13,15 +13,15 @@ public class TestController : ControllerBase
 	// SUCCESS
 	[Route("test-empty-success")]
 	[HttpGet]
-	public IActionResult EmptySuccess() => ResponseExt.Get.Success().ToApiActionResult();
+	public IActionResult EmptySuccess() => Fuxion.Response.Get.Success().ToApiActionResult();
 
 	[Route("test-message-success")]
 	[HttpGet]
-	public IActionResult MessageSuccess() => ResponseExt.Get.SuccessMessage("Success message").ToApiActionResult();
+	public IActionResult MessageSuccess() => Fuxion.Response.Get.SuccessMessage("Success message").ToApiActionResult();
 
 	[Route("test-payload-success")]
 	[HttpGet]
-	public IActionResult PayloadSuccess() => ResponseExt.Get.SuccessPayload(new TestPayload
+	public IActionResult PayloadSuccess() => Fuxion.Response.Get.SuccessPayload(new TestPayload
 	{
 		FirstName = "Test name",
 		Age = 123
@@ -30,11 +30,11 @@ public class TestController : ControllerBase
 	// ERROR
 	[Route("test-message-error")]
 	[HttpGet]
-	public IActionResult MessageError() => ResponseExt.Get.ErrorMessage("Error message").ToApiActionResult();
+	public IActionResult MessageError() => Fuxion.Response.Get.ErrorMessage("Error message").ToApiActionResult();
 
 	[Route("test-payload-error")]
 	[HttpGet]
-	public IActionResult PayloadError() => ResponseExt.Get.ErrorPayload(new TestPayload
+	public IActionResult PayloadError() => Fuxion.Response.Get.ErrorPayload(new TestPayload
 	{
 		FirstName = "Test name",
 		Age = 123
@@ -47,21 +47,21 @@ public class TestController : ControllerBase
 		try
 		{
 			new Level1().Throw();
-			return ResponseExt.Get.Success().ToApiActionResult();
+			return Fuxion.Response.Get.Success().ToApiActionResult();
 		} catch (Exception ex)
 		{
-			return ResponseExt.Get.Exception(ex).ToApiActionResult();
+			return Fuxion.Response.Get.Exception(ex).ToApiActionResult();
 		}
 	}
 
 	// BAD REQUEST
 	[Route("test-message-bad-request")]
 	[HttpGet]
-	public IActionResult MessageBadRequest() => ResponseExt.Get.InvalidData("Error message").ToApiActionResult();
+	public IActionResult MessageBadRequest() => Fuxion.Response.Get.InvalidData("Error message").ToApiActionResult();
 
 	[Route("test-payload-bad-request")]
 	[HttpGet]
-	public IActionResult PayloadBadRequest() => ResponseExt.Get.InvalidData("Error message", new TestPayload
+	public IActionResult PayloadBadRequest() => Fuxion.Response.Get.InvalidData("Error message", new TestPayload
 	{
 		FirstName = "Test name",
 		Age = 123

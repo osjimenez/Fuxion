@@ -58,10 +58,10 @@ public static class EncodingExtensions
 		public IResponse<string> ToHexString(char? separatorChar = null, bool asBigEndian = false)
 		{
 			if (me.Value is null)
-				return ResponseExt.Get.InvalidData("Source byte array is null").AsPayload<string>();
+				return Response.Get.InvalidData("Source byte array is null").AsPayload<string>();
 
 			if (me.Value.Length == 0)
-				return ResponseExt.Get.SuccessPayload(string.Empty);
+				return Response.Get.SuccessPayload(string.Empty);
 
 			var byteCount = me.Value.Length;
 			var useSeparator = separatorChar.HasValue;
@@ -77,7 +77,7 @@ public static class EncodingExtensions
 				for (var i = 0; i < byteCount; i++)
 					AppendByte(me.Value[i], i == byteCount - 1);
 
-			return ResponseExt.Get.SuccessPayload(builder.ToString());
+			return Response.Get.SuccessPayload(builder.ToString());
 
 			void AppendByte(byte b, bool isLast)
 			{
@@ -97,9 +97,9 @@ public static class EncodingExtensions
 		public IResponse<string> ToBase64String()
 		{
 			if (me.Value is null)
-				return ResponseExt.Get.InvalidData("Source byte array is null").AsPayload<string>();
+				return Response.Get.InvalidData("Source byte array is null").AsPayload<string>();
 
-			return ResponseExt.Get.SuccessPayload(Convert.ToBase64String(me.Value));
+			return Response.Get.SuccessPayload(Convert.ToBase64String(me.Value));
 		}
 
 		/// <summary>
@@ -112,11 +112,11 @@ public static class EncodingExtensions
 		public IResponse<string> ToBase64UrlString()
 		{
 			if (me.Value is null)
-				return ResponseExt.Get.InvalidData("Source byte array is null").AsPayload<string>();
+				return Response.Get.InvalidData("Source byte array is null").AsPayload<string>();
 
 #if NET9_0_OR_GREATER
 			// System.Buffers.Text.Base64Url
-			return ResponseExt.Get.SuccessPayload(System.Buffers.Text.Base64Url.EncodeToString(me.Value));
+			return Response.Get.SuccessPayload(System.Buffers.Text.Base64Url.EncodeToString(me.Value));
 #else
 			// Regular Base64
 			var s = Convert.ToBase64String(me.Value);
@@ -126,7 +126,7 @@ public static class EncodingExtensions
 			s = s.Replace('+', '-');
 			s = s.Replace('/', '_');
 
-			return ResponseExt.Get.SuccessPayload(s);
+			return Response.Get.SuccessPayload(s);
 #endif
 		}
 	}
@@ -153,17 +153,17 @@ public static class EncodingExtensions
 		public IResponse<byte[]> ToBytesFromHexString(char? separatorChar = null, bool isBigEndian = false)
 		{
 			if (me.Value is null)
-				return ResponseExt.Get.InvalidData("Source string is null").AsPayload<byte[]>();
+				return Response.Get.InvalidData("Source string is null").AsPayload<byte[]>();
 
 			var hex = me.Value;
 			if (separatorChar.HasValue)
 				hex = hex.Replace(separatorChar.Value.ToString(), string.Empty);
 
 			if (hex.Length == 0)
-				return ResponseExt.Get.SuccessPayload(Array.Empty<byte>());
+				return Response.Get.SuccessPayload(Array.Empty<byte>());
 
 			if (hex.Length % 2 != 0)
-				return ResponseExt.Get.Critical("Hex string must have an even number of characters.").AsPayload<byte[]>();
+				return Response.Get.Critical("Hex string must have an even number of characters.").AsPayload<byte[]>();
 
 			var byteCount = hex.Length / 2;
 			var bytes = new byte[byteCount];
@@ -177,14 +177,14 @@ public static class EncodingExtensions
 				}
 				catch (Exception ex)
 				{
-					return ResponseExt.Get.Critical($"Error converting hexadecimal string '{me.Value}' to byte array. Byte '{byteString}' is not valid.", exception: ex).AsPayload<byte[]>();
+					return Response.Get.Critical($"Error converting hexadecimal string '{me.Value}' to byte array. Byte '{byteString}' is not valid.", exception: ex).AsPayload<byte[]>();
 				}
 			}
 
 			if (isBigEndian)
 				Array.Reverse(bytes);
 
-			return ResponseExt.Get.SuccessPayload(bytes);
+			return Response.Get.SuccessPayload(bytes);
 		}
 
 		/// <summary>
@@ -197,14 +197,14 @@ public static class EncodingExtensions
 		public IResponse<byte[]> ToBytesFromBase64String()
 		{
 			if (me.Value is null)
-				return ResponseExt.Get.InvalidData("Source string is null").AsPayload<byte[]>();
+				return Response.Get.InvalidData("Source string is null").AsPayload<byte[]>();
 			try
 			{
-				return ResponseExt.Get.SuccessPayload(Convert.FromBase64String(me.Value));
+				return Response.Get.SuccessPayload(Convert.FromBase64String(me.Value));
 			}
 			catch (Exception ex)
 			{
-				return ResponseExt.Get.Critical($"Error converting Base64 string '{me.Value}' to byte array.", exception: ex).AsPayload<byte[]>();
+				return Response.Get.Critical($"Error converting Base64 string '{me.Value}' to byte array.", exception: ex).AsPayload<byte[]>();
 			}
 		}
 
@@ -242,7 +242,7 @@ public static class EncodingExtensions
 			var bytesResponse = me.ToBytesFromBase64String();
 			if (bytesResponse.IsError)
 				return bytesResponse.AsPayload<string>();
-			return ResponseExt.Get.SuccessPayload((encoding ?? Encoding.UTF8).GetString(bytesResponse.Payload));
+			return Response.Get.SuccessPayload((encoding ?? Encoding.UTF8).GetString(bytesResponse.Payload));
 		}
 
 		/// <summary>
@@ -282,7 +282,7 @@ public static class EncodingExtensions
 		public IResponse<string> ToBase64String(Encoding? encoding = null)
 		{
 			if (me.Value is null)
-				return ResponseExt.Get.InvalidData("Source string is null").AsPayload<string>();
+				return Response.Get.InvalidData("Source string is null").AsPayload<string>();
 
 			var bytes = (encoding ?? Encoding.UTF8).GetBytes(me.Value);
 			return bytes.Fx.Encoding.ToBase64String();
@@ -298,16 +298,16 @@ public static class EncodingExtensions
 		public IResponse<byte[]> ToBytesFromBase64UrlString()
 		{
 			if (me.Value is null)
-				return ResponseExt.Get.InvalidData("Source string is null").AsPayload<byte[]>();
+				return Response.Get.InvalidData("Source string is null").AsPayload<byte[]>();
 
 #if NET9_0_OR_GREATER
 			try
 			{
-				return ResponseExt.Get.SuccessPayload(System.Buffers.Text.Base64Url.DecodeFromChars(me.Value));
+				return Response.Get.SuccessPayload(System.Buffers.Text.Base64Url.DecodeFromChars(me.Value));
 			}
 			catch (Exception ex)
 			{
-				return ResponseExt.Get.Critical(
+				return Response.Get.Critical(
 						$"Error converting Base64Url string '{me.Value}' to byte array.",
 						exception: ex)
 					.AsPayload<byte[]>();
@@ -328,17 +328,17 @@ public static class EncodingExtensions
 					s += "=";
 					break;
 				default:
-					return ResponseExt.Get.InvalidData($"Source string '{me.Value}' has invalid Base64Url string length.")
+					return Response.Get.InvalidData($"Source string '{me.Value}' has invalid Base64Url string length.")
 						.AsPayload<byte[]>();
 			}
 
 			try
 			{
-				return ResponseExt.Get.SuccessPayload(Convert.FromBase64String(s));
+				return Response.Get.SuccessPayload(Convert.FromBase64String(s));
 			}
 			catch (Exception ex)
 			{
-				return ResponseExt.Get.Critical($"Error converting Base64Url string '{me.Value}' to byte array.", exception: ex).AsPayload<byte[]>();
+				return Response.Get.Critical($"Error converting Base64Url string '{me.Value}' to byte array.", exception: ex).AsPayload<byte[]>();
 			}
 #endif
 		}
@@ -385,7 +385,7 @@ public static class EncodingExtensions
 			var bytesResponse = me.ToBytesFromBase64UrlString();
 			if (bytesResponse.IsError)
 				return bytesResponse.AsPayload<string>();
-			return ResponseExt.Get.SuccessPayload((encoding ?? Encoding.UTF8).GetString(bytesResponse.Payload));
+			return Response.Get.SuccessPayload((encoding ?? Encoding.UTF8).GetString(bytesResponse.Payload));
 		}
 
 		/// <summary>
@@ -432,7 +432,7 @@ public static class EncodingExtensions
 		public IResponse<string> ToBase64UrlString(Encoding? encoding = null)
 		{
 			if (me.Value is null)
-				return ResponseExt.Get.InvalidData("Source string is null").AsPayload<string>();
+				return Response.Get.InvalidData("Source string is null").AsPayload<string>();
 
 			var bytes = (encoding ?? Encoding.UTF8).GetBytes(me.Value);
 			return bytes.Fx.Encoding.ToBase64UrlString();

@@ -13,9 +13,9 @@ public class TestEndpoint : IEndpoint
 	public void MapEndpoint(IEndpointRouteBuilder builder)
 	{
 		// SUCCESS
-		builder.MapGet("endpoint-test-empty-success", () => ResponseExt.Get.Success().ToApiResult());
-		builder.MapGet("endpoint-test-message-success", () => ResponseExt.Get.SuccessMessage("Success message").ToApiResult());
-		builder.MapGet("endpoint-test-payload-success", () => ResponseExt.Get.SuccessPayload(new TestPayload
+		builder.MapGet("endpoint-test-empty-success", () => Response.Get.Success().ToApiResult());
+		builder.MapGet("endpoint-test-message-success", () => Response.Get.SuccessMessage("Success message").ToApiResult());
+		builder.MapGet("endpoint-test-payload-success", () => Response.Get.SuccessPayload(new TestPayload
 			{
 				FirstName = "Test name",
 				Age = 123
@@ -23,8 +23,8 @@ public class TestEndpoint : IEndpoint
 			.ToApiResult());
 
 		// ERROR
-		builder.MapGet("endpoint-test-message-error", () => ResponseExt.Get.ErrorMessage("Error message").ToApiResult());
-		builder.MapGet("endpoint-test-payload-error", () => ResponseExt.Get.ErrorPayload(new TestPayload
+		builder.MapGet("endpoint-test-message-error", () => Response.Get.ErrorMessage("Error message").ToApiResult());
+		builder.MapGet("endpoint-test-payload-error", () => Response.Get.ErrorPayload(new TestPayload
 			{
 				FirstName = "Test name",
 				Age = 123
@@ -36,16 +36,16 @@ public class TestEndpoint : IEndpoint
 			try
 			{
 				new Level1().Throw();
-				return ResponseExt.Get.Success().ToApiResult();
+				return Response.Get.Success().ToApiResult();
 			} catch (Exception ex)
 			{
-				return ResponseExt.Get.Exception(ex).ToApiResult();
+				return Response.Get.Exception(ex).ToApiResult();
 			}
 		});
 
 		// BAD REQUEST
-		builder.MapGet("endpoint-test-message-bad-request", () => ResponseExt.Get.InvalidData("Error message").ToApiResult());
-		builder.MapGet("endpoint-test-payload-bad-request", () => ResponseExt.Get.InvalidData("Error message", new TestPayload
+		builder.MapGet("endpoint-test-message-bad-request", () => Response.Get.InvalidData("Error message").ToApiResult());
+		builder.MapGet("endpoint-test-payload-bad-request", () => Response.Get.InvalidData("Error message", new TestPayload
 			{
 				FirstName = "Test name",
 				Age = 123

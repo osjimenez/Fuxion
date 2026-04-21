@@ -92,11 +92,11 @@ public static class MathExtensions
 		public IResponse<(long Quotient, long Remainder)> DivisionAndRemainder(long divisor)
 		{
 			if (divisor == 0)
-				return ResponseExt.Get.InvalidData($"Argument '{nameof(divisor)}' cannot be zero.")
+				return Response.Get.InvalidData($"Argument '{nameof(divisor)}' cannot be zero.")
 					.AsPayload<(long Quotient, long Remainder)>();
 
 			var quotient = Math.DivRem(me.Value, divisor, out var remainder);
-			return ResponseExt.Get.SuccessPayload((quotient, remainder));
+			return Response.Get.SuccessPayload((quotient, remainder));
 		}
 
 		/// <summary>
@@ -112,7 +112,7 @@ public static class MathExtensions
 		public IResponse<(long Quotient, long Remainder)> DivisionByPowerOfTwo(int bitCount)
 		{
 			if (bitCount is < 0 or > 62)
-				return ResponseExt.Get.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).")
+				return Response.Get.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).")
 					.AsPayload<(long Quotient, long Remainder)>();
 
 			// 2^bitCount without going through double
@@ -136,7 +136,7 @@ public static class MathExtensions
 		public IResponse<(long Quotient, long Remainder)> DivisionAndRemainder(long divisor)
 		{
 			if (me.Value is null)
-				return ResponseExt.Get.InvalidData("Source long is null.")
+				return Response.Get.InvalidData("Source long is null.")
 					.AsPayload<(long Quotient, long Remainder)>();
 
 			return me.Value.Value.Fx.Math.DivisionAndRemainder(divisor);
@@ -156,7 +156,7 @@ public static class MathExtensions
 		public IResponse<(long Quotient, long Remainder)> DivisionByPowerOfTwo(int bitCount)
 		{
 			if (me.Value is null)
-				return ResponseExt.Get.InvalidData("Source long is null.")
+				return Response.Get.InvalidData("Source long is null.")
 					.AsPayload<(long Quotient, long Remainder)>();
 
 			return me.Value.Value.Fx.Math.DivisionByPowerOfTwo(bitCount);
@@ -175,11 +175,11 @@ public static class MathExtensions
 		public IResponse<(int Quotient, int Remainder)> DivisionAndRemainder(int divisor)
 		{
 			if (divisor == 0)
-				return ResponseExt.Get.InvalidData($"Argument '{nameof(divisor)}' cannot be zero.")
+				return Response.Get.InvalidData($"Argument '{nameof(divisor)}' cannot be zero.")
 					.AsPayload<(int Quotient, int Remainder)>();
 
 			var quotient = Math.DivRem(me.Value, divisor, out var remainder);
-			return ResponseExt.Get.SuccessPayload((quotient, remainder));
+			return Response.Get.SuccessPayload((quotient, remainder));
 		}
 
 		/// <summary>
@@ -195,7 +195,7 @@ public static class MathExtensions
 		public IResponse<(int Quotient, int Remainder)> DivisionByPowerOfTwo(int bitCount)
 		{
 			if (bitCount is < 0 or > 62)
-				return ResponseExt.Get.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).")
+				return Response.Get.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).")
 					.AsPayload<(int Quotient, int Remainder)>();
 
 			// 2^bitCount without going through double
@@ -218,7 +218,7 @@ public static class MathExtensions
 		public IResponse<(int Quotient, int Remainder)> DivisionAndRemainder(int divisor)
 		{
 			if (me.Value is null)
-				return ResponseExt.Get.InvalidData("Source int is null.")
+				return Response.Get.InvalidData("Source int is null.")
 					.AsPayload<(int Quotient, int Remainder)>();
 
 			return me.Value.Value.Fx.Math.DivisionAndRemainder(divisor);
@@ -238,7 +238,7 @@ public static class MathExtensions
 		public IResponse<(int Quotient, int Remainder)> DivisionByPowerOfTwo(int bitCount)
 		{
 			if (me.Value is null)
-				return ResponseExt.Get.InvalidData("Source long is null.")
+				return Response.Get.InvalidData("Source long is null.")
 					.AsPayload<(int Quotient, int Remainder)>();
 
 			return me.Value.Value.Fx.Math.DivisionByPowerOfTwo(bitCount);
@@ -266,15 +266,15 @@ public static class MathExtensions
 		public IResponse<(long Quotient, long Remainder)> DivisionByPowerOfTwo(int bitCount, bool isLittleEndian = true)
 		{
 			if (me.Value is null)
-				return ResponseExt.Get.InvalidData("Source byte array is null.")
+				return Response.Get.InvalidData("Source byte array is null.")
 					.AsPayload<(long Quotient, long Remainder)>();
 
 			if (me.Value.Length is < 1 or > 8)
-				return ResponseExt.Get.InvalidData("Length must be between 1 and 8 bytes.")
+				return Response.Get.InvalidData("Length must be between 1 and 8 bytes.")
 					.AsPayload<(long Quotient, long Remainder)>();
 
 			if (bitCount is < 0 or > 62)
-				return ResponseExt.Get.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).")
+				return Response.Get.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).")
 					.AsPayload<(long Quotient, long Remainder)>();
 
 			long value = 0;
