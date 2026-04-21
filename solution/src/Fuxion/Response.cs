@@ -11,11 +11,6 @@ using Fuxion.Text.Json.Serialization;
 namespace Fuxion;
 
 /// <summary>
-/// PEND DOC
-/// </summary>
-public class Response;
-
-/// <summary>
 ///    Represents the result of an operation with success/failure information and optional metadata.
 /// </summary>
 /// <param name="isSuccess">Indicates whether the operation succeeded.</param>
@@ -243,27 +238,6 @@ public class ResponseBase(bool isSuccess, string? message = null, object? errorT
 	//	=> response.IsSuccess;
 
 	/// <summary>
-	///    Attempts to extract a payload from the current response.
-	/// </summary>
-	/// <param name="payload">
-	///    When this method returns <see langword="true" />, contains the payload value associated with the response.
-	///    When this method returns <see langword="false" />, contains <see langword="null" />.
-	/// </param>
-	/// <returns>
-	///    <see langword="true" /> if the response contains a payload; otherwise, <see langword="false" />.
-	/// </returns>
-	/// <remarks>
-	///    The base <see cref="ResponseBase" /> type does not carry a payload, so this implementation always returns
-	///    <see langword="false" /> and sets <paramref name="payload" /> to <see langword="null" />.
-	///    Derived types such as <see cref="ResponseBase{TPayload}" /> override this method to expose their payload value.
-	/// </remarks>
-	public virtual bool TryGetPayload([NotNullWhen(true)] out object? payload)
-	{
-		payload = null;
-		return false;
-	}
-
-	/// <summary>
 	///    Returns a human-readable string representation of the response.
 	/// </summary>
 	/// <returns>
@@ -446,58 +420,6 @@ public class ResponseBase<TPayload>(bool isSuccess, TPayload payload, string? me
 	///// </example>
 	//public static implicit operator ResponseInt<TPayload>(TPayload payload)
 	//	=> new(true, payload);
-
-	/// <summary>
-	///    Attempts to extract the typed payload from the current response.
-	/// </summary>
-	/// <param name="payload">
-	///    When this method returns <see langword="true" />, contains the current <see cref="Payload" /> value boxed as
-	///    <see cref="object" />.
-	///    When this method returns <see langword="false" />, contains <see langword="null" />.
-	/// </param>
-	/// <returns>
-	///    <see langword="true" /> if <see cref="Payload" /> is not <see langword="null" />; otherwise,
-	///    <see langword="false" />.
-	/// </returns>
-	/// <remarks>
-	///    This override allows payload-aware code to access the underlying value without knowing
-	///    <typeparamref name="TPayload" />
-	///    at compile time. A <see langword="null" /> payload is treated as the absence of payload.
-	/// </remarks>
-	public override bool TryGetPayload([NotNullWhen(true)] out object? payload)
-	{
-		if (Payload is null)
-		{
-			payload = null;
-			return false;
-		}
-
-		payload = Payload;
-		return true;
-	}
-
-
-
-	/// <summary>
-	/// Returns the payload if successful; otherwise returns the default value of <typeparamref name="TPayload"/>.
-	/// </summary>
-	/// <returns>
-	/// The response payload when successful; otherwise <c>default</c>.
-	/// For reference types, this is <c>null</c>.
-	/// </returns>
-	/// <remarks>
-	/// Use this when a simple default-on-error behavior is enough and no error-specific fallback logic is required.
-	/// </remarks>
-	/// <example>
-	/// <code>
-	/// Response&lt;int&gt; quantityResponse = GetQuantity();
-	/// int quantity = quantityResponse.PayloadOrDefault();
-	/// 
-	/// Response&lt;User&gt; userResponse = GetUser(id);
-	/// User? user = userResponse.PayloadOrDefault();
-	/// </code>
-	/// </example>
-	public TPayload? PayloadOrDefault() => IsSuccess ? Payload : default;
 
 	/// <summary>
 	///    Returns a human-readable string representation of the response, including the payload type when present.

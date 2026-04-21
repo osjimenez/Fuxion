@@ -10,8 +10,13 @@ using System.Text.Json.Serialization;
 namespace Fuxion;
 
 /// <summary>
-/// PEND DOC
+/// Defines the non-generic contract for values that can be in a defined or undefined state.
 /// </summary>
+/// <remarks>
+/// This interface exposes only the state information shared by all undefinable values,
+/// regardless of the underlying value type. Use <see cref="IUndefinable{T}"/> when typed
+/// access to the stored value is required.
+/// </remarks>
 public interface IUndefinable
 {
 	/// <summary>

@@ -263,13 +263,6 @@ public interface IResponse
 	/// </example>
 	[JsonExtensionData]
 	ResponseExtensionsDictionary Extensions { get; }
-
-	/// <summary>
-	/// PEND DOC
-	/// </summary>
-	/// <param name="payload"></param>
-	/// <returns></returns>
-	bool TryGetPayload([NotNullWhen(true)] out object? payload);
 }
 
 /// <summary>
@@ -466,10 +459,4 @@ public interface IResponse<out TPayload> : IResponse
 	/// </example>
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 	TPayload? Payload { get; }
-
-	/// <summary>
-	/// PEND DOC
-	/// </summary>
-	/// <returns></returns>
-	TPayload? PayloadOrDefault();
 }

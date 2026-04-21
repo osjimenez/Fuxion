@@ -780,21 +780,35 @@ public static class Extensions
 			return false;
 		}
 		/// <summary>
-		/// PEND DOC
+      /// Gets the payload contained in the problem details extensions or returns the default value for the requested type.
 		/// </summary>
-		/// <typeparam name="TPayload"></typeparam>
-		/// <param name="jsonOptions"></param>
-		/// <returns></returns>
+     /// <typeparam name="TPayload">Type of the payload to extract from the problem details extensions.</typeparam>
+		/// <param name="jsonOptions">Optional JSON serialization options used during payload deserialization.</param>
+		/// <returns>
+		/// The deserialized payload when the <see cref="PayloadKey"/> extension exists and can be converted to <typeparamref name="TPayload"/>;
+		/// otherwise, the default value for <typeparamref name="TPayload"/>.
+		/// </returns>
+		/// <remarks>
+      /// This is a convenience wrapper over <see cref="TryGetPayload{TPayload}"/> for scenarios
+		/// where callers prefer a direct value instead of handling a Boolean result.
+		/// </remarks>
 		public TPayload? PayloadOrDefault<TPayload>(JsonSerializerOptions? jsonOptions = null)
 			=> problem.TryGetPayload<TPayload>(out var payload, jsonOptions) ? payload : default;
 
 		/// <summary>
-		/// PEND DOC
+      /// Gets the payload contained in the problem details extensions or computes a fallback value when it cannot be extracted.
 		/// </summary>
-		/// <typeparam name="TPayload"></typeparam>
-		/// <param name="fallback"></param>
-		/// <param name="jsonOptions"></param>
-		/// <returns></returns>
+     /// <typeparam name="TPayload">Type of the payload to extract from the problem details extensions.</typeparam>
+		/// <param name="fallback">Function that produces an alternative value using the current <see cref="ResponseProblemDetails"/> instance.</param>
+		/// <param name="jsonOptions">Optional JSON serialization options used during payload deserialization.</param>
+		/// <returns>
+		/// The deserialized payload when the <see cref="PayloadKey"/> extension exists and can be converted to <typeparamref name="TPayload"/>;
+		/// otherwise, the value returned by <paramref name="fallback"/>.
+		/// </returns>
+		/// <remarks>
+		/// This overload is useful when the caller wants a strongly typed fallback value derived from the problem details
+		/// instead of using the default value of <typeparamref name="TPayload"/>.
+		/// </remarks>
 		public TPayload PayloadOrFallback<TPayload>(Func<ResponseProblemDetails, TPayload> fallback, JsonSerializerOptions? jsonOptions = null) 
 			=> problem.TryGetPayload<TPayload>(out var payload, jsonOptions) ? payload : fallback(problem);
 	}

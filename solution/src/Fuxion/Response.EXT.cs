@@ -10,6 +10,11 @@ using Fuxion.Collections.Generic;
 namespace Fuxion;
 
 /// <summary>
+/// This class is for extensions, for example, Response.Get.Success()
+/// </summary>
+public static class Response;
+
+/// <summary>
 /// Provides extension methods and factory methods for creating and manipulating Response objects.
 /// </summary>
 /// <remarks>
@@ -130,6 +135,36 @@ public static partial class ResponseExtensions
 		/// <param name="error">Async function to execute if the response is an error.</param>
 		/// <returns>A task containing the result of the executed function.</returns>
 		public async Task<T> MatchAsync<T>(Func<IResponse, T> success, Func<IResponse, Task<T>> error) => me.IsSuccess ? success(me) : await error(me);
+
+		/// <summary>
+		///    Attempts to extract the typed payload from the current response.
+		/// </summary>
+		/// <param name="payload">
+		///    When this method returns <see langword="true" />, contains the current Payload value boxed as
+		///    <see cref="object" />.
+		///    When this method returns <see langword="false" />, contains <see langword="null" />.
+		/// </param>
+		/// <returns>
+		///    <see langword="true" /> if Payload is not <see langword="null" />; otherwise,
+		///    <see langword="false" />.
+		/// </returns>
+		public bool TryGetPayload([NotNullWhen(true)] out object? payload)
+		{
+			if (me is IResponse<object?> res)
+			{
+				if (res.Payload is null)
+				{
+					payload = null;
+					return false;
+				}
+
+				payload = res.Payload;
+				return true;
+			}
+
+			payload = null;
+			return false;
+		}
 	}
 
 	/// <summary>
@@ -230,6 +265,27 @@ public static partial class ResponseExtensions
 		/// </code>
 		/// </example>
 		public TPayload PayloadOrFallback(Func<IResponse<TPayload>, TPayload> fallback) => me.IsSuccess ? me.Payload : fallback(me);
+
+		/// <summary>
+		/// Returns the payload if successful; otherwise returns the default value of <typeparamref name="TPayload"/>.
+		/// </summary>
+		/// <returns>
+		/// The response payload when successful; otherwise <c>default</c>.
+		/// For reference types, this is <c>null</c>.
+		/// </returns>
+		/// <remarks>
+		/// Use this when a simple default-on-error behavior is enough and no error-specific fallback logic is required.
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// Response&lt;int&gt; quantityResponse = GetQuantity();
+		/// int quantity = quantityResponse.PayloadOrDefault();
+		/// 
+		/// Response&lt;User&gt; userResponse = GetUser(id);
+		/// User? user = userResponse.PayloadOrDefault();
+		/// </code>
+		/// </example>
+		public TPayload? PayloadOrDefault() => me.IsSuccess ? me.Payload : default;
 	}
 
 	/// <summary>

@@ -16,12 +16,6 @@ namespace Fuxion;
 public static partial class ResponseExtensions
 {
 	/// <summary>
-	/// PEND DOC
-	/// </summary>
-	public static bool IncludeCodeSource { get; set; } = true;
-	
-	
-	/// <summary>
 	/// Factory methods for creating IResponse objects (accessed via IResponse.Get).
 	/// </summary>
 	/// <remarks>
@@ -174,15 +168,6 @@ public static partial class ResponseExtensions
 		/// <param name="extensions">
 		/// Optional collection of key-value pairs to add to the response's Extensions dictionary.
 		/// </param>
-		/// <param name="callerMemeberName">
-		/// PEND DOC
-		/// </param>
-		/// <param name="filePath">
-		/// PEND DOC
-		/// </param>
-		/// <param name="lineNumber">
-		/// PEND DOC
-		/// </param>
 		/// <returns>A successful IResponse with IsSuccess = true and the specified message.</returns>
 		/// <remarks>
 		/// Use this when you want to provide feedback about what succeeded.
@@ -203,25 +188,11 @@ public static partial class ResponseExtensions
 		/// );
 		/// </code>
 		/// </example>
-		public IResponse SuccessMessage(
-			string message,
-			IEnumerable<(string Property, object? Value)>? extensions = null,
-			[CallerMemberName] string? callerMemeberName = null,
-			[CallerFilePath] string? filePath = null,
-			[CallerLineNumber] int? lineNumber = null)
-		{
-			var res = new ResponseBase(true, message)
+		public IResponse SuccessMessage(string message, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> new ResponseBase(true, message)
 			{
 				Extensions = new(extensions)
 			};
-			if (IncludeCodeSource && callerMemeberName is not null) res.Extensions.Add("code-source", new
-			{
-				Caller = callerMemeberName,
-				File = filePath,
-				Line = lineNumber
-			});
-			return res;
-		}
 
 		/// <summary>
 		/// Creates a successful response with a typed payload containing the operation's result data.
