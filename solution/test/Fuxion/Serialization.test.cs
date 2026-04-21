@@ -82,7 +82,7 @@ public class SerializeTest(ITestOutputHelper output) : BaseTest<SerializeTest>(o
 		{
 			PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower
 		};
-		Response res = (input.Type, input.Method) switch
+		IResponse res = (input.Type, input.Method) switch
 		{
 			("OBJ","STRING") => input.Object.Fx.Json.Serialize(input.Formatted,input.HasOptions ? options : null, input.ErrorIfNull),
 			("OBJ", "NODE") => input.Object.Fx.Json.SerializeToNode(input.Formatted, input.HasOptions ? options : null),
@@ -94,7 +94,7 @@ public class SerializeTest(ITestOutputHelper output) : BaseTest<SerializeTest>(o
 		};
 		PrintVariable(res.Message);
 		Assert.Equal(asserts.IsSuccess, res.IsSuccess);
-		if (res is Response<JsonNode> resNode)
+		if (res is IResponse<JsonNode> resNode)
 		{
 			Assert.Equal(asserts.PayloadIsNull, resNode.Payload is null);
 			if (!asserts.PayloadIsNull)
@@ -103,13 +103,13 @@ public class SerializeTest(ITestOutputHelper output) : BaseTest<SerializeTest>(o
 				
 			}
 		}
-		else if (res is Response<JsonElement> resEle)
+		else if (res is IResponse<JsonElement> resEle)
 		{
 			Assert.Equal(asserts.PayloadIsNull, resEle.Payload.ValueKind == JsonValueKind.Undefined);
 			if (!asserts.PayloadIsNull)
 				PrintVariable(resEle.Payload);
 		}
-		else if (res is Response<string> resObj)
+		else if (res is IResponse<string> resObj)
 		{
 			Assert.Equal(asserts.PayloadIsNull, resObj.Payload is null);
 			if (!asserts.PayloadIsNull && input.Object is not null)

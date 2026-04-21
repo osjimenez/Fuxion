@@ -11,44 +11,44 @@ namespace Test.Fuxion;
 
 public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(output)
 {
-	public Response GetSuccess() => Response.Get.Success();
-	public Response GetSuccessMessage() => Response.Get.SuccessMessage("message");
-	public Response GetSuccessMessageWithExtensions() => Response.Get.SuccessMessage("message", [("Extension", 123.456)]);
-	public Response<int> GetSuccessWithPayload() => Response.Get.SuccessPayload(123);
-	public Response<int> GetSuccessWithPayloadAndExtensions()
-		=> Response.Get.SuccessPayload(123, extensions: [("Extension", 123.456)]);
-	public Response GetError() => Response.Get.ErrorMessage("message");
-	public Response<int> GetErrorWithPayload() => Response.Get.ErrorPayload(123, "message");
-	public Response GetNotFound() => Response.Get.NotFound("message");
-	public Response<int> GetNotFoundWithPayload() => Response.Get.NotFound("message", 123);
-	public Response<int> GetNotFoundWithPayloadAndExtensions() => Response.Get.NotFound("message", 123, extensions: [("Extension", 123.456)]);
-	public IResponse GetCustomError() => Response.Get.Custom("message", "customData");
-	[Fact]
-	public void ImplicitConversion()
-	{
-		Assert.Equal(123, OkInt());
-		Assert.Equal(456, ErrorInt());
-		int val = OkResponse();
-		Assert.Equal(123, val);
+	public IResponse GetSuccess() => ResponseExt.Get.Success();
+	public IResponse GetSuccessMessage() => ResponseExt.Get.SuccessMessage("message");
+	public IResponse GetSuccessMessageWithExtensions() => ResponseExt.Get.SuccessMessage("message", [("Extension", 123.456)]);
+	public IResponse<int> GetSuccessWithPayload() => ResponseExt.Get.SuccessPayload(123);
+	public IResponse<int> GetSuccessWithPayloadAndExtensions()
+		=> ResponseExt.Get.SuccessPayload(123, extensions: [("Extension", 123.456)]);
+	public IResponse GetError() => ResponseExt.Get.ErrorMessage("message");
+	public IResponse<int> GetErrorWithPayload() => ResponseExt.Get.ErrorPayload(123, "message");
+	public IResponse GetNotFound() => ResponseExt.Get.NotFound("message");
+	public IResponse<int> GetNotFoundWithPayload() => ResponseExt.Get.NotFound("message", 123);
+	public IResponse<int> GetNotFoundWithPayloadAndExtensions() => ResponseExt.Get.NotFound("message", 123, extensions: [("Extension", 123.456)]);
+	public IResponse GetCustomError() => ResponseExt.Get.Custom("message", "customData");
+	//[Fact]
+	//public void ImplicitConversion()
+	//{
+	//	Assert.Equal(123, OkInt());
+	//	Assert.Equal(456, ErrorInt());
+	//	int val = OkResponse();
+	//	Assert.Equal(123, val);
 
-		return;
-		int OkInt() => Response.Get.SuccessPayload(123);
-		int ErrorInt() => Response.Get.ErrorPayload<int>(456, "message");
-		Response<int> OkResponse() => 123;
-	}
+	//	return;
+	//	int OkInt() => ResponseExt.Get.SuccessPayload(123);
+	//	int ErrorInt() => ResponseExt.Get.ErrorPayload<int>(456, "message");
+	//	IResponse<int> OkResponse() => ResponseExt.Get.SuccessPayload(123);
+	//}
 	[Fact]
 	public void Success()
 	{
-		var s1 = Response.Get.Success();
+		var s1 = ResponseExt.Get.Success();
 
 		Assert.Null(s1.Message);
 		Assert.Throws<InvalidOperationException>(() => s1.AsPayload<string?>().Payload);
-		var s2 = Response.Get.SuccessMessage("message");
+		var s2 = ResponseExt.Get.SuccessMessage("message");
 		Assert.NotNull(s2.Message);
-		var s3 = Response.Get.SuccessPayload(payload: "payload");
+		var s3 = ResponseExt.Get.SuccessPayload(payload: "payload");
 		Assert.Null(s3.Message);
 		Assert.NotNull(s3.Payload);
-		var s4 = Response.Get.SuccessPayload(123);
+		var s4 = ResponseExt.Get.SuccessPayload(123);
 		Assert.Null(s4.Message);
 		Assert.Equal(123, s4.Payload);
 	}
@@ -72,11 +72,11 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 
 		var results = new[]
 		{
-			Response.Get.Success(),
-			Response.Get.SuccessMessage("message", [("Extension", 123.456)]),
-			Response.Get.SuccessPayload(123, "message"),
-			Response.Get.NotFound("message"),
-			Response.Get.ErrorPayload(new Payload("Bob", 25), "message", extensions: [("Extension", 123.456)])
+			ResponseExt.Get.Success(),
+			ResponseExt.Get.SuccessMessage("message", [("Extension", 123.456)]),
+			ResponseExt.Get.SuccessPayload(123, "message"),
+			ResponseExt.Get.NotFound("message"),
+			ResponseExt.Get.ErrorPayload(new Payload("Bob", 25), "message", extensions: [("Extension", 123.456)])
 		};
 		PrintVariable(results.Fx.Json.Serialize(true).Payload);
 		PrintVariable(results.CombineResponses().Fx.Json.Serialize(true).Payload);
@@ -99,7 +99,7 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 		PrintVariable(res.Fx.Json.Serialize(true).Payload);
 
 		return;
-		Response<int> Do()
+		IResponse<int> Do()
 		{
 			try
 			{
@@ -107,12 +107,12 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 			} catch (Exception ex)
 			{
 				PrintVariable(ex.Fx.Json.Serialize(true).Payload);
-				return Response.Get.Critical("Exception", exception: ex).AsPayload<int>();
+				return ResponseExt.Get.Critical("Exception", exception: ex).AsPayload<int>();
 			}
 		}
-		Response<int> Do2()
+		IResponse<int> Do2()
 		{
-			return Response.Get.SuccessPayload(dic[1]);
+			return ResponseExt.Get.SuccessPayload(dic[1]);
 		}
 	}
 	[Fact]
@@ -120,39 +120,39 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 	{
 		Throws<InvalidOperationException>(()=>Do(1));
 		Throws<InvalidOperationException>(() => Do(2));
-		int res = Do(3);
+		int res = Do(3).PayloadOrDefault();
 		Assert.Equal(123, res);
 		IsTrue(Do(4).IsError);
 
 		IsTrue(Do2(1).IsSuccess);
 		IsTrue(Do2(2).IsSuccess);
-		int res2 = Do2(3).AsPayload<int>();
+		int res2 = Do2(3).AsPayload<int>().PayloadOrDefault();
 		Assert.Equal(123, res2);
 		IsTrue(Do2(4).IsError);
 
 
-		Response<int> Do(int val)
+		IResponse<int> Do(int val)
 			=> val switch
 			{
-				1 => Response.Get.Success().AsPayload<int>(),
-				2 => Response.Get.SuccessMessage("message").AsPayload<int>(),
-				3 => Response.Get.SuccessPayload(123),
-				var _ => Response.Get.Critical("").AsPayload<int>()
+				1 => ResponseExt.Get.Success().AsPayload<int>(),
+				2 => ResponseExt.Get.SuccessMessage("message").AsPayload<int>(),
+				3 => ResponseExt.Get.SuccessPayload(123),
+				var _ => ResponseExt.Get.Critical("").AsPayload<int>()
 			};
-		Response Do2(int val)
+		IResponse Do2(int val)
 			=> val switch
 			{
-				1 => Response.Get.Success(),
-				2 => Response.Get.SuccessMessage("message"),
-				3 => Response.Get.SuccessPayload(123),
-				var _ => Response.Get.Critical("")
+				1 => ResponseExt.Get.Success(),
+				2 => ResponseExt.Get.SuccessMessage("message"),
+				3 => ResponseExt.Get.SuccessPayload(123),
+				var _ => ResponseExt.Get.Critical("")
 			};
 	}
 }
 
 file record Payload(string Name, int Age);
 
-public class CustomError(string message, string customData) : Response(false, message)
+public class CustomError(string message, string customData) : ResponseBase(false, message)
 {
 	public string CustomData { get; } = customData;
 }

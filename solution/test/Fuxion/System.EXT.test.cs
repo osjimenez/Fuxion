@@ -45,11 +45,11 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 		var value = new byte[] {
 			0xFD, 0x2E, 0xAC, 0x14, 0x00, 0x00, 0x00
 		};
-		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString());
-		value = "FD-2E-AC-14-00-00-00".Fx.Encoding.ToBytesFromHexString('-');
-		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString());
-		value = "00000014AC2EFD".Fx.Encoding.ToBytesFromHexString(isBigEndian: true);
-		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString());
+		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString().PayloadOrDefault());
+		value = "FD-2E-AC-14-00-00-00".Fx.Encoding.ToBytesFromHexString('-').PayloadOrDefault();
+		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString().PayloadOrDefault());
+		value = "00000014AC2EFD".Fx.Encoding.ToBytesFromHexString(isBigEndian: true).PayloadOrDefault();
+		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString().PayloadOrDefault());
 	}
 	//[Fact(DisplayName = "System - CloneWithJson")]
 	//public void CloneWithJsonTest()
@@ -239,9 +239,9 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 	public void StringToByteArrayFromHexadecimal()
 	{
 		var value = "FD2EAC14000000".Fx.Encoding.ToBytesFromHexString().Payload;
-		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString());
-		Assert.Equal("FD:2E:AC:14:00:00:00", value.Fx.Encoding.ToHexString(':'));
-		Assert.Equal("00000014AC2EFD", value.Fx.Encoding.ToHexString(asBigEndian: true));
+		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString().PayloadOrDefault());
+		Assert.Equal("FD:2E:AC:14:00:00:00", value.Fx.Encoding.ToHexString(':').PayloadOrDefault());
+		Assert.Equal("00000014AC2EFD", value.Fx.Encoding.ToHexString(asBigEndian: true).PayloadOrDefault());
 	}
 	[Fact(DisplayName = "String - SplitInLines")]
 	public void StringSplitInLines()

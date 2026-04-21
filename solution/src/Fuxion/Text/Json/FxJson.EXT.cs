@@ -28,7 +28,7 @@ namespace Fuxion.Text.Json;
 /// <list type="bullet">
 /// <item><description><strong>Serialization:</strong> Convert objects to JSON strings, <see cref="JsonNode"/>, or <see cref="JsonElement"/></description></item>
 /// <item><description><strong>Deserialization:</strong> Convert JSON strings to strongly-typed objects</description></item>
-/// <item><description><strong>Response pattern integration:</strong> All operations return <see cref="Response{T}"/> for consistent error handling</description></item>
+/// <item><description><strong>Response pattern integration:</strong> All operations return <see cref="IResponse{T}"/> for consistent error handling</description></item>
 /// <item><description><strong>Formatted output:</strong> Built-in support for Fuxion's formatted JSON style (indented with tabs, allows trailing commas, skips comments)</description></item>
 /// <item><description><strong>Exception serialization:</strong> Specialized handling for <see cref="Exception"/> objects with automatic converter injection</description></item>
 /// <item><description><strong>Private constructor support:</strong> Automatically handles types with private constructors during deserialization</description></item>
@@ -528,7 +528,7 @@ public static class JsonExtensions
 		/// When <paramref name="formatted"/> is <c>true</c>, these options are merged with the formatted settings.
 		/// </param>
 		/// <returns>
-		/// A <see cref="Response{T}"/> whose payload contains the deserialized object when successful,
+		/// A <see cref="IResponse{T}"/> whose payload contains the deserialized object when successful,
 		/// or an error response when the underlying string is <c>null</c>, empty, whitespace-only,
 		/// deserialization produces a <c>null</c> result, or an exception occurs during deserialization.
 		/// </returns>
@@ -543,10 +543,10 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response<T> Deserialize<T>(bool formatted = false, JsonSerializerOptions? options = null)
+		public IResponse<T> Deserialize<T>(bool formatted = false, JsonSerializerOptions? options = null)
 		{
 			if (me.Value.IsNullOrWhiteSpace())
-				return Response.Get.Critical(
+				return ResponseExt.Get.Critical(
 						$"The string cannot be deserialized as '{typeof(T).GetSignature()}' because source string is null, empty or only white spaces")
 					.AsPayload<T>();
 
@@ -554,12 +554,12 @@ public static class JsonExtensions
 			{
 				var res = JsonSerializer.Deserialize<T>(me.Value, (formatted, options).ToFinalOptions());
 				return res is null
-					? Response.Get.Critical($"Deserialization produced a null result").AsPayload<T>()
-					: Response.Get.SuccessPayload<T>(res);
+					? ResponseExt.Get.Critical($"Deserialization produced a null result").AsPayload<T>()
+					: ResponseExt.Get.SuccessPayload<T>(res);
 			}
 			catch (Exception ex)
 			{
-				return Response.Get.Exception(ex).AsPayload<T>();
+				return ResponseExt.Get.Exception(ex).AsPayload<T>();
 			}
 		}
 
@@ -576,7 +576,7 @@ public static class JsonExtensions
 		/// When <paramref name="formatted"/> is <c>true</c>, these options are merged with the formatted settings.
 		/// </param>
 		/// <returns>
-		/// A <see cref="Response{T}"/> whose payload contains the deserialized object when successful;
+		/// A <see cref="IResponse{T}"/> whose payload contains the deserialized object when successful;
 		/// <c>null</c> when the underlying string is <c>null</c>, empty, whitespace-only, or deserialization produces a <c>null</c> result;
 		/// or an error response when an exception occurs during deserialization.
 		/// </returns>
@@ -593,7 +593,7 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response<T>? DeserializeNullable<T>(bool formatted = false, JsonSerializerOptions? options = null)
+		public IResponse<T>? DeserializeNullable<T>(bool formatted = false, JsonSerializerOptions? options = null)
 		{
 			if (me.Value.IsNullOrWhiteSpace())
 				return null;
@@ -603,11 +603,11 @@ public static class JsonExtensions
 				var res = JsonSerializer.Deserialize<T>(me.Value, (formatted,options).ToFinalOptions());
 				return res is null
 					? null
-					: Response.Get.SuccessPayload<T>(res);
+					: ResponseExt.Get.SuccessPayload<T>(res);
 			}
 			catch (Exception ex)
 			{
-				return Response.Get.Exception(ex).AsPayload<T>();
+				return ResponseExt.Get.Exception(ex).AsPayload<T>();
 			}
 		}
 		
@@ -624,7 +624,7 @@ public static class JsonExtensions
 		/// When <paramref name="formatted"/> is <c>true</c>, these options are merged with the formatted settings.
 		/// </param>
 		/// <returns>
-		/// A <see cref="Response{T}"/> of <see cref="object"/> whose payload contains the deserialized object when successful,
+		/// A <see cref="IResponse{T}"/> of <see cref="object"/> whose payload contains the deserialized object when successful,
 		/// or an error response when the underlying string is <c>null</c>, empty, whitespace-only,
 		/// deserialization produces a <c>null</c> result, or an exception occurs during deserialization.
 		/// </returns>
@@ -640,10 +640,10 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response<object> Deserialize(Type type, bool formatted = false, JsonSerializerOptions? options = null)
+		public IResponse<object> Deserialize(Type type, bool formatted = false, JsonSerializerOptions? options = null)
 		{
 			if (me.Value.IsNullOrWhiteSpace())
-				return Response.Get
+				return ResponseExt.Get
 					.Critical($"The string cannot be deserialized as '{type.GetSignature()}' because source string is null, empty or only white spaces")
 					.AsPayload<object>();
 
@@ -651,12 +651,12 @@ public static class JsonExtensions
 			{
 				var res = JsonSerializer.Deserialize(me.Value, type, (formatted, options).ToFinalOptions());
 				return res is null
-					? Response.Get.Critical("Deserialization produced a null result").AsPayload<object>()
-					: Response.Get.SuccessPayload(res);
+					? ResponseExt.Get.Critical("Deserialization produced a null result").AsPayload<object>()
+					: ResponseExt.Get.SuccessPayload(res);
 			}
 			catch (Exception ex)
 			{
-				return Response.Get.Exception(ex).AsPayload<object>();
+				return ResponseExt.Get.Exception(ex).AsPayload<object>();
 			}
 		}
 
@@ -673,7 +673,7 @@ public static class JsonExtensions
 		/// When <paramref name="formatted"/> is <c>true</c>, these options are merged with the formatted settings.
 		/// </param>
 		/// <returns>
-		/// A <see cref="Response{T}"/> of <see cref="object"/> whose payload contains the deserialized object when successful;
+		/// A <see cref="IResponse{T}"/> of <see cref="object"/> whose payload contains the deserialized object when successful;
 		/// <c>null</c> when the underlying string is <c>null</c>, empty, whitespace-only, or deserialization produces a <c>null</c> result;
 		/// or an error response when an exception occurs during deserialization.
 		/// </returns>
@@ -691,7 +691,7 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response<object>? DeserializeNullable(Type type, bool formatted = false, JsonSerializerOptions? options = null)
+		public IResponse<object>? DeserializeNullable(Type type, bool formatted = false, JsonSerializerOptions? options = null)
 		{
 			if (me.Value.IsNullOrWhiteSpace())
 				return null;
@@ -701,11 +701,11 @@ public static class JsonExtensions
 				var res = JsonSerializer.Deserialize(me.Value, type, (formatted,options).ToFinalOptions());
 				return res is null
 					? null
-					: Response.Get.SuccessPayload(res);
+					: ResponseExt.Get.SuccessPayload(res);
 			}
 			catch (Exception ex)
 			{
-				return Response.Get.Exception(ex).AsPayload<object>();
+				return ResponseExt.Get.Exception(ex).AsPayload<object>();
 			}
 		}
 	}
@@ -727,7 +727,7 @@ public static class JsonExtensions
 		/// When <c>false</c>, serializes <c>null</c> values as the JSON literal <c>"null"</c>.
 		/// </param>
 		/// <returns>
-		/// A <see cref="Response{T}"/> whose payload contains the JSON string representation when successful,
+		/// A <see cref="IResponse{T}"/> whose payload contains the JSON string representation when successful,
 		/// or an error response when <paramref name="errorIfNull"/> is <c>true</c> and the value is <c>null</c>,
 		/// or an exception occurs during serialization.
 		/// </returns>
@@ -751,19 +751,19 @@ public static class JsonExtensions
 		/// var nullResponse2 = nullPerson.Fx.Json.Serialize(errorIfNull: true);  // Error response
 		/// </code>
 		/// </example>
-		public Response<string> Serialize(bool formatted = false, JsonSerializerOptions? options = null, bool errorIfNull = false)
+		public IResponse<string> Serialize(bool formatted = false, JsonSerializerOptions? options = null, bool errorIfNull = false)
 		{
 			try
 			{
 				if (errorIfNull && me.Value is null)
-					return Response.Get.Critical($"The object cannot be serialized as '{typeof(T).GetSignature()}' because source object is null")
+					return ResponseExt.Get.Critical($"The object cannot be serialized as '{typeof(T).GetSignature()}' because source object is null")
 						.AsPayload<string>();
 
-				return Response.Get.SuccessPayload(JsonSerializer.Serialize(me.Value, (formatted, options).ToFinalOptions()));
+				return ResponseExt.Get.SuccessPayload(JsonSerializer.Serialize(me.Value, (formatted, options).ToFinalOptions()));
 			}
 			catch (Exception ex)
 			{
-				return Response.Get.Exception(ex).AsPayload<string>();
+				return ResponseExt.Get.Exception(ex).AsPayload<string>();
 			}
 		}
 
@@ -779,7 +779,7 @@ public static class JsonExtensions
 		/// When <paramref name="formatted"/> is <c>true</c>, these options are merged with the formatted settings.
 		/// </param>
 		/// <returns>
-		/// A <see cref="Response{T}"/> whose payload contains the <see cref="JsonNode"/> representation when successful,
+		/// A <see cref="IResponse{T}"/> whose payload contains the <see cref="JsonNode"/> representation when successful,
 		/// or an error response when the underlying value is <c>null</c>, serialization produces a <c>null</c> result,
 		/// or an exception occurs during serialization.
 		/// </returns>
@@ -795,23 +795,23 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response<JsonNode> SerializeToNode(bool formatted = false, JsonSerializerOptions? options = null)
+		public IResponse<JsonNode> SerializeToNode(bool formatted = false, JsonSerializerOptions? options = null)
 		{
 			try
 			{
 				if (me.Value is null)
-					return Response.Get
+					return ResponseExt.Get
 						.Critical($"The object cannot be serialized as '{typeof(T).GetSignature()}' because source object is null")
 						.AsPayload<JsonNode>();
 
 				var res = JsonSerializer.SerializeToNode(me.Value, (formatted, options).ToFinalOptions());
 				return res is null
-					? Response.Get.Critical($"The object cannot be serializer as '{typeof(T).GetSignature()}' because result was null").AsPayload<JsonNode>()
-					: Response.Get.SuccessPayload(res);
+					? ResponseExt.Get.Critical($"The object cannot be serializer as '{typeof(T).GetSignature()}' because result was null").AsPayload<JsonNode>()
+					: ResponseExt.Get.SuccessPayload(res);
 			}
 			catch (Exception ex)
 			{
-				return Response.Get.Exception(ex).AsPayload<JsonNode>();
+				return ResponseExt.Get.Exception(ex).AsPayload<JsonNode>();
 			}
 		}
 
@@ -831,7 +831,7 @@ public static class JsonExtensions
 		/// When <c>false</c>, serializes <c>null</c> values as a <see cref="JsonElement"/> representing <c>null</c>.
 		/// </param>
 		/// <returns>
-		/// A <see cref="Response{T}"/> whose payload contains the <see cref="JsonElement"/> representation when successful,
+		/// A <see cref="IResponse{T}"/> whose payload contains the <see cref="JsonElement"/> representation when successful,
 		/// or an error response when <paramref name="errorIfNull"/> is <c>true</c> and the value is <c>null</c>,
 		/// or an exception occurs during serialization.
 		/// </returns>
@@ -847,21 +847,21 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response<JsonElement> SerializeToElement(bool formatted = false, JsonSerializerOptions? options = null, bool errorIfNull = false)
+		public IResponse<JsonElement> SerializeToElement(bool formatted = false, JsonSerializerOptions? options = null, bool errorIfNull = false)
 		{
 			try
 			{
 				if (errorIfNull && me.Value is null)
-					return Response.Get
+					return ResponseExt.Get
 						.Critical(
 							$"The object cannot be serialized as '{typeof(T).GetSignature()}' because source object is null")
 						.AsPayload<JsonElement>();
 				
-				return Response.Get.SuccessPayload(JsonSerializer.SerializeToElement(me.Value, (formatted, options).ToFinalOptions()));
+				return ResponseExt.Get.SuccessPayload(JsonSerializer.SerializeToElement(me.Value, (formatted, options).ToFinalOptions()));
 			}
 			catch (Exception ex)
 			{
-				return Response.Get.Exception(ex).AsPayload<JsonElement>();
+				return ResponseExt.Get.Exception(ex).AsPayload<JsonElement>();
 			}
 		}
 	}
@@ -885,7 +885,7 @@ public static class JsonExtensions
 		/// When <c>false</c>, serializes <c>null</c> values as the JSON literal <c>"null"</c>.
 		/// </param>
 		/// <returns>
-		/// A <see cref="Response{T}"/> whose payload contains the JSON string representation when successful,
+		/// A <see cref="IResponse{T}"/> whose payload contains the JSON string representation when successful,
 		/// or an error response when <paramref name="errorIfNull"/> is <c>true</c> and the exception is <c>null</c>,
 		/// or an exception occurs during serialization.
 		/// </returns>
@@ -906,12 +906,12 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response<string> Serialize(bool formatted = false, JsonSerializerOptions? options = null, bool errorIfNull = false)
+		public IResponse<string> Serialize(bool formatted = false, JsonSerializerOptions? options = null, bool errorIfNull = false)
 		{
 			try
 			{
 				if (errorIfNull && me.Value is null)
-					return Response.Get
+					return ResponseExt.Get
 						.Critical("The Exception cannot be serialized because source Exception is null")
 						.AsPayload<string>();
 
@@ -924,11 +924,11 @@ public static class JsonExtensions
 				else if (!finalOptions.Converters.Any(c => c.GetType().IsSubclassOf(typeof(ExceptionConverter))))
 					finalOptions.Converters.Add(new ExceptionConverter());
 
-				return Response.Get.SuccessPayload(JsonSerializer.Serialize(me.Value, finalOptions));
+				return ResponseExt.Get.SuccessPayload(JsonSerializer.Serialize(me.Value, finalOptions));
 			}
 			catch (Exception ex)
 			{
-				return Response.Get.Exception(ex).AsPayload<string>();
+				return ResponseExt.Get.Exception(ex).AsPayload<string>();
 			}
 		}
 
@@ -946,7 +946,7 @@ public static class JsonExtensions
 		/// An <see cref="ExceptionConverter"/> is automatically added if not already present.
 		/// </param>
 		/// <returns>
-		/// A <see cref="Response{T}"/> whose payload contains the <see cref="JsonNode"/> representation when successful,
+		/// A <see cref="IResponse{T}"/> whose payload contains the <see cref="JsonNode"/> representation when successful,
 		/// or an error response when the underlying exception is <c>null</c>, serialization produces a <c>null</c> result,
 		/// or an exception occurs during serialization.
 		/// </returns>
@@ -967,12 +967,12 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response<JsonNode> SerializeToNode(bool formatted = false, JsonSerializerOptions? options = null)
+		public IResponse<JsonNode> SerializeToNode(bool formatted = false, JsonSerializerOptions? options = null)
 		{
 			try
 			{
 				if (me.Value is null)
-					return Response.Get
+					return ResponseExt.Get
 						.Critical(
 							$"The Exception cannot be serialized because source Exception is null")
 						.AsPayload<JsonNode>();
@@ -988,13 +988,13 @@ public static class JsonExtensions
 
 				var res = JsonSerializer.SerializeToNode(me.Value, finalOptions);
 				if (res is null)
-					return Response.Get.Critical($"The Exception cannot be serializer as '{me.Value?.GetType().GetSignature()}' because result was null")
+					return ResponseExt.Get.Critical($"The Exception cannot be serializer as '{me.Value?.GetType().GetSignature()}' because result was null")
 						.AsPayload<JsonNode>();
-				return Response.Get.SuccessPayload(res);
+				return ResponseExt.Get.SuccessPayload(res);
 			}
 			catch (Exception ex)
 			{
-				return Response.Get.Exception(ex).AsPayload<JsonNode>();
+				return ResponseExt.Get.Exception(ex).AsPayload<JsonNode>();
 			}
 		}
 
@@ -1016,7 +1016,7 @@ public static class JsonExtensions
 		/// When <c>false</c>, serializes <c>null</c> values as a <see cref="JsonElement"/> representing <c>null</c>.
 		/// </param>
 		/// <returns>
-		/// A <see cref="Response{T}"/> whose payload contains the <see cref="JsonElement"/> representation when successful,
+		/// A <see cref="IResponse{T}"/> whose payload contains the <see cref="JsonElement"/> representation when successful,
 		/// or an error response when <paramref name="errorIfNull"/> is <c>true</c> and the exception is <c>null</c>,
 		/// or an exception occurs during serialization.
 		/// </returns>
@@ -1037,12 +1037,12 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response<JsonElement> SerializeToElement(bool formatted = false, JsonSerializerOptions? options = null, bool errorIfNull = false)
+		public IResponse<JsonElement> SerializeToElement(bool formatted = false, JsonSerializerOptions? options = null, bool errorIfNull = false)
 		{
 			try
 			{
 				if (errorIfNull && me.Value is null)
-					return Response.Get
+					return ResponseExt.Get
 						.Critical(
 							$"The Exception cannot be serialized because source Exception is null")
 						.AsPayload<JsonElement>();
@@ -1056,11 +1056,11 @@ public static class JsonExtensions
 				else if (!finalOptions.Converters.Any(c => c.GetType().IsSubclassOf(typeof(ExceptionConverter))))
 					finalOptions.Converters.Add(new ExceptionConverter());
 
-				return Response.Get.SuccessPayload(JsonSerializer.SerializeToElement(me.Value, finalOptions));
+				return ResponseExt.Get.SuccessPayload(JsonSerializer.SerializeToElement(me.Value, finalOptions));
 			}
 			catch (Exception ex)
 			{
-				return Response.Get.Exception(ex).AsPayload<JsonElement>();
+				return ResponseExt.Get.Exception(ex).AsPayload<JsonElement>();
 			}
 		}
 	}
@@ -1079,7 +1079,7 @@ public static class JsonExtensions
 /// <list type="bullet">
 /// <item><description><strong>Serialization:</strong> Convert values to JSON strings, nodes, or elements</description></item>
 /// <item><description><strong>Deserialization:</strong> Convert JSON strings to strongly-typed objects (when <typeparamref name="T"/> is <see cref="string"/>)</description></item>
-/// <item><description><strong>Response wrapping:</strong> All operations return <see cref="Response{T}"/> for consistent error handling</description></item>
+/// <item><description><strong>Response wrapping:</strong> All operations return <see cref="IResponse{T}"/> for consistent error handling</description></item>
 /// </list>
 /// <para>
 /// <strong>Design pattern:</strong> This class uses the primary constructor syntax (C# 12+) to create an immutable

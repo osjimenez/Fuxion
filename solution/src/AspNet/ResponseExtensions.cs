@@ -12,12 +12,11 @@ using System.Web.Http;
 using Fuxion.Net.Http;
 using Fuxion.Text.Json;
 using Fuxion.Text.Json.Serialization;
-using static Fuxion.Net.Http.Extensions;
 
 namespace Fuxion.AspNet;
 
 /// <summary>
-///    Provides extension methods for converting <see cref="Response" /> and <see cref="Response{T}" /> objects
+///    Provides extension methods for converting <see cref="IResponse" /> and <see cref="IResponse{T}" /> objects
 ///    to ASP.NET Web API <see cref="IHttpActionResult" /> instances with support for various payload types
 ///    including streams, byte arrays, strings, and complex objects.
 /// </summary>
@@ -288,7 +287,7 @@ public static class ResponseExtensions
 
 	// Core helper used by all extensions
 	/// <summary>
-	///    Core implementation method that converts an <see cref="Response" /> to an <see cref="IHttpActionResult" />.
+	///    Core implementation method that converts an <see cref="IResponse" /> to an <see cref="IHttpActionResult" />.
 	/// </summary>
 	/// <param name="me">The response to convert.</param>
 	/// <param name="contentType">The content type for the response. If null, uses value from response extensions or defaults.</param>
@@ -361,7 +360,7 @@ public static class ResponseExtensions
 	///    </list>
 	/// </remarks>
 	private static IHttpActionResult ToApiResultCore(
-		Response me,
+		IResponse me,
 		string? contentType,
 		string? fileDownloadName,
 		bool fullSerialization)
@@ -462,7 +461,7 @@ public static class ResponseExtensions
 
 	// Task<IResponse<TPayload>> receivers (general)
 	// Task<Response<TPayload>> receivers (general)
-	extension<TPayload>(Task<Response<TPayload>> me)
+	extension<TPayload>(Task<IResponse<TPayload>> me)
 	{
 		/// <summary>
 		///    Converts a <see cref="Task{Response}" /> to a <see cref="Task{IHttpActionResult}" />.
@@ -479,7 +478,7 @@ public static class ResponseExtensions
 			=> ToApiResultCore(await me, null, null, fullSerialization);
 	}
 
-	extension(Task<Response<string>> me)
+	extension(Task<IResponse<string>> me)
 	{
 		/// <summary>
 		///    Converts a <see cref="Task{Response}" /> with string payload to a <see cref="Task{IHttpActionResult}" />.
@@ -501,7 +500,7 @@ public static class ResponseExtensions
 	}
 
 	// Stream payload specializations
-	extension<TPayload>(Task<Response<TPayload>> me) where TPayload : Stream
+	extension<TPayload>(Task<IResponse<TPayload>> me) where TPayload : Stream
 	{
 		/// <summary>
 		///    Converts a <see cref="Task{Response}" /> with <see cref="Stream" /> payload to a file download result.
@@ -517,10 +516,10 @@ public static class ResponseExtensions
 			=> ToApiResultCore(await me, contentType, fileDownloadName, false);
 	}
 
-	extension<TPayload>(Response<TPayload> me) where TPayload : Stream
+	extension<TPayload>(IResponse<TPayload> me) where TPayload : Stream
 	{
 		/// <summary>
-		///    Converts an <see cref="Response" /> with <see cref="Stream" /> payload to a file download result.
+		///    Converts an <see cref="IResponse" /> with <see cref="Stream" /> payload to a file download result.
 		/// </summary>
 		/// <param name="contentType">The MIME content type for the file.</param>
 		/// <param name="fileDownloadName">The filename for the Content-Disposition header.</param>
@@ -530,7 +529,7 @@ public static class ResponseExtensions
 	}
 
 	// Bytes payload specializations
-	extension<TPayload>(Task<Response<TPayload>> me) where TPayload : IEnumerable<byte>
+	extension<TPayload>(Task<IResponse<TPayload>> me) where TPayload : IEnumerable<byte>
 	{
 		/// <summary>
 		///    Converts a <see cref="Task{Response}" /> with byte array payload to a file download result.
@@ -546,10 +545,10 @@ public static class ResponseExtensions
 			=> ToApiResultCore(await me, contentType, fileDownloadName, false);
 	}
 
-	extension<TPayload>(Response<TPayload> me) where TPayload : IEnumerable<byte>
+	extension<TPayload>(IResponse<TPayload> me) where TPayload : IEnumerable<byte>
 	{
 		/// <summary>
-		///    Converts an <see cref="Response" /> with byte array payload to a file download result.
+		///    Converts an <see cref="IResponse" /> with byte array payload to a file download result.
 		/// </summary>
 		/// <param name="contentType">The MIME content type for the file.</param>
 		/// <param name="fileDownloadName">The filename for the Content-Disposition header.</param>
@@ -558,7 +557,7 @@ public static class ResponseExtensions
 			=> ToApiResultCore(me, contentType, fileDownloadName, false);
 	}
 
-	extension(Task<Response> me)
+	extension(Task<IResponse> me)
 	{
 		/// <summary>
 		///    Converts a <see cref="Task{Response}" /> (non-generic) to a <see cref="Task{IHttpActionResult}" />.
@@ -575,10 +574,10 @@ public static class ResponseExtensions
 			=> ToApiResultCore(await me, null, null, fullSerialization);
 	}
 
-	extension(Response me)
+	extension(IResponse me)
 	{
 		/// <summary>
-		///    Converts an <see cref="Response" /> (non-generic) to an <see cref="IHttpActionResult" />.
+		///    Converts an <see cref="IResponse" /> (non-generic) to an <see cref="IHttpActionResult" />.
 		/// </summary>
 		/// <param name="fullSerialization">
 		///    If <c>true</c>, serializes the entire Response object.

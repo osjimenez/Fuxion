@@ -16,7 +16,7 @@ using static Fuxion.Net.Http.Extensions;
 namespace Fuxion.AspNetCore;
 
 /// <summary>
-///    Provides extension methods to convert <see cref="Response" /> and <see cref="Response{TPayload}" /> objects
+///    Provides extension methods to convert <see cref="IResponse" /> and <see cref="IResponse{TPayload}" /> objects
 ///    into ASP.NET Core action results (<see cref="IResult" /> and <see cref="IActionResult" />).
 /// </summary>
 /// <remarks>
@@ -52,7 +52,7 @@ public static class ResponseExtensions
 	public static bool IncludeException { get; set; } = true;
 
 	/// <summary>
-	///    Core helper method that converts an <see cref="Response" /> to an <see cref="IResult" /> for minimal API endpoints.
+	///    Core helper method that converts an <see cref="IResponse" /> to an <see cref="IResult" /> for minimal API endpoints.
 	/// </summary>
 	/// <param name="me">The response to convert.</param>
 	/// <param name="contentType">The content type for file responses.</param>
@@ -63,7 +63,7 @@ public static class ResponseExtensions
 	/// <param name="fullSerialization">Whether to serialize the entire response object or just the payload.</param>
 	/// <returns>An <see cref="IResult" /> representing the response.</returns>
 	private static IResult ToApiResultCore(
-		Response me,
+		IResponse me,
 		string? contentType,
 		string? fileDownloadName,
 		DateTimeOffset? lastModified,
@@ -119,7 +119,7 @@ public static class ResponseExtensions
 	}
 
 	/// <summary>
-	///    Core helper method that converts an <see cref="Response" /> to an <see cref="IActionResult" /> for MVC controllers.
+	///    Core helper method that converts an <see cref="IResponse" /> to an <see cref="IActionResult" /> for MVC controllers.
 	/// </summary>
 	/// <param name="me">The response to convert.</param>
 	/// <param name="contentType">The content type for file responses.</param>
@@ -130,7 +130,7 @@ public static class ResponseExtensions
 	/// <param name="fullSerialization">Whether to serialize the entire response object or just the payload.</param>
 	/// <returns>An <see cref="IActionResult" /> representing the response.</returns>
 	private static IActionResult ToApiActionResultCore(
-		Response me,
+		IResponse me,
 		string? contentType,
 		string? fileDownloadName,
 		DateTimeOffset? lastModified,
@@ -276,7 +276,7 @@ public static class ResponseExtensions
 		};
 
 	// Task<Response<TPayload>> with Stream payload
-	extension<TPayload>(Task<Response<TPayload>> me)
+	extension<TPayload>(Task<IResponse<TPayload>> me)
 		where TPayload : Stream
 	{
 		/// <summary>
@@ -303,7 +303,7 @@ public static class ResponseExtensions
 	}
 
 	// Task<IResponse<TPayload>> receivers (general)
-	extension<TPayload>(Task<Response<TPayload>> me)
+	extension<TPayload>(Task<IResponse<TPayload>> me)
 	{
 		/// <summary>
 		///    Converts an async generic response to a result for minimal APIs.
@@ -321,7 +321,7 @@ public static class ResponseExtensions
 	}
 
 	// Task<IResponse<TPayload>> specialized for stream
-	extension<TPayload>(Task<Response<TPayload>> me)
+	extension<TPayload>(Task<IResponse<TPayload>> me)
 		where TPayload : Stream
 	{
 		/// <summary>
@@ -362,7 +362,7 @@ public static class ResponseExtensions
 	}
 
 	// Task<IResponse<TPayload>> specialized for bytes
-	extension<TPayload>(Task<Response<TPayload>> me)
+	extension<TPayload>(Task<IResponse<TPayload>> me)
 		where TPayload : IEnumerable<byte>
 	{
 		/// <summary>
@@ -403,7 +403,7 @@ public static class ResponseExtensions
 	}
 
 	// Task<IResponse> and Task<Response> receivers
-	extension(Task<Response> me)
+	extension(Task<IResponse> me)
 	{
 		/// <summary>
 		///    Converts an async concrete response to a result for minimal APIs.
@@ -429,7 +429,7 @@ public static class ResponseExtensions
 	}
 
 	// IResponse<TPayload> receivers
-	extension<TPayload>(Response<TPayload> me)
+	extension<TPayload>(IResponse<TPayload> me)
 	{
 		/// <summary>
 		///    Converts a generic response to a result for minimal APIs.
@@ -446,7 +446,7 @@ public static class ResponseExtensions
 			=> ToApiActionResultCore(me, null, null, null, null, false, false);
 	}
 
-	extension<TPayload>(Response<TPayload> me)
+	extension<TPayload>(IResponse<TPayload> me)
 		where TPayload : Stream
 	{
 		/// <summary>
@@ -485,7 +485,7 @@ public static class ResponseExtensions
 				false);
 	}
 
-	extension<TPayload>(Response<TPayload> me)
+	extension<TPayload>(IResponse<TPayload> me)
 		where TPayload : IEnumerable<byte>
 	{
 		/// <summary>
@@ -525,7 +525,7 @@ public static class ResponseExtensions
 	}
 
 	// IResponse receivers
-	extension(Response me)
+	extension(IResponse me)
 	{
 		/// <summary>
 		///    Converts a response to a result for minimal APIs.

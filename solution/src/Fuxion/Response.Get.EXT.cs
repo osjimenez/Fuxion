@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 namespace Fuxion;
 
 /// <summary>
-/// Factory methods for creating Response objects (accessed via Response.Get).
+/// Factory methods for creating IResponse objects (accessed via IResponse.Get).
 /// </summary>
 /// <remarks>
 /// <list type="bullet">
@@ -22,11 +22,11 @@ public static partial class ResponseExtensions
 	
 	
 	/// <summary>
-	/// Factory methods for creating Response objects (accessed via Response.Get).
+	/// Factory methods for creating IResponse objects (accessed via IResponse.Get).
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// This class enables the fluent syntax: <c>Response.Get.Success()</c>, <c>Response.Get.NotFound()</c>, etc.
+	/// This class enables the fluent syntax: <c>IResponse.Get.Success()</c>, <c>IResponse.Get.NotFound()</c>, etc.
 	/// All factory methods support optional extension data for attaching metadata to responses.
 	/// </para>
 	/// <para>
@@ -41,16 +41,16 @@ public static partial class ResponseExtensions
 	/// <example>
 	/// <code>
 	/// // Simple success
-	/// var response = Response.Get.Success();
+	/// var response = IResponse.Get.Success();
 	/// 
 	/// // Success with metadata
-	/// var successWithData = Response.Get.SuccessMessage(
+	/// var successWithData = IResponse.Get.SuccessMessage(
 	///     "User created",
 	///     extensions: new[] { ("user-id", (object?)123), ("created-at", DateTime.UtcNow) }
 	/// );
 	/// 
 	/// // Typed error with full details
-	/// var notFound = Response.Get.NotFound(
+	/// var notFound = IResponse.Get.NotFound(
 	///     message: "User not found",
 	///     exception: dbException,
 	///     extensions: new[] { ("user-id", (object?)userId), ("search-timestamp", DateTime.UtcNow) }
@@ -60,22 +60,22 @@ public static partial class ResponseExtensions
 	public class ResponseGetExtensions;
 
 	private static readonly ResponseGetExtensions Get = new();
-	extension(Response)
+	extension(ResponseExt)
 	{
 		/// <summary>
-		/// Gets the Response factory methods for creating Response instances.
+		/// Gets the IResponse factory methods for creating IResponse instances.
 		/// </summary>
 		/// <value>An instance providing access to static factory methods like Success(), Error(), etc.</value>
 		/// <remarks>
-		/// This property provides a fluent API for creating Response objects through the ResponseExtensions class.
-		/// Used as: <c>Response.Get.Success()</c>, <c>Response.Get.Error()</c>, etc.
+		/// This property provides a fluent API for creating IResponse objects through the ResponseExtensions class.
+		/// Used as: <c>IResponse.Get.Success()</c>, <c>IResponse.Get.Error()</c>, etc.
 		/// </remarks>
 		public static ResponseGetExtensions Get => Get;
 	}
 	/// <summary>
 	/// Error type checking extension methods for IResponse.
 	/// </summary>
-	extension(Response me)
+	extension(IResponse me)
 	{
 		/// <summary>Checks if the response indicates a resource was not found.</summary>
 		public bool IsNotFound
@@ -129,7 +129,7 @@ public static partial class ResponseExtensions
 
 
 	/// <summary>
-	/// Instance wrapper providing access to Response factory methods.
+	/// Instance wrapper providing access to IResponse factory methods.
 	/// </summary>
 	extension(ResponseGetExtensions me)
 	{
@@ -140,7 +140,7 @@ public static partial class ResponseExtensions
 		/// Optional collection of key-value pairs to add to the response's Extensions dictionary.
 		/// Useful for attaching metadata such as correlation IDs, timestamps, or operation-specific data.
 		/// </param>
-		/// <returns>A successful Response with IsSuccess = true.</returns>
+		/// <returns>A successful IResponse with IsSuccess = true.</returns>
 		/// <remarks>
 		/// Use this when an operation succeeds but doesn't need to return data or a descriptive message.
 		/// Common scenarios: DELETE operations, void commands, acknowledgments.
@@ -148,18 +148,18 @@ public static partial class ResponseExtensions
 		/// <example>
 		/// <code>
 		/// // Simple success
-		/// return Response.Get.Success();
+		/// return IResponse.Get.Success();
 		/// 
 		/// // Success with correlation ID
-		/// return Response.Get.Success(extensions: new[] 
+		/// return IResponse.Get.Success(extensions: new[] 
 		/// { 
 		///     ("correlation-id", (object?)Guid.NewGuid()),
 		///     ("processed-at", DateTime.UtcNow)
 		/// });
 		/// </code>
 		/// </example>
-		public Response Success(IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> new(true)
+		public IResponse Success(IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> new ResponseBase(true)
 			{
 				Extensions = new(extensions)
 			};
@@ -183,17 +183,17 @@ public static partial class ResponseExtensions
 		/// <param name="lineNumber">
 		/// PEND DOC
 		/// </param>
-		/// <returns>A successful Response with IsSuccess = true and the specified message.</returns>
+		/// <returns>A successful IResponse with IsSuccess = true and the specified message.</returns>
 		/// <remarks>
 		/// Use this when you want to provide feedback about what succeeded.
 		/// Common in APIs where confirmation messages are helpful for the client.
 		/// </remarks>
 		/// <example>
 		/// <code>
-		/// return Response.Get.SuccessMessage("User profile updated successfully");
+		/// return IResponse.Get.SuccessMessage("User profile updated successfully");
 		/// 
 		/// // With tracking data
-		/// return Response.Get.SuccessMessage(
+		/// return IResponse.Get.SuccessMessage(
 		///     "Order processed",
 		///     extensions: new[] 
 		///     { 
@@ -203,14 +203,14 @@ public static partial class ResponseExtensions
 		/// );
 		/// </code>
 		/// </example>
-		public Response SuccessMessage(
+		public IResponse SuccessMessage(
 			string message,
 			IEnumerable<(string Property, object? Value)>? extensions = null,
 			[CallerMemberName] string? callerMemeberName = null,
 			[CallerFilePath] string? filePath = null,
 			[CallerLineNumber] int? lineNumber = null)
 		{
-			var res = new Response(true, message)
+			var res = new ResponseBase(true, message)
 			{
 				Extensions = new(extensions)
 			};
@@ -228,8 +228,8 @@ public static partial class ResponseExtensions
 		/// </summary>
 		/// <typeparam name="TPayload">The type of the payload being returned.</typeparam>
 		/// <param name="payload">
-		/// The data to return. Must not be null for successful responses (enforced by Response&lt;T&gt; constructor).
-		/// Can be any type except another Response to avoid nesting.
+		/// The data to return. Must not be null for successful responses (enforced by IResponse&lt;T&gt; constructor).
+		/// Can be any type except another IResponse to avoid nesting.
 		/// </param>
 		/// <param name="message">
 		/// Optional human-readable message describing the success. 
@@ -239,7 +239,7 @@ public static partial class ResponseExtensions
 		/// Optional collection of key-value pairs to add to the response's Extensions dictionary.
 		/// Commonly used for pagination metadata, cache information, or query performance metrics.
 		/// </param>
-		/// <returns>A successful Response&lt;TPayload&gt; with IsSuccess = true and the specified payload.</returns>
+		/// <returns>A successful IResponse&lt;TPayload&gt; with IsSuccess = true and the specified payload.</returns>
 		/// <remarks>
 		/// This is the most common success factory method for queries and operations that return data.
 		/// The payload is guaranteed non-null when IsSuccess is true due to nullable reference type annotations.
@@ -248,16 +248,16 @@ public static partial class ResponseExtensions
 		/// <code>
 		/// // Simple query result
 		/// var user = await userRepository.GetByIdAsync(userId);
-		/// return Response.Get.SuccessPayload(user);
+		/// return IResponse.Get.SuccessPayload(user);
 		/// 
 		/// // With descriptive message
-		/// return Response.Get.SuccessPayload(
+		/// return IResponse.Get.SuccessPayload(
 		///     users,
 		///     message: "Retrieved 10 users"
 		/// );
 		/// 
 		/// // With pagination metadata
-		/// return Response.Get.SuccessPayload(
+		/// return IResponse.Get.SuccessPayload(
 		///     users,
 		///     message: $"Page {pageNumber} of {totalPages}",
 		///     extensions: new[] 
@@ -270,8 +270,8 @@ public static partial class ResponseExtensions
 		/// );
 		/// </code>
 		/// </example>
-		public Response<TPayload> SuccessPayload<TPayload>(TPayload payload, string? message = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> new(true, payload, message)
+		public IResponse<TPayload> SuccessPayload<TPayload>(TPayload payload, string? message = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> new ResponseBase<TPayload>(true, payload, message)
 			{
 				Extensions = new(extensions)
 			};
@@ -290,13 +290,13 @@ public static partial class ResponseExtensions
 		/// </param>
 		/// <param name="exception">
 		/// Optional exception that caused the error. Useful for logging and diagnostics.
-		/// Automatically serialized in a safe way by the Response JSON converter.
+		/// Automatically serialized in a safe way by the IResponse JSON converter.
 		/// </param>
 		/// <param name="extensions">
 		/// Optional collection of key-value pairs to add to the response's Extensions dictionary.
 		/// Commonly used for error codes, validation details, or trace information.
 		/// </param>
-		/// <returns>An error Response with IsSuccess = false and the specified error details.</returns>
+		/// <returns>An error IResponse with IsSuccess = false and the specified error details.</returns>
 		/// <remarks>
 		/// Use this for generic errors when specific typed methods (NotFound, InvalidData, etc.) don't fit.
 		/// For most scenarios, prefer using typed error methods for better error handling and HTTP status code mapping.
@@ -304,10 +304,10 @@ public static partial class ResponseExtensions
 		/// <example>
 		/// <code>
 		/// // Generic error
-		/// return Response.Get.ErrorMessage("An unexpected error occurred");
+		/// return IResponse.Get.ErrorMessage("An unexpected error occurred");
 		/// 
 		/// // With error type
-		/// return Response.Get.ErrorMessage(
+		/// return IResponse.Get.ErrorMessage(
 		///     "Payment gateway timeout",
 		///     type: ErrorType.Timeout
 		/// );
@@ -315,7 +315,7 @@ public static partial class ResponseExtensions
 		/// // With exception and tracking
 		/// catch (Exception ex)
 		/// {
-		///     return Response.Get.ErrorMessage(
+		///     return IResponse.Get.ErrorMessage(
 		///         "Failed to process order",
 		///         type: ErrorType.Critical,
 		///         exception: ex,
@@ -329,8 +329,8 @@ public static partial class ResponseExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response ErrorMessage(string message, object? type = null, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> new(false, message, type, exception)
+		public IResponse ErrorMessage(string message, object? type = null, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> new ResponseBase(false, message, type, exception)
 			{
 				Extensions = new(extensions)
 			};
@@ -355,7 +355,7 @@ public static partial class ResponseExtensions
 		/// <param name="extensions">
 		/// Optional collection of key-value pairs to add to the response's Extensions dictionary.
 		/// </param>
-		/// <returns>An error Response&lt;TPayload&gt; with IsSuccess = false and the specified error details.</returns>
+		/// <returns>An error IResponse&lt;TPayload&gt; with IsSuccess = false and the specified error details.</returns>
 		/// <remarks>
 		/// <para>
 		/// This is an uncommon pattern. Most errors don't need a payload - use ErrorMessage() instead.
@@ -378,7 +378,7 @@ public static partial class ResponseExtensions
 		///         new ValidationError { Field = "Age", Message = "Must be 18+" }
 		///     }
 		/// };
-		/// return Response.Get.ErrorPayload(
+		/// return IResponse.Get.ErrorPayload(
 		///     validationErrors,
 		///     message: "Validation failed",
 		///     type: ErrorType.InvalidData
@@ -391,20 +391,20 @@ public static partial class ResponseExtensions
 		///     FailedCount = 3,
 		///     FailedItems = new[] { item1, item8, item10 }
 		/// };
-		/// return Response.Get.ErrorPayload(
+		/// return IResponse.Get.ErrorPayload(
 		///     batchResult,
 		///     message: "Batch completed with errors",
 		///     type: ErrorType.Conflict
 		/// );
 		/// </code>
 		/// </example>
-		public Response<TPayload> ErrorPayload<TPayload>(
+		public IResponse<TPayload> ErrorPayload<TPayload>(
 			TPayload payload,
 			string? message = null,
 			object? type = null,
 			Exception? exception = null,
 			IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> new(false, payload, message, type, exception)
+			=> new ResponseBase<TPayload>(false, payload, message, type, exception)
 			{
 				Extensions = new(extensions)
 			};
@@ -413,21 +413,21 @@ public static partial class ResponseExtensions
 		/// Creates an error response directly from an exception, optionally overriding the message.
 		/// </summary>
 		/// <param name="exception">
-		/// The exception to convert to a Response. The exception type and message will be used
+		/// The exception to convert to a IResponse. The exception type and message will be used
 		/// if no custom message is provided.
 		/// </param>
 		/// <param name="message">
 		/// Optional custom error message. If null, uses "{ExceptionType}: {ExceptionMessage}" format.
 		/// Use a custom message to provide more context or user-friendly text.
 		/// </param>
-		/// <returns>An error Response with IsSuccess = false containing the exception details.</returns>
+		/// <returns>An error IResponse with IsSuccess = false containing the exception details.</returns>
 		/// <remarks>
 		/// <para>
 		/// This is a convenience method for catch blocks where you want to convert an exception
-		/// directly to a Response without additional processing.
+		/// directly to a IResponse without additional processing.
 		/// </para>
 		/// <para>
-		/// The exception is automatically attached to the Response for logging and diagnostics.
+		/// The exception is automatically attached to the IResponse for logging and diagnostics.
 		/// By default, no ErrorType is set - consider using typed error methods if you know the error category.
 		/// </para>
 		/// </remarks>
@@ -436,27 +436,27 @@ public static partial class ResponseExtensions
 		/// try
 		/// {
 		///     await database.SaveChangesAsync();
-		///     return Response.Get.Success();
+		///     return IResponse.Get.Success();
 		/// }
 		/// catch (Exception ex)
 		/// {
 		///     // Use exception message as-is
-		///     return Response.Get.Exception(ex);
+		///     return IResponse.Get.Exception(ex);
 		///     // Message will be: "SqlException: Connection timeout expired"
 		/// }
 		/// 
 		/// // With custom message for end users
 		/// catch (DbUpdateException ex)
 		/// {
-		///     return Response.Get.Exception(
+		///     return IResponse.Get.Exception(
 		///         ex,
 		///         message: "Failed to save changes to the database"
 		///     );
 		/// }
 		/// </code>
 		/// </example>
-		public Response Exception(Exception exception, string? message = null)
-			=> new(false, message ?? $"{exception.GetType().Name}: {exception.Message}", exception: exception);
+		public IResponse Exception(Exception exception, string? message = null)
+			=> new ResponseBase(false, message ?? $"{exception.GetType().Name}: {exception.Message}", exception: exception);
 
 		// ==================== TYPED ERROR FACTORY METHODS ====================
 		// Each ErrorType has two overloads: one without payload, one with payload
@@ -474,21 +474,21 @@ public static partial class ResponseExtensions
 		/// <param name="extensions">
 		/// Optional metadata such as the resource ID that wasn't found, search criteria, etc.
 		/// </param>
-		/// <returns>An error Response with ErrorType.NotFound.</returns>
+		/// <returns>An error IResponse with ErrorType.NotFound.</returns>
 		/// <example>
 		/// <code>
 		/// var user = await db.Users.FindAsync(userId);
 		/// if (user == null)
 		/// {
-		///     return Response.Get.NotFound(
+		///     return IResponse.Get.NotFound(
 		///         $"User with ID {userId} not found",
 		///         extensions: new[] { ("user-id", (object?)userId) }
 		///     );
 		/// }
 		/// </code>
 		/// </example>
-		public Response NotFound(string message = "Not found", Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorMessage(message, ErrorType.NotFound, exception, extensions);
+		public IResponse NotFound(string message = "Not found", Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorMessage(message, ErrorType.NotFound, exception, extensions);
 
 		/// <summary>
 		/// Creates a NotFound error response with a payload containing additional details about what wasn't found.
@@ -498,9 +498,9 @@ public static partial class ResponseExtensions
 		/// <param name="payload">Payload with search criteria, attempted filters, or related resources that do exist.</param>
 		/// <param name="exception">Optional exception that led to the not found result.</param>
 		/// <param name="extensions">Optional metadata.</param>
-		/// <returns>An error Response&lt;TPayload&gt; with ErrorType.NotFound.</returns>
-		public Response<TPayload> NotFound<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorPayload(payload, message, ErrorType.NotFound, exception, extensions);
+		/// <returns>An error IResponse&lt;TPayload&gt; with ErrorType.NotFound.</returns>
+		public IResponse<TPayload> NotFound<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorPayload(payload, message, ErrorType.NotFound, exception, extensions);
 
 		/// <summary>
 		/// Creates a PermissionDenied error response indicating authentication or authorization failure.
@@ -517,18 +517,18 @@ public static partial class ResponseExtensions
 		/// Be careful not to leak sensitive information in production.
 		/// </param>
 		/// <returns>
-		/// An error Response with ErrorType.PermissionDenied.
+		/// An error IResponse with ErrorType.PermissionDenied.
 		/// </returns>
 		/// <example>
 		/// <code>
 		/// if (!User.IsAuthenticated)
 		/// {
-		///     return Response.Get.PermissionDenied("Authentication required");
+		///     return IResponse.Get.PermissionDenied("Authentication required");
 		/// }
 		/// 
 		/// if (!await authService.HasPermissionAsync(userId, Permission.EditDocument))
 		/// {
-		///     return Response.Get.PermissionDenied(
+		///     return IResponse.Get.PermissionDenied(
 		///         "You don't have permission to edit this document",
 		///         extensions: new[] 
 		///         { 
@@ -539,8 +539,8 @@ public static partial class ResponseExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response PermissionDenied(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorMessage(message, ErrorType.PermissionDenied, exception, extensions);
+		public IResponse PermissionDenied(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorMessage(message, ErrorType.PermissionDenied, exception, extensions);
 
 		/// <summary>
 		/// Creates a PermissionDenied error response with a payload (rarely needed).
@@ -550,9 +550,9 @@ public static partial class ResponseExtensions
 		/// <param name="payload">Payload with permission details or alternative access information.</param>
 		/// <param name="exception">Optional exception from authentication/authorization logic.</param>
 		/// <param name="extensions">Optional metadata.</param>
-		/// <returns>An error Response&lt;TPayload&gt; with ErrorType.PermissionDenied.</returns>
-		public Response<TPayload> PermissionDenied<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorPayload(payload, message, ErrorType.PermissionDenied, exception, extensions);
+		/// <returns>An error IResponse&lt;TPayload&gt; with ErrorType.PermissionDenied.</returns>
+		public IResponse<TPayload> PermissionDenied<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorPayload(payload, message, ErrorType.PermissionDenied, exception, extensions);
 
 		/// <summary>
 		/// Creates an InvalidData error response indicating validation failure or malformed input.
@@ -569,18 +569,18 @@ public static partial class ResponseExtensions
 		/// Consider using ErrorPayload&lt;ValidationErrors&gt; for structured validation errors.
 		/// </param>
 		/// <returns>
-		/// An error Response with ErrorType.InvalidData.
+		/// An error IResponse with ErrorType.InvalidData.
 		/// </returns>
 		/// <example>
 		/// <code>
 		/// if (string.IsNullOrWhiteSpace(email))
 		/// {
-		///     return Response.Get.InvalidData("Email is required");
+		///     return IResponse.Get.InvalidData("Email is required");
 		/// }
 		/// 
 		/// if (!EmailRegex.IsMatch(email))
 		/// {
-		///     return Response.Get.InvalidData(
+		///     return IResponse.Get.InvalidData(
 		///         "Invalid email format",
 		///         extensions: new[] { ("field", (object?)"email"), ("value", email) }
 		///     );
@@ -588,15 +588,15 @@ public static partial class ResponseExtensions
 		/// 
 		/// if (age &lt; 18)
 		/// {
-		///     return Response.Get.InvalidData(
+		///     return IResponse.Get.InvalidData(
 		///         "Must be 18 or older",
 		///         extensions: new[] { ("field", (object?)"age"), ("minimum", 18), ("actual", age) }
 		///     );
 		/// }
 		/// </code>
 		/// </example>
-		public Response InvalidData(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorMessage(message, ErrorType.InvalidData, exception, extensions);
+		public IResponse InvalidData(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorMessage(message, ErrorType.InvalidData, exception, extensions);
 
 		/// <summary>
 		/// Creates an InvalidData error response with a payload containing detailed validation errors.
@@ -611,7 +611,7 @@ public static partial class ResponseExtensions
 		/// </param>
 		/// <param name="exception">Optional exception from validation logic.</param>
 		/// <param name="extensions">Optional additional metadata.</param>
-		/// <returns>An error Response&lt;TPayload&gt; with ErrorType.InvalidData.</returns>
+		/// <returns>An error IResponse&lt;TPayload&gt; with ErrorType.InvalidData.</returns>
 		/// <example>
 		/// <code>
 		/// var errors = new Dictionary&lt;string, string[]&gt;
@@ -621,14 +621,14 @@ public static partial class ResponseExtensions
 		///     ["Age"] = new[] { "Must be 18 or older" }
 		/// };
 		/// 
-		/// return Response.Get.InvalidData(
+		/// return IResponse.Get.InvalidData(
 		///     "Validation failed",
 		///     payload: errors
 		/// );
 		/// </code>
 		/// </example>
-		public Response<TPayload> InvalidData<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorPayload(payload, message, ErrorType.InvalidData, exception, extensions);
+		public IResponse<TPayload> InvalidData<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorPayload(payload, message, ErrorType.InvalidData, exception, extensions);
 
 		/// <summary>
 		/// Creates a Conflict error response indicating a state conflict or duplicate resource.
@@ -645,14 +645,14 @@ public static partial class ResponseExtensions
 		/// Optional conflict details such as existing resource ID, current version, conflicting value.
 		/// </param>
 		/// <returns>
-		/// An error Response with ErrorType.Conflict.
+		/// An error IResponse with ErrorType.Conflict.
 		/// </returns>
 		/// <example>
 		/// <code>
 		/// // Duplicate check
 		/// if (await db.Users.AnyAsync(u => u.Email == email))
 		/// {
-		///     return Response.Get.Conflict(
+		///     return IResponse.Get.Conflict(
 		///         "Email address already in use",
 		///         extensions: new[] { ("email", (object?)email) }
 		///     );
@@ -661,7 +661,7 @@ public static partial class ResponseExtensions
 		/// // Optimistic concurrency
 		/// if (entity.Version != expectedVersion)
 		/// {
-		///     return Response.Get.Conflict(
+		///     return IResponse.Get.Conflict(
 		///         "Resource was modified by another user",
 		///         extensions: new[] 
 		///         { 
@@ -674,12 +674,12 @@ public static partial class ResponseExtensions
 		/// // State transition conflict
 		/// if (order.Status == OrderStatus.Completed)
 		/// {
-		///     return Response.Get.Conflict("Cannot modify a completed order");
+		///     return IResponse.Get.Conflict("Cannot modify a completed order");
 		/// }
 		/// </code>
 		/// </example>
-		public Response Conflict(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorMessage(message, ErrorType.Conflict, exception, extensions);
+		public IResponse Conflict(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorMessage(message, ErrorType.Conflict, exception, extensions);
 
 		/// <summary>
 		/// Creates a Conflict error response with a payload containing conflict details.
@@ -689,9 +689,9 @@ public static partial class ResponseExtensions
 		/// <param name="payload">Conflict details such as the existing resource that caused the conflict.</param>
 		/// <param name="exception">Optional exception from conflict detection.</param>
 		/// <param name="extensions">Optional additional metadata.</param>
-		/// <returns>An error Response&lt;TPayload&gt; with ErrorType.Conflict.</returns>
-		public Response<TPayload> Conflict<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorPayload(payload, message, ErrorType.Conflict, exception, extensions);
+		/// <returns>An error IResponse&lt;TPayload&gt; with ErrorType.Conflict.</returns>
+		public IResponse<TPayload> Conflict<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorPayload(payload, message, ErrorType.Conflict, exception, extensions);
 
 		/// <summary>
 		/// Creates a Critical error response for unexpected server errors.
@@ -709,7 +709,7 @@ public static partial class ResponseExtensions
 		/// Useful for correlating with server logs when debugging.
 		/// </param>
 		/// <returns>
-		/// An error Response with ErrorType.Critical.
+		/// An error IResponse with ErrorType.Critical.
 		/// </returns>
 		/// <remarks>
 		/// <para>
@@ -726,7 +726,7 @@ public static partial class ResponseExtensions
 		/// try
 		/// {
 		///     await database.SaveChangesAsync();
-		///     return Response.Get.Success();
+		///     return IResponse.Get.Success();
 		/// }
 		/// catch (Exception ex)
 		/// {
@@ -734,7 +734,7 @@ public static partial class ResponseExtensions
 		///     logger.LogError(ex, "Failed to save changes for user {UserId}", userId);
 		///     
 		///     // Return sanitized error
-		///     return Response.Get.Critical(
+		///     return IResponse.Get.Critical(
 		///         "An unexpected error occurred. Please try again later.",
 		///         exception: ex,
 		///         extensions: new[] 
@@ -746,8 +746,8 @@ public static partial class ResponseExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response Critical(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorMessage(message, ErrorType.Critical, exception, extensions);
+		public IResponse Critical(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorMessage(message, ErrorType.Critical, exception, extensions);
 
 		/// <summary>
 		/// Creates a Critical error response with a payload (rarely needed).
@@ -757,9 +757,9 @@ public static partial class ResponseExtensions
 		/// <param name="payload">Error-specific data (use cautiously to avoid leaking sensitive information).</param>
 		/// <param name="exception">The exception that caused the critical error.</param>
 		/// <param name="extensions">Optional tracking metadata.</param>
-		/// <returns>An error Response&lt;TPayload&gt; with ErrorType.Critical.</returns>
-		public Response<TPayload> Critical<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorPayload(payload, message, ErrorType.Critical, exception, extensions);
+		/// <returns>An error IResponse&lt;TPayload&gt; with ErrorType.Critical.</returns>
+		public IResponse<TPayload> Critical<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorPayload(payload, message, ErrorType.Critical, exception, extensions);
 
 		/// <summary>
 		/// Creates a NotSupported error response for unsupported operations, media types, or features.
@@ -773,14 +773,14 @@ public static partial class ResponseExtensions
 		/// Optional details about what was requested vs what is supported.
 		/// </param>
 		/// <returns>
-		/// An error Response with ErrorType.NotSupported.
+		/// An error IResponse with ErrorType.NotSupported.
 		/// </returns>
 		/// <example>
 		/// <code>
 		/// // Unsupported content type
 		/// if (contentType != "application/json")
 		/// {
-		///     return Response.Get.NotSupported(
+		///     return IResponse.Get.NotSupported(
 		///         "Only JSON content is supported",
 		///         extensions: new[] 
 		///         { 
@@ -793,7 +793,7 @@ public static partial class ResponseExtensions
 		/// // Feature not implemented
 		/// if (request.UseExperimentalFeature)
 		/// {
-		///     return Response.Get.NotSupported(
+		///     return IResponse.Get.NotSupported(
 		///         "Experimental features are not enabled on this server"
 		///     );
 		/// }
@@ -801,7 +801,7 @@ public static partial class ResponseExtensions
 		/// // Deprecated API version
 		/// if (apiVersion &lt; 2.0)
 		/// {
-		///     return Response.Get.NotSupported(
+		///     return IResponse.Get.NotSupported(
 		///         "API version 1.x is no longer supported. Please upgrade to v2.0 or later.",
 		///         extensions: new[] 
 		///         { 
@@ -812,8 +812,8 @@ public static partial class ResponseExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response NotSupported(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorMessage(message, ErrorType.NotSupported, exception, extensions);
+		public IResponse NotSupported(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorMessage(message, ErrorType.NotSupported, exception, extensions);
 
 		/// <summary>
 		/// Creates a NotSupported error response with a payload (rarely needed).
@@ -823,9 +823,9 @@ public static partial class ResponseExtensions
 		/// <param name="payload">Details about supported alternatives or upgrade paths.</param>
 		/// <param name="exception">Optional exception from attempting the unsupported operation.</param>
 		/// <param name="extensions">Optional additional metadata.</param>
-		/// <returns>An error Response&lt;TPayload&gt; with ErrorType.NotSupported.</returns>
-		public Response<TPayload> NotSupported<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorPayload(payload, message, ErrorType.NotSupported, exception, extensions);
+		/// <returns>An error IResponse&lt;TPayload&gt; with ErrorType.NotSupported.</returns>
+		public IResponse<TPayload> NotSupported<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorPayload(payload, message, ErrorType.NotSupported, exception, extensions);
 
 		/// <summary>
 		/// Creates an Unavailable error response for temporary service unavailability.
@@ -844,7 +844,7 @@ public static partial class ResponseExtensions
 		/// - "affected-services": List of unavailable dependencies
 		/// </param>
 		/// <returns>
-		/// An error Response with ErrorType.Unavailable.
+		/// An error IResponse with ErrorType.Unavailable.
 		/// </returns>
 		/// <remarks>
 		/// <para>
@@ -860,7 +860,7 @@ public static partial class ResponseExtensions
 		/// // External service down
 		/// if (!await paymentService.IsHealthyAsync())
 		/// {
-		///     return Response.Get.Unavailable(
+		///     return IResponse.Get.Unavailable(
 		///         "Payment service is temporarily unavailable. Please try again later.",
 		///         extensions: new[] 
 		///         { 
@@ -873,7 +873,7 @@ public static partial class ResponseExtensions
 		/// // Rate limiting
 		/// if (requestCount > rateLimit)
 		/// {
-		///     return Response.Get.Unavailable(
+		///     return IResponse.Get.Unavailable(
 		///         "Rate limit exceeded. Please slow down.",
 		///         extensions: new[] 
 		///         { 
@@ -887,15 +887,15 @@ public static partial class ResponseExtensions
 		/// // Circuit breaker open
 		/// if (circuitBreaker.State == CircuitState.Open)
 		/// {
-		///     return Response.Get.Unavailable(
+		///     return IResponse.Get.Unavailable(
 		///         "Service temporarily unavailable due to repeated failures",
 		///         extensions: new[] { ("retry-after-seconds", (object?)30) }
 		///     );
 		/// }
 		/// </code>
 		/// </example>
-		public Response Unavailable(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorMessage(message, ErrorType.Unavailable, exception, extensions);
+		public IResponse Unavailable(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorMessage(message, ErrorType.Unavailable, exception, extensions);
 
 		/// <summary>
 		/// Creates an Unavailable error response with a payload (rarely needed).
@@ -905,9 +905,9 @@ public static partial class ResponseExtensions
 		/// <param name="payload">Service status details, alternative endpoints, or partial results.</param>
 		/// <param name="exception">Optional exception from availability check.</param>
 		/// <param name="extensions">Optional retry information.</param>
-		/// <returns>An error Response&lt;TPayload&gt; with ErrorType.Unavailable.</returns>
-		public Response<TPayload> Unavailable<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorPayload(payload, message, ErrorType.Unavailable, exception, extensions);
+		/// <returns>An error IResponse&lt;TPayload&gt; with ErrorType.Unavailable.</returns>
+		public IResponse<TPayload> Unavailable<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorPayload(payload, message, ErrorType.Unavailable, exception, extensions);
 
 		/// <summary>
 		/// Creates a Timeout error response for operations that exceeded time limits.
@@ -926,7 +926,7 @@ public static partial class ResponseExtensions
 		/// - "operation": What operation timed out
 		/// </param>
 		/// <returns>
-		/// An error Response with ErrorType.Timeout.
+		/// An error IResponse with ErrorType.Timeout.
 		/// </returns>
 		/// <remarks>
 		/// <para>
@@ -946,11 +946,11 @@ public static partial class ResponseExtensions
 		/// {
 		///     var result = await operation
 		///         .WaitAsync(TimeSpan.FromSeconds(30), cancellationToken);
-		///     return Response.Get.SuccessPayload(result);
+		///     return IResponse.Get.SuccessPayload(result);
 		/// }
 		/// catch (TimeoutException ex)
 		/// {
-		///     return Response.Get.Timeout(
+		///     return IResponse.Get.Timeout(
 		///         "Operation timed out after 30 seconds",
 		///         exception: ex,
 		///         extensions: new[] 
@@ -964,7 +964,7 @@ public static partial class ResponseExtensions
 		/// // Database timeout
 		/// catch (SqlException ex) when (ex.Number == -2)
 		/// {
-		///     return Response.Get.Timeout(
+		///     return IResponse.Get.Timeout(
 		///         "Database query took too long to execute",
 		///         exception: ex,
 		///         extensions: new[] 
@@ -978,7 +978,7 @@ public static partial class ResponseExtensions
 		/// // Gateway timeout
 		/// catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.GatewayTimeout)
 		/// {
-		///     return Response.Get.Timeout(
+		///     return IResponse.Get.Timeout(
 		///         "Upstream service did not respond in time",
 		///         exception: ex,
 		///         extensions: new[] 
@@ -990,8 +990,8 @@ public static partial class ResponseExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response Timeout(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorMessage(message, ErrorType.Timeout, exception, extensions);
+		public IResponse Timeout(string message, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorMessage(message, ErrorType.Timeout, exception, extensions);
 
 		/// <summary>
 		/// Creates a Timeout error response with a payload (rarely needed).
@@ -1001,8 +1001,8 @@ public static partial class ResponseExtensions
 		/// <param name="payload">Partial results or timeout analysis data.</param>
 		/// <param name="exception">Optional TimeoutException.</param>
 		/// <param name="extensions">Optional timeout metrics.</param>
-		/// <returns>An error Response&lt;TPayload&gt; with ErrorType.Timeout.</returns>
-		public Response<TPayload> Timeout<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
-			=> Response.Get.ErrorPayload(payload, message, ErrorType.Timeout, exception, extensions);
+		/// <returns>An error IResponse&lt;TPayload&gt; with ErrorType.Timeout.</returns>
+		public IResponse<TPayload> Timeout<TPayload>(string message, TPayload payload, Exception? exception = null, IEnumerable<(string Property, object? Value)>? extensions = null)
+			=> ResponseExt.Get.ErrorPayload(payload, message, ErrorType.Timeout, exception, extensions);
 	}
 }

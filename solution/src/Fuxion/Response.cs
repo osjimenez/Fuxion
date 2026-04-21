@@ -11,6 +11,14 @@ using Fuxion.Text.Json.Serialization;
 namespace Fuxion;
 
 /// <summary>
+/// PEND DOC
+/// </summary>
+public class ResponseExt
+{
+	
+}
+
+/// <summary>
 ///    Represents the result of an operation with success/failure information and optional metadata.
 /// </summary>
 /// <param name="isSuccess">Indicates whether the operation succeeded.</param>
@@ -95,7 +103,7 @@ namespace Fuxion;
 /// }
 /// </code>
 /// </example>
-public class Response(bool isSuccess, string? message = null, object? errorType = null, Exception? exception = null) : IResponse
+public class ResponseBase(bool isSuccess, string? message = null, object? errorType = null, Exception? exception = null) : IResponse
 {
 	/// <summary>
 	///    Gets a value indicating whether the operation was successful.
@@ -217,25 +225,25 @@ public class Response(bool isSuccess, string? message = null, object? errorType 
 	[JsonExtensionData]
 	public ResponseExtensionsDictionary Extensions { get; init; } = new(StringComparer.Ordinal);
 
-	/// <summary>
-	///    Implicitly converts a Response to a boolean value.
-	/// </summary>
-	/// <param name="response">The response to convert.</param>
-	/// <returns>true if the response indicates success; otherwise, false.</returns>
-	/// <remarks>
-	///    This conversion allows using Response objects directly in conditional statements.
-	/// </remarks>
-	/// <example>
-	///    <code>
-	/// Response result = PerformOperation();
-	/// if (result) // Implicitly checks result.IsSuccess
-	/// {
-	///     Console.WriteLine("Success!");
-	/// }
-	/// </code>
-	/// </example>
-	public static implicit operator bool(Response response)
-		=> response.IsSuccess;
+	///// <summary>
+	/////    Implicitly converts a Response to a boolean value.
+	///// </summary>
+	///// <param name="response">The response to convert.</param>
+	///// <returns>true if the response indicates success; otherwise, false.</returns>
+	///// <remarks>
+	/////    This conversion allows using Response objects directly in conditional statements.
+	///// </remarks>
+	///// <example>
+	/////    <code>
+	///// Response result = PerformOperation();
+	///// if (result) // Implicitly checks result.IsSuccess
+	///// {
+	/////     Console.WriteLine("Success!");
+	///// }
+	///// </code>
+	///// </example>
+	//public static implicit operator bool(ResponseInt response)
+	//	=> response.IsSuccess;
 
 	/// <summary>
 	///    Attempts to extract a payload from the current response.
@@ -248,9 +256,9 @@ public class Response(bool isSuccess, string? message = null, object? errorType 
 	///    <see langword="true" /> if the response contains a payload; otherwise, <see langword="false" />.
 	/// </returns>
 	/// <remarks>
-	///    The base <see cref="Response" /> type does not carry a payload, so this implementation always returns
+	///    The base <see cref="ResponseBase" /> type does not carry a payload, so this implementation always returns
 	///    <see langword="false" /> and sets <paramref name="payload" /> to <see langword="null" />.
-	///    Derived types such as <see cref="Response{TPayload}" /> override this method to expose their payload value.
+	///    Derived types such as <see cref="ResponseBase{TPayload}" /> override this method to expose their payload value.
 	/// </remarks>
 	public virtual bool TryGetPayload([NotNullWhen(true)] out object? payload)
 	{
@@ -284,14 +292,14 @@ public class Response(bool isSuccess, string? message = null, object? errorType 
 /// <param name="exception">Optional exception that caused the failure.</param>
 /// <remarks>
 ///    <para>
-///       Extends <see cref="Response" /> to include a strongly-typed payload value. The payload is:
+///       Extends <see cref="ResponseBase" /> to include a strongly-typed payload value. The payload is:
 ///    </para>
 ///    <list type="bullet">
 ///       <item>
-///          <description>Required (non-null) when <see cref="Response.IsSuccess" /> is true</description>
+///          <description>Required (non-null) when <see cref="ResponseBase.IsSuccess" /> is true</description>
 ///       </item>
 ///       <item>
-///          <description>Typically null/default when <see cref="Response.IsSuccess" /> is false</description>
+///          <description>Typically null/default when <see cref="ResponseBase.IsSuccess" /> is false</description>
 ///       </item>
 ///    </list>
 ///    <para>
@@ -328,8 +336,8 @@ public class Response(bool isSuccess, string? message = null, object? errorType 
 /// Response&lt;string&gt; result = "Success!"; // Creates success response with payload
 /// </code>
 /// </example>
-public class Response<TPayload>(bool isSuccess, TPayload payload, string? message = null, object? errorType = null, Exception? exception = null)
-	: Response(isSuccess, message, errorType, exception), IResponse<TPayload>
+public class ResponseBase<TPayload>(bool isSuccess, TPayload payload, string? message = null, object? errorType = null, Exception? exception = null)
+	: ResponseBase(isSuccess, message, errorType, exception), IResponse<TPayload>
 {
 	/// <summary>
 	///    Gets a value indicating whether the operation was successful.
@@ -386,61 +394,61 @@ public class Response<TPayload>(bool isSuccess, TPayload payload, string? messag
 		get;
 		init
 			=> field = value?.GetType()
-				.IsSubclassOfGenericDefinition(typeof(Response<>)) ?? false // PEND Change typeof(Response<>) by is IResponse<> - Make test to try it
+				.IsSubclassOfGenericDefinition(typeof(ResponseBase<>)) ?? false // PEND Change typeof(Response<>) by is IResponse<> - Make test to try it
 				? throw new ArgumentException(
-					$"Payload is '{value.GetType().GetSignature()}' type, but can't be derived from '{typeof(Response<>).GetSignature()}' to avoid nested responses.",
+					$"Payload is '{value.GetType().GetSignature()}' type, but can't be derived from '{typeof(ResponseBase<>).GetSignature()}' to avoid nested responses.",
 					nameof(Payload))
 				: value;
 	} = payload;
 
-	/// <summary>
-	///    Implicitly converts a Response&lt;TPayload&gt; to its payload value.
-	/// </summary>
-	/// <param name="response">The response to extract the payload from.</param>
-	/// <returns>The payload value from the response.</returns>
-	/// <remarks>
-	///    <para>
-	///       This conversion allows using Response&lt;TPayload&gt; objects directly as their payload type.
-	///    </para>
-	///    <para>
-	///       <strong>Warning:</strong> This will return null/default if the response is a failure.
-	///       Always check <see cref="IsSuccess" /> before relying on implicit conversion in critical code paths.
-	///    </para>
-	/// </remarks>
-	/// <example>
-	///    <code>
-	/// Response&lt;int&gt; Calculate() => new(true, 42);
-	/// 
-	/// int result = Calculate(); // Implicitly extracts the 42
-	/// Console.WriteLine(result); // 42
-	/// </code>
-	/// </example>
-	public static implicit operator TPayload?(Response<TPayload> response)
-		=> response.Payload;
+	///// <summary>
+	/////    Implicitly converts a Response&lt;TPayload&gt; to its payload value.
+	///// </summary>
+	///// <param name="response">The response to extract the payload from.</param>
+	///// <returns>The payload value from the response.</returns>
+	///// <remarks>
+	/////    <para>
+	/////       This conversion allows using Response&lt;TPayload&gt; objects directly as their payload type.
+	/////    </para>
+	/////    <para>
+	/////       <strong>Warning:</strong> This will return null/default if the response is a failure.
+	/////       Always check <see cref="IsSuccess" /> before relying on implicit conversion in critical code paths.
+	/////    </para>
+	///// </remarks>
+	///// <example>
+	/////    <code>
+	///// Response&lt;int&gt; Calculate() => new(true, 42);
+	///// 
+	///// int result = Calculate(); // Implicitly extracts the 42
+	///// Console.WriteLine(result); // 42
+	///// </code>
+	///// </example>
+	//public static implicit operator TPayload?(ResponseInt<TPayload> response)
+	//	=> response.Payload;
 
-	/// <summary>
-	///    Implicitly converts a payload value to a successful Response&lt;TPayload&gt;.
-	/// </summary>
-	/// <param name="payload">The payload value to wrap in a response.</param>
-	/// <returns>A successful Response&lt;TPayload&gt; containing the payload.</returns>
-	/// <remarks>
-	///    This conversion allows returning payload values directly from methods that return Response&lt;TPayload&gt;,
-	///    automatically wrapping them in a success response.
-	/// </remarks>
-	/// <example>
-	///    <code>
-	/// Response&lt;string&gt; GetGreeting()
-	/// {
-	///     return "Hello, World!"; // Implicitly creates successful response
-	/// }
-	/// 
-	/// var response = GetGreeting();
-	/// // response.IsSuccess == true
-	/// // response.Payload == "Hello, World!"
-	/// </code>
-	/// </example>
-	public static implicit operator Response<TPayload>(TPayload payload)
-		=> new(true, payload);
+	///// <summary>
+	/////    Implicitly converts a payload value to a successful Response&lt;TPayload&gt;.
+	///// </summary>
+	///// <param name="payload">The payload value to wrap in a response.</param>
+	///// <returns>A successful Response&lt;TPayload&gt; containing the payload.</returns>
+	///// <remarks>
+	/////    This conversion allows returning payload values directly from methods that return Response&lt;TPayload&gt;,
+	/////    automatically wrapping them in a success response.
+	///// </remarks>
+	///// <example>
+	/////    <code>
+	///// Response&lt;string&gt; GetGreeting()
+	///// {
+	/////     return "Hello, World!"; // Implicitly creates successful response
+	///// }
+	///// 
+	///// var response = GetGreeting();
+	///// // response.IsSuccess == true
+	///// // response.Payload == "Hello, World!"
+	///// </code>
+	///// </example>
+	//public static implicit operator ResponseInt<TPayload>(TPayload payload)
+	//	=> new(true, payload);
 
 	/// <summary>
 	///    Attempts to extract the typed payload from the current response.
@@ -471,23 +479,7 @@ public class Response<TPayload>(bool isSuccess, TPayload payload, string? messag
 		return true;
 	}
 
-	/// <summary>
-	/// Returns the payload if successful; otherwise computes a fallback value from the error response.
-	/// </summary>
-	/// <param name="fallback">Function that receives the error response and returns an alternative payload value.</param>
-	/// <returns>The response payload when successful; otherwise the value returned by <paramref name="fallback"/>.</returns>
-	/// <remarks>
-	/// This method is useful when you want to recover from errors with context-aware logic.
-	/// If you just need the type default value on error, use <see cref="PayloadOrDefault"/>.
-	/// </remarks>
-	/// <example>
-	/// <code>
-	/// Response&lt;User&gt; response = GetUser(id);
-	/// var user = response.PayloadOrFallback(err => new User { Name = "Guest" });
-	/// // Always returns a User, either from response or default Guest
-	/// </code>
-	/// </example>
-	public TPayload PayloadOrFallback(Func<Response<TPayload>, TPayload> fallback) => IsSuccess ? Payload : fallback(this);
+
 
 	/// <summary>
 	/// Returns the payload if successful; otherwise returns the default value of <typeparamref name="TPayload"/>.
@@ -536,7 +528,7 @@ public class Response<TPayload>(bool isSuccess, TPayload payload, string? messag
 /// </summary>
 /// <param name="comparer">The string comparer used to compare extension keys.</param>
 /// <remarks>
-/// This type is used by <see cref="Response.Extensions"/> to store arbitrary metadata associated with a response,
+/// This type is used by <see cref="IResponse.Extensions"/> to store arbitrary metadata associated with a response,
 /// such as correlation identifiers, validation details, transport-specific information, or other custom values.
 /// </remarks>
 public class ResponseExtensionsDictionary(IEqualityComparer<string> comparer) : Dictionary<string, object?>(comparer)

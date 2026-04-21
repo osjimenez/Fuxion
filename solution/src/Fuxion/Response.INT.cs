@@ -263,6 +263,13 @@ public interface IResponse
 	/// </example>
 	[JsonExtensionData]
 	ResponseExtensionsDictionary Extensions { get; }
+
+	/// <summary>
+	/// PEND DOC
+	/// </summary>
+	/// <param name="payload"></param>
+	/// <returns></returns>
+	bool TryGetPayload([NotNullWhen(true)] out object? payload);
 }
 
 /// <summary>
@@ -424,7 +431,7 @@ public interface IResponse<out TPayload> : IResponse
 	/// ProcessData(unsafeData); // ⚠ Potential null reference
 	/// </code>
 	/// <para>
-	/// <strong>Implementation restriction:</strong> Concrete implementations (e.g., <see cref="Response{TPayload}"/>)
+	/// <strong>Implementation restriction:</strong> Concrete implementations (e.g., <see cref="ResponseBase{TPayload}"/>)
 	/// validate that TPayload is not another Response type to prevent confusing nested Response structures.
 	/// </para>
 	/// <para>This property is omitted from JSON when null or default.</para>
@@ -459,4 +466,10 @@ public interface IResponse<out TPayload> : IResponse
 	/// </example>
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 	TPayload? Payload { get; }
+
+	/// <summary>
+	/// PEND DOC
+	/// </summary>
+	/// <returns></returns>
+	TPayload? PayloadOrDefault();
 }

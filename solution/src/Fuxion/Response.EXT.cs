@@ -28,7 +28,7 @@ public static partial class ResponseExtensions
 	/// <summary>
 	/// Extension methods for Response class.
 	/// </summary>
-	extension(Response me)
+	extension(IResponse me)
 	{
 		/// <summary>
 		/// Checks if the response has a specific error type.
@@ -44,9 +44,9 @@ public static partial class ResponseExtensions
 		/// <typeparam name="T">The payload type for the new response.</typeparam>
 		/// <returns>A Response&lt;T&gt; with the same status and metadata.</returns>
 		/// <exception cref="InvalidOperationException">Thrown when attempting to convert a success response.</exception>
-		public Response<T> AsPayload<T>()
+		public IResponse<T> AsPayload<T>()
 		{
-			if (me is Response<T> r) return r;
+			if (me is IResponse<T> r) return r;
 			if (me.IsSuccess)
 				// PEND Ver si hacer algo distinto aquí en vez de lanza exception
 				throw new InvalidOperationException("Can't convert a success response to a different payload type.");
@@ -54,7 +54,7 @@ public static partial class ResponseExtensions
 			T returnPayload = default!;
 			if (me.TryGetPayload(out var payload) && payload is T t)
 				returnPayload = t;
-			return new(me.IsSuccess, returnPayload, me.Message, me.ErrorType, me.Exception)
+			return new ResponseBase<T>(me.IsSuccess, returnPayload, me.Message, me.ErrorType, me.Exception)
 			{
 				Extensions = me.Extensions
 			};
@@ -73,7 +73,7 @@ public static partial class ResponseExtensions
 		///     .AddOrUpdateExtension("timestamp", DateTime.UtcNow);
 		/// </code>
 		/// </example>
-		public Response AddOrUpdateExtension(string key, object? value)
+		public IResponse AddOrUpdateExtension(string key, object? value)
 		{
 			if (me.Extensions.TryGetValue(key, out var val))
 				me.Extensions[key] = value;
@@ -102,7 +102,7 @@ public static partial class ResponseExtensions
 		/// );
 		/// </code>
 		/// </example>
-		public T Match<T>(Func<Response, T> success, Func<Response, T> error) => me.IsSuccess ? success(me) : error(me);
+		public T Match<T>(Func<IResponse, T> success, Func<IResponse, T> error) => me.IsSuccess ? success(me) : error(me);
 
 		/// <summary>
 		/// Executes one of two functions based on the response state, with async support for success case.
@@ -111,7 +111,7 @@ public static partial class ResponseExtensions
 		/// <param name="success">Async function to execute if the response is successful.</param>
 		/// <param name="error">Sync function to execute if the response is an error.</param>
 		/// <returns>A task containing the result of the executed function.</returns>
-		public async Task<T> MatchAsync<T>(Func<Response, Task<T>> success, Func<Response, T> error) => me.IsSuccess ? await success(me) : error(me);
+		public async Task<T> MatchAsync<T>(Func<IResponse, Task<T>> success, Func<IResponse, T> error) => me.IsSuccess ? await success(me) : error(me);
 
 		/// <summary>
 		/// Executes one of two async functions based on the response state.
@@ -120,7 +120,7 @@ public static partial class ResponseExtensions
 		/// <param name="success">Async function to execute if the response is successful.</param>
 		/// <param name="error">Async function to execute if the response is an error.</param>
 		/// <returns>A task containing the result of the executed function.</returns>
-		public async Task<T> MatchAsync<T>(Func<Response, Task<T>> success, Func<Response, Task<T>> error) => me.IsSuccess ? await success(me) : await error(me);
+		public async Task<T> MatchAsync<T>(Func<IResponse, Task<T>> success, Func<IResponse, Task<T>> error) => me.IsSuccess ? await success(me) : await error(me);
 
 		/// <summary>
 		/// Executes one of two functions based on the response state, with async support for error case.
@@ -129,13 +129,13 @@ public static partial class ResponseExtensions
 		/// <param name="success">Sync function to execute if the response is successful.</param>
 		/// <param name="error">Async function to execute if the response is an error.</param>
 		/// <returns>A task containing the result of the executed function.</returns>
-		public async Task<T> MatchAsync<T>(Func<Response, T> success, Func<Response, Task<T>> error) => me.IsSuccess ? success(me) : await error(me);
+		public async Task<T> MatchAsync<T>(Func<IResponse, T> success, Func<IResponse, Task<T>> error) => me.IsSuccess ? success(me) : await error(me);
 	}
 
 	/// <summary>
 	/// Extension methods for Response&lt;TPayload&gt; class.
 	/// </summary>
-	extension<TPayload>(Response<TPayload> me)
+	extension<TPayload>(IResponse<TPayload> me)
 	{
 		/// <summary>
 		/// Executes one of two functions based on the response state (success or error).
@@ -157,7 +157,7 @@ public static partial class ResponseExtensions
 		/// );
 		/// </code>
 		/// </example>
-		public T Match<T>(Func<Response<TPayload>, T> success, Func<Response<TPayload>, T> error) => me.IsSuccess ? success(me) : error(me);
+		public T Match<T>(Func<IResponse<TPayload>, T> success, Func<IResponse<TPayload>, T> error) => me.IsSuccess ? success(me) : error(me);
 
 		/// <summary>
 		/// Executes one of two functions based on the response state, with async support for success case.
@@ -175,7 +175,7 @@ public static partial class ResponseExtensions
 		/// );
 		/// </code>
 		/// </example>
-		public async Task<T> MatchAsync<T>(Func<Response<TPayload>, Task<T>> success, Func<Response<TPayload>, T> error) => me.IsSuccess ? await success(me) : error(me);
+		public async Task<T> MatchAsync<T>(Func<IResponse<TPayload>, Task<T>> success, Func<IResponse<TPayload>, T> error) => me.IsSuccess ? await success(me) : error(me);
 
 		/// <summary>
 		/// Executes one of two async functions based on the response state.
@@ -193,7 +193,7 @@ public static partial class ResponseExtensions
 		/// );
 		/// </code>
 		/// </example>
-		public async Task<T> MatchAsync<T>(Func<Response<TPayload>, Task<T>> success, Func<Response<TPayload>, Task<T>> error) => me.IsSuccess ? await success(me) : await error(me);
+		public async Task<T> MatchAsync<T>(Func<IResponse<TPayload>, Task<T>> success, Func<IResponse<TPayload>, Task<T>> error) => me.IsSuccess ? await success(me) : await error(me);
 
 		/// <summary>
 		/// Executes one of two functions based on the response state, with async support for error case.
@@ -211,13 +211,31 @@ public static partial class ResponseExtensions
 		/// );
 		/// </code>
 		/// </example>
-		public async Task<T> MatchAsync<T>(Func<Response<TPayload>, T> success, Func<Response<TPayload>, Task<T>> error) => me.IsSuccess ? success(me) : await error(me);
+		public async Task<T> MatchAsync<T>(Func<IResponse<TPayload>, T> success, Func<IResponse<TPayload>, Task<T>> error) => me.IsSuccess ? success(me) : await error(me);
+
+		/// <summary>
+		/// Returns the payload if successful; otherwise computes a fallback value from the error response.
+		/// </summary>
+		/// <param name="fallback">Function that receives the error response and returns an alternative payload value.</param>
+		/// <returns>The response payload when successful; otherwise the value returned by <paramref name="fallback"/>.</returns>
+		/// <remarks>
+		/// This method is useful when you want to recover from errors with context-aware logic.
+		/// If you just need the type default value on error, use PayloadOrDefault/>.
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// Response&lt;User&gt; response = GetUser(id);
+		/// var user = response.PayloadOrFallback(err => new User { Name = "Guest" });
+		/// // Always returns a User, either from response or default Guest
+		/// </code>
+		/// </example>
+		public TPayload PayloadOrFallback(Func<IResponse<TPayload>, TPayload> fallback) => me.IsSuccess ? me.Payload : fallback(me);
 	}
 
 	/// <summary>
 	/// Extension methods for collections of IResponse.
 	/// </summary>
-	extension(IEnumerable<Response> me)
+	extension(IEnumerable<IResponse> me)
 	{
 		/// <summary>
 		/// Combines multiple responses into a single response whose payload contains either all input responses or only the error responses.
@@ -228,7 +246,7 @@ public static partial class ResponseExtensions
 		/// When <see langword="false"/>, the payload includes only the responses in error state.
 		/// </param>
 		/// <returns>
-		/// A <see cref="Response{TPayload}"/> whose payload contains either the original input sequence or only the failing responses,
+		/// A <see cref="IResponse{TPayload}"/> whose payload contains either the original input sequence or only the failing responses,
 		/// depending on <paramref name="includeSucessResponses"/>.
 		/// If all responses are successful, returns <c>SuccessPayload</c> with <paramref name="successMessage"/>.
 		/// If exactly one response fails, returns an error response preserving that response's message, type, exception, and extensions.
@@ -236,7 +254,7 @@ public static partial class ResponseExtensions
 		/// error type when all errors match, or <see cref="ErrorType.Combined"/> when they differ.
 		/// </returns>
 		/// <remarks>
-		/// This method aggregates a set of <see cref="Response"/> instances while preserving the semantics of the error cases.
+		/// This method aggregates a set of <see cref="IResponse"/> instances while preserving the semantics of the error cases.
 		/// The payload content is controlled by <paramref name="includeSucessResponses"/>:
 		/// include everything for contextual inspection, or only the failing responses for focused error handling.
 		/// </remarks>
@@ -262,13 +280,13 @@ public static partial class ResponseExtensions
 		/// var fullResult = responses.CombineResponses(includeSucessResponses: true);
 		/// </code>
 		/// </example>
-		public Response<IEnumerable<Response>> CombineResponses(string? successMessage = null, bool includeSucessResponses = false)
+		public IResponse<IEnumerable<IResponse>> CombineResponses(string? successMessage = null, bool includeSucessResponses = false)
 		{
 			var errors = me.Where(r => r.IsError).ToList();
 			return errors.Count switch
 			{
-				0 => Response.Get.SuccessPayload(me, successMessage),
-				1 => new(
+				0 => ResponseExt.Get.SuccessPayload(me, successMessage),
+				1 => new ResponseBase<IEnumerable<IResponse>> (
 						errors[0].IsSuccess,
 						includeSucessResponses ? me : errors,
 						errors[0].Message,
@@ -277,7 +295,7 @@ public static partial class ResponseExtensions
 				{
 					Extensions = errors[0].Extensions
 				},
-				_ => Response.Get.ErrorPayload(
+				_ => ResponseExt.Get.ErrorPayload(
 					includeSucessResponses ? me : errors,
 					string.Join("\r\n", errors.Select(r => r.Message)),
 					errors.GroupBy(e => e.ErrorType).Count() == 1

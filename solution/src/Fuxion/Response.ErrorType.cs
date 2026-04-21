@@ -318,7 +318,7 @@ public enum ErrorType
 	/// <remarks>
 	/// <para>Use when:</para>
 	/// <list type="bullet">
-	/// <item><description>Multiple responses are aggregated and their <see cref="Response.ErrorType"/> values differ</description></item>
+	/// <item><description>Multiple responses are aggregated and their <see cref="IResponse.ErrorType"/> values differ</description></item>
 	/// <item><description>A batch or composite operation fails for more than one reason</description></item>
 	/// <item><description>No single error category accurately represents the combined failure</description></item>
 	/// </list>

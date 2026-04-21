@@ -307,7 +307,7 @@ public static partial class ReflectionExtensions
 		/// The name of the embedded resource file to retrieve.
 		/// </param>
 		/// <returns>
-		/// A <see cref="Response{T}"/> containing the resource <see cref="Stream"/> if found;
+		/// A <see cref="IResponse{T}"/> containing the resource <see cref="Stream"/> if found;
 		/// otherwise, an error response indicating the resource was not found or the assembly name is null.
 		/// </returns>
 		/// <remarks>
@@ -325,15 +325,15 @@ public static partial class ReflectionExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response<Stream> GetResourceStream(string folder, string fileName)
+		public IResponse<Stream> GetResourceStream(string folder, string fileName)
 		{
 			if (assembly.FullName is null)
-				return Response.Get.Critical("Assembly.FullName is null").AsPayload<Stream>();
+				return ResponseExt.Get.Critical("Assembly.FullName is null").AsPayload<Stream>();
 			var resourceName = assembly.FullName.Split(',')[0] + "." + folder.Replace("\\", ".").Replace("/", ".") + "." + fileName;
 			var res = assembly.GetManifestResourceStream(resourceName);
 			return res is null
-				? Response.Get.NotFound($"Resource with name '{resourceName}' was not found on assembly").AsPayload<Stream>()
-				: Response.Get.SuccessPayload(res);
+				? ResponseExt.Get.NotFound($"Resource with name '{resourceName}' was not found on assembly").AsPayload<Stream>()
+				: ResponseExt.Get.SuccessPayload(res);
 		}
 
 		/// <summary>
@@ -347,7 +347,7 @@ public static partial class ReflectionExtensions
 		/// The name of the embedded resource file to retrieve.
 		/// </param>
 		/// <returns>
-		/// A <see cref="Response{T}"/> containing the resource content as a string if found;
+		/// A <see cref="IResponse{T}"/> containing the resource content as a string if found;
 		/// otherwise, an error response indicating the resource was not found or the assembly name is null.
 		/// </returns>
 		/// <remarks>
@@ -365,9 +365,9 @@ public static partial class ReflectionExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public Response<string> GetResourceAsString(string folder, string fileName) =>
+		public IResponse<string> GetResourceAsString(string folder, string fileName) =>
 			GetResourceStream(assembly, folder, fileName).Match(
-				r => Response.Get.SuccessPayload(new StreamReader(r.Payload!).ReadToEnd()),
+				r => ResponseExt.Get.SuccessPayload(new StreamReader(r.Payload!).ReadToEnd()),
 				r => r.AsPayload<string>());
 
 		/// <summary>
@@ -384,7 +384,7 @@ public static partial class ReflectionExtensions
 		/// A <see cref="CancellationToken"/> to observe while waiting for the task to complete.
 		/// </param>
 		/// <returns>
-		/// A task that represents the asynchronous operation. The task result contains a <see cref="Response{T}"/> 
+		/// A task that represents the asynchronous operation. The task result contains a <see cref="IResponse{T}"/> 
 		/// with the resource content as a string if found; otherwise, an error response indicating 
 		/// the resource was not found or the assembly name is null.
 		/// </returns>
@@ -414,9 +414,9 @@ public static partial class ReflectionExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public async Task<Response<string>> GetResourceAsStringAsync(string folder, string fileName, CancellationToken ct = default) =>
+		public async Task<IResponse<string>> GetResourceAsStringAsync(string folder, string fileName, CancellationToken ct = default) =>
 			await GetResourceStream(assembly, folder, fileName).MatchAsync(
-				async r => Response.Get.SuccessPayload(await new StreamReader(r.Payload!).ReadToEndAsync(
+				async r => ResponseExt.Get.SuccessPayload(await new StreamReader(r.Payload!).ReadToEndAsync(
 #if !STANDARD_OR_OLD_FRAMEWORKS
 				ct
 #endif

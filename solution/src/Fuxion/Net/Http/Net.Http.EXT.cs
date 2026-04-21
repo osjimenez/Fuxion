@@ -16,7 +16,7 @@ using Fuxion.Reflection;
 namespace Fuxion.Net.Http;
 
 /// <summary>
-/// Provides extension methods for converting <see cref="HttpResponseMessage"/> to Fuxion <see cref="Response"/> objects.
+/// Provides extension methods for converting <see cref="HttpResponseMessage"/> to Fuxion <see cref="IResponse"/> objects.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -470,20 +470,20 @@ public static class Extensions
 	}
 
 	// Core wrappers to produce Response objects from an HttpResponseMessage
-	static async Task<Response> AsResponseFromMessageAsync(HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+	static async Task<IResponse> AsResponseFromMessageAsync(HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 	{
 		var (extensions, problem, _, exception) = await DoAsResponse(res, null, jsonOptions, ct);
 
 		if (res.IsSuccessStatusCode)
 			if (extensions.Any(e => e.Key == StringContentKey))
-				return Response.Get.SuccessMessage(extensions.First(e => e.Key == StringContentKey)
+				return ResponseExt.Get.SuccessMessage(extensions.First(e => e.Key == StringContentKey)
 					.Value?.ToString() ?? string.Empty, extensions.ToEnumerable());
 			else
-				return Response.Get.Success(extensions.ToEnumerable());
+				return ResponseExt.Get.Success(extensions.ToEnumerable());
 
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
-		return Response.Get
+		return ResponseExt.Get
 			.ErrorMessage(
 				problem?.Detail
 				?? extensions.FirstOrDefault(e => e.Key == StringContentKey).Value?.ToString()
@@ -493,21 +493,21 @@ public static class Extensions
 				exception: exception);
 	}
 
-	static async Task<Response<TPayload>> AsResponseFromMessageAsync<TPayload>(HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+	static async Task<IResponse<TPayload>> AsResponseFromMessageAsync<TPayload>(HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 	{
 		var (extensions, problem, deserializedBody, exception) = await DoAsResponse(res, typeof(TPayload), jsonOptions, ct);
 
 		if (res.IsSuccessStatusCode)
 		{
 			if (deserializedBody is TPayload payload)
-				return Response.Get.SuccessPayload(payload, extensions: extensions.ToEnumerable());
+				return ResponseExt.Get.SuccessPayload(payload, extensions: extensions.ToEnumerable());
 			if (extensions.JsonContent.IsDefined)
-				return Response.Get
+				return ResponseExt.Get
 					.InvalidData($"The content of the response isn't '{typeof(TPayload).GetSignature()}' type.",
 						extensions: extensions.ToEnumerable(),
 						exception: exception)
 					.AsPayload<TPayload>();
-			return Response.Get
+			return ResponseExt.Get
 				.InvalidData("The content of the response isn't a valid json.",
 					extensions: extensions.ToEnumerable(),
 					exception: exception)
@@ -515,7 +515,7 @@ public static class Extensions
 		}
 		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
 
-		return Response.Get
+		return ResponseExt.Get
 			.ErrorMessage(
 				problem?.Detail
 				?? extensions.FirstOrDefault(e => e.Key == StringContentKey).Value?.ToString()
@@ -633,11 +633,11 @@ public static class Extensions
 	extension(Task<HttpResponseMessage> me)
 	{
 		/// <summary>
-		/// Converts an HTTP response to a Fuxion Response object asynchronously.
+		/// Converts an HTTP response to a Fuxion <see cref="IResponse"/> object asynchronously.
 		/// </summary>
 		/// <param name="jsonOptions">Optional JSON serialization options.</param>
 		/// <param name="ct">Cancellation token.</param>
-		/// <returns>A Response object containing success/error information and extensions with HTTP metadata.</returns>
+		/// <returns>A <see cref="IResponse"/> object containing success/error information and extensions with HTTP metadata.</returns>
 		/// <remarks>
 		/// This overload doesn't deserialize the response body into a typed payload.
 		/// Use the generic overload if you need typed payload extraction.
@@ -652,16 +652,16 @@ public static class Extensions
 		/// }
 		/// </code>
 		/// </example>
-		public async Task<Response> AsResponseAsync(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+		public async Task<IResponse> AsResponseAsync(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 			=> await Extensions.AsResponseFromMessageAsync(await me, jsonOptions, ct);
 
 		/// <summary>
-		/// Converts an HTTP response to a Fuxion Response&lt;TPayload&gt; object asynchronously with automatic JSON deserialization.
+		/// Converts an HTTP response to a Fuxion <see cref="IResponse{TPayload}"/> object asynchronously with automatic JSON deserialization.
 		/// </summary>
 		/// <typeparam name="TPayload">The type to deserialize the response body into. Can be Stream or byte[] for binary content.</typeparam>
 		/// <param name="jsonOptions">Optional JSON serialization options.</param>
 		/// <param name="ct">Cancellation token.</param>
-		/// <returns>A Response&lt;TPayload&gt; object containing the deserialized payload on success or error information.</returns>
+		/// <returns>A <see cref="IResponse{TPayload}"/> object containing the deserialized payload on success or error information.</returns>
 		/// <remarks>
 		/// <para>Special handling for specific payload types:</para>
 		/// <list type="bullet">
@@ -691,7 +691,7 @@ public static class Extensions
 		/// }
 		/// </code>
 		/// </example>
-		public async Task<Response<TPayload>> AsResponseAsync<TPayload>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+		public async Task<IResponse<TPayload>> AsResponseAsync<TPayload>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 			=> await Extensions.AsResponseFromMessageAsync<TPayload>(await me, jsonOptions, ct);
 	}
 
@@ -701,34 +701,34 @@ public static class Extensions
 	extension(HttpResponseMessage res)
 	{
 		/// <summary>
-		/// Converts this HTTP response to a Fuxion Response object asynchronously.
+		/// Converts this HTTP response to a Fuxion <see cref="IResponse"/> object asynchronously.
 		/// </summary>
 		/// <param name="jsonOptions">Optional JSON serialization options.</param>
 		/// <param name="ct">Cancellation token.</param>
-		/// <returns>A Response object containing success/error information and extensions with HTTP metadata.</returns>
+		/// <returns>A <see cref="IResponse"/> object containing success/error information and extensions with HTTP metadata.</returns>
 		/// <example>
 		/// <code>
 		/// HttpResponseMessage httpResponse = await httpClient.GetAsync("/api/endpoint");
 		/// var response = await httpResponse.AsResponseAsync();
 		/// </code>
 		/// </example>
-		public async Task<Response> AsResponseAsync(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+		public async Task<IResponse> AsResponseAsync(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 			=> await Extensions.AsResponseFromMessageAsync(res, jsonOptions, ct);
 
 		/// <summary>
-		/// Converts this HTTP response to a Fuxion Response&lt;TPayload&gt; object asynchronously with automatic JSON deserialization.
+		/// Converts this HTTP response to a Fuxion <see cref="IResponse{TPayload}"/> object asynchronously with automatic JSON deserialization.
 		/// </summary>
 		/// <typeparam name="TPayload">The type to deserialize the response body into.</typeparam>
 		/// <param name="jsonOptions">Optional JSON serialization options.</param>
 		/// <param name="ct">Cancellation token.</param>
-		/// <returns>A Response&lt;TPayload&gt; object containing the deserialized payload on success or error information.</returns>
+		/// <returns>A <see cref="IResponse{TPayload}"/> object containing the deserialized payload on success or error information.</returns>
 		/// <example>
 		/// <code>
 		/// HttpResponseMessage httpResponse = await httpClient.PostAsync("/api/users", content);
 		/// var response = await httpResponse.AsResponseAsync&lt;User&gt;();
 		/// </code>
 		/// </example>
-		public async Task<Response<TPayload>> AsResponseAsync<TPayload>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+		public async Task<IResponse<TPayload>> AsResponseAsync<TPayload>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 			=> await Extensions.AsResponseFromMessageAsync<TPayload>(res, jsonOptions, ct);
 	}
 
