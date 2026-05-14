@@ -446,6 +446,55 @@ public static class EndpointsExtensions
 	/// </code>
 	/// </example>
 	public static void MapEndpointsForAssembly(this IEndpointRouteBuilder builder, Assembly assembly)
+		=> MapEndpointsForAssemblyPrivate(builder, assembly);
+
+	/// <summary>
+	///    Discovers and registers all endpoints from the specified assembly under the specified base route group.
+	/// </summary>
+	/// <typeparam name="TRouteGroup">
+	///    The route group type that will act as the registration root for the discovered endpoints and groups.
+	/// </typeparam>
+	/// <param name="builder">
+	///    The <see cref="IEndpointRouteBuilder"/> to register endpoints on.
+	/// </param>
+	/// <param name="assembly">
+	///    The assembly to scan for endpoint and route group implementations.
+	/// </param>
+	/// <remarks>
+	///    <para>
+	///       Unlike <see cref="MapEndpointsForAssembly(IEndpointRouteBuilder, Assembly)"/>, this overload creates the
+	///       specified base route group first and registers everything beneath it.
+	///    </para>
+	///    <para>
+	///       The registration rules are:
+	///    </para>
+	///    <list type="bullet">
+	///       <item>
+	///          <description>Endpoints without an explicit route group are mapped directly inside <typeparamref name="TRouteGroup"/>.</description>
+	///       </item>
+	///       <item>
+	///          <description>Root route groups (groups without a parent) are mapped as children of <typeparamref name="TRouteGroup"/>.</description>
+	///       </item>
+	///       <item>
+	///          <description>Existing nested route group hierarchies are preserved below their declared parents.</description>
+	///       </item>
+	///    </list>
+	///    <para>
+	///       This is useful when a module or assembly should be mounted below a common prefix or configuration boundary
+	///       such as versioning, tenant routing, or feature-area grouping.
+	///    </para>
+	/// </remarks>
+	/// <example>
+	///    <code>
+	/// // Mount all discovered endpoints below /api/v1
+	/// app.MapEndpointsForAssembly&lt;ApiV1Group&gt;(typeof(Program).Assembly);
+	/// </code>
+	/// </example>
+	public static void MapEndpointsForAssembly<TRouteGroup>(this IEndpointRouteBuilder builder, Assembly assembly)
+		where TRouteGroup : IRouteGroup, new()
+		=> MapEndpointsForAssemblyPrivate(builder, assembly, typeof(TRouteGroup));
+
+	private static void MapEndpointsForAssemblyPrivate(IEndpointRouteBuilder builder, Assembly assembly, Type? baseRouteGroupType = null)
 	{
 		// Compruebo que no haya endpoints o grupos mal configurados
 		foreach (var res in assembly.GetTypes()
@@ -462,6 +511,16 @@ public static class EndpointsExtensions
 			if (res.Count > 2)
 				throw new InvalidOperationException($"The type '{res.Type.GetSignature()}' can't implement more than one of IEndpoint, IEndpoint<TRouteGroup>, IRouteGroup, IRouteGroup<TRouteGroup> at the same time");
 
+		RouteGroupBuilder? baseRouteGroupBuilder = null;
+		if (baseRouteGroupType is not null)
+		{
+			if (!typeof(IRouteGroup).IsAssignableFrom(baseRouteGroupType))
+				throw new InvalidOperationException($"The type '{baseRouteGroupType.GetSignature()}' must implement '{nameof(IRouteGroup)}'");
+			if (baseRouteGroupType.GetConstructors().Any(c => c.GetParameters().Length != 0))
+				throw new InvalidOperationException($"The type '{baseRouteGroupType.GetSignature()}' only can has one parameterless constructor");
+			baseRouteGroupBuilder = ((IRouteGroup)Activator.CreateInstance(baseRouteGroupType)!).Group(builder);
+		}
+
 		// Primero busco los endpoints sin grupo
 		var endpoints = assembly.GetTypes()
 			.Where(t => t is { IsInterface: false, IsAbstract: false })
@@ -476,7 +535,7 @@ public static class EndpointsExtensions
 			})
 			.ToList();
 		// Registro los endpoints sin grupo
-		foreach (var endpoint in endpoints) endpoint.MapEndpoint(builder);
+		foreach (var endpoint in endpoints) endpoint.MapEndpoint(baseRouteGroupBuilder ?? builder);
 
 		// Busco los grupos
 		var allGroups = assembly.GetTypes()
@@ -494,7 +553,12 @@ public static class EndpointsExtensions
 					parentGroupType = t.GetInterfaces()
 						.First(i => i.IsSubclassOfGenericDefinition(typeof(IRouteGroup<>)))
 						.GetGenericArguments()[0];
-					parentGroup = (IRouteGroup)Activator.CreateInstance(parentGroupType)!;
+					if (parentGroupType != baseRouteGroupType)
+						parentGroup = (IRouteGroup)Activator.CreateInstance(parentGroupType)!;
+				}
+				else if (baseRouteGroupType is not null && t != baseRouteGroupType)
+				{
+					parentGroupType = baseRouteGroupType;
 				}
 
 				return new MapEndpointsForAssemblyData
@@ -507,14 +571,20 @@ public static class EndpointsExtensions
 			})
 			.ToList();
 
+		if (baseRouteGroupType is not null)
+			allGroups = allGroups.Where(g => g.GroupType != baseRouteGroupType).ToList();
+
 		// Registro los grupos con su jerarquía
-		var currentGroups = allGroups.Where(g => g.ParentGroup == null).ToList();
+		var currentGroups = allGroups.Where(g => g.ParentGroupType == null || g.ParentGroupType == baseRouteGroupType).ToList();
 		while (currentGroups.Count != 0)
 		{
 			var data = currentGroups.First();
-			data.Builder = data.Group.Group(data.ParentGroup != null
-				? allGroups.First(g => g.GroupType == data.ParentGroupType).Builder!
-				: builder);
+			IEndpointRouteBuilder parentBuilder = data.ParentGroupType == null
+				? builder
+				: data.ParentGroupType == baseRouteGroupType
+					? baseRouteGroupBuilder ?? throw new InvalidOperationException($"The base route group '{baseRouteGroupType!.GetSignature()}' couldn't be created")
+					: allGroups.First(g => g.GroupType == data.ParentGroupType).Builder!;
+			data.Builder = data.Group.Group(parentBuilder);
 			currentGroups.Remove(data);
 			currentGroups.AddRange(allGroups.Where(g => g.ParentGroupType == data.GroupType));
 		}

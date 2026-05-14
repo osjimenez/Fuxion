@@ -14,4 +14,9 @@
 	<!-- Analyzers -->
 	<Import Project="$(Analyzers_Reference_Prop)" />
 	
+	<PropertyGroup>
+		<!-- Remove warnings to moderate and high vulnerabilities in nugets -->
+		<NoWarn>$(NoWarn);NU1902;NU1903</NoWarn>
+	</PropertyGroup>
+
 </Project>
