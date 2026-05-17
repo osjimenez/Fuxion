@@ -93,16 +93,16 @@ namespace Fuxion.Text.Json;
 public static class JsonExtensions
 {
 	/// <summary>
-	/// Provides a <see cref="JsonTypeInfoResolver"/> that combines private constructor support with alphabetical property ordering.
+	/// Provides a configurable <see cref="JsonTypeInfoResolver"/> for Fuxion formatted JSON behavior.
 	/// </summary>
 	/// <remarks>
 	/// <para>
 	/// <see cref="FuxionFormattedTypeInfoResolver"/> is the default type info resolver used by Fuxion's formatted JSON serialization.
-	/// It extends <see cref="DefaultJsonTypeInfoResolver"/> to provide two key features:
+	/// It extends <see cref="DefaultJsonTypeInfoResolver"/> and can independently enable two behaviors:
 	/// </para>
 	/// <list type="bullet">
-	/// <item><description><strong>Private constructor support:</strong> Enables deserialization of types with private or non-public parameterless constructors</description></item>
-	/// <item><description><strong>Alphabetical property ordering:</strong> Automatically sorts properties by name for consistent, predictable JSON output</description></item>
+	/// <item><description><strong>Private constructor support:</strong> Enables deserialization of types with private or non-public parameterless constructors when <see cref="AllowPrivateConstructors"/> is <see langword="true"/></description></item>
+	/// <item><description><strong>Alphabetical property ordering:</strong> Automatically sorts properties by name for consistent, predictable JSON output when <see cref="OrderPropertiesAlphabetically"/> is <see langword="true"/></description></item>
 	/// </list>
 	/// <para>
 	/// This resolver is automatically used when the <c>formatted: true</c> parameter is specified in JSON operations,
@@ -112,8 +112,9 @@ public static class JsonExtensions
 	/// <strong>Private constructor handling:</strong>
 	/// </para>
 	/// <para>
-	/// For types without public constructors, the resolver assigns a <see cref="JsonTypeInfo.CreateObject"/> delegate
-	/// that uses <see cref="Activator.CreateInstance(Type, bool)"/> with <c>nonPublic: true</c>. This allows
+	/// When <see cref="AllowPrivateConstructors"/> is enabled, the resolver assigns a <see cref="JsonTypeInfo.CreateObject"/> delegate
+	/// for object types without public constructors and without an existing factory. That delegate uses
+	/// <see cref="Activator.CreateInstance(Type, bool)"/> with <c>nonPublic: true</c>. This allows
 	/// deserialization of:
 	/// </para>
 	/// <list type="bullet">
@@ -125,8 +126,9 @@ public static class JsonExtensions
 	/// <strong>Alphabetical property ordering:</strong>
 	/// </para>
 	/// <para>
-	/// All properties in <see cref="JsonTypeInfo.Properties"/> are sorted by <see cref="JsonPropertyInfo.Name"/>
-	/// and assigned sequential <see cref="JsonPropertyInfo.Order"/> values starting from 1. This ensures:
+	/// When <see cref="OrderPropertiesAlphabetically"/> is enabled, all properties in <see cref="JsonTypeInfo.Properties"/>
+	/// are sorted by <see cref="JsonPropertyInfo.Name"/> and assigned sequential <see cref="JsonPropertyInfo.Order"/>
+	/// values starting from 1. This ensures:
 	/// </para>
 	/// <list type="bullet">
 	/// <item><description>Consistent JSON output regardless of property declaration order</description></item>
@@ -168,13 +170,31 @@ public static class JsonExtensions
 	public class FuxionFormattedTypeInfoResolver : DefaultJsonTypeInfoResolver
 	{
 		/// <summary>
-		/// Gets the type information for the specified type, applying private constructor support and alphabetical property ordering.
+		/// Gets or sets a value indicating whether object types without public instance constructors can be instantiated through reflection.
+		/// </summary>
+		/// <value>
+		/// <see langword="true"/> to assign a <see cref="JsonTypeInfo.CreateObject"/> delegate that invokes non-public
+		/// parameterless constructors when needed; otherwise, <see langword="false"/>.
+		/// </value>
+		public bool AllowPrivateConstructors { get; set; } = true;
+
+		/// <summary>
+		/// Gets or sets a value indicating whether JSON properties are assigned alphabetical serialization order.
+		/// </summary>
+		/// <value>
+		/// <see langword="true"/> to sort <see cref="JsonTypeInfo.Properties"/> by <see cref="JsonPropertyInfo.Name"/>
+		/// and assign sequential <see cref="JsonPropertyInfo.Order"/> values; otherwise, <see langword="false"/>.
+		/// </value>
+		public bool OrderPropertiesAlphabetically { get; set; } = true;
+
+		/// <summary>
+		/// Gets the type information for the specified type, applying the configured constructor and property-order behaviors.
 		/// </summary>
 		/// <param name="type">The type to get information for.</param>
 		/// <param name="options">The <see cref="JsonSerializerOptions"/> to use.</param>
 		/// <returns>
-		/// A <see cref="JsonTypeInfo"/> instance with properties ordered alphabetically and, if applicable,
-		/// a factory function for creating instances via private constructors.
+		/// A <see cref="JsonTypeInfo"/> instance updated according to the values of
+		/// <see cref="AllowPrivateConstructors"/> and <see cref="OrderPropertiesAlphabetically"/>.
 		/// </returns>
 		/// <remarks>
 		/// <para>
@@ -182,19 +202,19 @@ public static class JsonExtensions
 		/// </para>
 		/// <list type="number">
 		/// <item><description><strong>Base processing:</strong> Calls <see cref="DefaultJsonTypeInfoResolver.GetTypeInfo"/> to get standard type metadata</description></item>
-		/// <item><description><strong>Private constructor check:</strong> If the type has no public instance constructors and is an object type without an existing <see cref="JsonTypeInfo.CreateObject"/> delegate:
+		/// <item><description><strong>Private constructor check:</strong> When <see cref="AllowPrivateConstructors"/> is enabled, if the type has no public instance constructors and is an object type without an existing <see cref="JsonTypeInfo.CreateObject"/> delegate:
 		///   <list type="bullet">
 		///     <item><description>Assigns a factory using <see cref="Activator.CreateInstance(Type, bool)"/> with <c>nonPublic: true</c></description></item>
 		///     <item><description>Throws <see cref="InvalidOperationException"/> if instance creation fails</description></item>
 		///   </list>
 		/// </description></item>
-		/// <item><description><strong>Property ordering:</strong> Sorts all properties in <see cref="JsonTypeInfo.Properties"/> by name and assigns sequential order values</description></item>
+		/// <item><description><strong>Property ordering:</strong> When <see cref="OrderPropertiesAlphabetically"/> is enabled, sorts all properties in <see cref="JsonTypeInfo.Properties"/> by name and assigns sequential order values</description></item>
 		/// <item><description><strong>Return:</strong> Returns the modified <see cref="JsonTypeInfo"/> with all enhancements applied</description></item>
 		/// </list>
 		/// <para>
-		/// <strong>Type constraints:</strong> The private constructor support only applies to object types
+		/// <strong>Type constraints:</strong> Private constructor support only applies to object types
 		/// (<see cref="JsonTypeInfo.Kind"/> == <see cref="JsonTypeInfoKind.Object"/>) that don't already have
-		/// a <see cref="JsonTypeInfo.CreateObject"/> delegate set.
+		/// a <see cref="JsonTypeInfo.CreateObject"/> delegate set, while property ordering can still be applied independently.
 		/// </para>
 		/// </remarks>
 		/// <example>
@@ -223,21 +243,24 @@ public static class JsonExtensions
 		/// // After:  [Apple (Order=1), Zebra (Order=2)]
 		/// 
 		/// // Result: Can deserialize MyType with private constructor,
-		/// //         properties appear in JSON as: {"Apple":..., "Zebra":...}
+		/// //         and properties appear in JSON as: {"Apple":..., "Zebra":...}
 		/// </code>
 		/// </example>
 		public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
 		{
 			var jsonTypeInfo = base.GetTypeInfo(type, options);
-			if (jsonTypeInfo is not { Kind: JsonTypeInfoKind.Object, CreateObject: null }) return jsonTypeInfo;
-			if (jsonTypeInfo.Type.GetConstructors(BindingFlags.Public | BindingFlags.Instance).Length == 0)
+
+			if (AllowPrivateConstructors && jsonTypeInfo is { Kind: JsonTypeInfoKind.Object, CreateObject: null } && jsonTypeInfo.Type.GetConstructors(BindingFlags.Public | BindingFlags.Instance).Length == 0)
 				// The type doesn't have public constructors
 				jsonTypeInfo.CreateObject = () =>
 					Activator.CreateInstance(jsonTypeInfo.Type, true)
 					?? throw new InvalidOperationException($"Instance of type '{jsonTypeInfo.Type.GetSignature()}' could not be created with non public constructor");
 
-			var order = 1;
-			foreach (var property in jsonTypeInfo.Properties.OrderBy(p => p.Name)) property.Order = order++;
+			if (OrderPropertiesAlphabetically)
+			{
+				var order = 1;
+				foreach (var property in jsonTypeInfo.Properties.OrderBy(p => p.Name)) property.Order = order++;
+			}
 
 			return jsonTypeInfo;
 		}

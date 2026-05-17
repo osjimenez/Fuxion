@@ -466,6 +466,42 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 	}
 }
 
+public class FuxionFormattedTypeInfoResolverTest
+{
+	[Fact]
+	public void GetTypeInfo_OrderPropertiesAlphabetically_OrdersPropertiesEvenWhenCreateObjectExists()
+	{
+		var resolver = new JsonExtensions.FuxionFormattedTypeInfoResolver();
+		var info = resolver.GetTypeInfo(typeof(ResolverPublicCtorType), new JsonSerializerOptions());
+
+		Assert.Equal([nameof(ResolverPublicCtorType.Apple), nameof(ResolverPublicCtorType.Zebra)], info.Properties.OrderBy(p => p.Order).Select(p => p.Name));
+	}
+
+	[Fact]
+	public void GetTypeInfo_AllowPrivateConstructorsFalse_DoesNotAssignCreateObject()
+	{
+		var resolver = new JsonExtensions.FuxionFormattedTypeInfoResolver
+		{
+			AllowPrivateConstructors = false
+		};
+		var info = resolver.GetTypeInfo(typeof(ResolverPrivateCtorType), new JsonSerializerOptions());
+
+		Assert.Null(info.CreateObject);
+	}
+
+	[Fact]
+	public void GetTypeInfo_OrderPropertiesAlphabeticallyFalse_DoesNotAssignPropertyOrder()
+	{
+		var resolver = new JsonExtensions.FuxionFormattedTypeInfoResolver
+		{
+			OrderPropertiesAlphabetically = false
+		};
+		var info = resolver.GetTypeInfo(typeof(ResolverPublicCtorType), new JsonSerializerOptions());
+
+		Assert.All(info.Properties, p => Assert.Equal(0, p.Order));
+	}
+}
+
 file class TestClass(string fullName)
 {
 	private string _fullName = fullName;
@@ -487,4 +523,20 @@ file class TestClass(string fullName)
 	[JsonIgnore]
 	public bool Throw { get; set; }
 	public override string ToString() => Throw ? "THROW" : $"{FullName} - {Age}";
+}
+
+file class ResolverPublicCtorType
+{
+	public string Zebra { get; set; } = string.Empty;
+	public string Apple { get; set; } = string.Empty;
+}
+
+file class ResolverPrivateCtorType
+{
+	private ResolverPrivateCtorType()
+	{
+	}
+
+	public string Zebra { get; set; } = string.Empty;
+	public string Apple { get; set; } = string.Empty;
 }
