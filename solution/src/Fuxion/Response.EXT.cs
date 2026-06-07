@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Fuxion.Collections.Generic;
 
@@ -267,25 +268,33 @@ public static partial class ResponseExtensions
 		public TPayload PayloadOrFallback(Func<IResponse<TPayload>, TPayload> fallback) => me.IsSuccess ? me.Payload : fallback(me);
 
 		/// <summary>
-		/// Returns the payload if successful; otherwise returns the default value of <typeparamref name="TPayload"/>.
+		/// PEND DOC
 		/// </summary>
-		/// <returns>
-		/// The response payload when successful; otherwise <c>default</c>.
-		/// For reference types, this is <c>null</c>.
-		/// </returns>
-		/// <remarks>
-		/// Use this when a simple default-on-error behavior is enough and no error-specific fallback logic is required.
-		/// </remarks>
-		/// <example>
-		/// <code>
-		/// Response&lt;int&gt; quantityResponse = GetQuantity();
-		/// int quantity = quantityResponse.PayloadOrDefault();
-		/// 
-		/// Response&lt;User&gt; userResponse = GetUser(id);
-		/// User? user = userResponse.PayloadOrDefault();
-		/// </code>
-		/// </example>
-		public TPayload? PayloadOrDefault() => me.IsSuccess ? me.Payload : default;
+		/// <returns></returns>
+		/// <exception cref="Exception"></exception>
+      public TPayload PayloadOrThrow()
+			=> me.PayloadOrFallback(res => res.Exception is not null ? throw res.Exception : throw new ResponsePayloadException(res.Message));
+
+      /// <summary>
+      /// Returns the payload if successful; otherwise returns the default value of <typeparamref name="TPayload"/>.
+      /// </summary>
+      /// <returns>
+      /// The response payload when successful; otherwise <c>default</c>.
+      /// For reference types, this is <c>null</c>.
+      /// </returns>
+      /// <remarks>
+      /// Use this when a simple default-on-error behavior is enough and no error-specific fallback logic is required.
+      /// </remarks>
+      /// <example>
+      /// <code>
+      /// Response&lt;int&gt; quantityResponse = GetQuantity();
+      /// int quantity = quantityResponse.PayloadOrDefault();
+      /// 
+      /// Response&lt;User&gt; userResponse = GetUser(id);
+      /// User? user = userResponse.PayloadOrDefault();
+      /// </code>
+      /// </example>
+      public TPayload? PayloadOrDefault() => me.IsSuccess ? me.Payload : default;
 	}
 
 	/// <summary>
@@ -361,3 +370,9 @@ public static partial class ResponseExtensions
 		}
 	}
 }
+
+/// <summary>
+/// PEND DOC
+/// </summary>
+/// <param name="message"></param>
+public class ResponsePayloadException(string? message) : FuxionException(message);

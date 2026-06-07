@@ -1,0 +1,574 @@
+﻿using Fuxion.Reflection;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace Fuxion.Union;
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
+public interface IResponse : IUnion
+{
+   bool IsSuccess { get; }
+   bool IsError { get; }
+   ExtensionsDictionary Extensions { get; }
+}
+public interface IResponseMaybe : IResponse
+{
+   bool IsNone { get; }
+}
+
+//public static class Response;
+
+static class ResponseConstants
+{
+   public const string PayloadPropertyName = "Payload";
+   public const string ErrorPropertyName = "Error";
+   public static readonly HashSet<string> ResponseExtensionsReservedKeys = new([nameof(Response<>.IsSuccess), PayloadPropertyName, ErrorPropertyName], StringComparer.OrdinalIgnoreCase);
+   public static readonly HashSet<string> ResponseMaybeExtensionsReservedKeys = new([..ResponseExtensionsReservedKeys, nameof(ResponseMaybe<>.IsNone)], StringComparer.OrdinalIgnoreCase);
+
+   public static ExtensionsDictionary EnsureResponseReservedKeys(ExtensionsDictionary? extensions)
+      => ExtensionsDictionary.EnsureReservedKeys(extensions, ResponseExtensionsReservedKeys);
+
+   public static ExtensionsDictionary EnsureResponseMaybeReservedKeys(ExtensionsDictionary? extensions)
+      => ExtensionsDictionary.EnsureReservedKeys(extensions, ResponseMaybeExtensionsReservedKeys);
+
+}
+
+[Union]
+[JsonConverter(typeof(ResponseOfTSuccessJsonConverterFactory))]
+public readonly struct Response<TSuccess> : IResponse
+   where TSuccess : notnull
+{
+   private const byte UnsetKind = 0;
+   private const byte SuccessKind = 1;
+   private const byte ErrorKind = 2;
+
+   private readonly byte _kind;
+   private readonly TSuccess? _success;
+   private readonly Error? _error;
+
+   static Response()
+   {
+      if (typeof(TSuccess) == typeof(Error))
+         throw new InvalidOperationException($"The {typeof(Response<TSuccess>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(Error)}'.");
+      
+      if (typeof(TSuccess) == typeof(None))
+         throw new InvalidOperationException($"The {typeof(Response<TSuccess>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(None)}'. Consider using Response<Unit> type instead.");
+   }
+
+   [MemberNotNullWhen(true, nameof(_success))]
+   public bool IsSuccess => _kind == SuccessKind;
+
+   [MemberNotNullWhen(true, nameof(_error))]
+   [JsonIgnore]
+   public bool IsError => _kind == ErrorKind;
+
+   public Response(TSuccess value)
+   {
+      if (value is null)
+         throw new ArgumentNullException(nameof(value), "Success value cannot be null.");
+
+      _kind = SuccessKind;
+      _success = value;
+      _error = default;
+   }
+
+   public Response(Error value)
+   {
+      _kind = ErrorKind;
+      _success = default;
+      _error = value;
+   }
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   [JsonIgnore]
+   public bool HasValue => _kind != UnsetKind;
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   public object? Value => _kind switch
+   {
+      SuccessKind => _success,
+      ErrorKind => _error,
+      _ => null
+   };
+
+   [JsonExtensionData]
+   public ExtensionsDictionary Extensions
+   {
+      get => field ?? [with(ResponseConstants.ResponseExtensionsReservedKeys)];
+      init => field = ResponseConstants.EnsureResponseReservedKeys(value);
+   }
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   public bool TryGetValue([NotNullWhen(true)] out TSuccess? value)
+   {
+      if (IsSuccess)
+      {
+         value = _success;
+         return true;
+      }
+
+      value = default;
+      return false;
+   }
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   public bool TryGetValue(out Error value)
+   {
+      if (IsError)
+      {
+         value = _error.Value;
+         return true;
+      }
+
+      value = default;
+      return false;
+   }
+
+   public static implicit operator Response<TSuccess>(TSuccess value)
+      => new(value);
+
+   public static implicit operator Response<TSuccess>(Error value)
+      => new(value);
+
+   public static explicit operator TSuccess(Response<TSuccess> value)
+      => value.IsSuccess
+         ? value._success
+         : throw new InvalidOperationException("Explicit conversion between this response and its success type is not allowed because this response is not success");
+
+   public static explicit operator Error(Response<TSuccess> value)
+      => value.IsError
+         ? value._error.Value
+         : throw new InvalidOperationException("Explicit conversion between this response and its error type is not allowed because this response is not error");
+}
+
+[Union]
+[JsonConverter(typeof(ResponseOfTSuccessAndTErrorJsonConverterFactory))]
+public readonly struct Response<TSuccess, TError> : IResponse
+   where TSuccess : notnull
+   where TError : notnull
+{
+   private const byte UnsetKind = 0;
+   private const byte SuccessKind = 1;
+   private const byte ErrorKind = 2;
+
+   private readonly byte _kind;
+   private readonly TSuccess? _success;
+   private readonly TError? _error;
+   private readonly ExtensionsDictionary? _extensions;
+
+   static Response()
+   {
+      if (typeof(TSuccess) == typeof(TError))
+         throw new InvalidOperationException($"The {typeof(Response<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} and {nameof(TError)} cannot be the same type ('{typeof(TSuccess).GetSignature()}').");
+      
+      if (typeof(TSuccess) == typeof(None))
+         throw new InvalidOperationException($"The {typeof(Response<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(None)}'. Consider using {typeof(Response<Unit, TError>).GetSignature()} type instead.");
+      if (typeof(TSuccess) == typeof(Error))
+         throw new InvalidOperationException($"The {typeof(Response<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(Error)}'.");
+
+      if (typeof(TError) == typeof(None))
+         throw new InvalidOperationException($"The {typeof(Response<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TError)} cannot be '{nameof(None)}'. Consider using {typeof(ResponseMaybe<TSuccess>).GetSignature()} type instead.");
+      if (typeof(TError) == typeof(Error))
+         throw new InvalidOperationException($"The {typeof(Response<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TError)} cannot be '{nameof(Error)}'. Consider using {typeof(Response<TSuccess>).GetSignature()} type instead.");
+   }
+
+   [MemberNotNullWhen(true, nameof(_success))]
+   public bool IsSuccess => _kind == SuccessKind;
+
+   [MemberNotNullWhen(true, nameof(_error))]
+   [JsonIgnore]
+   public bool IsError => _kind == ErrorKind;
+   
+   public Response(TSuccess value)
+   {
+      if (value is null)
+         throw new ArgumentNullException(nameof(value), "Success value cannot be null.");
+
+      _kind = SuccessKind;
+      _success = value;
+      _error = default;
+   }
+
+   public Response(TError value)
+   {
+      if (value is null)
+         throw new ArgumentNullException(nameof(value), "Error value cannot be null.");
+
+      _kind = ErrorKind;
+      _success = default;
+      _error = value;
+   }
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   [JsonIgnore]
+   public bool HasValue => _kind != UnsetKind;
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   public object? Value => _kind switch
+   {
+      SuccessKind => _success,
+      ErrorKind => _error,
+      _ => null
+   };
+
+   [JsonExtensionData]
+   public ExtensionsDictionary Extensions
+   {
+      get => _extensions ?? new(ResponseConstants.ResponseExtensionsReservedKeys);
+      init => _extensions = ResponseConstants.EnsureResponseReservedKeys(value);
+   }
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   public bool TryGetValue([NotNullWhen(true)] out TSuccess? value)
+   {
+      if (IsSuccess)
+      {
+         value = _success;
+         return true;
+      }
+
+      value = default;
+      return false;
+   }
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   public bool TryGetValue([NotNullWhen(true)] out TError? value)
+   {
+      if (IsError)
+      {
+         value = _error;
+         return true;
+      }
+
+      value = default;
+      return false;
+   }
+
+   public static implicit operator Response<TSuccess, TError>(TSuccess value)
+      => new(value);
+
+   public static implicit operator Response<TSuccess, TError>(TError value)
+      => new(value);
+
+   public static explicit operator TSuccess(Response<TSuccess, TError> value)
+      => value.IsSuccess
+         ? value._success
+         : throw new InvalidOperationException("Explicit conversion between this response and its success type is not allowed because this response is not success");
+
+   public static explicit operator TError(Response<TSuccess, TError> value)
+      => value.IsError
+         ? value._error
+         : throw new InvalidOperationException("Explicit conversion between this response and its error type is not allowed because this response is not error");
+}
+
+[Union]
+[JsonConverter(typeof(ResponseMaybeOfTSuccessJsonConverterFactory))]
+public readonly struct ResponseMaybe<TSuccess> : IResponseMaybe
+   where TSuccess : notnull
+{
+   private const byte UnsetKind = 0;
+   private const byte SuccessKind = 1;
+   private const byte NoneKind = 2;
+   private const byte ErrorKind = 3;
+
+   private readonly byte _kind;
+   private readonly TSuccess? _success;
+   private readonly Error? _error;
+   private readonly ExtensionsDictionary? _extensions;
+
+   static ResponseMaybe()
+   {
+      if (typeof(TSuccess) == typeof(Error))
+         throw new InvalidOperationException($"The {typeof(ResponseMaybe<TSuccess>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(Error)}'.");
+      if (typeof(TSuccess) == typeof(None))
+         throw new InvalidOperationException($"The {typeof(ResponseMaybe<TSuccess>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(None)}'. Consider using ResponseMaybe<Unit> type instead.");
+   }
+
+   public bool IsSuccess => _kind is SuccessKind or NoneKind;
+
+   [MemberNotNullWhen(true, nameof(_error))]
+   [JsonIgnore]
+   public bool IsError => _kind == ErrorKind;
+
+   public bool IsNone => _kind == NoneKind;
+
+   public ResponseMaybe(TSuccess value)
+   {
+      if (value is null)
+         throw new ArgumentNullException(nameof(value), "Success value cannot be null.");
+
+      _kind = SuccessKind;
+      _success = value;
+      _error = default;
+   }
+
+   public ResponseMaybe(Error value)
+   {
+      _kind = ErrorKind;
+      _success = default;
+      _error = value;
+   }
+#pragma warning disable IDE0060 // Remove unused parameter
+   public ResponseMaybe(None value)
+#pragma warning restore IDE0060 // Remove unused parameter
+   {
+      _kind = NoneKind;
+      _success = default;
+      _error = default;
+   }
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   [JsonIgnore]
+   public bool HasValue => _kind != UnsetKind;
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   public object? Value => _kind switch
+   {
+      SuccessKind => _success,
+      ErrorKind => _error,
+      NoneKind => None.Value,
+      _ => null
+   };
+
+   [JsonExtensionData]
+   public ExtensionsDictionary Extensions
+   {
+      get => _extensions ?? new(ResponseConstants.ResponseMaybeExtensionsReservedKeys);
+      init => _extensions = ResponseConstants.EnsureResponseMaybeReservedKeys(value);
+   }
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   public bool TryGetValue([NotNullWhen(true)] out TSuccess? value)
+   {
+      if (IsSuccess && !IsNone)
+      {
+         value = _success!;
+         return true;
+      }
+
+      value = default;
+      return false;
+   }
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   public bool TryGetValue(out Error value)
+   {
+      if (IsError)
+      {
+         value = _error.Value;
+         return true;
+      }
+
+      value = default;
+      return false;
+   }
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   public bool TryGetValue(out None value)
+   {
+      if (IsNone)
+      {
+         value = None.Value;
+         return true;
+      }
+
+      value = default;
+      return false;
+   }
+
+   public static implicit operator ResponseMaybe<TSuccess>(TSuccess value)
+      => new(value);
+
+   public static implicit operator ResponseMaybe<TSuccess>(Error value)
+      => new(value);
+   
+   public static implicit operator ResponseMaybe<TSuccess>(None value)
+      => new(value);
+
+   public static explicit operator TSuccess(ResponseMaybe<TSuccess> value)
+      => value.IsError
+         ? throw new InvalidOperationException($"Explicit conversion between this response and {typeof(TSuccess)} is not allowed because this response is error")
+         : value.IsNone
+            ? throw new InvalidOperationException($"Explicit conversion between this response and {typeof(TSuccess)} is not allowed because this response is none")
+            : value._success!;
+
+   public static explicit operator Error(ResponseMaybe<TSuccess> value)
+      => value.IsNone
+         ? throw new InvalidOperationException($"Explicit conversion between this response and Error is not allowed because this response is none")
+         : value.IsSuccess
+            ? throw new InvalidOperationException($"Explicit conversion between this response and Error is not allowed because this response is success")
+            : value._error!.Value;
+
+   public static explicit operator None(ResponseMaybe<TSuccess> value)
+      => value.IsError
+         ? throw new InvalidOperationException("Explicit conversion between this response and None is not allowed because this response is error")
+         : value.IsSuccess && !value.IsNone
+            ? throw new InvalidOperationException("Explicit conversion between this response and None is not allowed because this response is success")
+            : None.Value;
+}
+
+[Union]
+[JsonConverter(typeof(ResponseMaybeOfTSuccessAndTErrorJsonConverterFactory))]
+public readonly struct ResponseMaybe<TSuccess, TError> : IResponseMaybe
+   where TSuccess : notnull
+   where TError : notnull
+{
+   private const byte UnsetKind = 0;
+   private const byte SuccessKind = 1;
+   private const byte NoneKind = 2;
+   private const byte ErrorKind = 3;
+
+   private readonly byte _kind;
+   private readonly TSuccess? _success;
+   private readonly TError? _error;
+   private readonly ExtensionsDictionary? _extensions;
+
+   static ResponseMaybe()
+   {
+      if (typeof(TSuccess) == typeof(TError))
+         throw new InvalidOperationException($"The {typeof(ResponseMaybe<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} and {nameof(TError)} cannot be the same type ('{typeof(TSuccess).GetSignature()}').");
+      
+      if (typeof(TSuccess) == typeof(None))
+         throw new InvalidOperationException($"The {typeof(ResponseMaybe<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(None)}'. Consider using {typeof(ResponseMaybe<Unit, TError>).GetSignature()} type instead.");
+      if (typeof(TSuccess) == typeof(Error))
+         throw new InvalidOperationException($"The {typeof(ResponseMaybe<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(Error)}'.");
+      
+      if (typeof(TError) == typeof(None))
+         throw new InvalidOperationException($"The {typeof(ResponseMaybe<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TError)} cannot be '{nameof(None)}'. Consider using {typeof(ResponseMaybe<TSuccess>).GetSignature()} type instead.");
+      if (typeof(TError) == typeof(Error))
+         throw new InvalidOperationException($"The {typeof(ResponseMaybe<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TError)} cannot be '{nameof(Error)}'. Consider using {typeof(ResponseMaybe<TSuccess>).GetSignature()} type instead.");
+   }
+
+   public bool IsSuccess => _kind is SuccessKind or NoneKind;
+
+   [MemberNotNullWhen(true, nameof(_error))]
+   [JsonIgnore]
+   public bool IsError => _kind == ErrorKind;
+
+   public bool IsNone => _kind == NoneKind;
+
+   public ResponseMaybe(TSuccess value)
+   {
+      if (value is null)
+         throw new ArgumentNullException(nameof(value), "Success value cannot be null.");
+
+      _kind = SuccessKind;
+      _success = value;
+      _error = default;
+   }
+
+   public ResponseMaybe(TError value)
+   {
+      if (value is null)
+         throw new ArgumentNullException(nameof(value), "Error value cannot be null.");
+
+      _kind = ErrorKind;
+      _success = default;
+      _error = value;
+   }
+#pragma warning disable IDE0060 // Remove unused parameter
+   public ResponseMaybe(None value)
+#pragma warning restore IDE0060 // Remove unused parameter
+   {
+      _kind = NoneKind;
+      _success = default;
+      _error = default;
+   }
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   [JsonIgnore]
+   public bool HasValue => _kind != UnsetKind;
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   public object? Value => _kind switch
+   {
+      SuccessKind => _success,
+      ErrorKind => _error,
+      NoneKind => None.Value,
+      _ => null
+   };
+
+   [JsonExtensionData]
+   public ExtensionsDictionary Extensions
+   {
+      get => _extensions ?? new(ResponseConstants.ResponseMaybeExtensionsReservedKeys);
+      init => _extensions = ResponseConstants.EnsureResponseMaybeReservedKeys(value);
+   }
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   public bool TryGetValue([NotNullWhen(true)] out TSuccess? value)
+   {
+      if (IsSuccess && !IsNone)
+      {
+         value = _success!;
+         return true;
+      }
+
+      value = default;
+      return false;
+   }
+
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   public bool TryGetValue([NotNullWhen(true)] out TError? value)
+   {
+      if (IsError)
+      {
+         value = _error;
+         return true;
+      }
+
+      value = default;
+      return false;
+   }
+   [EditorBrowsable(EditorBrowsableState.Never)]
+   public bool TryGetValue(out None value)
+   {
+      if (IsNone)
+      {
+         value = None.Value;
+         return true;
+      }
+
+      value = default;
+      return false;
+   }
+
+   public static implicit operator ResponseMaybe<TSuccess, TError>(TSuccess value)
+      => new(value);
+
+   public static implicit operator ResponseMaybe<TSuccess, TError>(TError value)
+      => new(value);
+
+   public static implicit operator ResponseMaybe<TSuccess, TError>(None value)
+      => new(value);
+
+   public static explicit operator TSuccess(ResponseMaybe<TSuccess, TError> value)
+   => value.IsError
+      ? throw new InvalidOperationException($"Explicit conversion between this response and {typeof(TSuccess)} is not allowed because this response is error")
+      : value.IsNone
+         ? throw new InvalidOperationException($"Explicit conversion between this response and {typeof(TSuccess)} is not allowed because this response is none")
+         : value._success!;
+
+   public static explicit operator TError(ResponseMaybe<TSuccess, TError> value)
+      => value.IsNone
+         ? throw new InvalidOperationException($"Explicit conversion between this response and Error is not allowed because this response is none")
+         : value.IsSuccess
+            ? throw new InvalidOperationException($"Explicit conversion between this response and Error is not allowed because this response is success")
+            : value._error!;
+
+   public static explicit operator None(ResponseMaybe<TSuccess, TError> value)
+      => value.IsError
+         ? throw new InvalidOperationException("Explicit conversion between this response and None is not allowed because this response is error")
+         : value.IsSuccess && !value.IsNone
+            ? throw new InvalidOperationException("Explicit conversion between this response and None is not allowed because this response is success")
+            : None.Value;
+}
+
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
-//using Xunit.Abstractions;
 
 namespace Fuxion.Xunit;
 
@@ -240,16 +240,28 @@ public abstract class BaseTest<TBaseTest> where TBaseTest : BaseTest<TBaseTest>
 	}
 
 	/// <summary>
-	///    Prints a variable's name and value to the test output.
+	///    Prints a value to the test output, optionally including the captured expression name.
 	/// </summary>
 	/// <param name="value">The value to print.</param>
+	/// <param name="printName">
+	///    <c>true</c> to print the captured expression and the value; <c>false</c> to print only the value.
+	/// </param>
 	/// <param name="name">
 	///    The name of the variable (automatically captured using CallerArgumentExpressionAttribute).
 	/// </param>
 	/// <remarks>
-	///    This method uses C# 10's CallerArgumentExpressionAttribute to automatically capture
-	///    the expression passed as the <paramref name="value"/> parameter, providing a clean syntax for
-	///    printing variable names and values.
+	///    <para>
+	///       This method uses C#'s <c>CallerArgumentExpressionAttribute</c> to automatically capture
+	///       the expression passed as the <paramref name="value"/> parameter.
+	///    </para>
+	///    <para>
+	///       When <paramref name="printName"/> is <c>true</c> (the default), the output format is:
+	///       <c>{expression} = {value}</c>.
+	///    </para>
+	///    <para>
+	///       When <paramref name="printName"/> is <c>false</c>, only the formatted value is written,
+	///       which is useful when the expression name is noisy or when printing preformatted text such as JSON.
+	///    </para>
 	/// </remarks>
 	/// <example>
 	///    <code>
@@ -260,10 +272,16 @@ public abstract class BaseTest<TBaseTest> where TBaseTest : BaseTest<TBaseTest>
 	/// var user = new User { Name = "John" };
 	/// PrintVariable(user.Name);
 	/// // Output: user.Name = John
+	/// 
+	/// var json = "{ \"name\": \"John\" }";
+	/// PrintVariable(json, false);
+	/// // Output: { "name": "John" }
 	/// </code>
 	/// </example>
-	protected void PrintVariable(object? value, [CallerArgumentExpression(nameof(value))] string? name = null) 
-		=> Output.WriteLine($"{name} = {value}");
+	protected void PrintVariable(object? value, bool printName = true, [CallerArgumentExpression(nameof(value))] string? name = null)
+		=> Output.WriteLine(printName
+			? $"{name} = {value}"
+			: $"{value}");
 
 	/// <summary>
 	///    Asserts that a condition is <c>true</c> and prints the result to test output.
@@ -287,10 +305,10 @@ public abstract class BaseTest<TBaseTest> where TBaseTest : BaseTest<TBaseTest>
 	/// // If false, throws with message "User must be active"
 	/// </code>
 	/// </example>
-	protected void IsTrue(bool? value, string? userMessage = null, [CallerArgumentExpression(nameof(value))] string? name = null)
+	protected void IsTrue([DoesNotReturnIf(false)] bool? value, string? userMessage = null, [CallerArgumentExpression(nameof(value))] string? name = null)
 	{
 		Assert.True(value, userMessage);
-		PrintVariable(value, name);
+		PrintVariable(value, name: name);
 	}
 
 	/// <summary>
@@ -312,41 +330,41 @@ public abstract class BaseTest<TBaseTest> where TBaseTest : BaseTest<TBaseTest>
 	/// IsFalse(result &gt; 100, "Result should not exceed 100");
 	/// </code>
 	/// </example>
-	protected void IsFalse(bool value, string? userMessage = null, [CallerArgumentExpression(nameof(value))] string? name = null)
+	protected void IsFalse([DoesNotReturnIf(true)] bool value, string? userMessage = null, [CallerArgumentExpression(nameof(value))] string? name = null)
 	{
 		Assert.False(value, userMessage);
-		PrintVariable(value, name);
+		PrintVariable(value, name: name);
 	}
 
-	/// <summary>
-	///    Asserts that a delegate throws a specific exception type and prints exception details to test output.
-	/// </summary>
-	/// <typeparam name="TException">The expected exception type.</typeparam>
-	/// <param name="testCode">The delegate that should throw the exception.</param>
-	/// <param name="name">
-	///    The name of the test code expression (automatically captured using CallerArgumentExpressionAttribute).
-	/// </param>
-	/// <remarks>
-	///    This method wraps Assert.Throws{T}(Action) and automatically prints the exception
-	///    type name and message to the test output.
-	/// </remarks>
-	/// <example>
-	///    <code>
-	/// Throws&lt;ArgumentNullException&gt;(() =&gt; service.Process(null));
-	/// // Output: () =&gt; service.Process(null) = Throws 'ArgumentNullException' =&gt; Value cannot be null.
-	/// 
-	/// Throws&lt;InvalidOperationException&gt;(() =&gt; 
-	/// {
-	///     var obj = new MyClass();
-	///     obj.MethodThatThrows();
-	/// });
-	/// </code>
-	/// </example>
-	protected void Throws<TException>(Action testCode, [CallerArgumentExpression(nameof(testCode))] string? name = null)
+   /// <summary>
+   ///    Asserts that a delegate throws a specific exception type and prints exception details to test output.
+   /// </summary>
+   /// <typeparam name="TException">The expected exception type.</typeparam>
+   /// <param name="testCode">The delegate that should throw the exception.</param>
+   /// <param name="name">
+   ///    The name of the test code expression (automatically captured using CallerArgumentExpressionAttribute).
+   /// </param>
+   /// <remarks>
+   ///    This method wraps Assert.Throws{T}(Action) and automatically prints the exception
+   ///    type name and message to the test output.
+   /// </remarks>
+   /// <example>
+   ///    <code>
+   /// Throws&lt;ArgumentNullException&gt;(() =&gt; service.Process(null));
+   /// // Output: () =&gt; service.Process(null) = Throws 'ArgumentNullException' =&gt; Value cannot be null.
+   /// 
+   /// Throws&lt;InvalidOperationException&gt;(() =&gt; 
+   /// {
+   ///     var obj = new MyClass();
+   ///     obj.MethodThatThrows();
+   /// });
+   /// </code>
+   /// </example>
+   protected void Throws<TException>(Action testCode, [CallerArgumentExpression(nameof(testCode))] string? name = null)
 		where TException: Exception
 	{
 		var ex = Assert.Throws<TException>(testCode);
-		PrintVariable($"Throws '{ex.GetType().Name}' => {ex.Message}", name);
+		PrintVariable($"Throws '{ex.GetType().Name}' => {ex.Message}", name: name);
 	}
 
 	/// <summary>
@@ -379,7 +397,7 @@ public abstract class BaseTest<TBaseTest> where TBaseTest : BaseTest<TBaseTest>
 		where TException: Exception
 	{
 		var ex = await Assert.ThrowsAsync<TException>(testCode);
-		PrintVariable($"Throws '{ex.GetType().Name}' => {ex.Message}", name);
+		PrintVariable($"Throws '{ex.GetType().Name}' => {ex.Message}", name: name);
 	}
 
 	/// <summary>

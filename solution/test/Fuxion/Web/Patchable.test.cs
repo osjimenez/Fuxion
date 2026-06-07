@@ -98,9 +98,9 @@ public class PatcherTest(ITestOutputHelper output) : BaseTest<PatcherTest>(outpu
 		// Serialize and deserialize to simulate network service passthrough
 		var res = ((Patcher<ToPatch>)dyn).Fx.Json.Serialize().Payload.Fx.Json.Deserialize<Patcher<ToPatch>>();
 		Assert.True(res.IsSuccess);
-		PrintVariable(toPatch.Integer, "Before path");
+		PrintVariable(toPatch.Integer, name: "Before path");
 		res.Payload.Patch(toPatch);
-		PrintVariable(toPatch.Integer, "After patch");
+		PrintVariable(toPatch.Integer, name: "After patch");
 		Assert.Equal(111, toPatch.Integer);
 	}
 	[Fact(DisplayName = "Patcher - From dynamic")]

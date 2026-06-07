@@ -322,7 +322,7 @@ namespace Fuxion
 		/// <remarks>
 		/// This is equivalent to the index <c>0</c> in array access.
 		/// </remarks>
-		public static Index Start => new Index(0);
+		public static Index Start => new(0);
 
 		/// <summary>
 		/// Gets an <see cref="Index"/> pointing beyond the last element.
@@ -332,7 +332,7 @@ namespace Fuxion
 		/// This index points to a position one past the last element, similar to <c>array.Length</c>.
 		/// It's primarily used with <see cref="Range"/> for slicing operations.
 		/// </remarks>
-		public static Index End => new Index(~0);
+		public static Index End => new(~0);
 
 		/// <summary>
 		/// Creates an <see cref="Index"/> from the start at the position indicated by the value.
@@ -501,7 +501,7 @@ namespace Fuxion
 		/// </summary>
 		/// <param name="value">An object to compare with this object.</param>
 		/// <returns><c>true</c> if the current object is equal to the <paramref name="value"/> parameter; otherwise, <c>false</c>.</returns>
-		public override bool Equals(object? value) => value is Index && _value == ((Index)value)._value;
+		public override bool Equals(object? value) => value is Index index && _value == index._value;
 
 		/// <summary>
 		/// Indicates whether the current <see cref="Index"/> object is equal to another <see cref="Index"/> object.
@@ -559,103 +559,97 @@ namespace Fuxion
 		}
 	}
 
-	/// <summary>
-	/// Represents a range that has start and end indices.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// This is a polyfill for <see cref="System.Range"/> which was added in C# 8.0 / .NET Core 3.0 / .NET Standard 2.1.
-	/// The <see cref="Range"/> struct enables the C# 8.0 range syntax (<c>..</c> operator) for slicing collections.
-	/// </para>
-	/// <para>
-	/// <strong>Range syntax support:</strong>
-	/// </para>
-	/// <code>
-	/// int[] array = { 1, 2, 3, 4, 5 };
-	/// int[] subArray1 = array[0..2];   // { 1, 2 } - from index 0 to 2 (exclusive)
-	/// int[] subArray2 = array[1..^0];  // { 2, 3, 4, 5 } - from index 1 to end
-	/// int[] subArray3 = array[^3..^1]; // { 3, 4 } - last 3 to last 1 (exclusive)
-	/// </code>
-	/// <para>
-	/// <strong>Important:</strong> The <see cref="End"/> index is exclusive, meaning it points to the position
-	/// after the last element to include in the range.
-	/// </para>
-	/// <para>
-	/// <strong>Source:</strong> This implementation is based on the official .NET runtime source code from GitHub.
-	/// </para>
-	/// </remarks>
-	/// <example>
-	/// <code>
-	/// // Creating ranges
-	/// var allRange = Range.All;                          // 0..^0 (entire collection)
-	/// var fromThird = Range.StartAt(Index.FromStart(2)); // 2..^0 (from third to end)
-	/// var upToThird = Range.EndAt(Index.FromStart(2));   // 0..2 (from start to third)
-	/// 
-	/// // Using with arrays
-	/// int[] numbers = { 10, 20, 30, 40, 50 };
-	/// var slice = numbers[1..4]; // { 20, 30, 40 }
-	/// 
-	/// // Getting offset and length
-	/// var range = new Range(Index.FromStart(1), Index.FromEnd(1));
-	/// var (offset, length) = range.GetOffsetAndLength(numbers.Length);
-	/// // offset = 1, length = 3 (elements at indices 1, 2, 3)
-	/// </code>
-	/// </example>
-	public readonly struct Range : IEquatable<Range>
+   /// <summary>
+   /// Represents a range that has start and end indices.
+   /// </summary>
+   /// <remarks>
+   /// <para>
+   /// This is a polyfill for <see cref="System.Range"/> which was added in C# 8.0 / .NET Core 3.0 / .NET Standard 2.1.
+   /// The <see cref="Range"/> struct enables the C# 8.0 range syntax (<c>..</c> operator) for slicing collections.
+   /// </para>
+   /// <para>
+   /// <strong>Range syntax support:</strong>
+   /// </para>
+   /// <code>
+   /// int[] array = { 1, 2, 3, 4, 5 };
+   /// int[] subArray1 = array[0..2];   // { 1, 2 } - from index 0 to 2 (exclusive)
+   /// int[] subArray2 = array[1..^0];  // { 2, 3, 4, 5 } - from index 1 to end
+   /// int[] subArray3 = array[^3..^1]; // { 3, 4 } - last 3 to last 1 (exclusive)
+   /// </code>
+   /// <para>
+   /// <strong>Important:</strong> The <see cref="End"/> index is exclusive, meaning it points to the position
+   /// after the last element to include in the range.
+   /// </para>
+   /// <para>
+   /// <strong>Source:</strong> This implementation is based on the official .NET runtime source code from GitHub.
+   /// </para>
+   /// </remarks>
+   /// <example>
+   /// <code>
+   /// // Creating ranges
+   /// var allRange = Range.All;                          // 0..^0 (entire collection)
+   /// var fromThird = Range.StartAt(Index.FromStart(2)); // 2..^0 (from third to end)
+   /// var upToThird = Range.EndAt(Index.FromStart(2));   // 0..2 (from start to third)
+   /// 
+   /// // Using with arrays
+   /// int[] numbers = { 10, 20, 30, 40, 50 };
+   /// var slice = numbers[1..4]; // { 20, 30, 40 }
+   /// 
+   /// // Getting offset and length
+   /// var range = new Range(Index.FromStart(1), Index.FromEnd(1));
+   /// var (offset, length) = range.GetOffsetAndLength(numbers.Length);
+   /// // offset = 1, length = 3 (elements at indices 1, 2, 3)
+   /// </code>
+   /// </example>
+   /// <remarks>
+   /// Constructs a <see cref="Range"/> object using the start and end indices.
+   /// </remarks>
+   /// <param name="start">The inclusive start index of the range.</param>
+   /// <param name="end">The exclusive end index of the range.</param>
+   /// <remarks>
+   /// The <paramref name="end"/> index is exclusive. For example, <c>new Range(1, 4)</c>
+   /// includes elements at indices 1, 2, and 3, but not 4.
+   /// </remarks>
+   /// <example>
+   /// <code>
+   /// // Create a range from index 1 to 4 (exclusive)
+   /// var range = new Range(Index.FromStart(1), Index.FromStart(4));
+   /// 
+   /// // Using C# 8.0 range syntax
+   /// var rangeAlt = 1..4; // Equivalent
+   /// 
+   /// // Range from second element to second-to-last
+   /// var middleRange = new Range(Index.FromStart(1), Index.FromEnd(1));
+   /// // or: 1..^1
+   /// </code>
+   /// </example>
+   public readonly struct Range(Index start, Index end) : IEquatable<Range>
 	{
-		/// <summary>
-		/// Gets the inclusive start index of the <see cref="Range"/>.
-		/// </summary>
-		/// <value>An <see cref="Index"/> representing where the range begins.</value>
-		/// <remarks>
-		/// This index is inclusive, meaning the element at this position is included in the range.
-		/// </remarks>
-		public Index Start { get; }
+      /// <summary>
+      /// Gets the inclusive start index of the <see cref="Range"/>.
+      /// </summary>
+      /// <value>An <see cref="Index"/> representing where the range begins.</value>
+      /// <remarks>
+      /// This index is inclusive, meaning the element at this position is included in the range.
+      /// </remarks>
+      public Index Start { get; } = start;
 
-		/// <summary>
-		/// Gets the exclusive end index of the <see cref="Range"/>.
-		/// </summary>
-		/// <value>An <see cref="Index"/> representing where the range ends.</value>
-		/// <remarks>
-		/// This index is exclusive, meaning the element at this position is NOT included in the range.
-		/// It points to the position immediately after the last element in the range.
-		/// </remarks>
-		public Index End { get; }
+      /// <summary>
+      /// Gets the exclusive end index of the <see cref="Range"/>.
+      /// </summary>
+      /// <value>An <see cref="Index"/> representing where the range ends.</value>
+      /// <remarks>
+      /// This index is exclusive, meaning the element at this position is NOT included in the range.
+      /// It points to the position immediately after the last element in the range.
+      /// </remarks>
+      public Index End { get; } = end;
 
-		/// <summary>
-		/// Constructs a <see cref="Range"/> object using the start and end indices.
-		/// </summary>
-		/// <param name="start">The inclusive start index of the range.</param>
-		/// <param name="end">The exclusive end index of the range.</param>
-		/// <remarks>
-		/// The <paramref name="end"/> index is exclusive. For example, <c>new Range(1, 4)</c>
-		/// includes elements at indices 1, 2, and 3, but not 4.
-		/// </remarks>
-		/// <example>
-		/// <code>
-		/// // Create a range from index 1 to 4 (exclusive)
-		/// var range = new Range(Index.FromStart(1), Index.FromStart(4));
-		/// 
-		/// // Using C# 8.0 range syntax
-		/// var rangeAlt = 1..4; // Equivalent
-		/// 
-		/// // Range from second element to second-to-last
-		/// var middleRange = new Range(Index.FromStart(1), Index.FromEnd(1));
-		/// // or: 1..^1
-		/// </code>
-		/// </example>
-		public Range(Index start, Index end)
-		{
-			Start = start;
-			End = end;
-		}
-
-		/// <summary>
-		/// Indicates whether the current <see cref="Range"/> object is equal to another object of the same type.
-		/// </summary>
-		/// <param name="value">An object to compare with this object.</param>
-		/// <returns><c>true</c> if the current object is equal to the <paramref name="value"/> parameter; otherwise, <c>false</c>.</returns>
-		public override bool Equals(object? value) =>
+      /// <summary>
+      /// Indicates whether the current <see cref="Range"/> object is equal to another object of the same type.
+      /// </summary>
+      /// <param name="value">An object to compare with this object.</param>
+      /// <returns><c>true</c> if the current object is equal to the <paramref name="value"/> parameter; otherwise, <c>false</c>.</returns>
+      public override bool Equals(object? value) =>
 			 value is Range r &&
 			 r.Start.Equals(Start) &&
 			 r.End.Equals(End);
@@ -719,7 +713,7 @@ namespace Fuxion
 		/// var result = array[range]; // { 3, 4, 5 }
 		/// </code>
 		/// </example>
-		public static Range StartAt(Index start) => new Range(start, Index.End);
+		public static Range StartAt(Index start) => new(start, Index.End);
 
 		/// <summary>
 		/// Creates a <see cref="Range"/> object starting from the first element to the specified end index.
@@ -738,7 +732,7 @@ namespace Fuxion
 		/// var result = array[range]; // { 1, 2, 3 }
 		/// </code>
 		/// </example>
-		public static Range EndAt(Index end) => new Range(Index.Start, end);
+		public static Range EndAt(Index end) => new(Index.Start, end);
 
 		/// <summary>
 		/// Gets a <see cref="Range"/> object representing the entire collection.
@@ -756,7 +750,7 @@ namespace Fuxion
 		/// var result = array[range]; // { 1, 2, 3, 4, 5 } (entire array)
 		/// </code>
 		/// </example>
-		public static Range All => new Range(Index.Start, Index.End);
+		public static Range All => new(Index.Start, Index.End);
 
 		/// <summary>
 		/// Calculates the start offset and length of the range using a collection length.
@@ -829,7 +823,9 @@ namespace Fuxion
 	}
 }
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace Fuxion.Runtime.CompilerServices
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 {
 	/// <summary>
 	/// Provides runtime helper methods for compiler-generated code, specifically for range operations.
@@ -915,7 +911,7 @@ namespace Fuxion.Runtime.CompilerServices
 
 				if (length == 0)
 				{
-					return Array.Empty<T>();
+					return [];
 				}
 
 				var dest = new T[length];
@@ -932,4 +928,57 @@ namespace Fuxion.Runtime.CompilerServices
 	}
 }
 
+#endif
+
+#if !NET11_0_OR_GREATER
+
+// PEND When this issue is resolved, we can remove this polyfill
+// https://github.com/Sergio0694/PolySharp/pull/140
+
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+namespace System.Runtime.CompilerServices
+#pragma warning restore IDE0130 // Namespace does not match folder structure
+{
+   // Source: https://github.com/dotnet/runtime/blob/release/11.0-preview5/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/IUnion.cs
+   /// <summary>
+   /// Provides a common interface for accessing the contents of a union type at runtime.
+   /// </summary>
+   /// <remarks>
+   /// <para>
+   /// The C# compiler automatically implements this interface on types generated by union declarations.
+   /// User-defined types annotated with <see cref="UnionAttribute" /> may also implement this interface
+   /// to provide runtime access to the union's value. Implementing this interface is not required
+   /// for union behaviors provided by the compiler.
+   /// </para>
+   /// </remarks>
+   /// <seealso cref="UnionAttribute" />
+   public interface IUnion
+   {
+      /// <summary>
+      /// Gets the value contained in the union, or <see langword="null" /> if the union has no value.
+      /// </summary>
+      /// <value>
+      /// The current value of the union as one of its case types, or <see langword="null" />.
+      /// </value>
+      object? Value { get; }
+   }
+   // Source: https://github.com/dotnet/runtime/blob/release/11.0-preview5/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/UnionAttribute.cs
+   /// <summary>
+   /// Indicates that a class or struct is a union type, enabling compiler support for union behaviors.
+   /// </summary>
+   /// <remarks>
+   /// <para>
+   /// Any class or struct annotated with this attribute is recognized by the C# compiler as a union type.
+   /// Union types may support behaviors such as implicit conversions from case types, pattern matching
+   /// that unwraps the union's contents, and switch exhaustiveness checking.
+   /// </para>
+   /// </remarks>
+   /// <seealso cref="IUnion" />
+   [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
+   public sealed class UnionAttribute : Attribute
+   {
+   }
+}
 #endif

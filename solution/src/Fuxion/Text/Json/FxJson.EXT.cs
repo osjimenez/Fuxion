@@ -429,7 +429,43 @@ public static class JsonExtensions
 			ReadCommentHandling = JsonCommentHandling.Skip,
 			TypeInfoResolver = new FuxionFormattedTypeInfoResolver()
 		};
-	}
+
+		/// <summary>
+		/// PEND DOC
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns></returns>
+		public string ApplyNamingPolicy(string name)
+			=> me.PropertyNamingPolicy?.ConvertName(name) ?? name;
+   }
+	extension(JsonElement me)
+	{
+		/// <summary>
+		/// PEND DOC
+		/// </summary>
+		/// <param name="propertyName"></param>
+		/// <param name="options"></param>
+		/// <param name="value"></param>
+		/// <returns></returns>
+      public bool TryGetProperty(string propertyName, JsonSerializerOptions options, out JsonElement value)
+      {
+         if (me.TryGetProperty(propertyName, out value))
+            return true;
+
+         if (options.PropertyNameCaseInsensitive)
+         {
+            foreach (var prop in me.EnumerateObject())
+               if (string.Equals(prop.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+               {
+                  value = prop.Value;
+                  return true;
+               }
+         }
+
+         value = default;
+         return false;
+      }
+   }
 	extension((bool Formatted, JsonSerializerOptions? Options) me)
 	{
 		/// <summary>

@@ -1,7 +1,6 @@
 namespace Test.AspNetCore.Service;
 
-public class TestPayload
+public record TestPayload(string Name, int Age)
 {
-	public required string FirstName { get; set; }
-	public required int Age { get; set; }
+	public static TestPayload Default { get; } = new TestPayload("test", 123);
 }

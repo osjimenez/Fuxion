@@ -21,11 +21,7 @@ public class TestController : ControllerBase
 
 	[Route("test-payload-success")]
 	[HttpGet]
-	public IActionResult PayloadSuccess() => Fuxion.Response.Get.SuccessPayload(new TestPayload
-	{
-		FirstName = "Test name",
-		Age = 123
-	}).ToApiActionResult();
+	public IActionResult PayloadSuccess() => Fuxion.Response.Get.SuccessPayload(TestPayload.Default).ToApiActionResult();
 
 	// ERROR
 	[Route("test-message-error")]
@@ -34,11 +30,7 @@ public class TestController : ControllerBase
 
 	[Route("test-payload-error")]
 	[HttpGet]
-	public IActionResult PayloadError() => Fuxion.Response.Get.ErrorPayload(new TestPayload
-	{
-		FirstName = "Test name",
-		Age = 123
-	}, "Error message").ToApiActionResult();
+	public IActionResult PayloadError() => Fuxion.Response.Get.ErrorPayload(TestPayload.Default, "Error message").ToApiActionResult();
 
 	[Route("test-message-exception")]
 	[HttpGet]
@@ -61,9 +53,13 @@ public class TestController : ControllerBase
 
 	[Route("test-payload-bad-request")]
 	[HttpGet]
-	public IActionResult PayloadBadRequest() => Fuxion.Response.Get.InvalidData("Error message", new TestPayload
-	{
-		FirstName = "Test name",
-		Age = 123
-	}).ToApiActionResult();
+	public IActionResult PayloadBadRequest() => Fuxion.Response.Get.InvalidData("Error message", TestPayload.Default).ToApiActionResult();
+}
+file class Level1
+{
+   public void Throw() => new Level2().Throw();
+}
+file class Level2
+{
+   public void Throw() => throw new NotImplementedException("Not implemented");
 }

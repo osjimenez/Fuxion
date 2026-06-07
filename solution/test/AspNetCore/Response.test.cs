@@ -48,7 +48,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			Assert.Equal(HttpStatusCode.OK, res.StatusCode);
 			var str = await res.Content.ReadAsStringAsync();
 			var payload = str.Fx.Json.Deserialize<TestPayload>(options:jsonOptions).Payload;
-			Assert.Equal("Test name", payload?.FirstName);
+			Assert.Equal("test", payload?.Name);
 			Assert.Equal(123, payload?.Age);
 		}
 
@@ -70,7 +70,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			Assert.NotNull(problem);
 			Assert.Equal("Error message", problem.Detail);
 			var payload = problem.PayloadOrDefault<TestPayload>(jsonOptions);
-			Assert.Equal("Test name", payload?.FirstName);
+			Assert.Equal("test", payload?.Name);
 			Assert.Equal(123, payload?.Age);
 		}
 
@@ -93,7 +93,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			Assert.NotNull(problem);
 			Assert.Equal("Error message", problem.Detail);
 			var payload = problem.PayloadOrDefault<TestPayload>(jsonOptions);
-			Assert.Equal("Test name", payload?.FirstName);
+			Assert.Equal("test", payload?.Name);
 			Assert.Equal(123, payload?.Age);
 		}
 
@@ -148,7 +148,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			PrintVariable(res.Fx.Json.Serialize(true).Payload);
 			Assert.True(res.IsSuccess);
 			Assert.Equal(200, res.Extensions.StatusCode.Value);
-			Assert.Equal("Test name", res.Payload?.FirstName);
+			Assert.Equal("test", res.Payload?.Name);
 			Assert.Equal(123, res.Payload?.Age);
 		}
 
@@ -173,7 +173,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			Assert.Equal(500, res.Extensions.InnerProblem.Value.Status);
 			Assert.Equal("Error message", res.Extensions.InnerProblem.Value.Detail);
 			Assert.True(res.Extensions.InnerProblem.Value.TryGetPayload<TestPayload>(out var payload, jsonOptions));
-			Assert.Equal("Test name", payload.FirstName);
+			Assert.Equal("test", payload.Name);
 			Assert.Equal(123, payload.Age);
 		}
 

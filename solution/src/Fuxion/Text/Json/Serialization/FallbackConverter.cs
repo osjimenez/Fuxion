@@ -1,3 +1,6 @@
+using Fuxion.Reflection;
+using Fuxion.Text.Json;
+using Fuxion.Union;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -5,10 +8,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using Fuxion.Reflection;
-using Fuxion.Text.Json;
 
 namespace Fuxion.Text.Json.Serialization;
 
@@ -496,6 +498,35 @@ public class StackTraceFallbackResolver : PropertyFallbackResolver
 }
 
 /// <summary>
+/// Applies an <see cref="ExceptionConverter"/> to exception-typed members and optionally forces deserialization to return the default value.
+/// </summary>
+/// <remarks>
+/// <para>
+/// This attribute exists because <see cref="JsonConverterAttribute"/> cannot pass constructor arguments to a converter type directly.
+/// It creates an <see cref="ExceptionConverter"/> instance configured with the requested <paramref name="readAlwaysAsDefault"/> behavior.
+/// </para>
+/// <para>
+/// When <paramref name="readAlwaysAsDefault"/> is <c>true</c>, any JSON value for the exception member is fully consumed and
+/// deserialized as <c>default</c>. This is useful for scenarios where exception details should round-trip through JSON without
+/// attempting to materialize a real <see cref="Exception"/> instance.
+/// </para>
+/// </remarks>
+public class ExceptionConverterAttribute(bool readAlwaysAsDefault = false) : JsonConverterAttribute
+{
+	/// <summary>
+	/// Creates the configured <see cref="ExceptionConverter"/> for the target exception type.
+	/// </summary>
+	/// <param name="typeToConvert">The member type being converted. It must derive from <see cref="Exception"/>.</param>
+	/// <returns>An <see cref="ExceptionConverter"/> configured with the attribute settings.</returns>
+	/// <exception cref="JsonException">Thrown when <paramref name="typeToConvert"/> is not assignable to <see cref="Exception"/>.</exception>
+   public override JsonConverter? CreateConverter(Type typeToConvert)
+   {
+		if (!typeof(Exception).IsAssignableFrom(typeToConvert)) throw new JsonException($"Only Exceptions can be converted by '{nameof(ExceptionConverter)}'.");
+		return new ExceptionConverter(readAlwaysAsDefault);
+   }
+}
+
+/// <summary>
 /// Specialized converter for <see cref="Exception"/> objects with stack trace formatting and multiline string handling.
 /// </summary>
 /// <remarks>
@@ -508,6 +539,10 @@ public class StackTraceFallbackResolver : PropertyFallbackResolver
 /// </list>
 /// <para>
 /// Use this converter when serializing exceptions to JSON for logging, diagnostics, or error responses.
+/// </para>
+/// <para>
+/// Deserialization is normally not supported. However, when constructed with <c>readAlwaysAsDefault: true</c>, the converter
+/// will consume any incoming JSON value and return <c>default(Exception)</c> instead of throwing.
 /// </para>
 /// </remarks>
 /// <example>
@@ -527,10 +562,30 @@ public class StackTraceFallbackResolver : PropertyFallbackResolver
 /// }
 /// </code>
 /// </example>
-public class ExceptionConverter() : FallbackConverter<Exception>(0,
-	new StackTraceFallbackResolver(),
-	new MultilineStringToCollectionPropertyFallbackResolver()
-	);
+public class ExceptionConverter : FallbackConverter<Exception>
+{
+   /// <summary>
+   /// Initializes a new instance of the <see cref="ExceptionConverter"/> class that supports serialization only.
+   /// </summary>
+   public ExceptionConverter() : base(
+		0,
+		false,
+		new StackTraceFallbackResolver(),
+		new MultilineStringToCollectionPropertyFallbackResolver())
+		{ }
+   /// <summary>
+   /// Initializes a new instance of the <see cref="ExceptionConverter"/> class with optional default-value deserialization.
+   /// </summary>
+   /// <param name="readAlwaysAsDefault">
+   /// <c>true</c> to consume any JSON value and return <c>default(Exception)</c> during deserialization; otherwise, deserialization throws <see cref="NotSupportedException"/>.
+   /// </param>
+   public ExceptionConverter(bool readAlwaysAsDefault = false) : base(
+		0,
+		readAlwaysAsDefault,
+		new StackTraceFallbackResolver(),
+		new MultilineStringToCollectionPropertyFallbackResolver())
+		{ }
+}
 
 /// <summary>
 /// JSON converter with fallback serialization logic for complex types that may fail standard serialization.
@@ -564,7 +619,8 @@ public class ExceptionConverter() : FallbackConverter<Exception>(0,
 /// <item><description>Applying custom formatting to specific properties (e.g., multiline strings as arrays)</description></item>
 /// </list>
 /// <para>
-/// <strong>Important:</strong> This converter only supports serialization. Deserialization throws <see cref="NotSupportedException"/>.
+/// <strong>Important:</strong> This converter always supports serialization. Deserialization normally throws <see cref="NotSupportedException"/>,
+/// but can be configured to consume the JSON value and return <c>default</c> by setting <c>readAlwaysAsDefault</c> to <c>true</c>.
 /// </para>
 /// </remarks>
 /// <example>
@@ -607,40 +663,65 @@ public class FallbackConverter<T> : JsonConverter<T>
 	/// Initializes a new instance of the <see cref="FallbackConverter{T}"/> class with default resolvers.
 	/// </summary>
 	/// <param name="deep">The current nesting depth level (typically 0 for root objects).</param>
-	public FallbackConverter(int deep) : this(deep, []) { }
+	public FallbackConverter(int deep) : this(deep, false, []) { }
 
-	/// <summary>
-	/// Initializes a new instance of the <see cref="FallbackConverter{T}"/> class with custom resolvers.
-	/// </summary>
-	/// <param name="deep">The current nesting depth level.</param>
-	/// <param name="resolvers">Custom resolvers to apply. Default resolvers are automatically added if not present.</param>
-	/// <remarks>
-	/// <para>
-	/// The following resolvers are automatically added if not explicitly provided:
-	/// </para>
-	/// <list type="bullet">
-	/// <item><description><see cref="IfNullWritePropertyFallbackResolver"/></description></item>
-	/// <item><description><see cref="IfMemberInfoWriteNamePropertyFallbackResolver"/></description></item>
-	/// <item><description><see cref="CollectionPropertyFallbackResolver"/></description></item>
-	/// </list>
-	/// </remarks>
-	public FallbackConverter(int deep, params PropertyFallbackResolver[] resolvers)
+   /// <summary>
+   /// Initializes a new instance of the <see cref="FallbackConverter{T}"/> class with custom resolvers.
+   /// </summary>
+   /// <param name="deep">The current nesting depth level.</param>
+   /// <param name="resolvers">Custom resolvers to apply. Default resolvers are automatically added if not present.</param>
+	/// <param name="readAlwaysAsDefault">
+	/// <c>true</c> to consume any incoming JSON value during deserialization and return <c>default(T)</c>; otherwise, deserialization throws <see cref="NotSupportedException"/>.
+	/// </param>
+   /// <remarks>
+   /// <para>
+   /// The following resolvers are automatically added if not explicitly provided:
+   /// </para>
+   /// <list type="bullet">
+   /// <item><description><see cref="IfNullWritePropertyFallbackResolver"/></description></item>
+   /// <item><description><see cref="IfMemberInfoWriteNamePropertyFallbackResolver"/></description></item>
+   /// <item><description><see cref="CollectionPropertyFallbackResolver"/></description></item>
+   /// </list>
+   /// </remarks>
+   public FallbackConverter(int deep, bool readAlwaysAsDefault, params PropertyFallbackResolver[] resolvers)
 	{
 		if (!resolvers.OfType<IfNullWritePropertyFallbackResolver>().Any()) this.resolvers.Add(new IfNullWritePropertyFallbackResolver { Deep = deep });
 		if (!resolvers.OfType<IfMemberInfoWriteNamePropertyFallbackResolver>().Any()) this.resolvers.Add(new IfMemberInfoWriteNamePropertyFallbackResolver { Deep = deep });
 		if (!resolvers.OfType<CollectionPropertyFallbackResolver>().Any()) this.resolvers.Add(new CollectionPropertyFallbackResolver { Deep = deep });
 		this.resolvers.AddRange(resolvers.Do(t => t.Deep = deep));
 		this.deep = deep;
-	}
+		this.readAlwaysAsDefault = readAlwaysAsDefault;
+
+   }
 	readonly int deep = 0;
+	readonly bool readAlwaysAsDefault = false;
 	readonly List<PropertyFallbackResolver> resolvers = [];
 
 	/// <summary>
-	/// Reads and converts JSON to an object. Not supported by this converter.
+	/// Reads and converts JSON to an object.
 	/// </summary>
-	/// <exception cref="NotSupportedException">Always thrown as this converter only supports serialization.</exception>
-	public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-		throw new NotSupportedException($"{nameof(FallbackConverter<>)} doesn't support deserialization");
+	/// <remarks>
+	/// <para>
+	/// By default, fallback converters are serialization-only and this method throws <see cref="NotSupportedException"/>.
+	/// </para>
+	/// <para>
+	/// When the converter is created with <c>readAlwaysAsDefault</c> set to <c>true</c>, this method consumes the entire current JSON value
+	/// and returns <c>default(T)</c>. This mode is intended for members that must accept incoming JSON but should not be materialized,
+	/// such as <see cref="Exception"/> properties used only for serialization.
+	/// </para>
+	/// </remarks>
+	/// <exception cref="NotSupportedException">Thrown when deserialization is not enabled for this converter instance.</exception>
+	public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+	{
+		if (!readAlwaysAsDefault)
+			throw new NotSupportedException($"{nameof(FallbackConverter<>)} doesn't support deserialization");
+
+		if (reader.TokenType == JsonTokenType.Null)
+			return default;
+
+		using var _ = JsonDocument.ParseValue(ref reader);
+		return default;
+	}
 
 	/// <summary>
 	/// Writes an object as JSON using fallback logic when standard serialization fails.
@@ -678,7 +759,10 @@ public class FallbackConverter<T> : JsonConverter<T>
 		opt.MaxDepth = 6;
 		var json = value.Fx.Json.Serialize(options: opt);
 		if (json.IsSuccess)
-			writer.WriteRawValue(json.Payload);
+		{
+			using var document = JsonDocument.Parse(json.Payload);
+			document.RootElement.WriteTo(writer);
+		}
 		else
 		{
 			writer.WriteStartObject();
@@ -752,7 +836,7 @@ public class FallbackConverter<T> : JsonConverter<T>
 		if (deep <= 2) // INFO: Con 2 funciona, con 3 a veces, con 4 casi nunca
 		{
 			var converterType = typeof(FallbackConverter<>).MakeGenericType(value.GetType());
-			var converter = Activator.CreateInstance(converterType, deep + 1, resolvers.ToArray()) ?? throw new InvalidProgramException($"Program couldn't create FallbackConverter<{value.GetType().Name}>");
+			var converter = Activator.CreateInstance(converterType, deep + 1, readAlwaysAsDefault, resolvers.ToArray()) ?? throw new InvalidProgramException($"Program couldn't create FallbackConverter<{value.GetType().Name}>");
 			opt.Converters.Add((JsonConverter)converter);
 		}
 		//opt.ReferenceHandler = ReferenceHandler.Preserve;
@@ -760,7 +844,10 @@ public class FallbackConverter<T> : JsonConverter<T>
 		opt.MaxDepth = 6;
 		var json = value.Fx.Json.Serialize(options: opt);
 		if (json.IsSuccess)
-			writer.WriteRawValue(json.Payload);
+		{
+			using var document = JsonDocument.Parse(json.Payload);
+			document.RootElement.WriteTo(writer);
+		}
 		else
 			writer.WriteRawValue($"\"ERROR '{json.Exception?.Message}'\"");
 		//} catch (Exception ex)

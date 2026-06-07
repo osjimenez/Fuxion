@@ -22,7 +22,7 @@ public class FuxionException : Exception
 	/// Initializes a new instance of the <see cref="FuxionException"/> class with a specified error message.
 	/// </summary>
 	/// <param name="message">The message that describes the error.</param>
-	public FuxionException(string message) : base(message) { }
+	public FuxionException(string? message) : base(message) { }
 	
 	/// <summary>
 	/// Initializes a new instance of the <see cref="FuxionException"/> class with a specified error message 
@@ -30,7 +30,7 @@ public class FuxionException : Exception
 	/// </summary>
 	/// <param name="message">The error message that explains the reason for the exception.</param>
 	/// <param name="innerException">The exception that is the cause of the current exception, or a null reference if no inner exception is specified.</param>
-	public FuxionException(string message, Exception innerException) : base(message, innerException) { }
+	public FuxionException(string? message, Exception innerException) : base(message, innerException) { }
 }
 
 /// <summary>
@@ -72,7 +72,7 @@ public class FuxionAggregateException : AggregateException
 	/// Initializes a new instance of the <see cref="FuxionAggregateException"/> class with a specified error message.
 	/// </summary>
 	/// <param name="message">The message that describes the error.</param>
-	public FuxionAggregateException(string message) : base(message) { }
+	public FuxionAggregateException(string? message) : base(message) { }
 	
 	/// <summary>
 	/// Initializes a new instance of the <see cref="FuxionAggregateException"/> class with references to the inner exceptions.
@@ -92,7 +92,7 @@ public class FuxionAggregateException : AggregateException
 	/// </summary>
 	/// <param name="message">The error message that explains the reason for the exception.</param>
 	/// <param name="innerException">The exception that is the cause of the current exception.</param>
-	public FuxionAggregateException(string message, Exception innerException) : base(message, innerException) { }
+	public FuxionAggregateException(string? message, Exception innerException) : base(message, innerException) { }
 	
 	/// <summary>
 	/// Initializes a new instance of the <see cref="FuxionAggregateException"/> class with a specified error message 
@@ -100,7 +100,7 @@ public class FuxionAggregateException : AggregateException
 	/// </summary>
 	/// <param name="message">The error message that explains the reason for the exception.</param>
 	/// <param name="innerExceptions">The exceptions that are the cause of the current exception.</param>
-	public FuxionAggregateException(string message, params Exception[] innerExceptions) : base(message, innerExceptions) { }
+	public FuxionAggregateException(string? message, params Exception[] innerExceptions) : base(message, innerExceptions) { }
 	
 	/// <summary>
 	/// Initializes a new instance of the <see cref="FuxionAggregateException"/> class with a specified error message 
@@ -108,7 +108,7 @@ public class FuxionAggregateException : AggregateException
 	/// </summary>
 	/// <param name="message">The error message that explains the reason for the exception.</param>
 	/// <param name="innerExceptions">The exceptions that are the cause of the current exception.</param>
-	public FuxionAggregateException(string message, IEnumerable<Exception> innerExceptions) : base(message, innerExceptions) { }
+	public FuxionAggregateException(string? message, IEnumerable<Exception> innerExceptions) : base(message, innerExceptions) { }
 }
 
 /// <summary>
@@ -151,7 +151,7 @@ public class FuxionAggregateException<TInnerExceptions> : FuxionAggregateExcepti
 	/// Initializes a new instance of the <see cref="FuxionAggregateException{TInnerExceptions}"/> class with a specified error message.
 	/// </summary>
 	/// <param name="message">The message that describes the error.</param>
-	public FuxionAggregateException(string message) : base(message) { }
+	public FuxionAggregateException(string? message) : base(message) { }
 	
 	/// <summary>
 	/// Initializes a new instance of the <see cref="FuxionAggregateException{TInnerExceptions}"/> class with references to the inner exceptions.
@@ -171,7 +171,7 @@ public class FuxionAggregateException<TInnerExceptions> : FuxionAggregateExcepti
 	/// </summary>
 	/// <param name="message">The error message that explains the reason for the exception.</param>
 	/// <param name="innerException">The exception of type <typeparamref name="TInnerExceptions"/> that is the cause of the current exception.</param>
-	public FuxionAggregateException(string message, TInnerExceptions innerException) : base(message, innerException) { }
+	public FuxionAggregateException(string? message, TInnerExceptions innerException) : base(message, innerException) { }
 	
 	/// <summary>
 	/// Initializes a new instance of the <see cref="FuxionAggregateException{TInnerExceptions}"/> class with a specified error message 
@@ -179,7 +179,7 @@ public class FuxionAggregateException<TInnerExceptions> : FuxionAggregateExcepti
 	/// </summary>
 	/// <param name="message">The error message that explains the reason for the exception.</param>
 	/// <param name="innerExceptions">The exceptions of type <typeparamref name="TInnerExceptions"/> that are the cause of the current exception.</param>
-	public FuxionAggregateException(string message, params TInnerExceptions[] innerExceptions) : base(message, innerExceptions) { }
+	public FuxionAggregateException(string? message, params TInnerExceptions[] innerExceptions) : base(message, innerExceptions) { }
 	
 	/// <summary>
 	/// Initializes a new instance of the <see cref="FuxionAggregateException{TInnerExceptions}"/> class with a specified error message 
@@ -187,5 +187,5 @@ public class FuxionAggregateException<TInnerExceptions> : FuxionAggregateExcepti
 	/// </summary>
 	/// <param name="message">The error message that explains the reason for the exception.</param>
 	/// <param name="innerExceptions">The exceptions of type <typeparamref name="TInnerExceptions"/> that are the cause of the current exception.</param>
-	public FuxionAggregateException(string message, IEnumerable<TInnerExceptions> innerExceptions) : base(message, innerExceptions) { }
+	public FuxionAggregateException(string? message, IEnumerable<TInnerExceptions> innerExceptions) : base(message, innerExceptions) { }
 }

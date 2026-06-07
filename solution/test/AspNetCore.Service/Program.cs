@@ -22,14 +22,16 @@ public class Program
 			options.SerializerOptions.Converters.Add(new ExceptionConverter());
 		});
 
-		builder.Services.AddControllers();
+		builder.Services.AddControllers(options => options.UseResponses());
 
 		var app = builder.Build();
 
 		// Configure the HTTP request pipeline.
-
+		var responses = app.MapGroup(string.Empty)
+			.UseResponses();
+		
 		app.MapControllers();
-		app.MapEndpointsForAssembly(typeof(Program).Assembly);
+		responses.MapEndpointsForAssembly(typeof(Program).Assembly);
 
 		app.Run();
 	}

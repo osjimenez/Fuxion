@@ -15,21 +15,11 @@ public class TestEndpoint : IEndpoint
 		// SUCCESS
 		builder.MapGet("endpoint-test-empty-success", () => Response.Get.Success().ToApiResult());
 		builder.MapGet("endpoint-test-message-success", () => Response.Get.SuccessMessage("Success message").ToApiResult());
-		builder.MapGet("endpoint-test-payload-success", () => Response.Get.SuccessPayload(new TestPayload
-			{
-				FirstName = "Test name",
-				Age = 123
-			})
-			.ToApiResult());
+		builder.MapGet("endpoint-test-payload-success", () => Response.Get.SuccessPayload(TestPayload.Default)			.ToApiResult());
 
 		// ERROR
 		builder.MapGet("endpoint-test-message-error", () => Response.Get.ErrorMessage("Error message").ToApiResult());
-		builder.MapGet("endpoint-test-payload-error", () => Response.Get.ErrorPayload(new TestPayload
-			{
-				FirstName = "Test name",
-				Age = 123
-			}, "Error message")
-			.ToApiResult());
+		builder.MapGet("endpoint-test-payload-error", () => Response.Get.ErrorPayload(TestPayload.Default, "Error message").ToApiResult());
 
 		builder.MapGet("endpoint-test-message-exception", () =>
 		{
@@ -45,19 +35,14 @@ public class TestEndpoint : IEndpoint
 
 		// BAD REQUEST
 		builder.MapGet("endpoint-test-message-bad-request", () => Response.Get.InvalidData("Error message").ToApiResult());
-		builder.MapGet("endpoint-test-payload-bad-request", () => Response.Get.InvalidData("Error message", new TestPayload
-			{
-				FirstName = "Test name",
-				Age = 123
-			})
-			.ToApiResult());
+		builder.MapGet("endpoint-test-payload-bad-request", () => Response.Get.InvalidData("Error message", TestPayload.Default).ToApiResult());
 	}
 }
-public class Level1
+file class Level1
 {
 	public void Throw() => new Level2().Throw();
 }
-public class Level2
+file class Level2
 {
 	public void Throw() => throw new NotImplementedException("Not implemented");
 }
