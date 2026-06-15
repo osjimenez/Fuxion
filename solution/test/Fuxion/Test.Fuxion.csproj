@@ -14,7 +14,7 @@
 		<ProjectReference Include="$(XunitProjectPath)" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(IsFrameworkTargetFramework)' == 'true'">
+	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">
 		<Reference Include="System.Web" />
 	</ItemGroup>
 

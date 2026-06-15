@@ -176,7 +176,7 @@ public static class ResponseExtensions
          {
             exception = exceptionJson.Deserialize<Exception>(new JsonSerializerOptions(jsonOptions ?? new())
             {
-               Converters = { new ExceptionConverter(true) }
+               Converters = { new ExceptionConverter() }
             });
          }
          catch

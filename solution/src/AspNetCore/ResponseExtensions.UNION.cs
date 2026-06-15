@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Fuxion.Text.Json.Serialization;
@@ -93,7 +94,7 @@ sealed class ResponseActionFilter : IActionFilter
 static class ResponseHttpMapper
 {
    public static bool IsSupportedDeclaredResponseType(Type type)
-      => IsResponseReturnType(UnwrapReturnTypeIfTaskEvolved(type));
+      => IsResponseReturnType(UnwrapTypeIfATaskWrapIt(type));
 
    public static bool TryMap(object? value, ResponseHttpMode mode, out ResponseHttpMapping mapping)
       => mode switch
@@ -107,8 +108,13 @@ static class ResponseHttpMapper
    {
       if (value is IResponse response)
       {
-         if (!response.IsSuccess)
+         if (response.IsError)
          {
+            if(response.Value is Error error && error.Type is HttpStatusCode status)
+            {
+               mapping = new ResponseHttpMapping((int)status, value, false);
+               return true;
+            }
             mapping = new ResponseHttpMapping(StatusCodes.Status500InternalServerError, value, false);
             return true;
          }
@@ -133,7 +139,7 @@ static class ResponseHttpMapper
    {
       if (value is IResponse response)
       {
-         if (!response.IsSuccess)
+         if (response.IsError)
          {
             mapping = MapErrorResult(response.Value);
             return true;
@@ -171,7 +177,7 @@ static class ResponseHttpMapper
          if (error.Exception is not null)
             extensions[nameof(Error.Exception)] = JsonSerializer.SerializeToElement(error.Exception, options: new()
             {
-               Converters = { new ExceptionConverter(true) }
+               Converters = { new ExceptionConverter() }
             });
          foreach (var extension in error.Extensions)
             extensions[extension.Key] = extension.Value;
@@ -182,11 +188,17 @@ static class ResponseHttpMapper
             Title = "Internal server error",
             Detail = error.Message
          };
-         if (error.Type is not null)
-            problem.Extensions[nameof(Error.Type)] = error.Type;
+         if (error.Type is not null) // PEND When have to put Type in Extension ?
+            problem.Extensions["Error" + nameof(Error.Type)] = error.Type;
+
          foreach (var extension in extensions)
             problem.Extensions[extension.Key] = extension.Value;
 
+         if (error.Type is HttpStatusCode status)
+         {
+            problem.Status = (int)status;
+            return new ResponseHttpMapping((int)status, problem, false);
+         }
          return new ResponseHttpMapping(StatusCodes.Status500InternalServerError, problem, false);
       }
 
@@ -198,7 +210,7 @@ static class ResponseHttpMapper
       }, false);
    }
 
-   static Type UnwrapReturnTypeIfTaskEvolved(Type type)
+   static Type UnwrapTypeIfATaskWrapIt(Type type)
    {
       if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>))
          return type.GetGenericArguments()[0];

@@ -14,13 +14,9 @@ namespace Fuxion.Union;
 
 public class ExtensionsDictionary : IDictionary<string, object?>
 {
-   public ExtensionsDictionary()
-      : this([], null)
-   { }
+   public ExtensionsDictionary() : this([], null) { }
 
-   public ExtensionsDictionary(HashSet<string> reservedKeys)
-      : this(reservedKeys, null)
-   { }
+   public ExtensionsDictionary(HashSet<string> reservedKeys) : this(reservedKeys, null) { }
 
    public ExtensionsDictionary(HashSet<string> reservedKeys, IEqualityComparer<string>? comparer)
    {
@@ -28,7 +24,13 @@ public class ExtensionsDictionary : IDictionary<string, object?>
       ReservedKeys = reservedKeys ?? throw new ArgumentNullException(nameof(reservedKeys));
    }
 
-   private readonly Dictionary<string, object?> dic;
+   protected ExtensionsDictionary(ExtensionsDictionary extensionDictionary)
+   {
+      dic = new Dictionary<string, object?>(extensionDictionary.dic, extensionDictionary.dic.Comparer);
+      ReservedKeys = extensionDictionary.ReservedKeys;
+   }
+
+   protected readonly Dictionary<string, object?> dic;
    private HashSet<string> reservedKeys = [];
 
    internal HashSet<string> ReservedKeys
@@ -47,6 +49,10 @@ public class ExtensionsDictionary : IDictionary<string, object?>
       extensions.ReservedKeys = reservedKeys;
       return extensions;
    }
+
+   internal static ExtensionsDictionary<TExtended> EnsureReservedKeys<TExtended>(ExtensionsDictionary? extensions, HashSet<string> reservedKeys)
+      => [with(EnsureReservedKeys(extensions, reservedKeys))];
+
    private bool IsReserved(string key)
       => ReservedKeys.Contains(key);
 
@@ -225,6 +231,17 @@ public class ExtensionsDictionary : IDictionary<string, object?>
       => GetEnumerator();
 
    #endregion
+}
+
+public class ExtensionsDictionary<TExtended> : ExtensionsDictionary
+{
+   public ExtensionsDictionary() : base() { }
+
+   public ExtensionsDictionary(HashSet<string> reservedKeys) : base(reservedKeys) { }
+
+   public ExtensionsDictionary(HashSet<string> reservedKeys, IEqualityComparer<string>? comparer) : base(reservedKeys, comparer) { }
+
+   public ExtensionsDictionary(ExtensionsDictionary extensionDictionary) : base(extensionDictionary) { }
 }
 
 public class ReservedKeyExtensionException(string key) : FuxionException($"The key '{key}' is reserved and cannot be added to {nameof(ExtensionsDictionary)}.")

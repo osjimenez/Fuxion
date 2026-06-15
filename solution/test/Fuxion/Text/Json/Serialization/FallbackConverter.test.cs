@@ -1,10 +1,10 @@
+using Fuxion;
+using Fuxion.Text.Json;
+using Fuxion.Xunit;
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using Fuxion;
-using Fuxion.Text.Json;
-using Fuxion.Xunit;
 using Xunit;
 
 namespace Test.Fuxion.Text.Json.Serialization;
@@ -45,7 +45,7 @@ public class FallbackConverterTest(ITestOutputHelper output) : BaseTest<Fallback
 				{
 					Loop loop = new("Loop name");
 					loop.Data = loop;
-					LoopException ipex = new("LoopException message")
+					LoopException ipex = new("LoopException message\r\nNew line")
 					{
 						Loop = loop
 					};
@@ -58,20 +58,24 @@ public class FallbackConverterTest(ITestOutputHelper output) : BaseTest<Fallback
 			}
 		} catch (Exception ex)
 		{
-			var res = ex.Fx.Json.Serialize(true).Payload;
-			Output.WriteLine("Exception serialized JSON:");
-			Output.WriteLine(res ?? "null");
+			var json = ex.Fx.Json.Serialize(true).PayloadOrThrow();
+			AssertJson(json, [
+				new(["Message"], "InvalidOperationException message"),
+            new(["InnerException", "Message"], "LoopException message\r\nNew line"),
+				new(["InnerException", "Loop", "Name"], "Loop name"),
+				new(["InnerException", "Loop", "Data"], null),
+			]);
 		}
 	}
 }
 
-public class LoopException : Exception
+file class LoopException : Exception
 {
 	public LoopException(string message) : base(message) { }
 	public LoopException(string message, Exception innerException) : base(message, innerException) { }
 	public Loop? Loop { get; init; }
 }
-public record Loop(string Name)
+file record Loop(string Name)
 {
 	public Loop? Data { get; set; }
 }

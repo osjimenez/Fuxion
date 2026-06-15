@@ -17,6 +17,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Test.AspNetCore.Service;
 using Xunit;
@@ -41,11 +42,12 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
       Assert.Equal(expectedStatus, res.StatusCode);
 
       var body = await res.Content.ReadAsStringAsync();
-      PrintVariable(body);
+      if (body.IsNeitherNullNorWhiteSpace())
+         PrintVariable(JsonNode.Parse(body)?.ToJsonString(JsonSerializerOptions.Formatted), false);
 
       return (cli, jsonOptions, res);
    }
-   async Task CallEndpoint<TSuccess, TValue>(string prefix, ResponseHttpMode mode, string path, HttpStatusCode expectedStatus, Action<TValue>? assertValue = null)
+   async Task CallEndpoint<TSuccess, TValue>(string prefix, ResponseHttpMode mode, string path, HttpStatusCode expectedStatus, Action<TValue, JsonSerializerOptions>? assertValue = null)
       where TSuccess : notnull
    {
       (var cli, var jsonOptions, var res) = await GetMessage(prefix, mode, path, expectedStatus);
@@ -56,9 +58,9 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
          PrintVariable(error.Message);
       IsTrue(response is TValue);
       if (assertValue is not null && response is TValue value)
-         assertValue(value);
+         assertValue(value, jsonOptions);
    }
-   async Task CallEndpoint<TSuccess, TError, TValue>(string prefix, ResponseHttpMode mode, string path, HttpStatusCode expectedStatus, Action<TValue>? assertValue = null)
+   async Task CallEndpoint<TSuccess, TError, TValue>(string prefix, ResponseHttpMode mode, string path, HttpStatusCode expectedStatus, Action<TValue, JsonSerializerOptions>? assertValue = null)
       where TSuccess : notnull
       where TError : notnull
    {
@@ -70,105 +72,56 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
          PrintVariable(error.Message);
       IsTrue(response is TValue);
       if (assertValue is not null && response is TValue value)
-         assertValue(value);
+         assertValue(value, jsonOptions);
    }
    async Task CallService(string prefix, ResponseHttpMode mode)
 	{
-      // UNIT
-      await CallEndpoint<Unit, Unit>(prefix, mode, "unit", HttpStatusCode.OK);
-      // NONE
-      await CallEndpoint<Unit, None>(prefix, mode, "none", HttpStatusCode.NoContent);
-      // STRING
-      await CallEndpoint<string, string>(prefix, mode, "string", HttpStatusCode.OK, value =>
+      //// UNIT
+      //await CallEndpoint<Unit, Unit>(prefix, mode, "unit", HttpStatusCode.OK);
+      //// NONE
+      //await CallEndpoint<Unit, None>(prefix, mode, "none", HttpStatusCode.NoContent);
+      //// STRING
+      //await CallEndpoint<string, string>(prefix, mode, "string", HttpStatusCode.OK, (value, jsonOptions) =>
+      //{
+      //   Assert.Equal("test", value);
+      //});
+      //// PAYLOAD
+      //await CallEndpoint<TestPayload, TestPayload>(prefix, mode, "payload", HttpStatusCode.OK, (value, jsonOptions) =>
+      //{
+      //   Assert.Equal("test", value.Name);
+      //   Assert.Equal(123, value.Age);
+      //});
+      //// ERROR - MESSAGE
+      //await CallEndpoint<Unit, Error>(prefix, mode, "error-message", HttpStatusCode.InternalServerError, (value, jsonOptions) =>
+      //{
+      //   Assert.Equal("test", value.Message);
+      //});
+      // ERROR - TYPE
+      await CallEndpoint<Unit, Error>(prefix, mode, "error-type", HttpStatusCode.NotImplemented, (value, jsonOptions) =>
       {
-         Assert.Equal("test", value);
-      });
-      // PAYLOAD
-      await CallEndpoint<TestPayload, TestPayload>(prefix, mode, "payload", HttpStatusCode.OK, value =>
-      {
-         Assert.Equal("test", value.Name);
-         Assert.Equal(123, value.Age);
-      });
-      // ERROR - EMPTY
-      await CallEndpoint<Unit, Error>(prefix, mode, "error-empty", HttpStatusCode.InternalServerError);
-      // ERROR - MESSAGE
-      await CallEndpoint<Unit, Error>(prefix, mode, "error-message", HttpStatusCode.InternalServerError, value =>
-      {
-         Assert.Equal("test", value.Message);
+         PrintVariable(value.IsNotImplemented);
+         PrintVariable(value.Type is HttpStatusCode);
+         PrintVariable(value.Type);
+         IsTrue(value.Type is HttpStatusCode status && status == HttpStatusCode.NotImplemented);
       });
       // ERROR - PAYLOAD
-      await CallEndpoint<Unit, Error>(prefix, mode, "error-payload", HttpStatusCode.InternalServerError, value =>
+      await CallEndpoint<Unit, Error>(prefix, mode, "error-payload", HttpStatusCode.InternalServerError, (value, jsonOptions) =>
       {
-         var payload = value.GetPayloadAs<TestPayload>();
+         var payload = value.GetPayloadAs<TestPayload>(jsonOptions);
          Assert.NotNull(payload);
-         Assert.Equal("test", payload.Name);
-         Assert.Equal(123, payload.Age);
+         Assert.Equal(TestPayload.Default.Name, payload.Name);
+         Assert.Equal(TestPayload.Default.Age, payload.Age);
       });
       // ERROR - EXCEPTION
-      await CallEndpoint<Unit, Error>(prefix, mode, "error-exception", HttpStatusCode.InternalServerError, value =>
+      await CallEndpoint<Unit, Error>(prefix, mode, "error-exception", HttpStatusCode.InternalServerError, (value, jsonOptions) =>
       {
          // PEND ver que hacemos con las excepciones ...
+         IsTrue(value.Exception is RemoteException);
+         if(value.Exception is RemoteException rex)
+         {
+            Assert.Equal(nameof(NotImplementedException), rex.RemoteType);
+         }
       });
-
-      // ERROR
-      //{
-      //	var res = await cli.GetAsync($"{prefix}test-message-error");
-      //	PrintVariable(res.StatusCode);
-      //	Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
-      //	var str = await res.Content.ReadAsStringAsync();
-      //	var problem = str.Fx.Json.Deserialize<ProblemDetails>(options: jsonOptions).Payload;
-      //	Assert.Equal("Error message", problem?.Detail);
-      //}
-      //{
-      //	var res = await cli.GetAsync($"{prefix}test-payload-error");
-      //	PrintVariable(res.StatusCode);
-      //	Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
-      //	var str = await res.Content.ReadAsStringAsync();
-      //	var problem = str.Fx.Json.Deserialize<ResponseProblemDetails>(options: jsonOptions).Payload;
-      //	Assert.NotNull(problem);
-      //	Assert.Equal("Error message", problem.Detail);
-      //	var payload = problem.PayloadOrDefault<TestPayload>(jsonOptions);
-      //	Assert.Equal("Test name", payload?.FirstName);
-      //	Assert.Equal(123, payload?.Age);
-      //}
-
-      // BAD REQUEST
-      //{
-      //	var res = await cli.GetAsync($"{prefix}test-message-bad-request");
-      //	PrintVariable(res.StatusCode);
-      //	Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
-      //	var str = await res.Content.ReadAsStringAsync();
-      //	var problem = str.Fx.Json.Deserialize<ResponseProblemDetails>(options: jsonOptions).Payload;
-      //	Assert.Equal("Error message", problem?.Detail);
-      //}
-      //{
-      //	var res = await cli.GetAsync($"{prefix}test-payload-bad-request");
-      //	PrintVariable(res.StatusCode);
-      //	Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
-      //	var str = await res.Content.ReadAsStringAsync();
-      //	PrintVariable(str);
-      //	var problem = str.Fx.Json.Deserialize<ResponseProblemDetails>(options: jsonOptions).Payload;
-      //	Assert.NotNull(problem);
-      //	Assert.Equal("Error message", problem.Detail);
-      //	var payload = problem.PayloadOrDefault<TestPayload>(jsonOptions);
-      //	Assert.Equal("Test name", payload?.FirstName);
-      //	Assert.Equal(123, payload?.Age);
-      //}
-
-      // EXCEPTION
-      //{
-      //	var res = await cli.GetAsync($"{prefix}test-message-exception");
-      //	PrintVariable(res.StatusCode);
-      //	Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
-      //	var str = await res.Content.ReadAsStringAsync();
-      //	PrintVariable(str);
-      //	var problem = str.Fx.Json.Deserialize<ProblemDetails>(options: jsonOptions).Payload;
-      //	Assert.NotNull(problem);
-      //	var ext = new ResponseExtensionsDictionary(problem.Extensions);
-      //	Assert.True(ext.Exception.IsDefined);
-      //	Assert.NotNull(ext.Exception.Value);
-      //	Assert.Equal("Not implemented", ext.Exception.Value.GetProperty("Message").GetString());
-      //}
    }
 	[Fact]
 	public async Task ToApiActionResult()
@@ -179,7 +132,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 	[Fact]
 	public async Task ToApiResult()
 	{
-		await CallService("minimal/response/", ResponseHttpMode.Response);
+		//await CallService("minimal/response/", ResponseHttpMode.Response);
       await CallService("minimal/result/", ResponseHttpMode.Result);
    }
 

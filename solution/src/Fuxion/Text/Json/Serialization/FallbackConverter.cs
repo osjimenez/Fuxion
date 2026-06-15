@@ -200,7 +200,7 @@ public abstract class PropertyFallbackResolver
 	protected void FallbackWriteRaw(object value, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers)
 	{
 		var converterType = typeof(FallbackConverter<>).MakeGenericType(value.GetType());
-		var converter = Activator.CreateInstance(converterType, Deep + 1, resolvers.ToArray());
+		var converter = Activator.CreateInstance(converterType, Deep + 1, false, resolvers.ToArray());
 		converterType.GetMethod(nameof(FallbackConverter<>.FallbackWriteRaw))?.Invoke(converter, [value, writer, options, resolvers]);
 	}
 }
@@ -495,96 +495,6 @@ public class StackTraceFallbackResolver : PropertyFallbackResolver
 			set => field = value == 0 ? null : value;
 		}
 	}
-}
-
-/// <summary>
-/// Applies an <see cref="ExceptionConverter"/> to exception-typed members and optionally forces deserialization to return the default value.
-/// </summary>
-/// <remarks>
-/// <para>
-/// This attribute exists because <see cref="JsonConverterAttribute"/> cannot pass constructor arguments to a converter type directly.
-/// It creates an <see cref="ExceptionConverter"/> instance configured with the requested <paramref name="readAlwaysAsDefault"/> behavior.
-/// </para>
-/// <para>
-/// When <paramref name="readAlwaysAsDefault"/> is <c>true</c>, any JSON value for the exception member is fully consumed and
-/// deserialized as <c>default</c>. This is useful for scenarios where exception details should round-trip through JSON without
-/// attempting to materialize a real <see cref="Exception"/> instance.
-/// </para>
-/// </remarks>
-public class ExceptionConverterAttribute(bool readAlwaysAsDefault = false) : JsonConverterAttribute
-{
-	/// <summary>
-	/// Creates the configured <see cref="ExceptionConverter"/> for the target exception type.
-	/// </summary>
-	/// <param name="typeToConvert">The member type being converted. It must derive from <see cref="Exception"/>.</param>
-	/// <returns>An <see cref="ExceptionConverter"/> configured with the attribute settings.</returns>
-	/// <exception cref="JsonException">Thrown when <paramref name="typeToConvert"/> is not assignable to <see cref="Exception"/>.</exception>
-   public override JsonConverter? CreateConverter(Type typeToConvert)
-   {
-		if (!typeof(Exception).IsAssignableFrom(typeToConvert)) throw new JsonException($"Only Exceptions can be converted by '{nameof(ExceptionConverter)}'.");
-		return new ExceptionConverter(readAlwaysAsDefault);
-   }
-}
-
-/// <summary>
-/// Specialized converter for <see cref="Exception"/> objects with stack trace formatting and multiline string handling.
-/// </summary>
-/// <remarks>
-/// <para>
-/// This converter is pre-configured with:
-/// </para>
-/// <list type="bullet">
-/// <item><description><see cref="StackTraceFallbackResolver"/>: Formats exception stack traces as structured arrays</description></item>
-/// <item><description><see cref="MultilineStringToCollectionPropertyFallbackResolver"/>: Converts multiline exception messages to arrays</description></item>
-/// </list>
-/// <para>
-/// Use this converter when serializing exceptions to JSON for logging, diagnostics, or error responses.
-/// </para>
-/// <para>
-/// Deserialization is normally not supported. However, when constructed with <c>readAlwaysAsDefault: true</c>, the converter
-/// will consume any incoming JSON value and return <c>default(Exception)</c> instead of throwing.
-/// </para>
-/// </remarks>
-/// <example>
-/// <code>
-/// // Register globally
-/// var options = new JsonSerializerOptions();
-/// options.Converters.Add(new ExceptionConverter());
-/// 
-/// try
-/// {
-///     throw new InvalidOperationException("Something went wrong");
-/// }
-/// catch (Exception ex)
-/// {
-///     var json = JsonSerializer.Serialize(ex, options);
-///     // Output includes formatted stack trace and properties
-/// }
-/// </code>
-/// </example>
-public class ExceptionConverter : FallbackConverter<Exception>
-{
-   /// <summary>
-   /// Initializes a new instance of the <see cref="ExceptionConverter"/> class that supports serialization only.
-   /// </summary>
-   public ExceptionConverter() : base(
-		0,
-		false,
-		new StackTraceFallbackResolver(),
-		new MultilineStringToCollectionPropertyFallbackResolver())
-		{ }
-   /// <summary>
-   /// Initializes a new instance of the <see cref="ExceptionConverter"/> class with optional default-value deserialization.
-   /// </summary>
-   /// <param name="readAlwaysAsDefault">
-   /// <c>true</c> to consume any JSON value and return <c>default(Exception)</c> during deserialization; otherwise, deserialization throws <see cref="NotSupportedException"/>.
-   /// </param>
-   public ExceptionConverter(bool readAlwaysAsDefault = false) : base(
-		0,
-		readAlwaysAsDefault,
-		new StackTraceFallbackResolver(),
-		new MultilineStringToCollectionPropertyFallbackResolver())
-		{ }
 }
 
 /// <summary>

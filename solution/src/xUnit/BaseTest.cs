@@ -1,12 +1,15 @@
-﻿using System;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Fuxion.Union;
+using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Xunit;
+using Fuxion.Reflection;
 
 namespace Fuxion.Xunit;
 
@@ -673,4 +676,168 @@ public abstract class BaseTest<TBaseTest> where TBaseTest : BaseTest<TBaseTest>
 		await using var scope = ServiceProvider.CreateAsyncScope();
 		await action(scope.ServiceProvider.GetRequiredService<T>());
 	}
+
+
+	/// <summary>
+	/// PEND DOC
+	/// </summary>
+	/// <param name="json"></param>
+	/// <param name="expectedProperties"></param>
+   protected void AssertJson(string json, AssertJsonEntry[] expectedProperties)
+   {
+      PrintVariable(json, false);
+
+      using var document = JsonDocument.Parse(json);
+      foreach (var expected in expectedProperties)
+      {
+         var path = string.Join(".", expected.Path);
+			var exists = TryGetJsonPath(document.RootElement, expected.Path, out var current);
+
+			if (expected.IsPresent is false)
+         {
+				Assert.False(exists, $"Expected JSON path '{path}' to be absent.");
+				continue;
+         }
+
+			Assert.True(exists, $"Expected JSON path '{path}' to be present.");
+
+			if (expected.Value.IsDefined)
+				AssertJsonValue(current, expected.Value, path);
+      }
+   }
+	static bool TryGetJsonPath(JsonElement root, string[] path, out JsonElement element)
+	{
+		element = root;
+		foreach (var segment in path)
+		{
+			if (!TryGetJsonPathSegment(element, segment, out element))
+				return false;
+		}
+
+		return true;
+	}
+	static bool TryGetJsonPathSegment(JsonElement element, string segment, out JsonElement result)
+	{
+		result = element;
+		var remaining = segment;
+
+		var bracketIndex = remaining.IndexOf('[');
+		var propertyName = bracketIndex < 0 ? remaining : remaining[..bracketIndex];
+		if (!string.IsNullOrEmpty(propertyName))
+		{
+			if (result.ValueKind != JsonValueKind.Object)
+				return false;
+
+			if (!result.TryGetProperty(propertyName, out result))
+				return false;
+
+			remaining = bracketIndex < 0 ? string.Empty : remaining[bracketIndex..];
+		}
+
+		while (!string.IsNullOrEmpty(remaining))
+		{
+			if (remaining[0] != '[')
+				return false;
+
+			var closeIndex = remaining.IndexOf(']');
+			if (closeIndex <= 1)
+				return false;
+
+			if (result.ValueKind != JsonValueKind.Array)
+				return false;
+
+			if (!int.TryParse(remaining[1..closeIndex], out var index))
+				return false;
+
+			if (index < 0 || index >= result.GetArrayLength())
+				return false;
+
+			result = result[index];
+			remaining = remaining[(closeIndex + 1)..];
+		}
+
+		return true;
+	}
+   static void AssertJsonValue(JsonElement element, object? expected, string path)
+   {
+		expected = UnwrapAssertJsonExpectedValue(expected);
+
+      if (expected is null)
+      {
+         Assert.True(element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined, $"Expected JSON path '{path}' to be null.");
+         return;
+      }
+
+		if (expected is System.Collections.IEnumerable values && expected is not string)
+		{
+			Assert.Equal(JsonValueKind.Array, element.ValueKind);
+			var index = 0;
+			foreach (var value in values)
+			{
+				Assert.True(index < element.GetArrayLength(), $"Expected JSON path '{path}' to contain item at index {index}.");
+				AssertJsonValue(element[index], value, $"{path}[{index}]");
+				index++;
+			}
+			Assert.Equal(index, element.GetArrayLength());
+			return;
+		}
+
+      switch (expected)
+      {
+         case string value:
+            Assert.Equal(JsonValueKind.String, element.ValueKind);
+            Assert.Equal(value, element.GetString());
+            break;
+         case bool value:
+            Assert.True(element.ValueKind is JsonValueKind.True or JsonValueKind.False, $"Expected JSON path '{path}' to be boolean.");
+            Assert.Equal(value, element.GetBoolean());
+            break;
+         case int value:
+            Assert.Equal(JsonValueKind.Number, element.ValueKind);
+            Assert.Equal(value, element.GetInt32());
+            break;
+         case long value:
+            Assert.Equal(JsonValueKind.Number, element.ValueKind);
+            Assert.Equal(value, element.GetInt64());
+            break;
+         case double value:
+            Assert.Equal(JsonValueKind.Number, element.ValueKind);
+            Assert.Equal(value, element.GetDouble());
+            break;
+         case decimal value:
+            Assert.Equal(JsonValueKind.Number, element.ValueKind);
+            Assert.Equal(value, element.GetDecimal());
+            break;
+         case JsonValueKind valueKind:
+            Assert.Equal(valueKind, element.ValueKind);
+            break;
+         default:
+            var actual = JsonSerializer.Deserialize(element.GetRawText(), expected.GetType());
+            Assert.Equal(expected, actual);
+            break;
+      }
+   }
+	static object? UnwrapAssertJsonExpectedValue(object? expected)
+	{
+		while (expected is not null)
+		{
+			if (expected is global::Fuxion.Union.IUndefinable undefinable)
+			{
+				if (undefinable.IsUndefined)
+					return null;
+				expected = undefinable.Value;
+				continue;
+			}
+			break;
+		}
+		return expected;
+	}
 }
+
+/// <summary>
+/// PEND DOC
+/// </summary>
+/// <param name="Path"></param>
+/// <param name="Value"></param>
+/// <param name="IsPresent"></param>
+public record AssertJsonEntry(string[] Path, global::Fuxion.Union.Undefinable<object?> Value = default, bool? IsPresent = null);

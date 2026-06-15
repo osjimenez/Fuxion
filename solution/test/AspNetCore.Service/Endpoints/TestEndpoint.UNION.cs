@@ -42,19 +42,19 @@ public class TestEndpoint : IEndpoint
          return TestPayload.Default;
       });
 
-      responseGroup.MapGet("error-empty", Response<Unit> () =>
-      {
-         return new Error();
-      });
-
       responseGroup.MapGet("error-message", Response<Unit> () =>
       {
-         return new Error("test");
+         return Error.Custom("test");
+      });
+
+      responseGroup.MapGet("error-type", Response<Unit> () =>
+      {
+         return Error.NotImplemented();
       });
 
       responseGroup.MapGet("error-payload", Response<Unit> () =>
       {
-         return new Error(payload: TestPayload.Default);
+         return Error.Custom(payload: TestPayload.Default);
       });
 
       responseGroup.MapGet("error-exception", Response<Unit> () =>
@@ -66,7 +66,7 @@ public class TestEndpoint : IEndpoint
          }
          catch (Exception ex)
          {
-            return new Error(exception: ex);
+            return Error.Custom(exception: ex);
          }
       });
 
@@ -101,21 +101,21 @@ public class TestEndpoint : IEndpoint
          return response.ToApiResult();
       });
 
-      resultGroup.MapGet("error-empty", () =>
+      resultGroup.MapGet("error-message", () =>
       {
-         Response<Unit> response = new Error();
+         Response<Unit> response = Error.Custom("test");
          return response.ToApiResult();
       });
 
-      resultGroup.MapGet("error-message", () =>
+      resultGroup.MapGet("error-type", () =>
       {
-         Response<Unit> response = new Error("test");
+         Response<Unit> response = Error.NotImplemented();
          return response.ToApiResult();
       });
 
       resultGroup.MapGet("error-payload", () =>
       {
-         Response<Unit> response = new Error(payload: TestPayload.Default);
+         Response<Unit> response = Error.Custom(payload: TestPayload.Default);
          return response.ToApiResult();
       });
 
@@ -129,41 +129,11 @@ public class TestEndpoint : IEndpoint
          }
          catch (Exception ex)
          {
-            Response<Unit> response = new Error(exception: ex);
+            Response<Unit> response = Error.Custom(exception: ex);
             return response.ToApiResult();
          }
       });
       #endregion
-
-      //// ERROR
-      //builder.MapGet("endpoint-test-message-error", () => Response.Get.ErrorMessage("Error message").ToApiResult());
-      //builder.MapGet("endpoint-test-payload-error", () => Response.Get.ErrorPayload(new TestPayload
-      //	{
-      //		FirstName = "Test name",
-      //		Age = 123
-      //	}, "Error message")
-      //	.ToApiResult());
-
-      //builder.MapGet("endpoint-test-message-exception", () =>
-      //{
-      //	try
-      //	{
-      //		new Level1().Throw();
-      //		return Response.Get.Success().ToApiResult();
-      //	} catch (Exception ex)
-      //	{
-      //		return Response.Get.Exception(ex).ToApiResult();
-      //	}
-      //});
-
-      //// BAD REQUEST
-      //builder.MapGet("endpoint-test-message-bad-request", () => Response.Get.InvalidData("Error message").ToApiResult());
-      //builder.MapGet("endpoint-test-payload-bad-request", () => Response.Get.InvalidData("Error message", new TestPayload
-      //	{
-      //		FirstName = "Test name",
-      //		Age = 123
-      //	})
-      //	.ToApiResult());
    }
 }
 file class Level1

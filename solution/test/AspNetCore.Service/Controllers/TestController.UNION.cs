@@ -38,23 +38,23 @@ public class ResponseTestController : ControllerBase
    {
       return TestPayload.Default;
    }
-   [Route("error-empty")]
-   [HttpGet]
-   public Response<Unit> ErrorEmpty()
-   {
-      return new Error();
-   }
    [Route("error-message")]
    [HttpGet]
    public Response<Unit> ErrorMessage()
    {
-      return new Error("test");
+      return Error.Custom("test");
+   }
+   [Route("error-type")]
+   [HttpGet]
+   public Response<Unit> ErrorType()
+   {
+      return Error.NotImplemented();
    }
    [Route("error-payload")]
    [HttpGet]
    public Response<Unit> ErrorPayload()
    {
-      return new Error(payload: TestPayload.Default);
+      return Error.Custom(payload: TestPayload.Default);
    }
    [Route("error-exception")]
    [HttpGet]
@@ -67,61 +67,9 @@ public class ResponseTestController : ControllerBase
       }
       catch (Exception ex)
       {
-         return new Error(exception: ex);
+         return Error.Custom(exception: ex);
       }
    }
-
-   //[Route("test-message-success")]
-   //[HttpGet]
-   //public IActionResult MessageSuccess() => Fuxion.Response.Get.SuccessMessage("Success message").ToApiActionResult();
-
-   //[Route("test-payload-success")]
-   //[HttpGet]
-   //public IActionResult PayloadSuccess() => Fuxion.Response.Get.SuccessPayload(new TestPayload
-   //{
-   //	FirstName = "Test name",
-   //	Age = 123
-   //}).ToApiActionResult();
-
-   //// ERROR
-   //[Route("test-message-error")]
-   //[HttpGet]
-   //public IActionResult MessageError() => Fuxion.Response.Get.ErrorMessage("Error message").ToApiActionResult();
-
-   //[Route("test-payload-error")]
-   //[HttpGet]
-   //public IActionResult PayloadError() => Fuxion.Response.Get.ErrorPayload(new TestPayload
-   //{
-   //	FirstName = "Test name",
-   //	Age = 123
-   //}, "Error message").ToApiActionResult();
-
-   //[Route("test-message-exception")]
-   //[HttpGet]
-   //public IActionResult MessageException()
-   //{
-   //	try
-   //	{
-   //		new Level1().Throw();
-   //		return Fuxion.Response.Get.Success().ToApiActionResult();
-   //	} catch (Exception ex)
-   //	{
-   //		return Fuxion.Response.Get.Exception(ex).ToApiActionResult();
-   //	}
-   //}
-
-   //// BAD REQUEST
-   //[Route("test-message-bad-request")]
-   //[HttpGet]
-   //public IActionResult MessageBadRequest() => Fuxion.Response.Get.InvalidData("Error message").ToApiActionResult();
-
-   //[Route("test-payload-bad-request")]
-   //[HttpGet]
-   //public IActionResult PayloadBadRequest() => Fuxion.Response.Get.InvalidData("Error message", new TestPayload
-   //{
-   //	FirstName = "Test name",
-   //	Age = 123
-   //}).ToApiActionResult();
 }
 
 [ApiController]
@@ -157,25 +105,25 @@ public class ResultTestController : ControllerBase
       Response<TestPayload> response = TestPayload.Default;
       return response.ToApiActionResult();
    }
-   [Route("error-empty")]
-   [HttpGet]
-   public IActionResult ErrorEmpty()
-   {
-      Response<Unit> response = new Error();
-      return response.ToApiActionResult();
-   }
    [Route("error-message")]
    [HttpGet]
    public IActionResult ErrorMessage()
    {
-      Response<Unit> response = new Error("test");
+      Response<Unit> response = Error.Custom("test");
+      return response.ToApiActionResult();
+   }
+   [Route("error-type")]
+   [HttpGet]
+   public IActionResult ErrorType()
+   {
+      Response<Unit> response = Error.NotImplemented();
       return response.ToApiActionResult();
    }
    [Route("error-payload")]
    [HttpGet]
    public IActionResult ErrorPayload()
    {
-      Response<Unit> response = new Error(payload: TestPayload.Default);
+      Response<Unit> response = Error.Custom(payload: TestPayload.Default);
       return response.ToApiActionResult();
    }
    [Route("error-exception")]
@@ -190,62 +138,10 @@ public class ResultTestController : ControllerBase
       }
       catch (Exception ex)
       {
-         Response<Unit> response = new Error(exception: ex);
+         Response<Unit> response = Error.Custom(exception: ex);
          return response.ToApiActionResult();
       }
    }
-
-   //[Route("test-message-success")]
-   //[HttpGet]
-   //public IActionResult MessageSuccess() => Fuxion.Response.Get.SuccessMessage("Success message").ToApiActionResult();
-
-   //[Route("test-payload-success")]
-   //[HttpGet]
-   //public IActionResult PayloadSuccess() => Fuxion.Response.Get.SuccessPayload(new TestPayload
-   //{
-   //	FirstName = "Test name",
-   //	Age = 123
-   //}).ToApiActionResult();
-
-   //// ERROR
-   //[Route("test-message-error")]
-   //[HttpGet]
-   //public IActionResult MessageError() => Fuxion.Response.Get.ErrorMessage("Error message").ToApiActionResult();
-
-   //[Route("test-payload-error")]
-   //[HttpGet]
-   //public IActionResult PayloadError() => Fuxion.Response.Get.ErrorPayload(new TestPayload
-   //{
-   //	FirstName = "Test name",
-   //	Age = 123
-   //}, "Error message").ToApiActionResult();
-
-   //[Route("test-message-exception")]
-   //[HttpGet]
-   //public IActionResult MessageException()
-   //{
-   //	try
-   //	{
-   //		new Level1().Throw();
-   //		return Fuxion.Response.Get.Success().ToApiActionResult();
-   //	} catch (Exception ex)
-   //	{
-   //		return Fuxion.Response.Get.Exception(ex).ToApiActionResult();
-   //	}
-   //}
-
-   //// BAD REQUEST
-   //[Route("test-message-bad-request")]
-   //[HttpGet]
-   //public IActionResult MessageBadRequest() => Fuxion.Response.Get.InvalidData("Error message").ToApiActionResult();
-
-   //[Route("test-payload-bad-request")]
-   //[HttpGet]
-   //public IActionResult PayloadBadRequest() => Fuxion.Response.Get.InvalidData("Error message", new TestPayload
-   //{
-   //	FirstName = "Test name",
-   //	Age = 123
-   //}).ToApiActionResult();
 }
 file class Level1
 {
@@ -253,5 +149,5 @@ file class Level1
 }
 file class Level2
 {
-   public void Throw() => throw new NotImplementedException("Not implemented");
+   public void Throw() => throw new NotImplementedException("message");
 }

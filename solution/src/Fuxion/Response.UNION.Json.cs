@@ -368,10 +368,10 @@ file static class Helpers
       JsonSerializer.Serialize(writer, value, options);
    }
 
-   public static ExtensionsDictionary GetExtensionData(JsonElement root, JsonSerializerOptions options, params string[] reservedPropertyNames)
+   public static ExtensionsDictionary<IResponse> GetExtensionData(JsonElement root, JsonSerializerOptions options, params string[] reservedPropertyNames)
    {
       var reserved = new HashSet<string>(reservedPropertyNames, options.PropertyNameCaseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
-      var extensions = new ExtensionsDictionary(reserved, options.PropertyNameCaseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+      var extensions = new ExtensionsDictionary<IResponse>(reserved, options.PropertyNameCaseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
 
       foreach (var prop in root.EnumerateObject())
          if (!reserved.Contains(prop.Name))

@@ -12,9 +12,15 @@ namespace Fuxion.Union;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
+public interface IUndefinable : IUnion
+{
+   bool IsDefined { get; }
+   bool IsUndefined { get; }
+}
+
 [Union]
 [JsonConverter(typeof(UndefinableConverterFactory))]
-public readonly struct Undefinable<TValue> : IUnion, IEquatable<Undefinable<TValue>>
+public readonly struct Undefinable<TValue> : IUndefinable, IEquatable<Undefinable<TValue>>
 {
    private const byte UndefinedKind = 0;
    private const byte DefinedKind = 1;
@@ -150,12 +156,6 @@ public class UndefinableConverter<T> : JsonConverter<Undefinable<T?>>
    {
       if(reader.TokenType == JsonTokenType.String && reader.GetString() == UndefinableConverterFactory.UndefinedSentinelValue)
          return default;
-      //if (reader.TokenType == JsonTokenType.StartArray)
-      //{
-      //   var node = JsonNode.Parse(ref reader);
-      //   if (node is JsonArray { Count: 1 } ja && ja[0] == null) return default;
-      //   return new(node.Deserialize<T>(options));
-      //}
 
       return new(JsonSerializer.Deserialize<T>(ref reader, options));
    }
@@ -164,10 +164,6 @@ public class UndefinableConverter<T> : JsonConverter<Undefinable<T?>>
    {
       if (value.IsUndefined)
       {
-         //writer.WriteStartObject();
-         //writer.WritePropertyName("IsUndefined");
-         //writer.WriteBooleanValue(true);
-         //writer.WriteEndObject();
          writer.WriteStringValue(UndefinableConverterFactory.UndefinedSentinelValue);
       }
       else
