@@ -1,142 +1,398 @@
 #define XUNIT_NULLABLE
 
+using System;
+using System.Diagnostics;
+using System.Net;
+using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 using Fuxion;
 using Fuxion.AspNetCore;
-using Fuxion.Reflection;
 using Fuxion.Text.Json;
 using Fuxion.Union;
 using Fuxion.Union.Net.Http;
 using Fuxion.Xunit;
-using Microsoft.AspNetCore.Http.Json;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
-using System;
-using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Runtime.CompilerServices;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Test.AspNetCore.Service;
 using Xunit;
 
 namespace Test.AspNetCore.Union;
 
 public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Program> factory) : BaseTest<ResponseTest>(output), IClassFixture<WebApplicationFactory<Program>>
-{
-   async Task<(HttpClient client, JsonSerializerOptions jsonOptions, HttpResponseMessage message)> GetMessage(string prefix, ResponseHttpMode mode, string path, HttpStatusCode expectedStatus)
-   {
-      var cli = factory.CreateClient();
-      var jsonOptions = new JsonSerializerOptions
-      {
-         PropertyNameCaseInsensitive = true
-         //PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-      };
-
-      var url = $"{prefix}{path}";
-      PrintVariable($" - {mode} - {url}", false);
-      var res = await cli.GetAsync(url);
-      PrintVariable(res.StatusCode);
-      Assert.Equal(expectedStatus, res.StatusCode);
-
-      var body = await res.Content.ReadAsStringAsync();
-      if (body.IsNeitherNullNorWhiteSpace())
-         PrintVariable(JsonNode.Parse(body)?.ToJsonString(JsonSerializerOptions.Formatted), false);
-
-      return (cli, jsonOptions, res);
-   }
-   async Task CallEndpoint<TSuccess, TValue>(string prefix, ResponseHttpMode mode, string path, HttpStatusCode expectedStatus, Action<TValue, JsonSerializerOptions>? assertValue = null)
-      where TSuccess : notnull
-   {
-      (var cli, var jsonOptions, var res) = await GetMessage(prefix, mode, path, expectedStatus);
-
-      var response = await res.AsResponseAsync<TSuccess>(mode: mode, jsonOptions: jsonOptions);
-      IsTrue(response is not null);
-      if (response is Error error)
-         PrintVariable(error.Message);
-      IsTrue(response is TValue);
-      if (assertValue is not null && response is TValue value)
-         assertValue(value, jsonOptions);
-   }
-   async Task CallEndpoint<TSuccess, TError, TValue>(string prefix, ResponseHttpMode mode, string path, HttpStatusCode expectedStatus, Action<TValue, JsonSerializerOptions>? assertValue = null)
-      where TSuccess : notnull
-      where TError : notnull
-   {
-      (var cli, var jsonOptions, var res) = await GetMessage(prefix, mode, path, expectedStatus);
-
-      var response = await res.AsResponseAsync<TSuccess, TError>(mode: mode, jsonOptions: jsonOptions);
-      IsTrue(response is not null);
-      if (response is Error error)
-         PrintVariable(error.Message);
-      IsTrue(response is TValue);
-      if (assertValue is not null && response is TValue value)
-         assertValue(value, jsonOptions);
-   }
-   async Task CallService(string prefix, ResponseHttpMode mode)
+{	
+	private async Task<(HttpClient client, JsonSerializerOptions jsonOptions, HttpResponseMessage message)> GetMessage(
+		string prefix,
+		ResponseOptions options,
+		string path,
+		HttpStatusCode expectedStatus)
 	{
-      //// UNIT
-      //await CallEndpoint<Unit, Unit>(prefix, mode, "unit", HttpStatusCode.OK);
-      //// NONE
-      //await CallEndpoint<Unit, None>(prefix, mode, "none", HttpStatusCode.NoContent);
-      //// STRING
-      //await CallEndpoint<string, string>(prefix, mode, "string", HttpStatusCode.OK, (value, jsonOptions) =>
-      //{
-      //   Assert.Equal("test", value);
-      //});
-      //// PAYLOAD
-      //await CallEndpoint<TestPayload, TestPayload>(prefix, mode, "payload", HttpStatusCode.OK, (value, jsonOptions) =>
-      //{
-      //   Assert.Equal("test", value.Name);
-      //   Assert.Equal(123, value.Age);
-      //});
-      //// ERROR - MESSAGE
-      //await CallEndpoint<Unit, Error>(prefix, mode, "error-message", HttpStatusCode.InternalServerError, (value, jsonOptions) =>
-      //{
-      //   Assert.Equal("test", value.Message);
-      //});
-      // ERROR - TYPE
-      await CallEndpoint<Unit, Error>(prefix, mode, "error-type", HttpStatusCode.NotImplemented, (value, jsonOptions) =>
-      {
-         PrintVariable(value.IsNotImplemented);
-         PrintVariable(value.Type is HttpStatusCode);
-         PrintVariable(value.Type);
-         IsTrue(value.Type is HttpStatusCode status && status == HttpStatusCode.NotImplemented);
-      });
-      // ERROR - PAYLOAD
-      await CallEndpoint<Unit, Error>(prefix, mode, "error-payload", HttpStatusCode.InternalServerError, (value, jsonOptions) =>
-      {
-         var payload = value.GetPayloadAs<TestPayload>(jsonOptions);
-         Assert.NotNull(payload);
-         Assert.Equal(TestPayload.Default.Name, payload.Name);
-         Assert.Equal(TestPayload.Default.Age, payload.Age);
-      });
-      // ERROR - EXCEPTION
-      await CallEndpoint<Unit, Error>(prefix, mode, "error-exception", HttpStatusCode.InternalServerError, (value, jsonOptions) =>
-      {
-         // PEND ver que hacemos con las excepciones ...
-         IsTrue(value.Exception is RemoteException);
-         if(value.Exception is RemoteException rex)
-         {
-            Assert.Equal(nameof(NotImplementedException), rex.RemoteType);
-         }
-      });
-   }
-	[Fact]
-	public async Task ToApiActionResult()
-	{
-		await CallService("controller/response/", ResponseHttpMode.Response);
-      await CallService("controller/result/", ResponseHttpMode.Result);
-   }
-	[Fact]
-	public async Task ToApiResult()
-	{
-		//await CallService("minimal/response/", ResponseHttpMode.Response);
-      await CallService("minimal/result/", ResponseHttpMode.Result);
-   }
+		// Primero re-inyecto las opciones de Responses creando una factoria ad-hoc
+		var currentFactory = factory.WithWebHostBuilder(b => b.ConfigureTestServices(s => s.Configure<ResponseOptions>(o =>
+		{
+			o.SerializeFullResponses = options.SerializeFullResponses;
+			o.SerializeErrorAsProblemDetails = options.SerializeErrorAsProblemDetails;
+			o.StrictNone = options.StrictNone;
+		})));
 
-	async Task DoToResponse(string prefix)
+		var cli = currentFactory.CreateClient();
+		var jsonOptions = new JsonSerializerOptions
+		{
+			PropertyNameCaseInsensitive = true
+			//PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+		};
+
+		var url = $"{prefix}{path}";
+		PrintVariable($"""
+
+			----- {url}
+			 - fullResponse({options.SerializeFullResponses})
+			 - errorAsProblemDetails({options.SerializeErrorAsProblemDetails})
+			 - strictNone({options.StrictNone})
+		""", false);
+		var res = await cli.GetAsync(url);
+		PrintVariable(res.StatusCode);
+		Assert.Equal(expectedStatus, res.StatusCode);
+
+		var body = await res.Content.ReadAsStringAsync();
+		if (body.IsNeitherNullNorWhiteSpace())
+			PrintVariable(JsonNode.Parse(body)?.ToJsonString(JsonSerializerOptions.Formatted), false);
+
+		return (cli, jsonOptions, res);
+	}
+	private async Task CallEndpoint<TValue>(
+		string prefix,
+		ResponseOptions options,
+		string path,
+		HttpStatusCode expectedStatus,
+		string? expectedErrorMessage = null,
+		Action<TValue, JsonSerializerOptions>? assertValue = null)
+		where TValue : notnull
+	{
+		var (cli, jsonOptions, res) = await GetMessage(prefix, options, path, expectedStatus);
+
+		if(typeof(TValue) == typeof(Unit) || typeof(TValue) == typeof(None) || typeof(TValue) == typeof(Error))
+			DoUnitResponse(await res.AsResponseAsync<Unit>(options, jsonOptions));
+		else
+			DoValueResponse(await res.AsResponseAsync<TValue>(options, jsonOptions));
+		return;
+
+		void DoUnitResponse(ResponseMaybe<Unit> response){
+			if (response.TryGetValue(out Error error))
+			{
+				Assert.Equal(expectedErrorMessage, error.Message);
+				PrintVariable(error.Message);
+				if (assertValue is not null && error is TValue value)
+					assertValue(value, jsonOptions);
+			}
+			else
+			{
+				IsTrue(response is TValue);
+				// Unit y None son semanticamente distintos y deben viajar como tales
+				if (typeof(TValue) == typeof(Unit))
+				{
+					IsTrue(response.TryGetValue(out Unit _));
+					IsTrue(response is not None);
+				}
+				else if (typeof(TValue) == typeof(None))
+				{
+					IsTrue(response.TryGetValue(out None _));
+					IsTrue(response is not Unit);
+				}
+
+				if (assertValue is not null && response.TryGetValue(out Unit unit) && unit is TValue value)
+					assertValue(value, jsonOptions);
+			}
+		}
+		void DoValueResponse(ResponseMaybe<TValue> response)
+		{
+			if (response.TryGetValue(out Error error))
+			{
+				Assert.Equal(expectedErrorMessage, error.Message);
+				PrintVariable(error.Message);
+				if (assertValue is not null && error is TValue value)
+					assertValue(value, jsonOptions);
+			}
+			else
+			{
+				IsTrue(response is TValue);
+				if (assertValue is not null && response.TryGetValue(out TValue? success) && success is TValue value)
+					assertValue(value, jsonOptions);
+			}
+		}
+	}
+
+	private async Task CallService(string prefix, ResponseOptions options)
+	{
+		// UNIT: siempre 200 con cuerpo vacio, para no confundirse con None
+		await CallEndpoint<Unit>(prefix, options, "unit", HttpStatusCode.OK);
+		// NONE: 204 salvo que el envelope completo pueda transportarlo
+		await CallEndpoint<None>(prefix, options, "none",
+			!options.StrictNone && options.SerializeFullResponses
+				? HttpStatusCode.OK
+				: HttpStatusCode.NoContent);
+		// STRING
+		await CallEndpoint<string>(prefix, options, "string", HttpStatusCode.OK, assertValue: (value, _) => { Assert.Equal("test", value); });
+		// PAYLOAD
+		//await CallEndpoint<TestPayload, TestPayload>(prefix, mode, "payload", HttpStatusCode.OK, assertValue: (value, _) =>
+		await CallEndpoint<TestPayload>(prefix, options, "payload", HttpStatusCode.OK, assertValue: (value, _) =>
+		{
+			Assert.Equal("test", value.Name);
+			Assert.Equal(123, value.Age);
+		});
+		// ERROR - MESSAGE
+		await CallEndpoint<Error>(prefix, options, "error-message", HttpStatusCode.InternalServerError, "test", (value, _) => { Assert.Equal("test", value.Message); });
+		// ERROR - TYPE
+		//await CallEndpoint<Unit, Error>(prefix, mode, "error-type", HttpStatusCode.NotImplemented, null, (value, _) =>
+		await CallEndpoint<Error>(prefix, options, "error-type", HttpStatusCode.NotImplemented, null, (value, _) =>
+		{
+			PrintVariable(value.IsNotImplemented);
+			PrintVariable(value.Type is HttpStatusCode);
+			PrintVariable(value.Type);
+			IsTrue(value.Type is HttpStatusCode.NotImplemented);
+		});
+		// ERROR - PAYLOAD
+		await CallEndpoint<Error>(prefix, options, "error-payload", HttpStatusCode.InternalServerError, null, (value, jsonOptions) =>
+		{
+			var payload = value.GetPayloadAs<TestPayload>(jsonOptions);
+			Assert.NotNull(payload);
+			Assert.Equal(TestPayload.Default.Name, payload.Name);
+			Assert.Equal(TestPayload.Default.Age, payload.Age);
+		});
+		// ERROR - EXCEPTION
+		await CallEndpoint<Error>(prefix, options, "error-exception", HttpStatusCode.InternalServerError, null, (value, _) =>
+		{
+			// PEND ver que hacemos con las excepciones ...
+			IsTrue(value.Exception is RemoteException);
+			if (value.Exception is RemoteException rex) Assert.Equal(nameof(NotImplementedException), rex.RemoteType);
+		});
+	}
+
+	//[Theory]
+	//[InlineData(true, true, false)]
+	//public async Task ToApiActionResult(bool fullResponse, bool errorAsProblem, bool strictNone)
+	//{
+	//	await CallService("controller/response/", ResponseHttpMode.Response);
+	//	await CallService("controller/result/", ResponseHttpMode.Result);
+	//}
+	[Theory(DisplayName = "ToApiResult")]
+	[InlineData("minimal", true, true, false)]
+	[InlineData("minimal", true, false, false)]
+	[InlineData("minimal", false, true, false)]
+	[InlineData("minimal", false, false, false)]
+	[InlineData("minimal", true, true, true)]
+	[InlineData("minimal", true, false, true)]
+	[InlineData("minimal", false, true, true)]
+	[InlineData("minimal", false, false, true)]
+
+	[InlineData("controller", true, true, false)]
+	[InlineData("controller", true, false, false)]
+	[InlineData("controller", false, true, false)]
+	[InlineData("controller", false, false, false)]
+	[InlineData("controller", true, true, true)]
+	[InlineData("controller", true, false, true)]
+	[InlineData("controller", false, true, true)]
+	[InlineData("controller", false, false, true)]
+	public async Task ToApiResult(string prefix, bool fullResponse,bool errorAsProblem,bool strictNone)
+	{
+		ResponseOptions options = new()
+		{
+			SerializeFullResponses = fullResponse,
+			SerializeErrorAsProblemDetails = errorAsProblem,
+			StrictNone = strictNone
+		};
+		await CallService(prefix + "/response/", options);
+		await CallService(prefix + "/result/", options);
+	}
+
+	[Theory(DisplayName = "The server emits the standard problem+json media type")]
+	[InlineData("minimal")]
+	[InlineData("controller")]
+	public async Task ErrorResponse_UsesProblemJsonMediaType(string prefix)
+	{
+		// Sin esto, la deteccion de ProblemDetails por media type en el cliente seria letra muerta.
+		ResponseOptions options = new()
+		{
+			SerializeFullResponses = false,
+			SerializeErrorAsProblemDetails = true,
+			StrictNone = false
+		};
+
+		foreach (var group in new[] { "/response/", "/result/" })
+		{
+			var (_, _, res) = await GetMessage(prefix + group, options, "error-message", HttpStatusCode.InternalServerError);
+			Assert.Equal(ResponseMediaTypes.ProblemJson, res.Content.Headers.ContentType?.MediaType);
+		}
+	}
+
+	[Theory(DisplayName = "The full envelope is advertised with its vendor media type")]
+	[InlineData("minimal")]
+	[InlineData("controller")]
+	public async Task FullResponse_UsesVendorMediaType(string prefix)
+	{
+		ResponseOptions options = new()
+		{
+			SerializeFullResponses = true,
+			SerializeErrorAsProblemDetails = true,
+			StrictNone = false
+		};
+
+		foreach (var group in new[] { "/response/", "/result/" })
+		{
+			var (_, _, envelope) = await GetMessage(prefix + group, options, "payload", HttpStatusCode.OK);
+			Assert.Equal(ResponseMediaTypes.ResponseJson, envelope.Content.Headers.ContentType?.MediaType);
+		}
+
+		// Un payload en crudo no debe anunciarse como envelope.
+		ResponseOptions raw = options with { SerializeFullResponses = false };
+		var (_, _, bare) = await GetMessage(prefix + "/result/", raw, "payload", HttpStatusCode.OK);
+		Assert.Equal("application/json", bare.Content.Headers.ContentType?.MediaType);
+	}
+
+	[Fact(DisplayName = "A problem+json error is parsed even if options did not expect it")]
+	public async Task ProblemDetailsBody_ParsedWhenOptionsDisabled()
+	{
+		// El servidor responde ProblemDetails aunque el cliente no lo esperaba: el media type
+		// y la cabecera lo anuncian, asi que el error debe leerse igualmente.
+		var message = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+		{
+			Content = new StringContent(
+				"""{"status":500,"title":"Internal server error","detail":"boom"}""",
+				System.Text.Encoding.UTF8,
+				"application/problem+json")
+		};
+		message.Headers.Add(ResponseHeaders.ResponseKind, ResponseHeaders.ErrorKind);
+
+		var response = await message.AsResponseAsync<TestPayload>(new() { SerializeErrorAsProblemDetails = false });
+		IsTrue(response.TryGetValue(out Error error));
+		Assert.Equal("boom", error.Message);
+	}
+
+	[Theory(DisplayName = "Legacy servers without the header still resolve Unit and None")]
+	[InlineData(HttpStatusCode.NoContent, false)]
+	[InlineData(HttpStatusCode.OK, true)]
+	public async Task ResponseKindHeader_AbsentFallsBackToStatusCode(HttpStatusCode status, bool expectsUnit)
+	{
+		// Sin cabecera solo queda el status: 204 es None y cualquier otro exito sin cuerpo es Unit.
+		var message = new HttpResponseMessage(status)
+		{
+			Content = new StringContent("")
+		};
+		IsTrue(!message.Headers.Contains(ResponseHeaders.ResponseKind));
+
+		var response = await message.AsResponseAsync<Unit>();
+		if (expectsUnit)
+		{
+			IsTrue(response.TryGetValue(out Unit _));
+			IsTrue(response is not None);
+		}
+		else
+		{
+			IsTrue(response.TryGetValue(out None _));
+			IsTrue(response is not Unit);
+		}
+	}
+
+	[Fact(DisplayName = "A none header wins even on a 200 envelope")]
+	public async Task ResponseKindHeader_NoneWinsOverEmptyBodyUnitInference()
+	{
+		// Un 200 sin cuerpo se leeria como Unit por el status, pero la cabecera dice none.
+		var message = new HttpResponseMessage(HttpStatusCode.OK)
+		{
+			Content = new StringContent("")
+		};
+		message.Headers.Add(ResponseHeaders.ResponseKind, ResponseHeaders.NoneKind);
+
+		var response = await message.AsResponseAsync<Unit>(new() { SerializeFullResponses = true });
+		IsTrue(response.TryGetValue(out None _));
+		IsTrue(response is not Unit);
+	}
+
+	[Theory(DisplayName = "Unit and None are discriminated by header")]
+	[InlineData("minimal")]
+	[InlineData("controller")]
+	public async Task ResponseKindHeader_DiscriminatesUnitFromNone(string prefix)
+	{
+		ResponseOptions options = new()
+		{
+			SerializeFullResponses = false,
+			SerializeErrorAsProblemDetails = true,
+			StrictNone = false
+		};
+
+		foreach (var group in new[] { "/response/", "/result/" })
+		{
+			var (_, _, unitRes) = await GetMessage(prefix + group, options, "unit", HttpStatusCode.OK);
+			Assert.Equal(ResponseHeaders.UnitKind, Assert.Single(unitRes.Headers.GetValues(ResponseHeaders.ResponseKind)));
+
+			var (_, _, noneRes) = await GetMessage(prefix + group, options, "none", HttpStatusCode.NoContent);
+			Assert.Equal(ResponseHeaders.NoneKind, Assert.Single(noneRes.Headers.GetValues(ResponseHeaders.ResponseKind)));
+
+			// La cabecera cubre todas las formas, no solo las que van sin cuerpo.
+			var (_, _, payloadRes) = await GetMessage(prefix + group, options, "payload", HttpStatusCode.OK);
+			Assert.Equal(ResponseHeaders.PayloadKind, Assert.Single(payloadRes.Headers.GetValues(ResponseHeaders.ResponseKind)));
+
+			var (_, _, errorRes) = await GetMessage(prefix + group, options, "error-message", HttpStatusCode.InternalServerError);
+			Assert.Equal(ResponseHeaders.ErrorKind, Assert.Single(errorRes.Headers.GetValues(ResponseHeaders.ResponseKind)));
+		}
+	}
+
+	[Fact(DisplayName = "Header wins over a 204 normalized by an intermediary")]
+	public async Task ResponseKindHeader_SurvivesStatusNormalization()
+	{
+		// Simula un proxy que colapsa un 200 sin cuerpo a 204: la cabecera debe seguir mandando.
+		var message = new HttpResponseMessage(HttpStatusCode.NoContent);
+		message.Headers.Add(ResponseHeaders.ResponseKind, ResponseHeaders.UnitKind);
+
+		var response = await message.AsResponseAsync<Unit>();
+		IsTrue(response.TryGetValue(out Unit _));
+		IsTrue(response is not None);
+	}
+
+	[Fact(DisplayName = "Subgroup override wins over global options")]
+	public async Task SubgroupOverride_ForcesFullResponseEnvelope()
+	{
+		// Las opciones globales piden payload en crudo, pero el subgrupo fuerza el envelope completo.
+		var currentFactory = factory.WithWebHostBuilder(b => b.ConfigureTestServices(s => s.Configure<ResponseOptions>(o =>
+		{
+			o.SerializeFullResponses = false;
+			o.SerializeErrorAsProblemDetails = true;
+			o.StrictNone = false;
+		})));
+
+		var cli = currentFactory.CreateClient();
+		var res = await cli.GetAsync("minimal/special/payload");
+		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+
+		var body = await res.Content.ReadAsStringAsync();
+		PrintVariable(JsonNode.Parse(body)?.ToJsonString(JsonSerializerOptions.Formatted), false);
+
+		// El envelope completo expone el payload anidado, no en la raiz.
+		var json = Assert.IsType<JsonObject>(JsonNode.Parse(body));
+		IsTrue(json.ContainsKey("payload"));
+	}
+
+	[Theory]
+	[InlineData("controller/result/error-type", "errorType")]
+	[InlineData("minimal/result/error-type", "errorType")]
+	[InlineData("controller/result/error-payload", "errorPayload")]
+	[InlineData("minimal/result/error-payload", "errorPayload")]
+	public async Task ResultMode_ProblemDetailsExtensions_UseAspNetJsonNamingPolicy(string url, string extensionName)
+	{
+		var cli = factory.CreateClient();
+		var res = await cli.GetAsync(url);
+		var body = await res.Content.ReadAsStringAsync();
+
+		PrintVariable(url, false);
+		PrintVariable(JsonNode.Parse(body)?.ToJsonString(JsonSerializerOptions.Formatted), false);
+		var json = Assert.IsType<JsonObject>(JsonNode.Parse(body));
+		Assert.True(json.ContainsKey(extensionName));
+		Assert.False(json.ContainsKey($"{char.ToUpperInvariant(extensionName[0])}{extensionName[1..]}"));
+	}
+
+	private async Task DoToResponse(string prefix)
 	{
 		var cli = factory.CreateClient();
 		var jsonOptions = new JsonSerializerOptions
@@ -222,7 +478,7 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 		//{
 		//	var res = await cli.GetAsync($"{prefix}test-message-exception")
 		//		.AsResponseAsync(jsonOptions);
-			
+
 		//	PrintVariable(res.Fx.Json.Serialize(true).Payload);
 		//	Assert.False(res.IsSuccess);
 		//	Assert.Equal(500, res.Extensions.StatusCode.Value);
@@ -232,10 +488,158 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 		//	Assert.Equal("NotImplementedException: Not implemented", res.Extensions.InnerProblem.Value.Detail);
 		//}
 	}
+
 	[Fact]
 	public async Task ToResponseAsync()
 	{
 		await DoToResponse("endpoint-");
 		await DoToResponse("controller/");
 	}
+
+	[Theory(DisplayName = "An undefined member is omitted from the endpoint payload")]
+	[InlineData("minimal")]
+	[InlineData("controller")]
+	public async Task UndefinedMember_IsOmittedFromPayload(string prefix)
+	{
+		var cli = factory.CreateClient();
+
+		var res = await cli.GetAsync($"{prefix}/undefinable/partial");
+		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+
+		var body = await res.Content.ReadAsStringAsync();
+		PrintVariable(body);
+
+		// The raw body is asserted on purpose: deserializing would yield an undefined value both when the
+		// property is omitted and when the marker object is used, so it could not tell them apart.
+		var json = JsonNode.Parse(body)!.AsObject();
+		Assert.False(json.ContainsKey("name"), "The undefined member must be absent from the payload");
+		Assert.DoesNotContain(global::Fuxion.Union.UndefinableConverterFactory.UndefinedMarkerPropertyName, body);
+		Assert.True(json.ContainsKey("age"));
+		Assert.Equal(123, (int)json["age"]!);
+	}
+
+	[Theory(DisplayName = "An absent member is bound as undefined")]
+	[InlineData("minimal")]
+	[InlineData("controller")]
+	public async Task AbsentMember_IsBoundAsUndefined(string prefix)
+	{
+		var cli = factory.CreateClient();
+
+		var res = await cli.PostAsync(
+			$"{prefix}/undefinable/echo",
+			new StringContent("""{ "age": 7 }""", System.Text.Encoding.UTF8, "application/json"));
+		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+
+		var body = await res.Content.ReadAsStringAsync();
+		PrintVariable(body);
+
+		var json = JsonNode.Parse(body)!.AsObject();
+		Assert.False((bool)json["nameDefined"]!, "An absent member must be bound as undefined");
+		Assert.True((bool)json["ageDefined"]!);
+	}
+
+	[Fact(DisplayName = "An already cancelled token stops the body read")]
+	public async Task CancellationToken_IsHonoured()
+	{
+		// El cuerpo no se llega a leer: el token ya esta cancelado antes de empezar.
+		var message = new HttpResponseMessage(HttpStatusCode.OK)
+		{
+			Content = new StringContent(
+				"""{"name":"test","age":1}""",
+				System.Text.Encoding.UTF8,
+				"application/json")
+		};
+
+		using var cts = new System.Threading.CancellationTokenSource();
+		cts.Cancel();
+
+		await Assert.ThrowsAnyAsync<OperationCanceledException>(
+			async () => await message.AsResponseAsync<TestPayload>(ct: cts.Token));
+	}
+
+	[Fact(DisplayName = "The envelope media type is detected even if the options did not expect it")]
+	public async Task FullResponseBody_ParsedWhenOptionsDisabled()
+	{
+		// Simetrico a ProblemDetails: el servidor anuncia el sobre con su media type, asi que
+		// debe leerse como sobre aunque el cliente no lo esperase.
+		var message = new HttpResponseMessage(HttpStatusCode.OK)
+		{
+			Content = new StringContent(
+				"""{"isSuccess":true,"isNone":false,"payload":{"name":"envelope","age":42}}""",
+				System.Text.Encoding.UTF8,
+				ResponseMediaTypes.ResponseJson)
+		};
+		message.Headers.Add(ResponseHeaders.ResponseKind, ResponseHeaders.PayloadKind);
+
+		// Sin jsonOptions explicitas: el default del cliente debe alinearse con el del servidor.
+		var response = await message.AsResponseAsync<TestPayload>(new() { SerializeFullResponses = false });
+
+		IsTrue(response.TryGetValue(out TestPayload? payload));
+		Assert.NotNull(payload);
+		Assert.Equal("envelope", payload!.Name);
+	}
+
+	[Fact(DisplayName = "A camelCase envelope from the server is read with the client default options")]
+	public async Task CamelCaseEnvelope_IsReadWithDefaultOptions()
+	{
+		// El servidor (ASP.NET Core) siempre serializa el sobre con JsonSerializerDefaults.Web,
+		// asi que el default del cliente debe resolver los nombres en camelCase sin configuracion.
+		var message = new HttpResponseMessage(HttpStatusCode.OK)
+		{
+			Content = new StringContent(
+				"""{"isSuccess":true,"isNone":false,"payload":{"name":"web","age":7}}""",
+				System.Text.Encoding.UTF8,
+				ResponseMediaTypes.ResponseJson)
+		};
+		message.Headers.Add(ResponseHeaders.ResponseKind, ResponseHeaders.PayloadKind);
+
+		var response = await message.AsResponseAsync<TestPayload>();
+
+		IsTrue(response.TryGetValue(out TestPayload? payload));
+		Assert.NotNull(payload);
+		Assert.Equal("web", payload!.Name);
+		Assert.Equal(7, payload.Age);
+	}
+
+	[Fact(DisplayName = "A malformed body is reported as an error instead of corrupting the payload")]
+	public async Task MalformedBody_IsReportedAsError()
+	{
+		// JSON truncado: no puede deserializarse y el overload de un genérico nunca lanza.
+		var message = new HttpResponseMessage(HttpStatusCode.OK)
+		{
+			Content = new StringContent(
+				"""{"name":"broken",""",
+				System.Text.Encoding.UTF8,
+				"application/json")
+		};
+
+		var response = await message.AsResponseAsync<TestPayload>();
+
+		IsTrue(response.IsError);
+		IsTrue(!response.TryGetValue(out TestPayload? _));
+	}
+
+	[Fact(DisplayName = "A custom error type is deserialized on a failed status code")]
+	public async Task CustomErrorType_IsDeserialized()
+	{
+		// Con un TError propio el error viaja como ese tipo, no como Error.
+		var message = new HttpResponseMessage(HttpStatusCode.BadRequest)
+		{
+			Content = new StringContent(
+				"""{"code":"invalid_name","reason":"too short"}""",
+				System.Text.Encoding.UTF8,
+				"application/json")
+		};
+
+		var response = await message.AsResponseAsync<TestPayload, CustomError>(
+			new() { SerializeErrorAsProblemDetails = false },
+			new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+		IsTrue(response.TryGetValue(out CustomError? customError));
+		Assert.NotNull(customError);
+		Assert.Equal("invalid_name", customError!.Code);
+		Assert.Equal("too short", customError.Reason);
+	}
+
+	public record CustomError(string Code, string Reason);
 }

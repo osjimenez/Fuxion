@@ -254,7 +254,7 @@ public static class ExceptionJsonMapper
       }
    }
 }
-public class RemoteException : Exception
+public class RemoteException : FuxionException
 {
    public RemoteException(ExceptionJson json)
       : base(json?.Message, json?.InnerException is null ? null : new RemoteException(json.InnerException))

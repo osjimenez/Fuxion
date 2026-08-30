@@ -6,7 +6,7 @@ namespace Fuxion;
 
 // https://github.com/dotnet/aspnetcore/blob/main/src/Http/Http.Abstractions/src/ProblemDetails/ProblemDetails.cs
 /// <summary>
-/// A machine-readable format for specifying errors in HTTP API responses based on <see href="https://tools.ietf.org/html/rfc9110"/>.
+/// A machine-readable format for specifying errors in HTTP API responses based on <see href="https://datatracker.ietf.org/doc/html/rfc9457"/>.
 /// </summary>
 public class ResponseProblemDetails
 {

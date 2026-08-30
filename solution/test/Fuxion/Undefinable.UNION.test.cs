@@ -390,27 +390,24 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
       IsTrue(definedSample.NullableObject.IsDefined);
       IsTrue(definedSample.NullableObject == null);
 
-      var undefinedSentinelValue = global::Fuxion.Union.UndefinableConverterFactory.UndefinedSentinelValue;
-      var undefinedJson = $$"""
+		// Undefined values are represented by the absence of the property. The marker object is only used
+		// where omission is not possible, but it is still accepted on properties, so Integer covers that path.
+		var undefinedMarker = global::Fuxion.Union.UndefinableConverterFactory.UndefinedMarkerPropertyName;
+		var undefinedJson = $$"""
 		{
-		   "Demo": "test",
+			"Demo": "test",
 
-			"DateTime": "{{undefinedSentinelValue}}",
-			"Integer": "{{undefinedSentinelValue}}",
-			"NullableDateTime": "{{undefinedSentinelValue}}",
-			"NullableInteger": "{{undefinedSentinelValue}}",
-			"NullableObject": "{{undefinedSentinelValue}}",
+			"Integer": { "{{undefinedMarker}}": true },
 			"NullableString": null,
 			"Object": {
 				"Integer": 123,
 				"NullableInteger": null
-			},
-			"String": "{{undefinedSentinelValue}}"
+			}
 		}
 		""";
-      PrintVariable(undefinedJson, false);
+		PrintVariable(undefinedJson, false);
 
-      var undefinedSample = undefinedJson.Fx.Json.Deserialize<UndefinableSampleWithIgnore>(true).PayloadOrThrow();
+		var undefinedSample = undefinedJson.Fx.Json.Deserialize<UndefinableSampleWithIgnore>(true).PayloadOrThrow();
       Assert.NotNull(undefinedSample);
 
       IsTrue(undefinedSample.Integer.IsUndefined);
@@ -520,27 +517,24 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
       IsTrue(definedSample.NullableObject.IsDefined);
       IsTrue(definedSample.NullableObject == null);
 
-      var undefinedSentinelValue = global::Fuxion.Union.UndefinableConverterFactory.UndefinedSentinelValue;
-      var undefinedJson = $$"""
+		// Undefined values are represented by the absence of the property. The marker object is only used
+		// where omission is not possible, but it is still accepted on properties, so Integer covers that path.
+		var undefinedMarker = global::Fuxion.Union.UndefinableConverterFactory.UndefinedMarkerPropertyName;
+		var undefinedJson = $$"""
 		{
-		   "Demo": "test",
+			"Demo": "test",
 
-			"DateTime": "{{undefinedSentinelValue}}",
-			"Integer": "{{undefinedSentinelValue}}",
-			"NullableDateTime": "{{undefinedSentinelValue}}",
-			"NullableInteger": "{{undefinedSentinelValue}}",
-			"NullableObject": "{{undefinedSentinelValue}}",
+			"Integer": { "{{undefinedMarker}}": true },
 			"NullableString": null,
 			"Object": {
 				"Integer": 123,
 				"NullableInteger": null
-			},
-			"String": "{{undefinedSentinelValue}}"
+			}
 		}
 		""";
-      PrintVariable(undefinedJson, false);
+		PrintVariable(undefinedJson, false);
 
-      var undefinedSample = undefinedJson.Fx.Json.Deserialize<UndefinableSampleWithoutIgnore>(true).PayloadOrThrow();
+		var undefinedSample = undefinedJson.Fx.Json.Deserialize<UndefinableSampleWithoutIgnore>(true).PayloadOrThrow();
       Assert.NotNull(undefinedSample);
 
       IsTrue(undefinedSample.Integer.IsUndefined);
@@ -551,6 +545,88 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
       IsTrue(undefinedSample.NullableDateTime.IsUndefined);
       //IsTrue(undefinedSample.Object.IsUndefined);
       IsTrue(undefinedSample.NullableObject.IsUndefined);
+   }
+
+   [Fact(DisplayName = "An undefined property is omitted and comes back undefined")]
+   public void UndefinedProperty_IsOmittedAndRoundTrips()
+   {
+      var sample = new UndefinableSampleWithoutIgnore(
+         "test",
+         default,
+         123,
+         default,
+         null,
+         default,
+         default,
+         default,
+         default);
+
+      var json = sample.Fx.Json.Serialize(true).PayloadOrThrow();
+      PrintVariable(json);
+
+      Assert.NotNull(json);
+      Assert.DoesNotContain("\"Integer\"", json);
+      Assert.DoesNotContain("\"String\"", json);
+      Assert.DoesNotContain(global::Fuxion.Union.UndefinableConverterFactory.UndefinedMarkerPropertyName, json);
+      Assert.Contains("\"NullableInteger\"", json);
+
+      var back = json.Fx.Json.Deserialize<UndefinableSampleWithoutIgnore>(true).PayloadOrThrow();
+      Assert.NotNull(back);
+      IsTrue(back.Integer.IsUndefined);
+      IsTrue(back.String.IsUndefined);
+      IsTrue(back.NullableInteger.IsDefined);
+      Assert.Equal(sample, back);
+   }
+
+   [Fact(DisplayName = "Where a property cannot be omitted the marker object is used")]
+   public void UndefinedWithoutProperty_UsesMarkerObject()
+   {
+      // The root, array elements and dictionary values have no property that could be omitted,
+      // so the marker object is the only available representation.
+      global::Fuxion.Union.Undefinable<int> root = None.Value;
+      var rootJson = root.Fx.Json.Serialize(true).PayloadOrThrow();
+      PrintVariable(rootJson);
+      Assert.Contains(global::Fuxion.Union.UndefinableConverterFactory.UndefinedMarkerPropertyName, rootJson!);
+      IsTrue(rootJson.Fx.Json.Deserialize<global::Fuxion.Union.Undefinable<int>>(true).PayloadOrThrow().IsUndefined);
+
+      var array = new global::Fuxion.Union.Undefinable<int>[] { new(1), None.Value, new(3) };
+      var arrayJson = array.Fx.Json.Serialize(true).PayloadOrThrow();
+      PrintVariable(arrayJson);
+      Assert.Contains(global::Fuxion.Union.UndefinableConverterFactory.UndefinedMarkerPropertyName, arrayJson!);
+
+      var backArray = arrayJson.Fx.Json.Deserialize<global::Fuxion.Union.Undefinable<int>[]>(true).PayloadOrThrow();
+      Assert.NotNull(backArray);
+      Assert.Equal(3, backArray.Length);
+      IsTrue(backArray[0].IsDefined);
+      IsTrue(backArray[1].IsUndefined);
+      IsTrue(backArray[2].IsDefined);
+      Assert.Equal(3, backArray[2].Value);
+   }
+
+   [Fact(DisplayName = "A string equal to the old sentinel is no longer swallowed")]
+   public void StringValueEqualToLegacySentinel_IsPreserved()
+   {
+      // The previous implementation used the "--undefined--" string as an in band sentinel, so this
+      // exact value was silently turned into an undefined value when round tripping.
+      global::Fuxion.Union.Undefinable<string> value = "--undefined--";
+
+      var json = value.Fx.Json.Serialize(true).PayloadOrThrow();
+      PrintVariable(json);
+
+      var back = json.Fx.Json.Deserialize<global::Fuxion.Union.Undefinable<string>>(true).PayloadOrThrow();
+      IsTrue(back.IsDefined);
+      Assert.Equal("--undefined--", back.Value);
+   }
+
+   [Fact(DisplayName = "The default value of the struct is the undefined state")]
+   public void DefaultValue_IsUndefined()
+   {
+      // Reading an omitted property relies on this, because the converter is never invoked when the
+      // property is absent and the struct is left at its default value.
+      IsTrue(default(global::Fuxion.Union.Undefinable<int>).IsUndefined);
+      IsTrue(default(global::Fuxion.Union.Undefinable<string>).IsUndefined);
+      IsTrue(global::Fuxion.Union.Undefinable<int>.Undefined.IsUndefined);
+      IsTrue(!default(global::Fuxion.Union.Undefinable<int>).IsDefined);
    }
 }
 

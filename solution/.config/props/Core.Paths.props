@@ -21,6 +21,7 @@
 		<AnalyzersPackagePath>analyzers/dotnet/cs</AnalyzersPackagePath>
 		<AspNetProjectPath>$(MSBuildThisFileDirectory)..\..\src\AspNet\Fuxion.AspNet.csproj</AspNetProjectPath>
 		<AspNetCoreProjectPath>$(MSBuildThisFileDirectory)..\..\src\AspNetCore\Fuxion.AspNetCore.csproj</AspNetCoreProjectPath>
+		<HttpProjectPath>$(MSBuildThisFileDirectory)..\..\src\Http\Fuxion.Http.csproj</HttpProjectPath>
 		<XunitProjectPath>$(MSBuildThisFileDirectory)..\..\src\Xunit\Fuxion.Xunit.csproj</XunitProjectPath>
 
 		<!-- TEST -->

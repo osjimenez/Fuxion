@@ -188,6 +188,19 @@ public static class JsonExtensions
 		public bool OrderPropertiesAlphabetically { get; set; } = true;
 
 		/// <summary>
+		/// Gets or sets a value indicating whether properties holding an undefined <see cref="Fuxion.Union.Undefinable{TValue}"/> are omitted from the JSON output.
+		/// </summary>
+		/// <value>
+		/// <see langword="true"/> to assign a <see cref="JsonPropertyInfo.ShouldSerialize"/> delegate that skips undefined values;
+		/// otherwise, <see langword="false"/>.
+		/// </value>
+		/// <remarks>
+		/// The behavior is implemented by <see cref="Fuxion.Union.UndefinableJsonTypeInfo.OmitUndefined"/>, which is
+		/// also applied to the ASP.NET Core serializer options so that both paths produce the same payload.
+		/// </remarks>
+		public bool OmitUndefinedUndefinables { get; set; } = true;
+
+		/// <summary>
 		/// Gets the type information for the specified type, applying the configured constructor and property-order behaviors.
 		/// </summary>
 		/// <param name="type">The type to get information for.</param>
@@ -261,6 +274,8 @@ public static class JsonExtensions
 				var order = 1;
 				foreach (var property in jsonTypeInfo.Properties.OrderBy(p => p.Name)) property.Order = order++;
 			}
+
+			if (OmitUndefinedUndefinables) Fuxion.Union.UndefinableJsonTypeInfo.OmitUndefined(jsonTypeInfo);
 
 			return jsonTypeInfo;
 		}
@@ -429,14 +444,16 @@ public static class JsonExtensions
 			ReadCommentHandling = JsonCommentHandling.Skip,
 			TypeInfoResolver = new FuxionFormattedTypeInfoResolver()
 		};
-
-		/// <summary>
-		/// PEND DOC
-		/// </summary>
-		/// <param name="name"></param>
-		/// <returns></returns>
-		public string ApplyNamingPolicy(string name)
-			=> me.PropertyNamingPolicy?.ConvertName(name) ?? name;
+   }
+   extension(JsonSerializerOptions? me)
+   {
+      /// <summary>
+      /// PEND DOC
+      /// </summary>
+      /// <param name="name"></param>
+      /// <returns></returns>
+      public string ApplyNamingPolicy(string name)
+         => me?.PropertyNamingPolicy?.ConvertName(name) ?? name;
    }
 	extension(JsonElement me)
 	{

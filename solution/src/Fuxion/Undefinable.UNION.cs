@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Fuxion.Union;
 
@@ -126,9 +127,68 @@ public readonly struct Undefinable<TValue> : IUndefinable, IEquatable<Undefinabl
          : throw new UndefinedException("Implicit conversion between this undefinable and None is not allowed because this undefinable is not undefined");
 }
 
+/// <summary>
+/// Contract customization that omits undefined <see cref="Undefinable{TValue}"/> properties from the JSON output.
+/// </summary>
+public static class UndefinableJsonTypeInfo
+{
+   /// <summary>
+   /// Omits every property holding an undefined <see cref="Undefinable{TValue}"/> value.
+   /// </summary>
+   /// <param name="jsonTypeInfo">The contract to modify.</param>
+   /// <remarks>
+   /// <para>
+   /// The absence of a property is the natural JSON representation of an undefined value, and it is the
+   /// semantics expected by JSON Merge Patch (RFC 7396), so a consumer does not need to know about this
+   /// library to interpret the payload.
+   /// </para>
+   /// <para>
+   /// This cannot be done by a converter, because a converter decides how a value is written but not
+   /// whether the property is written at all. Positions without a property, such as the serialization
+   /// root, array elements and dictionary values, keep using the marker object emitted by
+   /// <see cref="UndefinableConverter{T}"/>.
+   /// </para>
+   /// <para>
+   /// Any previously configured <see cref="JsonPropertyInfo.ShouldSerialize"/> is preserved and still
+   /// evaluated for defined values.
+   /// </para>
+   /// </remarks>
+   public static void OmitUndefined(JsonTypeInfo jsonTypeInfo)
+   {
+      if (jsonTypeInfo.Kind != JsonTypeInfoKind.Object) return;
+
+      foreach (var property in jsonTypeInfo.Properties)
+      {
+         if (!property.PropertyType.IsSubclassOfGenericDefinition(typeof(Undefinable<>))) continue;
+
+         var previous = property.ShouldSerialize;
+         property.ShouldSerialize = (container, value) =>
+            value is IUndefinable { IsUndefined: true }
+               ? false
+               : previous is null || previous(container, value);
+      }
+   }
+}
+
+/// <summary>
+/// Creates converters for <see cref="Undefinable{TValue}"/> values.
+/// </summary>
+/// <remarks>
+/// The preferred representation of an undefined value is the absence of the JSON property, which is
+/// applied by the type info resolver. This factory only covers the positions where omission is not
+/// possible, such as the serialization root, array elements and dictionary values.
+/// </remarks>
 public class UndefinableConverterFactory : JsonConverterFactory
 {
-   public static string UndefinedSentinelValue { get; set; } = "--undefined--";
+   /// <summary>
+   /// Name of the marker property used to represent an undefined value when it cannot be omitted.
+   /// </summary>
+   /// <remarks>
+   /// An object marker is used instead of a sentinel string because a string sentinel belongs to the
+   /// value domain of <see cref="Undefinable{TValue}"/> of <see cref="string"/> and would silently turn a
+   /// legitimate value into an undefined one when round tripping.
+   /// </remarks>
+   public const string UndefinedMarkerPropertyName = "$undefined";
 
    public override bool CanConvert(Type type) => type.IsSubclassOfGenericDefinition(typeof(Undefinable<>));
 
@@ -138,24 +198,17 @@ public class UndefinableConverterFactory : JsonConverterFactory
 
 public class UndefinableConverter<T> : JsonConverter<Undefinable<T?>>
 {
-   static readonly Dictionary<Type, bool> UndefinableTypes = new();
-
-   public override bool CanConvert(Type type)
-   {
-      if (UndefinableTypes.ContainsKey(type)) return true;
-      if (type.IsSubclassOfGenericDefinition(typeof(Undefinable<>)))
-      {
-         UndefinableTypes.Add(type, true);
-         return true;
-      }
-
-      return false;
-   }
+   public override bool CanConvert(Type type) => type.IsSubclassOfGenericDefinition(typeof(Undefinable<>));
 
    public override Undefinable<T?> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
    {
-      if(reader.TokenType == JsonTokenType.String && reader.GetString() == UndefinableConverterFactory.UndefinedSentinelValue)
+      if (IsUndefinedMarker(reader)) 
+      {
+         reader.Read();
+         reader.Read();
+         reader.Read();
          return default;
+      }
 
       return new(JsonSerializer.Deserialize<T>(ref reader, options));
    }
@@ -164,10 +217,22 @@ public class UndefinableConverter<T> : JsonConverter<Undefinable<T?>>
    {
       if (value.IsUndefined)
       {
-         writer.WriteStringValue(UndefinableConverterFactory.UndefinedSentinelValue);
+         writer.WriteStartObject();
+         writer.WriteBoolean(UndefinableConverterFactory.UndefinedMarkerPropertyName, true);
+         writer.WriteEndObject();
       }
       else
          JsonSerializer.Serialize(writer, value.Value, options);
+   }
+
+   // The reader is a struct, so the copy taken here allows looking ahead without consuming the original.
+   static bool IsUndefinedMarker(Utf8JsonReader reader)
+   {
+      if (reader.TokenType != JsonTokenType.StartObject) return false;
+      if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName) return false;
+      if (reader.GetString() != UndefinableConverterFactory.UndefinedMarkerPropertyName) return false;
+      if (!reader.Read() || reader.TokenType != JsonTokenType.True) return false;
+      return reader.Read() && reader.TokenType == JsonTokenType.EndObject;
    }
 }
 

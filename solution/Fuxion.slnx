@@ -42,6 +42,7 @@
     <Project Path="src/AspNet/Fuxion.AspNet.csproj" />
     <Project Path="src/AspNetCore/Fuxion.AspNetCore.csproj" />
     <Project Path="src/Fuxion/Fuxion.csproj" />
+    <Project Path="src/Http/Fuxion.Http.csproj" />
     <Project Path="src/Xunit/Fuxion.Xunit.csproj" />
   </Folder>
   <Folder Name="/test/">

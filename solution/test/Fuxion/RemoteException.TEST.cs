@@ -45,8 +45,12 @@ public class RemoteException_Test(ITestOutputHelper output) : BaseTest<RemoteExc
    [Fact]
    public string Serialization_WithLoop()
    {
-      var json = ExceptionGenerator.GetExceptionWithLoop().ToExceptionJson().Fx.Json.Serialize(true).PayloadOrThrow();
-
+      var json = ExceptionGenerator
+         .GetExceptionWithLoop()
+         .ToExceptionJson()
+         .Fx.Json.Serialize(true)
+         .PayloadOrThrow();
+      
       AssertJson(json, [
          new([nameof(ExceptionJson.Message)],"message")]);
 

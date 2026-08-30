@@ -12,7 +12,7 @@
 		<LatestCoreFramework>net11.0</LatestCoreFramework>
 		<LatestCoreWindowsFramework>net11.0-windows10.0.19041</LatestCoreWindowsFramework>
 
-		<!-- To bellow, only are variables, you don't need touch this -->
+		<!-- Everything below this point is just variables. You don't need to touch them. -->
 
 		<IsCoreOrOldFrameworks Condition="'$(IsCoreFrameworks)' == 'true'
 							   Or '$(IsOldFrameworks)' == 'true'">true</IsCoreOrOldFrameworks>

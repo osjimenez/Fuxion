@@ -1013,6 +1013,30 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
    //   : haveToFindIt
    //      ? new User("test", 123)
    //      : None.Value;
+   [Fact(DisplayName = "The envelope follows the caller naming policy on both write and read")]
+   public void Envelope_FollowsCallerNamingPolicy()
+   {
+      // Un consumidor que configura snake_case en su Program.cs no sabe nada de Fuxion:
+      // el sobre debe escribirse y leerse con su politica, sin configuracion adicional.
+      var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+      {
+         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+      };
+
+      ResponseMaybe<User> response = new User("test", 123);
+
+      var json = JsonSerializer.Serialize(response, options);
+      Output.WriteLine(json);
+
+      Assert.Contains("is_success", json);
+      Assert.Contains("is_none", json);
+
+      var roundTrip = JsonSerializer.Deserialize<ResponseMaybe<User>>(json, options);
+
+      Assert.True(roundTrip.TryGetValue(out User? payload));
+      Assert.Equal("test", payload!.Name);
+      Assert.Equal(123, payload.Age);
+   }
 }
 file record User(string Name, int Age);
 file record CustomError(string Message);
