@@ -9,20 +9,15 @@ using System.Linq;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-/// <summary>
-/// Resolved response options used by the mapper.
-/// </summary>
-public sealed record ResponseOptions : ResponseSerializerOptions
+public static class ResponseOptionsMerge
 {
-	public bool StrictNone { get; set; } = false;
-
 	/// <summary>
 	/// Applies the metadata layers on top of these options, in order, so that
 	/// inner scopes override outer ones and unset values are inherited.
 	/// </summary>
-	public ResponseOptions Merge(ResponseOptionsAttribute[] layers)
+	public static ResponseOptions Merge(this ResponseOptions options, ResponseOptionsAttribute[] layers)
 	{
-		var result = this with { };
+		var result = options with { };
 
 		foreach (var layer in layers)
 		{
@@ -54,10 +49,7 @@ static class ResponseOptionsResolver
 		if (endpoint is null)
 			return global;
 
-		// Walk endpoint metadata in order and collect the response option layers declared
-		// either through UseResponses on groups/endpoints or as attributes on controllers/actions.
 		var layers = endpoint.Metadata.OfType<ResponseOptionsAttribute>().ToArray();
-
 		return global.Merge(layers);
 	}
 }

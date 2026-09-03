@@ -1,7 +1,9 @@
 namespace Fuxion.AspNetCore;
 
 using Fuxion.Union;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
 using System.Text.Json.Serialization.Metadata;
 using HttpJsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
@@ -27,6 +29,8 @@ public static class ResponseServiceExtensions
 				options.SerializerOptions.TypeInfoResolver = ResolveWithOmission(options.SerializerOptions.TypeInfoResolver));
 		  services.Configure<MvcJsonOptions>(options =>
 				options.JsonSerializerOptions.TypeInfoResolver = ResolveWithOmission(options.JsonSerializerOptions.TypeInfoResolver));
+
+		  services.TryAddEnumerable(ServiceDescriptor.Transient<IStartupFilter, ResponseNamingStartupFilter>());
 
 		  return services;
 	 }

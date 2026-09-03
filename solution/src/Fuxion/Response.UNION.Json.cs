@@ -11,11 +11,6 @@ namespace Fuxion.Union;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-public record ResponseSerializerOptions
-{
-	public bool SerializeFullResponses { get; set; } = false;
-	public bool SerializeErrorAsProblemDetails { get; set; } = true;
-}
 public sealed class ResponseOfTSuccessJsonConverterFactory : JsonConverterFactory
 {
    public override bool CanConvert(Type typeToConvert)

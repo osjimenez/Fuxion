@@ -1,4 +1,3 @@
-using Fuxion.AspNetCore;
 using Fuxion.Http;
 using Fuxion.Union;
 using Fuxion.Xunit;
@@ -13,54 +12,94 @@ using Xunit;
 
 namespace Test.AspNetCore.Union;
 
+// Fuxion.Http is the ergonomics layer: it puts the Accept on the wire and applies the JSON options once.
+// There is no contract negotiation: every response describes itself.
 public class FuxionHttpClientTest(ITestOutputHelper output, WebApplicationFactory<Program> factory)
 	: BaseTest<FuxionHttpClientTest>(output), IClassFixture<WebApplicationFactory<Program>>
 {
-	// El contrato se declara una sola vez al registrar el cliente. El objetivo es que ningun call site
-	// tenga que repetir las JsonSerializerOptions, que es de donde salian los desajustes silenciosos.
-	static FuxionHttpClient BuildClient(HttpClient inner, Action<ResponseContractBuilder>? configureContract = null)
+	static FuxionHttpClient BuildClient(HttpClient inner, Action<FuxionHttpClientOptions>? configure = null)
 	{
-		var services = new ServiceCollection();
-		services.AddFuxionHttpClient(_ => { }, configureContract);
-		var provider = services.BuildServiceProvider();
-		return new FuxionHttpClient(inner, provider.GetRequiredService<IResponseContractResolver>());
+		var options = new FuxionHttpClientOptions();
+		configure?.Invoke(options);
+		return new FuxionHttpClient(inner, options);
 	}
 
-	[Fact(DisplayName = "The client reads a response using the contract declared at registration")]
-	public async Task Client_UsesRegisteredContract()
+	[Fact(DisplayName = "The client reads a plain payload with its default options")]
+	public async Task ReadsPlainPayload()
 	{
-		var client = BuildClient(factory.CreateClient());
-
-		var response = await client.GetAsync<TestPatchPayload>("minimal/undefinable/partial");
+		var response = await BuildClient(factory.CreateClient()).GetAsync<TestPatchPayload>("minimal/undefinable/partial");
 
 		IsTrue(response.TryGetValue(out TestPatchPayload? payload));
-		Assert.NotNull(payload);
 		Assert.Equal(123, payload!.Age.Value);
 	}
 
-	[Fact(DisplayName = "The contract exposes whether it was negotiated with the server")]
-	public async Task Contract_ExposesNegotiationState()
+	[Fact(DisplayName = "Without preferences the Accept is plain JSON, indistinguishable from a vanilla client")]
+	public void DefaultAccept_IsPlainJson()
+		=> Assert.Equal("application/json", new FuxionHttpClientOptions().BuildAccept());
+
+	[Fact(DisplayName = "Preferences add the vendor types first and always keep a JSON fallback")]
+	public void Accept_WithPreferences_HasFallback()
 	{
-		var client = BuildClient(factory.CreateClient());
+		var accept = new FuxionHttpClientOptions { PreferEnvelope = true, PreferNativeErrors = true }.BuildAccept();
 
-		var contract = await client.GetContractAsync();
-
-		// Todavia no hay handshake: el contrato es local, y debe poder distinguirse sin mirar los logs.
-		IsTrue(!contract.IsNegotiated);
+		Assert.StartsWith(ResponseMediaTypes.ResponseJson, accept);
+		Assert.Contains(ResponseMediaTypes.ErrorJson, accept);
+		Assert.EndsWith("application/json;q=0.9", accept);
 	}
 
-	[Fact(DisplayName = "A naming policy configured once is applied to every read")]
-	public async Task NamingPolicy_IsAppliedFromContract()
+	[Fact(DisplayName = "Preferring the envelope makes the server answer with it, end to end")]
+	public async Task PreferEnvelope_GetsTheEnvelope()
 	{
-		// El servidor de test serializa con los defaults web (camelCase). Si el contrato declara
-		// snake_case, el payload no debe poder leerse: prueba que la politica del contrato se aplica
-		// de verdad y no se ignora silenciosamente.
-		var client = BuildClient(
-			factory.CreateClient(),
-			c => c.UseNamingPolicy(JsonNamingPolicy.SnakeCaseLower));
+		var client = BuildClient(factory.CreateClient(), o => o.PreferEnvelope = true);
 
-		var contract = await client.GetContractAsync();
+		var request = new HttpRequestMessage(HttpMethod.Get, "minimal/response/payload");
+		var response = await client.SendAsync<TestPayload>(request);
 
-		Assert.Equal(JsonNamingPolicy.SnakeCaseLower, contract.JsonOptions.PropertyNamingPolicy);
+		IsTrue(response.TryGetValue(out TestPayload? payload));
+		Assert.Equal("test", payload!.Name);
+		Assert.Contains(request.Headers.Accept, a => a.MediaType == ResponseMediaTypes.ResponseJson);
+		Assert.Contains(request.Headers.Accept, a => a.MediaType == ResponseMediaTypes.Json && a.Quality == 0.9);
+	}
+
+	[Fact(DisplayName = "An Accept already set on the request is respected")]
+	public async Task ExplicitAccept_IsRespected()
+	{
+		var client = BuildClient(factory.CreateClient(), o => o.PreferEnvelope = true);
+		var request = new HttpRequestMessage(HttpMethod.Get, "minimal/response/payload");
+		request.Headers.TryAddWithoutValidation("Accept", "application/json");
+
+		await client.SendAsync<TestPayload>(request);
+
+		Assert.Equal("application/json", request.Headers.Accept.ToString());
+	}
+
+	[Fact(DisplayName = "The JSON options are applied to every read")]
+	public async Task JsonOptions_AreApplied()
+	{
+		// A caller policy that does not match the server can still read the envelope, because the
+		// naming parameter of the response overrides it for that body; the payload uses the same policy.
+		var client = BuildClient(factory.CreateClient(), o =>
+		{
+			o.JsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+			o.PreferEnvelope = true;
+		});
+
+		var response = await client.GetAsync<TestPayload>("minimal/response/payload");
+
+		IsTrue(response.TryGetValue(out TestPayload? payload));
+		Assert.Equal("test", payload!.Name);
+	}
+
+	[Fact(DisplayName = "The DI registration wires the options into the typed client")]
+	public void Registration_WiresOptions()
+	{
+		var services = new ServiceCollection();
+		services.AddFuxionHttpClient(c => c.BaseAddress = new Uri("http://localhost/"), o => o.PreferNativeErrors = true);
+		var provider = services.BuildServiceProvider();
+
+		var client = provider.GetRequiredService<FuxionHttpClient>();
+
+		IsTrue(client.Options.PreferNativeErrors);
+		Assert.Equal(new Uri("http://localhost/"), client.HttpClient.BaseAddress);
 	}
 }

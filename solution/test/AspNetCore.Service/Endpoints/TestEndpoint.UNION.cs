@@ -247,6 +247,14 @@ public class TestEndpoint : IEndpoint
 		//resultGroup.MapGet("syntax-demo-8-1", () => 123.ToResponse());
 		//resultGroup.MapGet("syntax-demo-8-2", () => "".ToResponseMaybe());
 
+		#region NAMING
+
+		// Echoes what the binder understood, so a test can prove the request naming parameter was honoured.
+		var namingGroup = minimalGroup.MapGroup("naming");
+		namingGroup.MapPost("echo", (TestNamingPayload payload) => new { firstName = payload.FirstName, age = payload.Age });
+
+		#endregion
+
 		#region UNDEFINABLE
 
 		// An undefined member must be absent from the payload, which is the JSON Merge Patch (RFC 7396)

@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Fuxion;
 using Fuxion.AspNetCore;
 using Fuxion.Text.Json.Serialization;
+using Fuxion.Union;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 

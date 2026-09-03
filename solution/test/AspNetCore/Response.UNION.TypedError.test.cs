@@ -78,7 +78,7 @@ public class TypedErrorTest(ITestOutputHelper output, WebApplicationFactory<Prog
 		ResponseOptions options = new() { SerializeFullResponses = fullResponses };
 		var (cli, jsonOptions) = CreateClient(options);
 
-		var response = await cli.GetAsync($"{prefix}/response/typed-error").AsResponseAsync<string, TestBusinessError>(options, jsonOptions);
+		var response = await cli.GetAsync($"{prefix}/response/typed-error").AsResponseAsync<string, TestBusinessError>(jsonOptions);
 
 		IsTrue(response.TryGetValue(out TestBusinessError? error));
 		Assert.Equal(TestBusinessError.Default, error);
@@ -96,7 +96,6 @@ public class TypedErrorTest(ITestOutputHelper output, WebApplicationFactory<Prog
 
 		Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
 		Assert.Equal("application/json", res.Content.Headers.ContentType?.MediaType);
-		Assert.Equal(ResponseHeaders.ErrorKind, res.Headers.GetValues(ResponseHeaders.ResponseKind).Single());
 
 		var body = JsonNode.Parse(await res.Content.ReadAsStringAsync())!;
 		PrintVariable(body.ToJsonString(), false);
@@ -106,7 +105,7 @@ public class TypedErrorTest(ITestOutputHelper output, WebApplicationFactory<Prog
 		Assert.Equal(TestBusinessError.Default.Code, (string?)body["code"]);
 		Assert.Equal(TestBusinessError.Default.Reason, (string?)body["reason"]);
 
-		var response = await res.AsResponseAsync<string, TestBusinessError>(options, jsonOptions);
+		var response = await res.AsResponseAsync<string, TestBusinessError>(jsonOptions);
 		IsTrue(response.TryGetValue(out TestBusinessError? error));
 		Assert.Equal(TestBusinessError.Default, error);
 	}
@@ -128,7 +127,7 @@ public class TypedErrorTest(ITestOutputHelper output, WebApplicationFactory<Prog
 		PrintVariable(body.ToJsonString(), false);
 		Assert.False((bool?)body["isSuccess"]);
 
-		var response = await res.AsResponseAsync<string, TestBusinessError>(options, jsonOptions);
+		var response = await res.AsResponseAsync<string, TestBusinessError>(jsonOptions);
 		IsTrue(response.TryGetValue(out TestBusinessError? error));
 		Assert.Equal(TestBusinessError.Default, error);
 	}

@@ -174,3 +174,11 @@ file class Level2
 {
 	public void Throw() => throw new NotImplementedException("message");
 }
+
+[ApiController]
+[Route("controller/naming")]
+public class NamingTestController : ControllerBase
+{
+	[HttpPost("echo")]
+	public object Echo([FromBody] TestNamingPayload payload) => new { firstName = payload.FirstName, age = payload.Age };
+}

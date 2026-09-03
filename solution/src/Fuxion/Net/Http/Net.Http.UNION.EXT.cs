@@ -3,9 +3,7 @@ using Fuxion.Text.Json;
 using System;
 using System.Net;
 using System.Net.Http;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,66 +12,31 @@ namespace Fuxion.Union.Net.Http;
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 /// <summary>
-/// Reads an <see cref="Error"/> from a RFC 9457 ProblemDetails payload, delegating the
-/// conversion logic to <see cref="ErrorProblemDetailsConverter"/> so it is never duplicated.
+/// Reads union responses out of HTTP messages. The client trusts only what the message says about
+/// itself: the media type says the body shape, the naming parameter says how it was written and the
+/// status code says whether it went well. There are no format flags: a Fuxion server describes every
+/// response and a non-Fuxion server is read as a vanilla API.
 /// </summary>
-public sealed class ErrorFromProblemDetailsJsonConverter : JsonConverter<Error>
-{
-	public override Error Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-	{
-		var problem = JsonSerializer.Deserialize<ResponseProblemDetails>(ref reader, options);
-		return ErrorProblemDetailsConverter.ToError(problem, options);
-	}
-
-	public override void Write(Utf8JsonWriter writer, Error value, JsonSerializerOptions options)
-		=> JsonSerializer.Serialize(writer, ErrorProblemDetailsConverter.ToProblemDetails(value, options), options);
-}
-
 public static class ResponseExtensions
 {
-	// Web defaults are used because the response envelope property names are resolved through the
-	// naming policy at read time, and any HTTP server serializing them (ASP.NET Core included) uses
-	// JsonSerializerDefaults.Web. A raw JsonSerializerOptions would look for PascalCase names and
-	// would never match a camelCase body. Callers passing their own options keep full control.
+	// Web defaults: any HTTP server serializing the envelope (ASP.NET Core included) uses them, and the
+	// envelope property names are resolved through the naming policy at read time.
 	static readonly JsonSerializerOptions defaultJsonOptions = new(JsonSerializerDefaults.Web);
-	static readonly ConditionalWeakTable<JsonSerializerOptions, JsonSerializerOptions> problemDetailsJsonOptionsCache = new();
 
-	static JsonSerializerOptions GetJsonOptions(JsonSerializerOptions? jsonOptions, ResponseSerializerOptions options)
-	{
-		var source = jsonOptions ?? defaultJsonOptions;
-		if (!options.SerializeErrorAsProblemDetails)
-			return source;
-		return problemDetailsJsonOptionsCache.GetValue(source, static key =>
-		{
-			var clone = new JsonSerializerOptions(key);
-			clone.Converters.Insert(0, new ErrorFromProblemDetailsJsonConverter());
-			return clone;
-		});
-	}
+	static string? ContentType(HttpResponseMessage me) => me.Content?.Headers.ContentType?.ToString();
+
+	// The body announces the naming policy it was written with; the caller options are cloned (cached) with it.
+	static JsonSerializerOptions EffectiveJsonOptions(HttpResponseMessage me, JsonSerializerOptions? jsonOptions)
+		=> ResponseNaming.Apply(jsonOptions ?? defaultJsonOptions, ResponseNaming.GetParameter(ContentType(me)));
 
 	static InvalidOperationException CreateDeserializationError(string? message, Exception? innerException = null)
 		=> new(message ?? "The HTTP response body could not be deserialized.", innerException);
 
-	// A ProblemDetails body is identified by its media type, so it is parsed correctly even when the
-	// caller options did not enable that shape. The response kind header is deliberately not used
-	// here: it states that the response is an error, not the format that error was serialized in.
-	static bool IsProblemDetailsBody(HttpResponseMessage message, ResponseSerializerOptions options)
-		=> options.SerializeErrorAsProblemDetails
-			|| string.Equals(message.Content.Headers.ContentType?.MediaType, ResponseMediaTypes.ProblemJson, StringComparison.OrdinalIgnoreCase);
-
-	// The full envelope is identified by its media type, mirroring how a ProblemDetails body is
-	// detected, so a server that emits the envelope is read correctly even when the caller did not
-	// enable that shape. The detection is purely additive: the option still forces the envelope for
-	// servers that do not advertise the media type, and it is never turned off by this check.
-	static bool IsFullResponseBody(HttpResponseMessage message, ResponseSerializerOptions options)
-		=> options.SerializeFullResponses
-			|| string.Equals(message.Content.Headers.ContentType?.MediaType, ResponseMediaTypes.ResponseJson, StringComparison.OrdinalIgnoreCase);
-
 	// The token is honoured where the target framework exposes an overload that accepts it. On the
-	// older frameworks the read cannot be cancelled, so cancellation is observed before starting it
-	// instead of being silently ignored.
+	// older frameworks the read cannot be cancelled, so cancellation is observed before starting it.
 	static async Task<string> ReadBodyAsync(HttpResponseMessage me, CancellationToken ct)
 	{
+		if (me.Content is null) return string.Empty;
 #if NET5_0_OR_GREATER
 		return await me.Content.ReadAsStringAsync(ct);
 #else
@@ -82,98 +45,67 @@ public static class ResponseExtensions
 #endif
 	}
 
-	static Error ReadErrorFromBody(string body, JsonSerializerOptions jsonOptions, bool asProblemDetails)
+	static bool TryDeserialize<T>(string body, JsonSerializerOptions jsonOptions, out T value, out Error failure)
 	{
-		if (string.IsNullOrWhiteSpace(body))
-			return Error.Critical("The error response body is empty.");
-
-		if (asProblemDetails)
+		var deserialization = body.Fx.Json.Deserialize<T>(options: jsonOptions);
+		if (deserialization.IsSuccess)
 		{
-			var deserialization = body.Fx.Json.Deserialize<ResponseProblemDetails>(options: jsonOptions);
-			return deserialization.IsError
-				? Error.Critical(deserialization.Message, exception: deserialization.Exception)
-				: ErrorProblemDetailsConverter.ToError(deserialization.Payload, jsonOptions);
+			value = deserialization.Payload;
+			failure = default;
+			return true;
 		}
 
-		var errorDeserialization = body.Fx.Json.Deserialize<Error>(options: jsonOptions);
-		return errorDeserialization.IsError
-			? Error.Critical(errorDeserialization.Message, exception: errorDeserialization.Exception)
-			: errorDeserialization.Payload;
+		value = default!;
+		failure = Error.Critical(deserialization.Message, exception: deserialization.Exception);
+		return false;
 	}
 
-	// A typed business error carried inside a problem+json body travels in the same errorPayload
-	// extension member that Error.Payload uses, so it is recovered through the same Error machinery.
-	static TError ReadTypedErrorFromProblemBody<TError>(string body, JsonSerializerOptions jsonOptions)
+	// RFC 9457. Some servers omit "status": the HTTP status is the authoritative fallback.
+	static Error ReadProblem(string body, JsonSerializerOptions jsonOptions, HttpStatusCode status)
+	{
+		if (!TryDeserialize<ResponseProblemDetails>(body, jsonOptions, out var problem, out var failure))
+			return failure;
+
+		var error = ErrorProblemDetailsConverter.ToError(problem, jsonOptions);
+		return error.Type is null ? error with { Type = status } : error;
+	}
+
+	// A typed business error inside problem+json travels in the same errorPayload extension member
+	// that Error.Payload uses, so it is recovered through the same Error machinery.
+	static TError ReadTypedError<TError>(Error problemError, JsonSerializerOptions jsonOptions)
 		where TError : notnull
 	{
-		var error = ReadErrorFromBody(body, jsonOptions, true);
-		if (error.TryGetPayloadAs<TError>(out var typed, jsonOptions))
+		if (problemError.TryGetPayloadAs<TError>(out var typed, jsonOptions))
 			return typed;
 
 		throw CreateDeserializationError(
 			$"The problem details body does not carry an '{ErrorProblemDetailsConverter.ErrorPayloadExtensionName}' extension member deserializable as '{typeof(TError).GetSignature()}'.");
 	}
 
-	static bool TryReadSuccessPayload<TSuccess>(string body, JsonSerializerOptions jsonOptions, HttpStatusCode statusCode, out TSuccess payload, out Error error)
-		where TSuccess : notnull
+	// An error body this client does not recognize (a non-Fuxion server, HTML, plain text...). Nothing is
+	// lost: the HTTP status becomes the error type and the raw body stays reachable as the payload.
+	static Error ReadForeignError(HttpResponseMessage me, string body)
 	{
-		payload = default!;
-		error = default;
-
-		if (string.IsNullOrWhiteSpace(body))
+		object? payload = null;
+		if (!string.IsNullOrWhiteSpace(body))
 		{
-			// Unit is the only success shape that legitimately travels without a body.
-			if (typeof(TSuccess) == typeof(Unit))
-				return TryGetUnitPayload(out payload);
-
-			error = Error.Critical($"The response status code is '{(int)statusCode}' and the body is empty.");
-			return false;
-		}
-
-		var deserialization = body.Fx.Json.Deserialize<TSuccess>(options: jsonOptions);
-		if (deserialization.IsSuccess)
-		{
-			payload = deserialization.Payload;
-			return true;
-		}
-
-		error = Error.Critical(deserialization.Message, exception: deserialization.Exception);
-		return false;
-	}
-
-	// Semantic shape of a body-less success. Resolved in a single place so that no caller
-	// depends on the order in which the Unit and None checks are evaluated.
-	enum EmptyResponseKind
-	{
-		/// <summary>The response does not represent a body-less success.</summary>
-		Unknown,
-		Unit,
-		None
-	}
-
-	// The header is the authoritative discriminator, because an intermediary may normalize a
-	// body-less 200 into a 204. The status code is only consulted when the header is absent,
-	// which keeps compatibility with servers that do not emit it yet.
-	static EmptyResponseKind ResolveEmptyResponseKind(HttpResponseMessage message)
-	{
-		if (message.Headers.TryGetValues(ResponseHeaders.ResponseKind, out var values))
-			foreach (var value in values)
+			try
 			{
-				if (string.Equals(value, ResponseHeaders.NoneKind, StringComparison.OrdinalIgnoreCase))
-					return EmptyResponseKind.None;
-				if (string.Equals(value, ResponseHeaders.UnitKind, StringComparison.OrdinalIgnoreCase))
-					return EmptyResponseKind.Unit;
+				using var document = JsonDocument.Parse(body);
+				payload = document.RootElement.Clone();
 			}
+			catch (JsonException)
+			{
+				payload = body;
+			}
+		}
 
-		// Fallback for servers that do not emit the header: only the status code is available,
-		// so a 204 is read as None and any other body-less success as Unit. Whether the expected
-		// success type can actually hold a Unit is decided by the caller.
-		if (message.StatusCode == HttpStatusCode.NoContent)
-			return EmptyResponseKind.None;
-
-		return message.IsSuccessStatusCode
-			? EmptyResponseKind.Unit
-			: EmptyResponseKind.Unknown;
+		return new Error
+		{
+			Type = me.StatusCode,
+			Message = string.IsNullOrWhiteSpace(me.ReasonPhrase) ? $"The response status code is '{(int)me.StatusCode}'." : me.ReasonPhrase,
+			Payload = payload
+		};
 	}
 
 	static bool TryGetUnitPayload<TSuccess>(out TSuccess payload)
@@ -191,57 +123,55 @@ public static class ResponseExtensions
 
 	extension(HttpResponseMessage me)
 	{
-		/// <summary>
-		/// Reads the HTTP response as a <see cref="ResponseMaybe{TSuccess}"/>.
-		/// </summary>
+		/// <summary>Reads the HTTP response as a <see cref="ResponseMaybe{TSuccess}"/>.</summary>
 		/// <remarks>
-		/// This overload never throws for a protocol level failure: an empty or undeserializable body is
-		/// returned as an <see cref="Error"/> inside the response, because the error shape is known.
+		/// This overload never throws for a protocol level failure: an empty, foreign or undeserializable
+		/// body is returned as an <see cref="Error"/> inside the response, because the error shape is known.
 		/// The overload that also takes a custom error type cannot do this and throws instead.
 		/// </remarks>
-		public async Task<ResponseMaybe<TSuccess>> AsResponseAsync<TSuccess>(ResponseSerializerOptions? options = null, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+		public async Task<ResponseMaybe<TSuccess>> AsResponseAsync<TSuccess>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 			where TSuccess : notnull
 		{
-			options ??= new();
-			var currentJsonOptions = GetJsonOptions(jsonOptions, options);
-
-			if (IsFullResponseBody(me, options))
-			{
-				// Errors are still emitted as ProblemDetails when that shape is in use,
-				// so the full response envelope is only present for successful status codes.
-				if (!me.IsSuccessStatusCode && IsProblemDetailsBody(me, options))
-					return ReadErrorFromBody(await ReadBodyAsync(me, ct), currentJsonOptions, true);
-
-				var fullBody = await ReadBodyAsync(me, ct);
-				if (string.IsNullOrWhiteSpace(fullBody))
-					return ResolveEmptyResponseKind(me) switch
-					{
-						EmptyResponseKind.None => None.Value,
-						EmptyResponseKind.Unit when TryGetUnitPayload<TSuccess>(out var fullUnit) => fullUnit,
-						_ => Error.Critical($"The response status code is '{(int)me.StatusCode}' and the body is empty.")
-					};
-
-				var deserialization = fullBody.Fx.Json.Deserialize<ResponseMaybe<TSuccess>>(options: currentJsonOptions);
-				return deserialization.IsError
-					? Error.Critical(deserialization.Message, exception: deserialization.Exception)
-					: deserialization.Payload;
-			}
-
-			if (me.IsSuccessStatusCode && ResolveEmptyResponseKind(me) == EmptyResponseKind.None)
+			if (me.StatusCode == HttpStatusCode.NoContent)
 				return None.Value;
 
-			var body = await ReadBodyAsync(me, ct);
-			if (!me.IsSuccessStatusCode)
-				return ReadErrorFromBody(body, currentJsonOptions, IsProblemDetailsBody(me, options));
+			var contentType = ContentType(me);
+			var currentJsonOptions = EffectiveJsonOptions(me, jsonOptions);
 
-			return TryReadSuccessPayload<TSuccess>(body, currentJsonOptions, me.StatusCode, out var payload, out var error)
-				? payload
-				: error;
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.UnitJson))
+				return TryGetUnitPayload<TSuccess>(out var unit) ? unit : Error.Critical($"The response is a Unit but '{typeof(TSuccess).GetSignature()}' was expected.");
+
+			var body = await ReadBodyAsync(me, ct);
+
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ResponseJson))
+			{
+				if (TryDeserialize<ResponseMaybe<TSuccess>>(body, currentJsonOptions, out var envelope, out var envelopeFailure))
+					return envelope;
+				return envelopeFailure;
+			}
+
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ProblemJson))
+				return ReadProblem(body, currentJsonOptions, me.StatusCode);
+
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ErrorJson))
+			{
+				if (TryDeserialize<Error>(body, currentJsonOptions, out var nativeError, out var nativeFailure))
+					return nativeError;
+				return nativeFailure;
+			}
+
+			if (!me.IsSuccessStatusCode)
+				return ReadForeignError(me, body);
+
+			if (string.IsNullOrWhiteSpace(body))
+				return TryGetUnitPayload<TSuccess>(out var legacyUnit) ? legacyUnit : Error.Critical($"The response status code is '{(int)me.StatusCode}' and the body is empty.");
+
+			if (TryDeserialize<TSuccess>(body, currentJsonOptions, out var payload, out var payloadFailure))
+				return payload;
+			return payloadFailure;
 		}
 
-		/// <summary>
-		/// Reads the HTTP response as a <see cref="ResponseMaybe{TSuccess, TError}"/>.
-		/// </summary>
+		/// <summary>Reads the HTTP response as a <see cref="ResponseMaybe{TSuccess, TError}"/>.</summary>
 		/// <remarks>
 		/// Unlike the overload that only takes a success type, this one throws an
 		/// <see cref="InvalidOperationException"/> when the body is empty or cannot be deserialized.
@@ -249,79 +179,74 @@ public static class ResponseExtensions
 		/// protocol level failure has no representation inside the returned response.
 		/// </remarks>
 		/// <exception cref="InvalidOperationException">The response body is empty or cannot be deserialized.</exception>
-		public async Task<ResponseMaybe<TSuccess, TError>> AsResponseAsync<TSuccess, TError>(ResponseSerializerOptions? options = null, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+		public async Task<ResponseMaybe<TSuccess, TError>> AsResponseAsync<TSuccess, TError>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 			where TSuccess : notnull
 			where TError : notnull
 		{
-			options ??= new();
-			var currentJsonOptions = GetJsonOptions(jsonOptions, options);
-
-			if (IsFullResponseBody(me, options))
-			{
-				// Errors are still emitted as ProblemDetails when that shape is in use,
-				// so the full response envelope is only present for successful status codes.
-				if (!me.IsSuccessStatusCode && IsProblemDetailsBody(me, options))
-					return typeof(TError) == typeof(Error)
-						? (TError)(object)ReadErrorFromBody(await ReadBodyAsync(me, ct), currentJsonOptions, true)
-						: ReadTypedErrorFromProblemBody<TError>(await ReadBodyAsync(me, ct), currentJsonOptions);
-
-				var fullBody = await ReadBodyAsync(me, ct);
-				if (string.IsNullOrWhiteSpace(fullBody))
-					return ResolveEmptyResponseKind(me) switch
-					{
-						EmptyResponseKind.None => None.Value,
-						EmptyResponseKind.Unit when TryGetUnitPayload<TSuccess>(out var fullUnit) => fullUnit,
-						_ => throw CreateDeserializationError($"The response status code is '{(int)me.StatusCode}' and the body is empty.")
-					};
-
-				var deserialization = fullBody.Fx.Json.Deserialize<ResponseMaybe<TSuccess, TError>>(options: currentJsonOptions);
-				return deserialization.IsError
-					? throw CreateDeserializationError(deserialization.Message, deserialization.Exception)
-					: deserialization.Payload;
-			}
-
-			if (me.IsSuccessStatusCode && ResolveEmptyResponseKind(me) == EmptyResponseKind.None)
+			if (me.StatusCode == HttpStatusCode.NoContent)
 				return None.Value;
 
+			var contentType = ContentType(me);
+			var currentJsonOptions = EffectiveJsonOptions(me, jsonOptions);
+			var errorIsNative = typeof(TError) == typeof(Error);
+
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.UnitJson))
+				return TryGetUnitPayload<TSuccess>(out var unit) ? unit : throw CreateDeserializationError($"The response is a Unit but '{typeof(TSuccess).GetSignature()}' was expected.");
+
 			var body = await ReadBodyAsync(me, ct);
-			if (!me.IsSuccessStatusCode)
+
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ResponseJson))
 			{
-				if (typeof(TError) == typeof(Error))
-					return (TError)(object)ReadErrorFromBody(body, currentJsonOptions, IsProblemDetailsBody(me, options));
-
-				if (string.IsNullOrWhiteSpace(body))
-					throw CreateDeserializationError($"The response status code is '{(int)me.StatusCode}' and the body is empty.");
-
-				// A problem+json body carries the typed error in its errorPayload extension member;
-				// a plain body is the typed error itself.
-				if (IsProblemDetailsBody(me, options))
-					return ReadTypedErrorFromProblemBody<TError>(body, currentJsonOptions);
-
-				var errorDeserialization = body.Fx.Json.Deserialize<TError>(options: currentJsonOptions);
-				return errorDeserialization.IsSuccess
-					? errorDeserialization.Payload
-					: throw CreateDeserializationError(
-						errorDeserialization.Message ?? $"The error body could not be deserialized as '{typeof(TError).GetSignature()}'.",
-						errorDeserialization.Exception);
+				if (TryDeserialize<ResponseMaybe<TSuccess, TError>>(body, currentJsonOptions, out var envelope, out var envelopeFailure))
+					return envelope;
+				throw CreateDeserializationError(envelopeFailure.Message, envelopeFailure.Exception);
 			}
 
-			if (TryReadSuccessPayload<TSuccess>(body, currentJsonOptions, me.StatusCode, out var payload, out var error))
-				return payload;
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ProblemJson))
+			{
+				var problemError = ReadProblem(body, currentJsonOptions, me.StatusCode);
+				return errorIsNative ? (TError)(object)problemError : ReadTypedError<TError>(problemError, currentJsonOptions);
+			}
 
-			throw CreateDeserializationError(error.Message);
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ErrorJson))
+			{
+				if (!errorIsNative)
+					throw CreateDeserializationError($"The response carries a native Error but '{typeof(TError).GetSignature()}' was expected.");
+				if (TryDeserialize<Error>(body, currentJsonOptions, out var nativeError, out var nativeFailure))
+					return (TError)(object)nativeError;
+				throw CreateDeserializationError(nativeFailure.Message, nativeFailure.Exception);
+			}
+
+			if (!me.IsSuccessStatusCode)
+			{
+				if (errorIsNative)
+					return (TError)(object)ReadForeignError(me, body);
+				if (string.IsNullOrWhiteSpace(body))
+					throw CreateDeserializationError($"The response status code is '{(int)me.StatusCode}' and the body is empty.");
+				if (TryDeserialize<TError>(body, currentJsonOptions, out var typed, out var typedFailure))
+					return typed;
+				throw CreateDeserializationError(typedFailure.Message ?? $"The error body could not be deserialized as '{typeof(TError).GetSignature()}'.", typedFailure.Exception);
+			}
+
+			if (string.IsNullOrWhiteSpace(body))
+				return TryGetUnitPayload<TSuccess>(out var legacyUnit) ? legacyUnit : throw CreateDeserializationError($"The response status code is '{(int)me.StatusCode}' and the body is empty.");
+
+			if (TryDeserialize<TSuccess>(body, currentJsonOptions, out var payload, out var payloadFailure))
+				return payload;
+			throw CreateDeserializationError(payloadFailure.Message, payloadFailure.Exception);
 		}
 	}
 
 	extension(Task<HttpResponseMessage> me)
 	{
-		public async Task<ResponseMaybe<TSuccess>> AsResponseAsync<TSuccess>(ResponseSerializerOptions? options = null, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+		public async Task<ResponseMaybe<TSuccess>> AsResponseAsync<TSuccess>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 			where TSuccess : notnull
-			=> await (await me).AsResponseAsync<TSuccess>(options, jsonOptions, ct);
+			=> await (await me).AsResponseAsync<TSuccess>(jsonOptions, ct);
 
-		public async Task<ResponseMaybe<TSuccess, TError>> AsResponseAsync<TSuccess, TError>(ResponseSerializerOptions? options = null, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+		public async Task<ResponseMaybe<TSuccess, TError>> AsResponseAsync<TSuccess, TError>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
 			where TSuccess : notnull
 			where TError : notnull
-			=> await (await me).AsResponseAsync<TSuccess, TError>(options, jsonOptions, ct);
+			=> await (await me).AsResponseAsync<TSuccess, TError>(jsonOptions, ct);
 	}
 }
 

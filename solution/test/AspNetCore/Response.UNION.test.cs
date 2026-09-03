@@ -74,9 +74,9 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 		var (cli, jsonOptions, res) = await GetMessage(prefix, options, path, expectedStatus);
 
 		if(typeof(TValue) == typeof(Unit) || typeof(TValue) == typeof(None) || typeof(TValue) == typeof(Error))
-			DoUnitResponse(await res.AsResponseAsync<Unit>(options, jsonOptions));
+			DoUnitResponse(await res.AsResponseAsync<Unit>(jsonOptions));
 		else
-			DoValueResponse(await res.AsResponseAsync<TValue>(options, jsonOptions));
+			DoValueResponse(await res.AsResponseAsync<TValue>(jsonOptions));
 		return;
 
 		void DoUnitResponse(ResponseMaybe<Unit> response){
@@ -263,24 +263,21 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 				System.Text.Encoding.UTF8,
 				"application/problem+json")
 		};
-		message.Headers.Add(ResponseHeaders.ResponseKind, ResponseHeaders.ErrorKind);
-
-		var response = await message.AsResponseAsync<TestPayload>(new() { SerializeErrorAsProblemDetails = false });
+		var response = await message.AsResponseAsync<TestPayload>();
 		IsTrue(response.TryGetValue(out Error error));
 		Assert.Equal("boom", error.Message);
 	}
 
-	[Theory(DisplayName = "Legacy servers without the header still resolve Unit and None")]
+	[Theory(DisplayName = "A server that announces nothing still resolves Unit and None by status")]
 	[InlineData(HttpStatusCode.NoContent, false)]
 	[InlineData(HttpStatusCode.OK, true)]
-	public async Task ResponseKindHeader_AbsentFallsBackToStatusCode(HttpStatusCode status, bool expectsUnit)
+	public async Task LegacyServer_WithoutMediaTypes_ResolvesUnitAndNoneByStatus(HttpStatusCode status, bool expectsUnit)
 	{
 		// Sin cabecera solo queda el status: 204 es None y cualquier otro exito sin cuerpo es Unit.
 		var message = new HttpResponseMessage(status)
 		{
 			Content = new StringContent("")
 		};
-		IsTrue(!message.Headers.Contains(ResponseHeaders.ResponseKind));
 
 		var response = await message.AsResponseAsync<Unit>();
 		if (expectsUnit)
@@ -293,62 +290,6 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 			IsTrue(response.TryGetValue(out None _));
 			IsTrue(response is not Unit);
 		}
-	}
-
-	[Fact(DisplayName = "A none header wins even on a 200 envelope")]
-	public async Task ResponseKindHeader_NoneWinsOverEmptyBodyUnitInference()
-	{
-		// Un 200 sin cuerpo se leeria como Unit por el status, pero la cabecera dice none.
-		var message = new HttpResponseMessage(HttpStatusCode.OK)
-		{
-			Content = new StringContent("")
-		};
-		message.Headers.Add(ResponseHeaders.ResponseKind, ResponseHeaders.NoneKind);
-
-		var response = await message.AsResponseAsync<Unit>(new() { SerializeFullResponses = true });
-		IsTrue(response.TryGetValue(out None _));
-		IsTrue(response is not Unit);
-	}
-
-	[Theory(DisplayName = "Unit and None are discriminated by header")]
-	[InlineData("minimal")]
-	[InlineData("controller")]
-	public async Task ResponseKindHeader_DiscriminatesUnitFromNone(string prefix)
-	{
-		ResponseOptions options = new()
-		{
-			SerializeFullResponses = false,
-			SerializeErrorAsProblemDetails = true,
-			StrictNone = false
-		};
-
-		foreach (var group in new[] { "/response/", "/result/" })
-		{
-			var (_, _, unitRes) = await GetMessage(prefix + group, options, "unit", HttpStatusCode.OK);
-			Assert.Equal(ResponseHeaders.UnitKind, Assert.Single(unitRes.Headers.GetValues(ResponseHeaders.ResponseKind)));
-
-			var (_, _, noneRes) = await GetMessage(prefix + group, options, "none", HttpStatusCode.NoContent);
-			Assert.Equal(ResponseHeaders.NoneKind, Assert.Single(noneRes.Headers.GetValues(ResponseHeaders.ResponseKind)));
-
-			// La cabecera cubre todas las formas, no solo las que van sin cuerpo.
-			var (_, _, payloadRes) = await GetMessage(prefix + group, options, "payload", HttpStatusCode.OK);
-			Assert.Equal(ResponseHeaders.PayloadKind, Assert.Single(payloadRes.Headers.GetValues(ResponseHeaders.ResponseKind)));
-
-			var (_, _, errorRes) = await GetMessage(prefix + group, options, "error-message", HttpStatusCode.InternalServerError);
-			Assert.Equal(ResponseHeaders.ErrorKind, Assert.Single(errorRes.Headers.GetValues(ResponseHeaders.ResponseKind)));
-		}
-	}
-
-	[Fact(DisplayName = "Header wins over a 204 normalized by an intermediary")]
-	public async Task ResponseKindHeader_SurvivesStatusNormalization()
-	{
-		// Simula un proxy que colapsa un 200 sin cuerpo a 204: la cabecera debe seguir mandando.
-		var message = new HttpResponseMessage(HttpStatusCode.NoContent);
-		message.Headers.Add(ResponseHeaders.ResponseKind, ResponseHeaders.UnitKind);
-
-		var response = await message.AsResponseAsync<Unit>();
-		IsTrue(response.TryGetValue(out Unit _));
-		IsTrue(response is not None);
 	}
 
 	[Fact(DisplayName = "Subgroup override wins over global options")]
@@ -569,10 +510,9 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 				System.Text.Encoding.UTF8,
 				ResponseMediaTypes.ResponseJson)
 		};
-		message.Headers.Add(ResponseHeaders.ResponseKind, ResponseHeaders.PayloadKind);
 
 		// Sin jsonOptions explicitas: el default del cliente debe alinearse con el del servidor.
-		var response = await message.AsResponseAsync<TestPayload>(new() { SerializeFullResponses = false });
+		var response = await message.AsResponseAsync<TestPayload>();
 
 		IsTrue(response.TryGetValue(out TestPayload? payload));
 		Assert.NotNull(payload);
@@ -591,7 +531,6 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 				System.Text.Encoding.UTF8,
 				ResponseMediaTypes.ResponseJson)
 		};
-		message.Headers.Add(ResponseHeaders.ResponseKind, ResponseHeaders.PayloadKind);
 
 		var response = await message.AsResponseAsync<TestPayload>();
 
@@ -632,7 +571,6 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 		};
 
 		var response = await message.AsResponseAsync<TestPayload, CustomError>(
-			new() { SerializeErrorAsProblemDetails = false },
 			new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
 		IsTrue(response.TryGetValue(out CustomError? customError));
