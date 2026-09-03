@@ -1,6 +1,8 @@
 using Fuxion.Reflection;
 using Fuxion.Text.Json;
 using System;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
@@ -108,6 +110,85 @@ public static class ResponseExtensions
 		};
 	}
 
+	// JSON-ish media types. An absent Content-Type is treated as JSON so servers that announce nothing
+	// (legacy) keep working; anything else that is not JSON is a binary body.
+	static bool IsJsonContentType(string? contentType)
+	{
+		if (!ResponseMediaTypes.TryParse(contentType, out var parsed)) return true;
+		var media = parsed.MediaType ?? string.Empty;
+		return media.Equals("application/json", StringComparison.OrdinalIgnoreCase)
+			|| media.Equals("text/json", StringComparison.OrdinalIgnoreCase)
+			|| media.EndsWith("+json", StringComparison.OrdinalIgnoreCase)
+			|| ResponseMediaTypes.IsFuxion(contentType);
+	}
+
+	static async Task<Stream> ReadStreamAsync(HttpResponseMessage me, CancellationToken ct)
+	{
+#if NET5_0_OR_GREATER
+		return await me.Content.ReadAsStreamAsync(ct);
+#else
+		ct.ThrowIfCancellationRequested();
+		return await me.Content.ReadAsStreamAsync();
+#endif
+	}
+
+	// A binary success: the body is handed over as a stream (never buffered here), described by the
+	// standard headers. The returned stream owns the message, so disposing it releases the connection.
+	// Not every requested type can be produced from an HTTP body (an arbitrary Stream subtype cannot be
+	// synthesized), so the outcome is returned rather than thrown: each caller overload decides how a
+	// protocol level failure is reported (Error for the one-generic overload, an exception for the other).
+	static async Task<(bool Success, TSuccess Value, string? FailureMessage)> TryReadBinaryAsync<TSuccess>(HttpResponseMessage me, CancellationToken ct)
+		where TSuccess : notnull
+	{
+		if (typeof(TSuccess) == typeof(byte[]))
+		{
+#if NET5_0_OR_GREATER
+			var bytes = await me.Content.ReadAsByteArrayAsync(ct);
+#else
+			ct.ThrowIfCancellationRequested();
+			var bytes = await me.Content.ReadAsByteArrayAsync();
+#endif
+			return (true, (TSuccess)(object)bytes, null);
+		}
+
+		if (typeof(TSuccess) == typeof(MemoryStream))
+		{
+			var source = await ReadStreamAsync(me, ct);
+			var memory = new MemoryStream();
+#if NET5_0_OR_GREATER
+			await source.CopyToAsync(memory, ct);
+#else
+			ct.ThrowIfCancellationRequested();
+			await source.CopyToAsync(memory);
+#endif
+			memory.Position = 0;
+			me.Dispose();
+			return (true, (TSuccess)(object)memory, null);
+		}
+
+		// Stream itself and FileContent (backed by the response stream) are supported below; any other
+		// concrete Stream subtype (e.g. a custom Stream, or FileStream) cannot be conjured out of thin air.
+		if (typeof(TSuccess) != typeof(Stream) && typeof(Stream).IsAssignableFrom(typeof(TSuccess)))
+			return (false, default!, $"'{typeof(TSuccess).GetSignature()}' cannot be produced from an HTTP body; request Stream, MemoryStream, byte[] or FileContent instead.");
+
+		var stream = new HttpResponseStream(await ReadStreamAsync(me, ct), me);
+		if (typeof(TSuccess) == typeof(FileContent))
+		{
+			var headers = me.Content.Headers;
+			var disposition = headers.ContentDisposition;
+			var file = new FileContent(stream, headers.ContentType?.MediaType, (disposition?.FileNameStar ?? disposition?.FileName)?.Trim('"'))
+			{
+				Length = headers.ContentLength,
+				LastModified = headers.LastModified,
+				ETag = me.Headers.ETag?.ToString(),
+				EnableRangeProcessing = me.Headers.AcceptRanges.Any(r => string.Equals(r, "bytes", StringComparison.OrdinalIgnoreCase))
+			};
+			return (true, (TSuccess)(object)file, null);
+		}
+
+		return (true, (TSuccess)(object)stream, null);
+	}
+
 	static bool TryGetUnitPayload<TSuccess>(out TSuccess payload)
 		where TSuccess : notnull
 	{
@@ -140,6 +221,19 @@ public static class ResponseExtensions
 
 			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.UnitJson))
 				return TryGetUnitPayload<TSuccess>(out var unit) ? unit : Error.Critical($"The response is a Unit but '{typeof(TSuccess).GetSignature()}' was expected.");
+
+			// Decide by type and media type BEFORE touching the body: binary payloads are never read as text.
+			if (me.IsSuccessStatusCode && !ResponseMediaTypes.IsFuxion(contentType))
+			{
+				if (BinaryPayload.IsBinaryType(typeof(TSuccess)))
+				{
+					var (binarySuccess, binaryPayload, binaryFailureMessage) = await TryReadBinaryAsync<TSuccess>(me, ct);
+					return binarySuccess ? binaryPayload : Error.Critical(binaryFailureMessage);
+				}
+				// Unit consumes no content: a legacy server may answer 200 with an empty text/plain body.
+				if (typeof(TSuccess) != typeof(Unit) && !IsJsonContentType(contentType))
+					return Error.Critical($"The response body is '{me.Content?.Headers.ContentType?.MediaType}', not JSON, and '{typeof(TSuccess).GetSignature()}' cannot be read from it.");
+			}
 
 			var body = await ReadBodyAsync(me, ct);
 
@@ -192,6 +286,19 @@ public static class ResponseExtensions
 
 			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.UnitJson))
 				return TryGetUnitPayload<TSuccess>(out var unit) ? unit : throw CreateDeserializationError($"The response is a Unit but '{typeof(TSuccess).GetSignature()}' was expected.");
+
+			// Decide by type and media type BEFORE touching the body: binary payloads are never read as text.
+			if (me.IsSuccessStatusCode && !ResponseMediaTypes.IsFuxion(contentType))
+			{
+				if (BinaryPayload.IsBinaryType(typeof(TSuccess)))
+				{
+					var (binarySuccess, binaryPayload, binaryFailureMessage) = await TryReadBinaryAsync<TSuccess>(me, ct);
+					return binarySuccess ? binaryPayload : throw CreateDeserializationError(binaryFailureMessage);
+				}
+				// Unit consumes no content: a legacy server may answer 200 with an empty text/plain body.
+				if (typeof(TSuccess) != typeof(Unit) && !IsJsonContentType(contentType))
+					throw CreateDeserializationError($"The response body is '{me.Content?.Headers.ContentType?.MediaType}', not JSON, and '{typeof(TSuccess).GetSignature()}' cannot be read from it.");
+			}
 
 			var body = await ReadBodyAsync(me, ct);
 

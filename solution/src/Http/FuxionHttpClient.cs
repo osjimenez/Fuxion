@@ -25,7 +25,7 @@ public sealed class FuxionHttpClient(HttpClient httpClient, FuxionHttpClientOpti
 		where TSuccess : notnull
 	{
 		ApplyAccept(request);
-		var message = await HttpClient.SendAsync(request, ct);
+		var message = await HttpClient.SendAsync(request, CompletionFor<TSuccess>(), ct);
 		return await message.AsResponseAsync<TSuccess>(Options.JsonOptions, ct);
 	}
 
@@ -35,7 +35,7 @@ public sealed class FuxionHttpClient(HttpClient httpClient, FuxionHttpClientOpti
 		where TError : notnull
 	{
 		ApplyAccept(request);
-		var message = await HttpClient.SendAsync(request, ct);
+		var message = await HttpClient.SendAsync(request, CompletionFor<TSuccess>(), ct);
 		return await message.AsResponseAsync<TSuccess, TError>(Options.JsonOptions, ct);
 	}
 
@@ -54,4 +54,13 @@ public sealed class FuxionHttpClient(HttpClient httpClient, FuxionHttpClientOpti
 		if (request.Headers.Accept.Count == 0)
 			request.Headers.TryAddWithoutValidation("Accept", Options.BuildAccept());
 	}
+
+	// A binary payload must reach the caller as a stream, so HttpClient must return as soon as the
+	// headers arrive instead of buffering the whole body. A byte[] is materialized by the reader anyway,
+	// so it keeps the default ResponseContentRead: that preserves HttpClient.MaxResponseContentBufferSize,
+	// which ResponseHeadersRead would bypass. JSON bodies also keep the default behaviour.
+	static HttpCompletionOption CompletionFor<TSuccess>()
+		=> BinaryPayload.IsBinaryType(typeof(TSuccess)) && typeof(TSuccess) != typeof(byte[])
+			? HttpCompletionOption.ResponseHeadersRead
+			: HttpCompletionOption.ResponseContentRead;
 }

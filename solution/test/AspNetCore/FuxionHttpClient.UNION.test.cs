@@ -102,4 +102,57 @@ public class FuxionHttpClientTest(ITestOutputHelper output, WebApplicationFactor
 		IsTrue(client.Options.PreferNativeErrors);
 		Assert.Equal(new Uri("http://localhost/"), client.HttpClient.BaseAddress);
 	}
+
+	/// <summary>A handler whose body counts the bytes pulled through it, to observe buffering.</summary>
+	sealed class CountingHandler : HttpMessageHandler
+	{
+		public CountingStream? LastBody { get; private set; }
+		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
+		{
+			LastBody = new CountingStream(new byte[64 * 1024]);
+			var message = new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StreamContent(LastBody) };
+			message.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+			return Task.FromResult(message);
+		}
+	}
+
+	sealed class CountingStream(byte[] data) : System.IO.Stream
+	{
+		readonly System.IO.MemoryStream inner = new(data, writable: false);
+		public long BytesRead { get; private set; }
+		public override int Read(byte[] buffer, int offset, int count) { var n = inner.Read(buffer, offset, count); BytesRead += n; return n; }
+		public override bool CanRead => true;
+		public override bool CanSeek => false;
+		public override bool CanWrite => false;
+		public override long Length => throw new NotSupportedException();
+		public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+		public override void Flush() { }
+		public override long Seek(long offset, System.IO.SeekOrigin origin) => throw new NotSupportedException();
+		public override void SetLength(long value) => throw new NotSupportedException();
+		public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+	}
+
+	[Fact(DisplayName = "A binary request is sent with ResponseHeadersRead so the body is not buffered by HttpClient")]
+	public async Task Binary_UsesResponseHeadersRead()
+	{
+		var handler = new CountingHandler();
+		var client = BuildClient(new HttpClient(handler) { BaseAddress = new Uri("http://localhost/") });
+
+		var response = await client.GetAsync<System.IO.Stream>("files/big");
+
+		IsTrue(response.TryGetValue(out System.IO.Stream? stream));
+		Assert.Equal(0, handler.LastBody!.BytesRead); // HttpClient did not pre-read the body
+		using var memory = new System.IO.MemoryStream();
+		await stream!.CopyToAsync(memory);
+		Assert.Equal(64 * 1024, memory.Length);
+	}
+
+	[Fact(DisplayName = "A JSON request keeps the default completion (the body is small and buffered as before)")]
+	public async Task Json_KeepsContentRead()
+	{
+		var client = BuildClient(factory.CreateClient());
+		var response = await client.GetAsync<TestPayload>("minimal/response/payload");
+		IsTrue(response.TryGetValue(out TestPayload? payload));
+		Assert.Equal("test", payload!.Name);
+	}
 }

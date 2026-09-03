@@ -154,6 +154,50 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 	[InlineData(typeof(System.Collections.Generic.List<int>), false)]
 	public void DeclaredTypeGate(System.Type type, bool supported)
 		=> Assert.Equal(supported, ResponseWireMapper.IsSupportedDeclaredResponseType(type));
+
+	[Theory(DisplayName = "A binary success is always a bare file, never the envelope")]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void Binary_NeverEnvelope(bool full)
+	{
+		using var file = new FileContent(new System.IO.MemoryStream(new byte[4]), "application/pdf", "a.pdf");
+		Response<FileContent> response = file;
+
+		var mapping = Map(response, Options(full: full));
+
+		Assert.Equal(200, mapping.StatusCode);
+		Assert.Equal(ResponseWireShape.Binary, mapping.Shape);
+		Assert.Same(file, mapping.Value);
+	}
+
+	[Fact(DisplayName = "A bare Stream or byte[] success is wrapped as octet-stream file content")]
+	public void StreamAndBytes_AreWrapped()
+	{
+		var stream = new System.IO.MemoryStream(new byte[2]);
+		Response<System.IO.Stream> streamResponse = stream;
+		var streamMapping = Map(streamResponse, Options());
+		Assert.Equal(ResponseWireShape.Binary, streamMapping.Shape);
+		var wrapped = Assert.IsType<FileContent>(streamMapping.Value);
+		Assert.Same(stream, wrapped.Stream);
+		Assert.Equal(BinaryPayload.DefaultContentType, wrapped.ContentType);
+
+		Response<byte[]> bytesResponse = new byte[] { 1, 2, 3 };
+		var bytesMapping = Map(bytesResponse, Options(full: true));
+		Assert.Equal(ResponseWireShape.Binary, bytesMapping.Shape);
+		Assert.Equal(3, Assert.IsType<FileContent>(bytesMapping.Value).Length);
+	}
+
+	[Fact(DisplayName = "None and errors of a binary response follow the normal rules")]
+	public void BinaryResponse_NoneAndError_AreNormal()
+	{
+		ResponseMaybe<FileContent> none = None.Value;
+		Assert.Equal(ResponseWireShape.NoContent, Map(none, Options()).Shape);
+
+		Response<FileContent> error = Error.NotFound("missing");
+		var mapping = Map(error, Options());
+		Assert.Equal(404, mapping.StatusCode);
+		Assert.Equal(ResponseWireShape.ProblemError, mapping.Shape);
+	}
 }
 
 public class ResponseWireMaterializeTest(ITestOutputHelper output) : BaseTest<ResponseWireMaterializeTest>(output)
@@ -243,5 +287,16 @@ public class ResponseWireMaterializeTest(ITestOutputHelper output) : BaseTest<Re
 	{
 		var (_, _, serializerOptions) = new ResponseWireMapping(200, ResponseWireShape.Payload, "test").Materialize(Snake);
 		Assert.Same(Snake, serializerOptions);
+	}
+
+	[Fact(DisplayName = "A binary shape materializes as the file's own media type without parameters or JSON options")]
+	public void Binary_()
+	{
+		using var file = new FileContent(new System.IO.MemoryStream(new byte[1]), "image/png", "a.png");
+		var (contentType, body, serializerOptions) = new ResponseWireMapping(200, ResponseWireShape.Binary, file).Materialize(Snake);
+
+		Assert.Equal("image/png", contentType);
+		Assert.Same(file, body);
+		Assert.Null(serializerOptions);
 	}
 }

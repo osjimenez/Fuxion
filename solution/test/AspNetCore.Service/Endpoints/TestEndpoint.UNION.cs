@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Net;
 using System.Text.Json;
 //using Fuxion;
@@ -252,6 +253,18 @@ public class TestEndpoint : IEndpoint
 		// Echoes what the binder understood, so a test can prove the request naming parameter was honoured.
 		var namingGroup = minimalGroup.MapGroup("naming");
 		namingGroup.MapPost("echo", (TestNamingPayload payload) => new { firstName = payload.FirstName, age = payload.Age });
+
+		#endregion
+
+		#region BINARY
+
+		// A binary payload is a bare file body: its own media type, Content-Disposition, ranges. Never the envelope.
+		var binaryGroup = minimalGroup.MapGroup("binary");
+		binaryGroup.MapGet("file", Response<FileContent> () => TestFile.Create());
+		binaryGroup.MapGet("stream", Response<Stream> () => new MemoryStream(TestFile.Bytes, writable: false));
+		binaryGroup.MapGet("bytes", Response<byte[]> () => TestFile.Bytes);
+		binaryGroup.MapGet("none", ResponseMaybe<FileContent> () => None.Value);
+		binaryGroup.MapGet("error", Response<FileContent> () => Error.NotFound("missing"));
 
 		#endregion
 

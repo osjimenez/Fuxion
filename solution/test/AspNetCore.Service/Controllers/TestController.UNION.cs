@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Fuxion;
 using Fuxion.AspNetCore;
 using Test.AspNetCore.Service.Endpoints;
@@ -181,4 +182,20 @@ public class NamingTestController : ControllerBase
 {
 	[HttpPost("echo")]
 	public object Echo([FromBody] TestNamingPayload payload) => new { firstName = payload.FirstName, age = payload.Age };
+}
+
+[ApiController]
+[Route("controller/binary")]
+public class BinaryTestController : ControllerBase
+{
+	[HttpGet("file")]
+	public Response<FileContent> File_() => TestFile.Create();
+	[HttpGet("stream")]
+	public Response<Stream> Stream_() => new MemoryStream(TestFile.Bytes, writable: false);
+	[HttpGet("bytes")]
+	public Response<byte[]> Bytes() => TestFile.Bytes;
+	[HttpGet("none")]
+	public ResponseMaybe<FileContent> None_() => None.Value;
+	[HttpGet("error")]
+	public Response<FileContent> Error_() => Error.NotFound("missing");
 }

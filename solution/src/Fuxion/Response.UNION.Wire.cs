@@ -23,7 +23,9 @@ public enum ResponseWireShape
 	/// <summary>An <see cref="Error"/> written in its native shape.</summary>
 	NativeError,
 	/// <summary>A typed business error written as its bare value (application/json).</summary>
-	RawError
+	RawError,
+	/// <summary>A binary payload (<see cref="FileContent"/>) written as a bare file body. Never enveloped.</summary>
+	Binary
 }
 
 /// <summary>
@@ -63,6 +65,7 @@ public sealed record ResponseWireMapping(int StatusCode, ResponseWireShape Shape
 			ResponseWireShape.Envelope => (ResponseNaming.WithNaming(ResponseMediaTypes.ResponseJson, policy), Value, jsonOptions),
 			ResponseWireShape.NativeError => (ResponseNaming.WithNaming(ResponseMediaTypes.ErrorJson, policy), Value, jsonOptions),
 			ResponseWireShape.ProblemError => BuildProblemResult(jsonOptions),
+			ResponseWireShape.Binary => (((FileContent)Value!).ContentType, Value, null),
 			_ => throw new NotSupportedException($"Unknown wire shape '{Shape}'.")
 		};
 	}
@@ -108,6 +111,14 @@ public static class ResponseWireMapper
 		if (response.IsError)
 		{
 			mapping = MapError(response, options);
+			return true;
+		}
+
+		// Binary payloads never travel inside the envelope: the HTTP message itself is the envelope
+		// (media type, Content-Disposition, ETag...). Stream and byte[] are the minimum viable forms.
+		if (TryWrapBinary(response.Value, out var file))
+		{
+			mapping = new(200, ResponseWireShape.Binary, file);
 			return true;
 		}
 
@@ -176,5 +187,16 @@ public static class ResponseWireMapper
 		var definition = type.GetGenericTypeDefinition();
 		return definition == typeof(Response<>) || definition == typeof(Response<,>)
 			|| definition == typeof(ResponseMaybe<>) || definition == typeof(ResponseMaybe<,>);
+	}
+
+	static bool TryWrapBinary(object? value, out FileContent file)
+	{
+		switch (value)
+		{
+			case FileContent content: file = content; return true;
+			case System.IO.Stream stream: file = new FileContent(stream); return true;
+			case byte[] bytes: file = FileContent.FromBytes(bytes); return true;
+			default: file = null!; return false;
+		}
 	}
 }

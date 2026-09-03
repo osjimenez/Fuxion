@@ -185,12 +185,18 @@ static class ResponseHttpAdapter
 		=> httpContext.RequestServices.GetService<IOptions<MvcJsonOptions>>()?.Value.JsonSerializerOptions
 			?? httpContext.RequestServices.GetService<IOptions<HttpJsonOptions>>()?.Value.SerializerOptions
 			?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+	public static EntityTagHeaderValue? ParseETag(string? etag)
+		=> !string.IsNullOrWhiteSpace(etag) && EntityTagHeaderValue.TryParse(etag, out var parsed) ? parsed : null;
 }
 
 sealed class WireResult(ResponseWireMapping mapping) : IResult
 {
 	public Task ExecuteAsync(HttpContext httpContext)
 	{
+		if (mapping.Shape == ResponseWireShape.Binary)
+			return BinaryResult((FileContent)mapping.Value!).ExecuteAsync(httpContext);
+
 		ResponseHttpAdapter.MarkVaryByAccept(httpContext.Response);
 
 		if (!mapping.HasBody)
@@ -200,6 +206,11 @@ sealed class WireResult(ResponseWireMapping mapping) : IResult
 		var (contentType, body, serializerOptions) = mapping.Materialize(jsonOptions);
 		return Results.Json(body, serializerOptions ?? jsonOptions, contentType, mapping.StatusCode).ExecuteAsync(httpContext);
 	}
+
+	// The framework writes the stream (and disposes it), sets Content-Disposition, Content-Length,
+	// ETag/Last-Modified and serves Range requests. No Vary: a file's shape does not depend on Accept.
+	static IResult BinaryResult(FileContent file)
+		=> Results.File(file.Stream, file.ContentType, file.FileName, file.LastModified, ResponseHttpAdapter.ParseETag(file.ETag), file.EnableRangeProcessing);
 }
 
 sealed class WireActionResult(ResponseWireMapping mapping) : IActionResult
@@ -207,6 +218,19 @@ sealed class WireActionResult(ResponseWireMapping mapping) : IActionResult
 	public Task ExecuteResultAsync(ActionContext context)
 	{
 		var http = context.HttpContext;
+
+		if (mapping.Shape == ResponseWireShape.Binary)
+		{
+			var file = (FileContent)mapping.Value!;
+			return new FileStreamResult(file.Stream, file.ContentType)
+			{
+				FileDownloadName = file.FileName,
+				LastModified = file.LastModified,
+				EntityTag = ResponseHttpAdapter.ParseETag(file.ETag),
+				EnableRangeProcessing = file.EnableRangeProcessing
+			}.ExecuteResultAsync(context);
+		}
+
 		ResponseHttpAdapter.MarkVaryByAccept(http.Response);
 		http.Response.StatusCode = mapping.StatusCode;
 
