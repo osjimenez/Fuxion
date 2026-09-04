@@ -93,8 +93,14 @@ public static class ResponseWireMapper
 {
 	public const string BusinessErrorTitle = "Business error";
 
-	public static bool IsSupportedDeclaredResponseType(Type type)
-		=> IsResponseReturnType(UnwrapTaskType(type));
+	/// <summary>
+	/// Whether <paramref name="type"/> is a union shape (or its <see cref="Task{TResult}"/>/<see cref="ValueTask{TResult}"/>
+	/// wrapper) that the adapters know how to map. <see langword="null"/> is not supported: some hosts (e.g. Web API 2's
+	/// <c>ReflectedHttpActionDescriptor</c>) report a null declared return type for <see langword="void"/> and
+	/// non-generic <see cref="Task"/> actions, and those must simply be left untouched rather than crash.
+	/// </summary>
+	public static bool IsSupportedDeclaredResponseType(Type? type)
+		=> type is not null && IsResponseReturnType(UnwrapTaskType(type));
 
 	public static bool TryMap(object? value, ResponseOptions options, out ResponseWireMapping mapping)
 	{

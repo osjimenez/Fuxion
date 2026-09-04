@@ -1,5 +1,6 @@
 using Fuxion.Union;
 using Fuxion.Xunit;
+using System.Collections.Generic;
 using Xunit;
 
 namespace Test.Fuxion.Union;
@@ -21,5 +22,21 @@ public class ResponseOptionsTest(ITestOutputHelper output) : BaseTest<ResponseOp
 	{
 		Assert.Equal(new ResponseOptions { StrictNone = true }, new ResponseOptions { StrictNone = true });
 		Assert.NotEqual(new ResponseOptions(), new ResponseOptions { SerializeFullResponses = true });
+	}
+
+	[Fact(DisplayName = "Layers merge in order and only override what they set")]
+	public void MergeLayers()
+	{
+		var global = new ResponseOptions { SerializeFullResponses = false, SerializeErrorAsProblemDetails = true, StrictNone = false };
+		var controller = new ResponseOptionsLayer { SerializeFullResponses = true };
+		var action = new ResponseOptionsLayer { StrictNone = true, SerializeFullResponses = null };
+
+		var merged = global.Merge([controller, action]);
+
+		IsTrue(merged.SerializeFullResponses);          // from controller, untouched by action (null)
+		IsTrue(merged.SerializeErrorAsProblemDetails);  // inherited from global
+		IsTrue(merged.StrictNone);                      // from action
+		IsTrue(!global.SerializeFullResponses);          // source never mutated
+		Assert.Equal(global, global.Merge([]));         // no layers: equal by value
 	}
 }

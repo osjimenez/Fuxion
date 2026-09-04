@@ -48,6 +48,7 @@
   <Folder Name="/test/">
     <File Path="test/Directory.Build.props" />
     <File Path="test/Directory.Build.targets" />
+    <Project Path="test/AspNet/Test.AspNet.csproj" />
     <Project Path="test/AspNetCore.Service/Test.AspNetCore.Service.csproj" />
     <Project Path="test/AspNetCore/Test.AspNetCore.csproj" />
     <Project Path="test/Dataset.EntityFramework/Test.Dataset.EntityFramework.csproj" />

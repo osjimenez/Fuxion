@@ -25,6 +25,7 @@
 		<XunitProjectPath>$(MSBuildThisFileDirectory)..\..\src\Xunit\Fuxion.Xunit.csproj</XunitProjectPath>
 
 		<!-- TEST -->
+		<Test_AspNetProjectPath>$(MSBuildThisFileDirectory)..\..\test\AspNet\Test.AspNet.csproj</Test_AspNetProjectPath>
 		<Test_AspNetCoreProjectPath>$(MSBuildThisFileDirectory)..\..\test\AspNetCore\Test.AspNetCore.csproj</Test_AspNetCoreProjectPath>
 		<Test_AspNetCore_ServiceProjectPath>$(MSBuildThisFileDirectory)..\..\test\AspNetCore.Service\Test.AspNetCore.Service.csproj</Test_AspNetCore_ServiceProjectPath>
 		<Test_DatasetProjectPath>$(MSBuildThisFileDirectory)..\..\test\Dataset\Test.Dataset.csproj</Test_DatasetProjectPath>

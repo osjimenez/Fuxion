@@ -155,6 +155,12 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 	public void DeclaredTypeGate(System.Type type, bool supported)
 		=> Assert.Equal(supported, ResponseWireMapper.IsSupportedDeclaredResponseType(type));
 
+	// Some hosts report a null declared return type (e.g. Web API 2's ReflectedHttpActionDescriptor for
+	// void and non-generic Task actions); the gate must treat that as "not supported", not throw.
+	[Fact(DisplayName = "A null declared type is not a supported response type")]
+	public void DeclaredTypeGate_Null_IsNotSupported()
+		=> Assert.False(ResponseWireMapper.IsSupportedDeclaredResponseType(null));
+
 	[Theory(DisplayName = "A binary success is always a bare file, never the envelope")]
 	[InlineData(false)]
 	[InlineData(true)]

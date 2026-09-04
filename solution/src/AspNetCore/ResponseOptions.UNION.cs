@@ -9,28 +9,14 @@ using System.Linq;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-public static class ResponseOptionsMerge
+public static class ResponseOptionsAttributeMerge
 {
 	/// <summary>
 	/// Applies the metadata layers on top of these options, in order, so that
 	/// inner scopes override outer ones and unset values are inherited.
 	/// </summary>
 	public static ResponseOptions Merge(this ResponseOptions options, ResponseOptionsAttribute[] layers)
-	{
-		var result = options with { };
-
-		foreach (var layer in layers)
-		{
-			if (layer.SerializeFullResponses.HasValue)
-				result.SerializeFullResponses = layer.SerializeFullResponses.Value;
-			if (layer.SerializeErrorAsProblemDetails.HasValue)
-				result.SerializeErrorAsProblemDetails = layer.SerializeErrorAsProblemDetails.Value;
-			if (layer.StrictNone.HasValue)
-				result.StrictNone = layer.StrictNone.Value;
-		}
-
-		return result;
-	}
+		=> options.Merge(layers.Select(l => l.ToLayer()));
 }
 
 #pragma warning restore CS1591

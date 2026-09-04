@@ -84,6 +84,8 @@ public class WireContractTest(ITestOutputHelper output, WebApplicationFactory<Pr
 
 		Assert.Equal("application/json", res.Content.Headers.ContentType?.MediaType);
 		Assert.Empty(res.Content.Headers.ContentType!.Parameters.Where(p => p.Name == ResponseMediaTypes.NamingParameter));
+		// application/json never carries parameters (not the naming one, not even a charset).
+		Assert.Empty(res.Content.Headers.ContentType!.Parameters);
 	}
 
 	[Theory(DisplayName = "Asking for the envelope through Accept wins over the scope defaults")]
@@ -143,6 +145,14 @@ public class WireContractTest(ITestOutputHelper output, WebApplicationFactory<Pr
 		Assert.Equal(ResponseNaming.Snake, ResponseNaming.GetParameter(res.Content.Headers.ContentType?.ToString()));
 		var body = JsonNode.Parse(await res.Content.ReadAsStringAsync())!;
 		Assert.True((bool?)body["is_success"]);
+	}
+
+	[Fact(DisplayName = "Controller and action attributes cascade")]
+	public async Task Attributes_Cascade()
+	{
+		var cli = CreateClient();
+		Assert.Equal(ResponseMediaTypes.ResponseJson, (await cli.GetAsync("attribute-test/payload")).Content.Headers.ContentType?.MediaType);
+		Assert.Equal("application/json", (await cli.GetAsync("attribute-test/payload-bare")).Content.Headers.ContentType?.MediaType);
 	}
 
 	[Fact(DisplayName = "A typed error from a snake_case server is still recoverable through problem+json")]

@@ -199,3 +199,17 @@ public class BinaryTestController : ControllerBase
 	[HttpGet("error")]
 	public Response<FileContent> Error_() => Error.NotFound("missing");
 }
+
+// Proves the ResponseOptionsAttribute cascade (global -> controller -> action) still works after the
+// bool? -> bool+has-value-flag rework required by CS0655 (Nullable<T> is not a legal attribute parameter type).
+[ApiController]
+[Route("attribute-test")]
+[ResponseOptions(SerializeFullResponses = true)]
+public class AttributeTestController : ControllerBase
+{
+	[HttpGet("payload")]
+	public Response<TestPayload> Payload() => TestPayload.Default;
+
+	[HttpGet("payload-bare"), ResponseOptions(SerializeFullResponses = false)]
+	public Response<TestPayload> PayloadBare() => TestPayload.Default;
+}
