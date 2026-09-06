@@ -57,6 +57,7 @@
     <Project Path="test/Dataset/Test.Dataset.csproj" />
     <Project Path="test/Fuxion/Test.Fuxion.csproj" />
     <Project Path="test/Http/Test.Http.csproj" />
+    <Project Path="test/Responses.Shared.Fixtures/Test.Responses.Shared.Fixtures.csproj" />
     <Project Path="test/Responses.Shared/Test.Responses.Shared.csproj" />
   </Folder>
 </Solution>

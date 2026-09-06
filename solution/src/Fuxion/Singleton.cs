@@ -200,6 +200,43 @@ public class Singleton
 			foreach (var sub in Instance.subscriptions.Where(sub => sub.Type == objectInstance?.GetType() && sub.Key == key))
 				sub.Invoke(default!, objectInstance, SingletonAction.Add);
 	}
+
+	/// <summary>Returns the value stored under the default key of <typeparamref name="T"/>, or atomically creates and stores it.</summary>
+	/// <typeparam name="T">The type of the instance.</typeparam>
+	/// <param name="factory">The factory used to create the instance when it does not already exist. Runs at most once.</param>
+	/// <returns>The stored or newly created instance.</returns>
+	/// <remarks>
+	/// <paramref name="factory"/> runs under the process-wide singleton lock, so it must be cheap and
+	/// must not block or perform I/O: doing otherwise stalls every other thread waiting on the registry.
+	/// </remarks>
+	public static T GetOrAdd<T>(Func<T> factory) => GetOrAdd(SingletonKey.GetKey<T>(), factory);
+
+	/// <summary>Returns the value stored under <paramref name="key"/>, or atomically creates and stores it: the factory runs at most once per key.</summary>
+	/// <typeparam name="T">The type of the instance.</typeparam>
+	/// <param name="key">The key associated with this instance.</param>
+	/// <param name="factory">The factory used to create the instance when it does not already exist. Runs at most once.</param>
+	/// <returns>The stored or newly created instance.</returns>
+	/// <remarks>
+	/// <paramref name="factory"/> runs under the process-wide singleton lock, so it must be cheap and
+	/// must not block or perform I/O: doing otherwise stalls every other thread waiting on the registry.
+	/// </remarks>
+	public static T GetOrAdd<T>(object key, Func<T> factory) => GetOrAdd(SingletonKey.GetKey<T>(key), factory);
+
+	static T GetOrAdd<T>(SingletonKey key, Func<T> factory)
+	{
+		var added = false;
+		var value = Instance.objects.Write(dic =>
+		{
+			if (dic.TryGetValue(key, out var existing)) return (T)existing!;
+			var created = factory();
+			dic.Add(key, created);
+			added = true;
+			return created;
+		});
+		if (added)
+			foreach (var sub in Instance.subscriptions.Where(sub => sub.Type == value?.GetType() && sub.Key == key)) sub.Invoke(default!, value, SingletonAction.Add);
+		return value;
+	}
 	#endregion
 
 	#region Remove

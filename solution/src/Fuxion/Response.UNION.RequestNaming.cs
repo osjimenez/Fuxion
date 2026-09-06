@@ -82,6 +82,11 @@ public static class JsonNamingTranscoder
 	/// dictionary keys, free JSON and unknown keys are left untouched. Malformed input throws <see cref="JsonException"/>.
 	/// </summary>
 	/// <remarks>
+	/// A type reachable from <paramref name="bodyType"/> (the root type itself, or a nested property/element type)
+	/// that the configured <see cref="JsonSerializerOptions.TypeInfoResolver"/> cannot describe is a server
+	/// configuration error, not something to silently work around: it throws <see cref="InvalidOperationException"/>
+	/// with the unresolvable type's full name in the message and the original resolver exception as
+	/// <see cref="Exception.InnerException"/>, instead of leaving that subtree's keys untouched.
 	/// For a polymorphic body (a base type annotated with <see cref="System.Text.Json.Serialization.JsonDerivedTypeAttribute"/>),
 	/// only the base type's own declared properties are known while walking the token stream: this method does
 	/// not read the type discriminator to resolve which derived type is actually present, so a snake_case or
@@ -162,7 +167,10 @@ public static class JsonNamingTranscoder
 			if (definition == typeof(Nullable<>) || definition == typeof(Undefinable<>)) return Resolve(options, type.GetGenericArguments()[0]);
 		}
 		try { return options.GetTypeInfo(type); }
-		catch (Exception ex) when (ex is NotSupportedException or InvalidOperationException) { return null; }
+		catch (Exception ex) when (ex is NotSupportedException or InvalidOperationException)
+		{
+			throw new InvalidOperationException($"The type '{type.FullName}' cannot be resolved by the configured TypeInfoResolver; request naming transcoding needs metadata for every type reachable from the body type.", ex);
+		}
 	}
 
 	static bool TryMatchProperty(JsonTypeInfo container, string key, out JsonPropertyInfo property)

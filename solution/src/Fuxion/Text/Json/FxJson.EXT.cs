@@ -372,18 +372,16 @@ public static class JsonExtensions
 		{
 			get
 			{
-				var current = Singleton.Find<JsonSerializerOptions?>(FormattedKey);
-				return current is not null
-					? current.IsReadOnly ? new(current) : current
-					: Singleton.Add<JsonSerializerOptions>(new()
-					{
-						IndentCharacter = '\t',
-						IndentSize = 1,
-						WriteIndented = true,
-						AllowTrailingCommas = true,
-						ReadCommentHandling = JsonCommentHandling.Skip,
-						TypeInfoResolver = new FuxionFormattedTypeInfoResolver()
-					}, FormattedKey);
+				var current = Singleton.GetOrAdd(FormattedKey, () => new JsonSerializerOptions
+				{
+					IndentCharacter = '\t',
+					IndentSize = 1,
+					WriteIndented = true,
+					AllowTrailingCommas = true,
+					ReadCommentHandling = JsonCommentHandling.Skip,
+					TypeInfoResolver = new FuxionFormattedTypeInfoResolver()
+				});
+				return current.IsReadOnly ? new(current) : current;
 			}
 			set => Singleton.Set(value, FormattedKey);
 		}

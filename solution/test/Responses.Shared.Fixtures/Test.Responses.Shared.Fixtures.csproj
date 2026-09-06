@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(CoreAndOldFrameworks)</TargetFrameworks>
+		<!-- Plain class library: the test props default to Exe (xunit runners), but these are only fixture records
+		     shared by the web host and the test projects, and must not drag xunit into the host. -->
+		<OutputType>Library</OutputType>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>false</IsTestProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="$(FuxionProjectPath)" />
+	</ItemGroup>
+
+</Project>

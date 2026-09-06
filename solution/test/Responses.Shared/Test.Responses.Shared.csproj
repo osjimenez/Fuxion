@@ -16,6 +16,7 @@
 		<ProjectReference Include="$(XunitProjectPath)" />
 		<ProjectReference Include="$(FuxionProjectPath)" />
 		<ProjectReference Include="$(HttpProjectPath)" />
+		<ProjectReference Include="$(Test_Responses_Shared_FixturesProjectPath)" />
 	</ItemGroup>
 
 </Project>

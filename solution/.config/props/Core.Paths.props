@@ -35,6 +35,7 @@
 		<Test_FuxionProjectPath>$(MSBuildThisFileDirectory)..\..\test\Fuxion\Test.Fuxion.csproj</Test_FuxionProjectPath>
 		<Test_HttpProjectPath>$(MSBuildThisFileDirectory)..\..\test\Http\Test.Http.csproj</Test_HttpProjectPath>
 		<Test_Responses_SharedProjectPath>$(MSBuildThisFileDirectory)..\..\test\Responses.Shared\Test.Responses.Shared.csproj</Test_Responses_SharedProjectPath>
+		<Test_Responses_Shared_FixturesProjectPath>$(MSBuildThisFileDirectory)..\..\test\Responses.Shared.Fixtures\Test.Responses.Shared.Fixtures.csproj</Test_Responses_Shared_FixturesProjectPath>
 
 	</PropertyGroup>
 	

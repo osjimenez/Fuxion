@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 using Fuxion.Union;
 using Fuxion.Xunit;
 using Xunit;
@@ -80,6 +82,17 @@ public class JsonNamingTranscoderTest(ITestOutputHelper output) : BaseTest<JsonN
 	[Fact(DisplayName = "A malformed body still throws JsonException")]
 	public void Typed_Malformed_Throws()
 		=> Assert.ThrowsAny<JsonException>(() => JsonNamingTranscoder.Transcode(Encoding.UTF8.GetBytes("{ not json"), typeof(Body), new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+	sealed class NothingResolver : IJsonTypeInfoResolver { public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options) => null; }
+
+	[Fact(DisplayName = "A type the configured resolver cannot describe is a loud configuration error, not a silent no-rename")]
+	public void Typed_UnresolvableType_Throws()
+	{
+		var options = new JsonSerializerOptions(JsonSerializerDefaults.Web) { TypeInfoResolver = new NothingResolver() };
+		var ex = Assert.Throws<InvalidOperationException>(() => JsonNamingTranscoder.Transcode(Encoding.UTF8.GetBytes("""{"first_name":"Ada"}"""), typeof(Body), options));
+		Assert.Contains(nameof(Body), ex.Message);
+		Assert.NotNull(ex.InnerException);
+	}
 
 	[Fact(DisplayName = "Unicode keys and escaped values survive transcoding: textual yields Pascal, typed yields the property name")]
 	public void Unicode_Survives()

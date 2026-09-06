@@ -1,5 +1,10 @@
 ﻿using Fuxion;
+using Fuxion.Text.Json;
 using System;
+using System.Linq;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Test.Fuxion;
@@ -14,6 +19,30 @@ public class SingletonTest
 		Assert.Equal(Singleton.Get<Guid>(), id);
 		Singleton.Add<string?>(null);
 		Assert.Null(Singleton.Get<string>());
+	}
+	[Fact(DisplayName = "GetOrAdd runs the factory once even under contention and every caller gets the same instance")]
+	public async Task GetOrAdd_IsAtomic()
+	{
+		var key = Guid.NewGuid().ToString();
+		var created = 0;
+		var results = await Task.WhenAll(Enumerable.Range(0, 64).Select(_ => Task.Run(() => Singleton.GetOrAdd<object>(key, () => { Interlocked.Increment(ref created); Thread.Sleep(5); return new object(); }))));
+		Assert.Equal(1, created);
+		Assert.All(results, r => Assert.Same(results[0], r));
+		Assert.Same(results[0], Singleton.Find<object>(key));
+	}
+	[Fact(DisplayName = "GetOrAdd returns an existing value without calling the factory")]
+	public void GetOrAdd_ExistingWins()
+	{
+		var key = Guid.NewGuid().ToString();
+		var existing = Singleton.Add(new object(), key);
+		Assert.Same(existing, Singleton.GetOrAdd<object>(key, () => throw new InvalidOperationException("factory must not run")));
+	}
+	[Fact(DisplayName = "Formatted options can be read concurrently on first use")]
+	public async Task Formatted_ConcurrentFirstUse()
+	{
+		// Formatted is process-wide state: this cannot force a cold start, but it must never throw under contention.
+		var all = await Task.WhenAll(Enumerable.Range(0, 64).Select(_ => Task.Run(() => JsonSerializerOptions.Formatted)));
+		Assert.All(all, o => Assert.True(o.WriteIndented));
 	}
 	[Fact(DisplayName = "Singleton - And & Get with Key")]
 	public void Singleton_AddAndGetWithKey()

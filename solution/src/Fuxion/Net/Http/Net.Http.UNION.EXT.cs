@@ -333,6 +333,8 @@ public static class ResponseExtensions
 		/// <see cref="InvalidOperationException"/> when the body is empty or cannot be deserialized.
 		/// A value of <typeparamref name="TError"/> cannot be synthesized for an arbitrary type, so a
 		/// protocol level failure has no representation inside the returned response.
+		/// <typeparamref name="TError"/> cannot be <see cref="Error"/> (the union types forbid it by
+		/// design); use the single-generic overload for native errors.
 		/// </remarks>
 		/// <exception cref="InvalidOperationException">The response body is empty or cannot be deserialized.</exception>
 		public async Task<ResponseMaybe<TSuccess, TError>> AsResponseAsync<TSuccess, TError>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
@@ -344,7 +346,6 @@ public static class ResponseExtensions
 
 			var contentType = ContentType(me);
 			var currentJsonOptions = EffectiveJsonOptions(me, jsonOptions);
-			var errorIsNative = typeof(TError) == typeof(Error);
 
 			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.UnitJson))
 				return TryGetUnitPayload<TSuccess>(out var unit) ? unit : throw CreateDeserializationError($"The response is a Unit but '{typeof(TSuccess).GetSignature()}' was expected.");
@@ -374,22 +375,14 @@ public static class ResponseExtensions
 			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ProblemJson))
 			{
 				var problemError = ReadProblem(body, currentJsonOptions, me.StatusCode, contentType);
-				return errorIsNative ? (TError)(object)problemError : ReadTypedError<TError>(problemError, currentJsonOptions);
+				return ReadTypedError<TError>(problemError, currentJsonOptions);
 			}
 
 			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ErrorJson))
-			{
-				if (!errorIsNative)
-					throw CreateDeserializationError($"The response carries a native Error but '{typeof(TError).GetSignature()}' was expected.");
-				if (TryDeserialize<Error>(body, currentJsonOptions, contentType, out var nativeError, out var nativeFailure))
-					return (TError)(object)nativeError;
-				throw CreateDeserializationError(nativeFailure.Message, nativeFailure.Exception);
-			}
+				throw CreateDeserializationError($"The response carries a native Error but '{typeof(TError).GetSignature()}' was expected.");
 
 			if (!me.IsSuccessStatusCode)
 			{
-				if (errorIsNative)
-					return (TError)(object)ReadForeignError(me, body);
 				if (string.IsNullOrWhiteSpace(body))
 					throw CreateDeserializationError($"The response status code is '{(int)me.StatusCode}' and the body is empty.");
 				if (TryDeserialize<TError>(body, currentJsonOptions, contentType, out var typed, out var typedFailure))
