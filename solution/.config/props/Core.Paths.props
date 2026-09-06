@@ -33,7 +33,9 @@
 		<Test_Dataset_EntityFrameworkCore_MongoDBProjectPath>$(MSBuildThisFileDirectory)..\..\test\Dataset.EntityFrameworkCore.MongoDB\Test.Dataset.EntityFrameworkCore.MongoDB.csproj</Test_Dataset_EntityFrameworkCore_MongoDBProjectPath>
 		<Test_Dataset_EntityFrameworkCore_SqlServerProjectPath>$(MSBuildThisFileDirectory)..\..\test\Dataset.EntityFrameworkCore.SqlServer\Test.Dataset.EntityFrameworkCore.SqlServer.csproj</Test_Dataset_EntityFrameworkCore_SqlServerProjectPath>
 		<Test_FuxionProjectPath>$(MSBuildThisFileDirectory)..\..\test\Fuxion\Test.Fuxion.csproj</Test_FuxionProjectPath>
-		
+		<Test_HttpProjectPath>$(MSBuildThisFileDirectory)..\..\test\Http\Test.Http.csproj</Test_HttpProjectPath>
+		<Test_Responses_SharedProjectPath>$(MSBuildThisFileDirectory)..\..\test\Responses.Shared\Test.Responses.Shared.csproj</Test_Responses_SharedProjectPath>
+
 	</PropertyGroup>
 	
 </Project>

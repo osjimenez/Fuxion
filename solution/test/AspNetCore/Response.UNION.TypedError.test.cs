@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Test.AspNetCore.Service;
+using Test.Responses.Shared;
 using Xunit;
 
 namespace Test.AspNetCore.Union;
@@ -52,7 +53,7 @@ public class TypedErrorTest(ITestOutputHelper output, WebApplicationFactory<Prog
 
 		var res = await cli.GetAsync($"{prefix}/response/typed-error");
 
-		Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
+		Assert.Equal(HttpStatusCode.Conflict, res.StatusCode);
 		Assert.Equal(ResponseMediaTypes.ProblemJson, res.Content.Headers.ContentType?.MediaType);
 
 		var body = JsonNode.Parse(await res.Content.ReadAsStringAsync())!;
@@ -60,7 +61,7 @@ public class TypedErrorTest(ITestOutputHelper output, WebApplicationFactory<Prog
 
 		Assert.Equal("Business error", (string?)body["title"]);
 		Assert.Null(body["type"]); // about:blank implicito, sin filtrar el tipo CLR
-		Assert.Equal(500, (int?)body["status"]);
+		Assert.Equal(409, (int?)body["status"]); // TestBusinessError declares Conflict through IHttpStatusError
 
 		var payload = body["errorPayload"];
 		Assert.NotNull(payload);
@@ -94,7 +95,7 @@ public class TypedErrorTest(ITestOutputHelper output, WebApplicationFactory<Prog
 
 		var res = await cli.GetAsync($"{prefix}/response/typed-error");
 
-		Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
+		Assert.Equal(HttpStatusCode.Conflict, res.StatusCode);
 		Assert.Equal("application/json", res.Content.Headers.ContentType?.MediaType);
 
 		var body = JsonNode.Parse(await res.Content.ReadAsStringAsync())!;
@@ -120,7 +121,7 @@ public class TypedErrorTest(ITestOutputHelper output, WebApplicationFactory<Prog
 
 		var res = await cli.GetAsync($"{prefix}/response/typed-error");
 
-		Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
+		Assert.Equal(HttpStatusCode.Conflict, res.StatusCode);
 		Assert.Equal(ResponseMediaTypes.ResponseJson, res.Content.Headers.ContentType?.MediaType);
 
 		var body = JsonNode.Parse(await res.Content.ReadAsStringAsync())!;
@@ -145,5 +146,20 @@ public class TypedErrorTest(ITestOutputHelper output, WebApplicationFactory<Prog
 
 		await Assert.ThrowsAsync<InvalidOperationException>(
 			async () => await message.AsResponseAsync<string, TestBusinessError>());
+	}
+
+	[Theory(DisplayName = "The service's BusinessErrorStatus classifies a foreign error that declares no status of its own")]
+	[InlineData("minimal")]
+	[InlineData("controller")]
+	public async Task TypedErrorForeign_UsesServiceOverride(string prefix)
+	{
+		var (cli, _) = CreateClient(new());
+
+		var res = await cli.GetAsync($"{prefix}/response/typed-error-foreign");
+
+		Assert.Equal(HttpStatusCode.TooManyRequests, res.StatusCode);
+		var body = JsonNode.Parse(await res.Content.ReadAsStringAsync())!;
+		Assert.Equal(429, (int?)body["status"]);
+		Assert.Equal("quota", (string?)body["errorPayload"]!["code"]);
 	}
 }

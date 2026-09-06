@@ -3,6 +3,7 @@ using Fuxion;
 using Fuxion.AspNetCore;
 using Test.AspNetCore.Service.Endpoints;
 using Microsoft.AspNetCore.Mvc;
+using Test.Responses.Shared;
 
 namespace Test.AspNetCore.Service.Controllers;
 

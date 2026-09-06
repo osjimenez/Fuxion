@@ -28,11 +28,31 @@ public enum ResponseWireShape
 	Binary
 }
 
+/// <summary>A business error value that knows which HTTP status it travels with. The service can override it through <see cref="ResponseOptions.BusinessErrorStatus"/>.</summary>
+public interface IHttpStatusError
+{
+	/// <summary>The HTTP status code this business error travels with, unless <see cref="ResponseOptions.BusinessErrorStatus"/> overrides it.</summary>
+	HttpStatusCode Status { get; }
+}
+
 /// <summary>
 /// The framework-agnostic result of mapping a union value: what status, what shape and which value.
 /// <see cref="Materialize"/> resolves the content type and serializer options for that shape.
 /// </summary>
-public sealed record ResponseWireMapping(int StatusCode, ResponseWireShape Shape, object? Value, string? ProblemTitle = null)
+/// <param name="StatusCode">The HTTP status code to write.</param>
+/// <param name="Shape">The body shape, which drives content type, envelope-vs-bare and whether <see cref="Naming"/> may be stamped.</param>
+/// <param name="Value">The value to serialize as the body, or <see langword="null"/> for a body-less shape.</param>
+/// <param name="ProblemTitle">An override for the RFC 9457 <c>title</c> when <see cref="Shape"/> is <see cref="ResponseWireShape.ProblemError"/>; <see langword="null"/> keeps the status-derived default.</param>
+/// <param name="Naming">
+/// The requested naming policy to stamp on the wire, or <see langword="null"/> for the server's own policy.
+/// Set only for shapes that announce their naming through a vnd media type parameter (<see cref="ResponseWireShape.Unit"/>,
+/// <see cref="ResponseWireShape.Envelope"/>, <see cref="ResponseWireShape.NativeError"/>); every other shape
+/// (<see cref="ResponseWireShape.Payload"/>, <see cref="ResponseWireShape.RawError"/>, <see cref="ResponseWireShape.ProblemError"/>,
+/// <see cref="ResponseWireShape.NoContent"/>, <see cref="ResponseWireShape.Binary"/>) always keeps this
+/// <see langword="null"/>, so a client reading only the Content-Type is never misled into materializing a body
+/// that was silently transcoded to an un-announced policy.
+/// </param>
+public sealed record ResponseWireMapping(int StatusCode, ResponseWireShape Shape, object? Value, string? ProblemTitle = null, string? Naming = null)
 {
 	/// <summary>Serializes as "{}": the body of a Unit response.</summary>
 	public static readonly object EmptyObject = new();
@@ -55,15 +75,16 @@ public sealed record ResponseWireMapping(int StatusCode, ResponseWireShape Shape
 	/// </remarks>
 	public (string? ContentType, object? Body, JsonSerializerOptions? SerializerOptions) Materialize(JsonSerializerOptions? jsonOptions)
 	{
-		var policy = jsonOptions?.PropertyNamingPolicy;
+		var effective = Naming is null ? jsonOptions : ResponseNaming.Apply(jsonOptions ?? WebDefaults, Naming);
+		var policy = effective?.PropertyNamingPolicy;
 		return Shape switch
 		{
-			ResponseWireShape.NoContent => (null, null, jsonOptions),
-			ResponseWireShape.Unit => (ResponseNaming.WithNaming(ResponseMediaTypes.UnitJson, policy), EmptyObject, jsonOptions),
-			ResponseWireShape.Payload => (ResponseMediaTypes.Json, Value, jsonOptions),
-			ResponseWireShape.RawError => (ResponseMediaTypes.Json, Value, jsonOptions),
-			ResponseWireShape.Envelope => (ResponseNaming.WithNaming(ResponseMediaTypes.ResponseJson, policy), Value, jsonOptions),
-			ResponseWireShape.NativeError => (ResponseNaming.WithNaming(ResponseMediaTypes.ErrorJson, policy), Value, jsonOptions),
+			ResponseWireShape.NoContent => (null, null, effective),
+			ResponseWireShape.Unit => (ResponseNaming.WithNaming(ResponseMediaTypes.UnitJson, policy), EmptyObject, effective),
+			ResponseWireShape.Payload => (ResponseMediaTypes.Json, Value, effective),
+			ResponseWireShape.RawError => (ResponseMediaTypes.Json, Value, effective),
+			ResponseWireShape.Envelope => (ResponseNaming.WithNaming(ResponseMediaTypes.ResponseJson, policy), Value, effective),
+			ResponseWireShape.NativeError => (ResponseNaming.WithNaming(ResponseMediaTypes.ErrorJson, policy), Value, effective),
 			ResponseWireShape.ProblemError => BuildProblemResult(jsonOptions),
 			ResponseWireShape.Binary => (((FileContent)Value!).ContentType, Value, null),
 			_ => throw new NotSupportedException($"Unknown wire shape '{Shape}'.")
@@ -103,6 +124,21 @@ public static class ResponseWireMapper
 		=> type is not null && IsResponseReturnType(UnwrapTaskType(type));
 
 	public static bool TryMap(object? value, ResponseOptions options, out ResponseWireMapping mapping)
+	{
+		if (!TryMapCore(value, options, out mapping)) return false;
+		// The requested naming is stamped only on shapes that announce it through a vnd media type
+		// parameter (Unit, Envelope, NativeError). Payload, RawError, ProblemError, NoContent and Binary
+		// never carry a naming parameter on the wire, so a client reading Content-Type has no way to know
+		// the body was transcoded; stamping it there would make the client silently misread the body.
+		if (options.Naming is not null && IsAnnouncedShape(mapping.Shape))
+			mapping = mapping with { Naming = options.Naming };
+		return true;
+	}
+
+	static bool IsAnnouncedShape(ResponseWireShape shape)
+		=> shape is ResponseWireShape.Unit or ResponseWireShape.Envelope or ResponseWireShape.NativeError;
+
+	static bool TryMapCore(object? value, ResponseOptions options, out ResponseWireMapping mapping)
 	{
 		// Bare union values are mapped exactly like the wrapper they imply.
 		if (value is Error bareError) value = (Response<Unit>)bareError;
@@ -152,23 +188,27 @@ public static class ResponseWireMapper
 			return true;
 		}
 
-		// default(Response<T>): a programming error, not a business state.
-		mapping = new(500, ResponseWireShape.ProblemError, Error.Critical("The Response value is uninitialized (default)."));
+		// default(Response<T>): a programming error, not a business state - but it still follows the error options and Accept.
+		mapping = MapError((Response<Unit>)Error.Critical("The Response value is uninitialized (default)."), options);
 		return true;
 	}
 
 	static ResponseWireMapping MapError(IResponse response, ResponseOptions options)
 	{
-		var status = response.Value is Error { Type: HttpStatusCode code } ? (int)code : 500;
+		// An error response without a supported payload (native Error or business value) is itself a
+		// programming error. Normalize it to a critical Error up front so the rest of this method - and
+		// therefore the error options and the client's Accept - treat it exactly like any other error.
+		if (response.Value is null)
+			response = (Response<Unit>)Error.Critical("The response is error but it does not contain a supported error payload.");
+
+		var status = ResolveStatus(response.Value, options);
 
 		if (options.SerializeErrorAsProblemDetails)
 		{
 			// problem+json wins over the envelope, for native and typed errors alike.
-			if (response.Value is Error error)
-				return new(status, ResponseWireShape.ProblemError, error);
-			if (response.Value is not null)
-				return new(500, ResponseWireShape.ProblemError, new Error { Payload = response.Value }, BusinessErrorTitle);
-			return new(500, ResponseWireShape.ProblemError, Error.Critical("The response is error but it does not contain a supported error payload."));
+			return response.Value is Error error
+				? new(status, ResponseWireShape.ProblemError, error)
+				: new(status, ResponseWireShape.ProblemError, new Error { Type = (HttpStatusCode)status, Payload = response.Value }, BusinessErrorTitle);
 		}
 
 		if (options.SerializeFullResponses)
@@ -178,6 +218,15 @@ public static class ResponseWireMapper
 			? new(status, ResponseWireShape.NativeError, nativeError)
 			: new(status, ResponseWireShape.RawError, response.Value);
 	}
+
+	// The service has the last word, then the error itself, then the contract default.
+	static int ResolveStatus(object? value, ResponseOptions options) => value switch
+	{
+		Error error => error.Type is HttpStatusCode code ? (int)code : 500,
+		not null when options.BusinessErrorStatus?.Invoke(value) is { } code => (int)code,
+		IHttpStatusError declared => (int)declared.Status,
+		_ => 500
+	};
 
 	static Type UnwrapTaskType(Type type)
 	{

@@ -1,3 +1,8 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Fuxion.Union;
 using Fuxion.Xunit;
 using Xunit;
@@ -6,6 +11,9 @@ namespace Test.Fuxion.Union;
 
 public class JsonNamingTranscoderTest(ITestOutputHelper output) : BaseTest<JsonNamingTranscoderTest>(output)
 {
+	record Inner(string LastName);
+	record Body(string FirstName, Dictionary<string, int> Tags, JsonElement Free, List<Inner> Items, Undefinable<string> NickName, Inner? Maybe);
+
 	[Theory(DisplayName = "Separated names lose their separators and capitalize the following letter")]
 	[InlineData("first_name", "FirstName")]
 	[InlineData("first-name", "FirstName")]
@@ -40,4 +48,36 @@ public class JsonNamingTranscoderTest(ITestOutputHelper output) : BaseTest<JsonN
 	[Fact(DisplayName = "Dictionary keys are rewritten too: a documented limitation of textual transcoding")]
 	public void Transcode_RewritesDictionaryKeysToo()
 		=> Assert.Equal("""{"tags":{"User123":true}}""", JsonNamingTranscoder.Transcode("""{"tags":{"user_123":true}}"""));
+
+	[Fact(DisplayName = "Type-guided transcoding renames properties only, never dictionary keys or free JSON")]
+	public void Typed_RenamesPropertiesOnly()
+	{
+		var json = """{"first_name":"Ada","tags":{"my_tag":1,"other-tag":2},"free":{"keep_me":{"and_me":1}},"items":[{"last_name":"L"}],"nick_name":"a","maybe":{"last_name":"M"},"unknown_key":true}""";
+		var result = Encoding.UTF8.GetString(JsonNamingTranscoder.Transcode(Encoding.UTF8.GetBytes(json), typeof(Body), new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+		var node = JsonNode.Parse(result)!.AsObject();
+		Assert.Equal("Ada", (string?)node["firstName"]);
+		Assert.Equal(1, (int?)node["tags"]!["my_tag"]);
+		Assert.Equal(2, (int?)node["tags"]!["other-tag"]);
+		Assert.Equal(1, (int?)node["free"]!["keep_me"]!["and_me"]);
+		Assert.Equal("L", (string?)node["items"]![0]!["lastName"]);
+		Assert.Equal("a", (string?)node["nickName"]);
+		Assert.Equal("M", (string?)node["maybe"]!["lastName"]);
+		Assert.True((bool?)node["unknown_key"]);
+		var bound = JsonSerializer.Deserialize<Body>(result, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+		Assert.Equal("Ada", bound.FirstName);
+		Assert.Equal(new[] { "my_tag", "other-tag" }, bound.Tags.Keys.OrderBy(k => k));
+	}
+
+	[Fact(DisplayName = "Upper-case separators are handled too")]
+	public void Typed_Upper()
+	{
+		var result = Encoding.UTF8.GetString(JsonNamingTranscoder.Transcode(Encoding.UTF8.GetBytes("""{"FIRST_NAME":"Ada","TAGS":{"MY_TAG":1}}"""), typeof(Body), new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+		var node = JsonNode.Parse(result)!.AsObject();
+		Assert.Equal("Ada", (string?)node["firstName"]);
+		Assert.Equal(1, (int?)node["tags"]!["MY_TAG"]);
+	}
+
+	[Fact(DisplayName = "A malformed body still throws JsonException")]
+	public void Typed_Malformed_Throws()
+		=> Assert.ThrowsAny<JsonException>(() => JsonNamingTranscoder.Transcode(Encoding.UTF8.GetBytes("{ not json"), typeof(Body), new JsonSerializerOptions(JsonSerializerDefaults.Web)));
 }

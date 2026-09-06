@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Test.AspNetCore.Service;
+using Test.Responses.Shared;
 using Xunit;
 
 namespace Test.AspNetCore.Union;
@@ -437,47 +438,8 @@ public class ResponseTest(ITestOutputHelper output, WebApplicationFactory<Progra
 		await DoToResponse("controller/");
 	}
 
-	[Theory(DisplayName = "An undefined member is omitted from the endpoint payload")]
-	[InlineData("minimal")]
-	[InlineData("controller")]
-	public async Task UndefinedMember_IsOmittedFromPayload(string prefix)
-	{
-		var cli = factory.CreateClient();
-
-		var res = await cli.GetAsync($"{prefix}/undefinable/partial");
-		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-
-		var body = await res.Content.ReadAsStringAsync();
-		PrintVariable(body);
-
-		// The raw body is asserted on purpose: deserializing would yield an undefined value both when the
-		// property is omitted and when the marker object is used, so it could not tell them apart.
-		var json = JsonNode.Parse(body)!.AsObject();
-		Assert.False(json.ContainsKey("name"), "The undefined member must be absent from the payload");
-		Assert.DoesNotContain(global::Fuxion.Union.UndefinableConverterFactory.UndefinedMarkerPropertyName, body);
-		Assert.True(json.ContainsKey("age"));
-		Assert.Equal(123, (int)json["age"]!);
-	}
-
-	[Theory(DisplayName = "An absent member is bound as undefined")]
-	[InlineData("minimal")]
-	[InlineData("controller")]
-	public async Task AbsentMember_IsBoundAsUndefined(string prefix)
-	{
-		var cli = factory.CreateClient();
-
-		var res = await cli.PostAsync(
-			$"{prefix}/undefinable/echo",
-			new StringContent("""{ "age": 7 }""", System.Text.Encoding.UTF8, "application/json"));
-		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-
-		var body = await res.Content.ReadAsStringAsync();
-		PrintVariable(body);
-
-		var json = JsonNode.Parse(body)!.AsObject();
-		Assert.False((bool)json["nameDefined"]!, "An absent member must be bound as undefined");
-		Assert.True((bool)json["ageDefined"]!);
-	}
+	// Undefined-member omission and absent-member binding now live in
+	// Test.Responses.Shared.UndefinableTests.
 
 	[Fact(DisplayName = "An already cancelled token stops the body read")]
 	public async Task CancellationToken_IsHonoured()

@@ -5,6 +5,7 @@ using Fuxion;
 using Fuxion.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
+using Test.Responses.Shared;
 
 namespace Test.AspNetCore.Service.Endpoints;
 

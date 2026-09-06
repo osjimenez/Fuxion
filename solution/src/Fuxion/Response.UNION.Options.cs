@@ -1,6 +1,8 @@
 namespace Fuxion.Union;
 
+using System;
 using System.Collections.Generic;
+using System.Net;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
@@ -18,6 +20,24 @@ public sealed record ResponseOptions
 
 	/// <summary>When the envelope is in use, force None to be a body-less 204 instead of an envelope.</summary>
 	public bool StrictNone { get; set; } = false;
+
+	/// <summary>
+	/// Naming the client asked for through Accept on a Fuxion media type; null = the server's own policy.
+	/// Never set by configuration; set by ResponseAccept.
+	/// </summary>
+	public string? Naming { get; set; }
+
+	/// <summary>
+	/// Status for a business error value the service does not own (or wants to override). Return null for
+	/// "no opinion": the value's own <see cref="IHttpStatusError"/> is used next, then 500.
+	/// </summary>
+	public Func<object, HttpStatusCode?>? BusinessErrorStatus { get; set; }
+
+	/// <summary>
+	/// Upper bound for a request body rewritten by the minimal APIs naming support; larger bodies get 413.
+	/// Bodies without a naming parameter are never buffered.
+	/// </summary>
+	public long RequestNamingMaxBodySize { get; set; } = 1024 * 1024;
 }
 
 /// <summary>

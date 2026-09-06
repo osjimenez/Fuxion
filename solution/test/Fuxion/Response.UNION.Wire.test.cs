@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Fuxion;
 using Fuxion.Union;
 using Fuxion.Xunit;
 using Xunit;
@@ -111,6 +112,40 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 		}
 	}
 
+	[Fact(DisplayName = "A business error declares its status through IHttpStatusError")]
+	public void TypedError_DeclaredStatus()
+	{
+		Response<string, Conflicting> response = new Conflicting();
+		IsTrue(ResponseWireMapper.TryMap(response, new ResponseOptions(), out var mapping));
+		Assert.Equal(409, mapping.StatusCode);
+		Assert.Equal(ResponseWireShape.ProblemError, mapping.Shape);
+		Assert.Equal(409, ((ResponseProblemDetails)mapping.Materialize(null).Body!).Status);
+	}
+
+	[Fact(DisplayName = "The service's BusinessErrorStatus wins over the error's own declaration; null means no opinion")]
+	public void TypedError_OptionsOverride()
+	{
+		var options = new ResponseOptions { BusinessErrorStatus = e => e is Conflicting ? HttpStatusCode.Gone : null };
+		IsTrue(ResponseWireMapper.TryMap((Response<string, Conflicting>)new Conflicting(), options, out var overridden));
+		Assert.Equal(410, overridden.StatusCode);
+		IsTrue(ResponseWireMapper.TryMap((Response<string, Plain>)new Plain(), options, out var untouched));
+		Assert.Equal(500, untouched.StatusCode);
+	}
+
+	[Fact(DisplayName = "The status also drives the raw and envelope shapes")]
+	public void TypedError_StatusOnRawAndEnvelope()
+	{
+		var raw = new ResponseOptions { SerializeErrorAsProblemDetails = false };
+		IsTrue(ResponseWireMapper.TryMap((Response<string, Conflicting>)new Conflicting(), raw, out var rawMapping));
+		Assert.Equal(409, rawMapping.StatusCode);
+		Assert.Equal(ResponseWireShape.RawError, rawMapping.Shape);
+		IsTrue(ResponseWireMapper.TryMap((Response<string, Conflicting>)new Conflicting(), raw with { SerializeFullResponses = true }, out var envelope));
+		Assert.Equal(409, envelope.StatusCode);
+	}
+
+	sealed record Conflicting : IHttpStatusError { public HttpStatusCode Status => HttpStatusCode.Conflict; }
+	sealed record Plain;
+
 	[Fact(DisplayName = "An uninitialized response is a 500 problem describing the programming error")]
 	public void Unset_Is500Problem()
 	{
@@ -119,6 +154,25 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 		Assert.Equal(500, mapping.StatusCode);
 		Assert.Equal(ResponseWireShape.ProblemError, mapping.Shape);
 		Assert.Contains("uninitialized", ((Error)mapping.Value!).Message);
+	}
+
+	[Theory(DisplayName = "An uninitialized response is a critical error that follows the error options")]
+	[InlineData(true, ResponseWireShape.ProblemError)]
+	[InlineData(false, ResponseWireShape.NativeError)]
+	public void Default_FollowsErrorOptions(bool problem, ResponseWireShape expected)
+	{
+		IsTrue(ResponseWireMapper.TryMap(default(Response<string>), new ResponseOptions { SerializeErrorAsProblemDetails = problem }, out var mapping));
+		Assert.Equal(500, mapping.StatusCode);
+		Assert.Equal(expected, mapping.Shape);
+		IsTrue(((Error)mapping.Value!).IsCritical);
+	}
+
+	[Fact(DisplayName = "An uninitialized response with the envelope requested travels as an envelope")]
+	public void Default_Envelope()
+	{
+		IsTrue(ResponseWireMapper.TryMap(default(Response<string>), new ResponseOptions { SerializeErrorAsProblemDetails = false, SerializeFullResponses = true }, out var mapping));
+		Assert.Equal(ResponseWireShape.Envelope, mapping.Shape);
+		IsTrue(((global::Fuxion.Union.IResponse)mapping.Value!).IsError);
 	}
 
 	[Fact(DisplayName = "A bare Error is mapped like an erroneous Response<Unit>")]
@@ -305,4 +359,28 @@ public class ResponseWireMaterializeTest(ITestOutputHelper output) : BaseTest<Re
 		Assert.Same(file, body);
 		Assert.Null(serializerOptions);
 	}
+
+	[Fact(DisplayName = "A requested naming overrides the server policy only on shapes that announce it (Unit, Envelope, NativeError), never on Payload/RawError/problem+json")]
+	public void RequestedNaming_OnlyOnAnnouncedShapes()
+	{
+		var serverSnake = new JsonSerializerOptions(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+		var options = new ResponseOptions { SerializeFullResponses = true, Naming = ResponseNaming.Kebab };
+		Response<TestPayloadLike> response = new TestPayloadLike("x", 1);
+		IsTrue(ResponseWireMapper.TryMap(response, options, out var mapping));
+		Assert.Equal(ResponseNaming.Kebab, mapping.Naming);
+		var (contentType, _, serializerOptions) = mapping.Materialize(serverSnake);
+		Assert.Equal($"{ResponseMediaTypes.ResponseJson}; naming=kebab", contentType);
+		Assert.Same(JsonNamingPolicy.KebabCaseLower, serializerOptions!.PropertyNamingPolicy);
+
+		IsTrue(ResponseWireMapper.TryMap((Response<Unit>)Error.NotFound("x"), options with { SerializeErrorAsProblemDetails = true }, out var problem));
+		Assert.Same(JsonNamingPolicy.CamelCase, problem.Materialize(serverSnake).SerializerOptions!.PropertyNamingPolicy);
+
+		// A bare payload under application/json never announces a naming policy: it must not carry the
+		// requested naming at all, and must materialize with the server's own policy.
+		IsTrue(ResponseWireMapper.TryMap(response, options with { SerializeFullResponses = false }, out var payload));
+		Assert.Equal(ResponseWireShape.Payload, payload.Shape);
+		Assert.Null(payload.Naming);
+		Assert.Same(serverSnake, payload.Materialize(serverSnake).SerializerOptions);
+	}
+	record TestPayloadLike(string Name, int Age);
 }

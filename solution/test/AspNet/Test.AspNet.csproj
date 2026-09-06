@@ -14,6 +14,7 @@
 		<ProjectReference Include="$(XunitProjectPath)" />
 		<ProjectReference Include="$(AspNetProjectPath)" />
 		<ProjectReference Include="$(HttpProjectPath)" />
+		<ProjectReference Include="$(Test_Responses_SharedProjectPath)" />
 	</ItemGroup>
 
 	<ItemGroup>

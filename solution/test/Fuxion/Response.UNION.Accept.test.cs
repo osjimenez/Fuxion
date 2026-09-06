@@ -59,4 +59,31 @@ public class ResponseAcceptTest(ITestOutputHelper output) : BaseTest<ResponseAcc
 		var scope = new ResponseOptions { StrictNone = true };
 		IsTrue(ResponseAccept.Apply(scope, "application/vnd.fuxion.response+json").StrictNone);
 	}
+
+	[Fact(DisplayName = "A naming parameter on a Fuxion type is honoured")]
+	public void Naming_OnFuxionType_IsHonoured()
+	{
+		var result = ResponseAccept.Apply(new ResponseOptions(), "application/vnd.fuxion.response+json; naming=snake, application/json;q=0.9");
+		IsTrue(result.SerializeFullResponses);
+		Assert.Equal(ResponseNaming.Snake, result.Naming);
+	}
+
+	[Theory(DisplayName = "A naming parameter is ignored on plain JSON and when unsupported")]
+	[InlineData("application/json; naming=snake")]
+	[InlineData("application/vnd.fuxion.response+json; naming=custom")]
+	[InlineData("application/vnd.fuxion.response+json; naming=whatever")]
+	public void Naming_Ignored(string accept)
+	{
+		var result = ResponseAccept.Apply(new ResponseOptions(), accept);
+		Assert.Null(result.Naming);
+	}
+
+	[Fact(DisplayName = "The unit type is a neutral carrier for the naming parameter")]
+	public void Naming_OnUnitType_IsHonouredWithoutChangingShape()
+	{
+		var result = ResponseAccept.Apply(new ResponseOptions(), "application/vnd.fuxion.unit+json; naming=kebab, application/json;q=0.9");
+		IsTrue(!result.SerializeFullResponses);
+		IsTrue(result.SerializeErrorAsProblemDetails);
+		Assert.Equal(ResponseNaming.Kebab, result.Naming);
+	}
 }

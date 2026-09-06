@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json.Nodes;
-using System.Threading;
 using System.Threading.Tasks;
 using Fuxion.AspNet;
 using Fuxion.Union;
@@ -11,6 +10,11 @@ using Xunit;
 
 namespace Test.AspNet.Union;
 
+// The echo/snake/kebab/dictionary/400/malformed contract shared with ASP.NET Core lives in
+// Test.Responses.Shared.RequestNamingTests. What stays here is Web API 2 specific:
+// "Snake_WithoutParameter_IsNotBound" genuinely diverges from an [ApiController] (its implicit required-member
+// validation turns a null FirstName into a 400 there, unlike here or under minimal APIs), and the plain-POCO
+// Newtonsoft opt-out only makes sense for this host's dual-formatter design.
 public class RequestNamingTest(ITestOutputHelper output) : BaseTest<RequestNamingTest>(output)
 {
 	static StringContent Body(string json, string? naming, string mediaType = "application/json")
@@ -21,28 +25,6 @@ public class RequestNamingTest(ITestOutputHelper output) : BaseTest<RequestNamin
 		return content;
 	}
 
-	/// <summary>Innermost handler that just captures the (possibly replaced) request and answers 200.</summary>
-	sealed class CapturingHandler : DelegatingHandler
-	{
-		public HttpRequestMessage? Captured { get; private set; }
-
-		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-		{
-			Captured = request;
-			return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
-		}
-	}
-
-	[Theory(DisplayName = "A snake_case or kebab-case body is bound when its Content-Type declares the naming")]
-	[InlineData("""{"first_name":"Ada","age":36}""", "snake")]
-	[InlineData("""{"first-name":"Ada","age":36}""", "kebab")]
-	public async Task SeparatedNaming_IsBound(string json, string naming)
-	{
-		var res = await AspNetHost.Create().PostAsync("naming/echo", Body(json, naming));
-		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-		Assert.Equal("Ada", (string?)JsonNode.Parse(await res.Content.ReadAsStringAsync())!["firstName"]);
-	}
-
 	[Fact(DisplayName = "Without the parameter a snake_case body is not understood")]
 	public async Task Snake_WithoutParameter_IsNotBound()
 	{
@@ -51,39 +33,34 @@ public class RequestNamingTest(ITestOutputHelper output) : BaseTest<RequestNamin
 		Assert.Null((string?)JsonNode.Parse(await res.Content.ReadAsStringAsync())!["firstName"]);
 	}
 
-	[Fact(DisplayName = "A non-JSON body declaring a naming parameter is never touched")]
-	public async Task NonJson_IsNeverTouched()
+	// PlainTwoWords is a plain (non-Fuxion) type, never opted into System.Text.Json by AspNetHost: under the
+	// default scope it is bound by Newtonsoft, which knows nothing about the naming parameter and ignores it,
+	// rather than transcoding the body. Under scope All every type goes through the formatter that does honour it.
+	[Fact(DisplayName = "A plain POCO body keeps Newtonsoft and ignores the naming parameter under the default scope")]
+	public async Task PlainPoco_IgnoresNamingUnderDefaultScope()
 	{
-		var res = await AspNetHost.Create().PostAsync("naming/echo", Body("first_name=Ada", "snake", "text/plain"));
-		Assert.Equal(HttpStatusCode.UnsupportedMediaType, res.StatusCode);
+		var defaultScope = await AspNetHost.Create().PostAsync("plain/two-words", Body("""{"first_name":"Ada"}""", "snake"));
+		Assert.Equal(HttpStatusCode.OK, defaultScope.StatusCode);
+		Assert.Null((string?)JsonNode.Parse(await defaultScope.Content.ReadAsStringAsync())!["firstName"]);
+
+		var allScope = await AspNetHost.Create(scope: JsonFormatterScope.All).PostAsync("plain/two-words", Body("""{"first_name":"Ada"}""", "snake"));
+		Assert.Equal(HttpStatusCode.OK, allScope.StatusCode);
+		Assert.Equal("Ada", (string?)JsonNode.Parse(await allScope.Content.ReadAsStringAsync())!["firstName"]);
 	}
 
-	// The classic Web API 2 outcome for a malformed JSON body: model binding fails and the action never
-	// runs, rather than an unhandled 500 (the deserialization exception is now reported through
-	// IFormatterLogger, which feeds ModelState, exactly like BaseJsonMediaTypeFormatter always did).
-	[Fact(DisplayName = "A malformed JSON body fails model binding like the framework always did")]
-	public async Task MalformedBody_FailsModelBinding()
+	// Web API 2 specific: unlike the shared 400-only assertion (Test.Responses.Shared.RequestNamingTests -
+	// an ASP.NET Core controller's own automatic model validation answers a different, ValidationProblemDetails
+	// shape for the same case), SystemTextJsonMediaTypeFormatter builds a plain RFC 9457 ResponseProblemDetails
+	// body itself, matching what AspNetCore's minimal-API RequestNamingEndpoint writes for an unsupported or
+	// duplicated 'naming' parameter.
+	[Fact(DisplayName = "An unsupported naming parameter is a problem+json 400 whose detail mentions naming")]
+	public async Task UnsupportedNaming_Is400Problem()
 	{
-		var res = await AspNetHost.Create().PostAsync("naming/validate", new StringContent("{ not json", System.Text.Encoding.UTF8, "application/json"));
+		var res = await AspNetHost.Create().PostAsync("naming/echo", Body("""{"first_name":"Ada","age":36}""", "whatever"));
+
 		Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
-	}
-
-	[Fact(DisplayName = "Transcoding preserves other content headers and recomputes Content-Length for the shorter, transcoded body")]
-	public async Task Transcoding_PreservesHeadersAndRecomputesContentLength()
-	{
-		var inner = new CapturingHandler();
-		var handler = new RequestNamingHandler { InnerHandler = inner };
-		using var invoker = new HttpMessageInvoker(handler);
-
-		var content = Body("""{"first_name":"Ada","age":36}""", "snake"); // "first_name" (10) -> "firstName" (9): strictly shorter
-		content.Headers.ContentLanguage.Add("es");
-		var request = new HttpRequestMessage(HttpMethod.Post, "http://localhost/naming/echo") { Content = content };
-
-		await invoker.SendAsync(request, CancellationToken.None);
-
-		Assert.NotNull(inner.Captured?.Content);
-		var transcodedBytes = await inner.Captured!.Content!.ReadAsByteArrayAsync();
-		Assert.Equal(transcodedBytes.Length, inner.Captured.Content.Headers.ContentLength);
-		Assert.Contains("es", inner.Captured.Content.Headers.ContentLanguage);
+		Assert.Equal(ResponseMediaTypes.ProblemJson, res.Content.Headers.ContentType?.MediaType);
+		var body = JsonNode.Parse(await res.Content.ReadAsStringAsync())!;
+		Assert.Contains(ResponseMediaTypes.NamingParameter, (string?)body["detail"], System.StringComparison.OrdinalIgnoreCase);
 	}
 }

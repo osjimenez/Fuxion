@@ -14,6 +14,7 @@ using Fuxion.Xunit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Test.AspNetCore.Service;
+using Test.Responses.Shared;
 using Xunit;
 using static Fuxion.Net.Http.Extensions;
 

@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Test.AspNetCore.Service;
+using Test.Responses.Shared;
 using Xunit;
 
 namespace Test.AspNetCore.Union;
@@ -33,33 +34,8 @@ public class FuxionHttpClientTest(ITestOutputHelper output, WebApplicationFactor
 		Assert.Equal(123, payload!.Age.Value);
 	}
 
-	[Fact(DisplayName = "Without preferences the Accept is plain JSON, indistinguishable from a vanilla client")]
-	public void DefaultAccept_IsPlainJson()
-		=> Assert.Equal("application/json", new FuxionHttpClientOptions().BuildAccept());
-
-	[Fact(DisplayName = "Preferences add the vendor types first and always keep a JSON fallback")]
-	public void Accept_WithPreferences_HasFallback()
-	{
-		var accept = new FuxionHttpClientOptions { PreferEnvelope = true, PreferNativeErrors = true }.BuildAccept();
-
-		Assert.StartsWith(ResponseMediaTypes.ResponseJson, accept);
-		Assert.Contains(ResponseMediaTypes.ErrorJson, accept);
-		Assert.EndsWith("application/json;q=0.9", accept);
-	}
-
-	[Fact(DisplayName = "Preferring the envelope makes the server answer with it, end to end")]
-	public async Task PreferEnvelope_GetsTheEnvelope()
-	{
-		var client = BuildClient(factory.CreateClient(), o => o.PreferEnvelope = true);
-
-		var request = new HttpRequestMessage(HttpMethod.Get, "minimal/response/payload");
-		var response = await client.SendAsync<TestPayload>(request);
-
-		IsTrue(response.TryGetValue(out TestPayload? payload));
-		Assert.Equal("test", payload!.Name);
-		Assert.Contains(request.Headers.Accept, a => a.MediaType == ResponseMediaTypes.ResponseJson);
-		Assert.Contains(request.Headers.Accept, a => a.MediaType == ResponseMediaTypes.Json && a.Quality == 0.9);
-	}
+	// "Preferring the envelope makes the server answer with it, end to end" now lives in
+	// Test.Responses.Shared.ClientTests.Client_FuxionHttpClient_PreferEnvelope.
 
 	[Fact(DisplayName = "An Accept already set on the request is respected")]
 	public async Task ExplicitAccept_IsRespected()

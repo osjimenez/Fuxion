@@ -1,18 +1,18 @@
-using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Fuxion.Http;
 using Fuxion.Union;
-using Fuxion.Union.Net.Http;
 using Fuxion.Xunit;
-using Test.AspNet.Service;
+using Test.Responses.Shared;
 using Xunit;
 
 namespace Test.AspNet.Union;
 
-// The Fuxion client reads a Web API 2 server exactly like an ASP.NET Core one: same wire, same code.
+// The AsResponseAsync/FuxionHttpClient contract shared with ASP.NET Core lives in
+// Test.Responses.Shared.ClientTests. What stays here is specific to the deferred
+// ToHttpActionResult extension (Web API 2 only) and a second, redundant-on-purpose proof that the envelope
+// Accept FuxionHttpClient adds is exactly what makes the server answer with the envelope.
 public class ClientAgainstAspNetTest(ITestOutputHelper output) : BaseTest<ClientAgainstAspNetTest>(output)
 {
 	[Fact(DisplayName = "ToHttpActionResult is deferred: it honours the scope options and the Accept header")]
@@ -33,55 +33,6 @@ public class ClientAgainstAspNetTest(ITestOutputHelper output) : BaseTest<Client
 
 		var explicitOptions = await cli.GetAsync("result/explicit");
 		Assert.Equal(ResponseMediaTypes.ResponseJson, explicitOptions.Content.Headers.ContentType?.MediaType);
-	}
-
-	[Fact(DisplayName = "AsResponseAsync reads payload, error and typed error from a Web API 2 server")]
-	public async Task AsResponseAsync_ReadsEverything()
-	{
-		var cli = AspNetHost.Create();
-
-		var payload = await cli.GetAsync("response/payload").AsResponseAsync<TestPayload>();
-		IsTrue(payload.TryGetValue(out TestPayload? p));
-		Assert.Equal(TestPayload.Default, p);
-
-		var error = await cli.GetAsync("response/error-type").AsResponseAsync<TestPayload>();
-		IsTrue(error.TryGetValue(out Error e));
-		Assert.Equal(HttpStatusCode.NotImplemented, e.Type);
-
-		var typed = await cli.GetAsync("response/typed-error").AsResponseAsync<string, TestBusinessError>();
-		IsTrue(typed.TryGetValue(out TestBusinessError? business));
-		Assert.Equal(TestBusinessError.Default, business);
-
-		IsTrue((await cli.GetAsync("response/unit").AsResponseAsync<Unit>()).TryGetValue(out Unit _));
-		IsTrue((await cli.GetAsync("response/none").AsResponseAsync<Unit>()).IsNone);
-	}
-
-	[Fact(DisplayName = "The client streams a file from a Web API 2 server")]
-	public async Task AsResponseAsync_ReadsFile()
-	{
-		var response = await AspNetHost.Create().GetAsync("binary/file", HttpCompletionOption.ResponseHeadersRead).AsResponseAsync<FileContent>();
-		IsTrue(response.TryGetValue(out FileContent? file));
-		Assert.Equal(TestFile.Name, file!.FileName);
-		Assert.Equal(TestFile.ContentType, file.ContentType);
-		using var memory = new MemoryStream();
-		await file.Stream.CopyToAsync(memory);
-		Assert.Equal(TestFile.Bytes, memory.ToArray());
-	}
-
-	[Fact(DisplayName = "FuxionHttpClient adds the envelope Accept and Web API 2 answers with the envelope")]
-	public async Task FuxionHttpClient_AddsEnvelopeAccept()
-	{
-		var options = new FuxionHttpClientOptions { PreferEnvelope = true };
-		var client = new FuxionHttpClient(AspNetHost.Create(), options);
-
-		var request = new HttpRequestMessage(HttpMethod.Get, "response/payload");
-		var response = await client.SendAsync<TestPayload>(request);
-
-		// The request is mutated in place by the client before it is sent, so the header survives the send.
-		Assert.Contains(request.Headers.Accept, a => a.MediaType == ResponseMediaTypes.ResponseJson);
-		Assert.Contains(request.Headers.Accept, a => a.MediaType == ResponseMediaTypes.Json && a.Quality == 0.9);
-		IsTrue(response.TryGetValue(out TestPayload? payload));
-		Assert.Equal(TestPayload.Default, payload);
 	}
 
 	// FuxionHttpClient.SendAsync only returns the union, not the raw HttpResponseMessage, so the media

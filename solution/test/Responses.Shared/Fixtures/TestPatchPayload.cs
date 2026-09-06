@@ -1,9 +1,9 @@
-namespace Test.AspNetCore.Service;
+namespace Test.Responses.Shared;
 
 using Fuxion.Union;
 
 /// <summary>
-/// Payload used to verify that undefined members are omitted by the ASP.NET Core serializers.
+/// Payload used to verify that undefined members are omitted by the ASP.NET/ASP.NET Core serializers.
 /// </summary>
 public record TestPatchPayload(Undefinable<string> Name, Undefinable<int> Age)
 {

@@ -133,4 +133,54 @@ public class ClientReadingTest(ITestOutputHelper output) : BaseTest<ClientReadin
 		Assert.Same(JsonNamingPolicy.CamelCase, options.PropertyNamingPolicy);
 		Assert.Equal(convertersBefore, options.Converters.Count);
 	}
+
+	[Fact(DisplayName = "A text/plain body that is valid JSON for the requested type is a success")]
+	public async Task TextPlain_ValidJson_IsSuccess()
+	{
+		var res = await Message(HttpStatusCode.OK, """{"name":"test","age":123}""", "text/plain").AsResponseAsync<Person>();
+		IsTrue(res.TryGetValue(out Person? p));
+		Assert.Equal("test", p!.Name);
+	}
+
+	[Fact(DisplayName = "A text/plain body that is not JSON is a critical error carrying the text")]
+	public async Task TextPlain_NotJson_KeepsText()
+	{
+		var res = await Message(HttpStatusCode.OK, "hello", "text/plain").AsResponseAsync<Person>();
+		IsTrue(res.TryGetValue(out Error e));
+		IsTrue(e.IsCritical);
+		Assert.Equal("hello", e.Extensions[ClientErrorExtensions.TextPayload]);
+		Assert.Equal("text/plain", e.Extensions[ClientErrorExtensions.ContentType]);
+	}
+
+	[Fact(DisplayName = "JSON that does not fit the requested type is a critical error carrying the JSON")]
+	public async Task Json_WrongShape_KeepsJson()
+	{
+		var res = await Message(HttpStatusCode.OK, """{"name":"x","age":"not a number"}""", "application/json").AsResponseAsync<Person>();
+		IsTrue(res.TryGetValue(out Error e));
+		Assert.Contains("Person", e.Message);
+		var element = Assert.IsType<JsonElement>(e.Extensions[ClientErrorExtensions.JsonPayload]);
+		Assert.Equal("x", element.GetProperty("name").GetString());
+		Assert.NotNull(e.Exception);
+	}
+
+	[Fact(DisplayName = "A binary body for a non-binary type is refused without reading it")]
+	public async Task Binary_NonBinaryType_NotRead()
+	{
+		var content = new ByteArrayContent(new byte[] { 1, 2, 3 });
+		content.Headers.ContentType = new("application/pdf");
+		var res = await new HttpResponseMessage(HttpStatusCode.OK) { Content = content }.AsResponseAsync<Person>();
+		IsTrue(res.TryGetValue(out Error e));
+		Assert.Equal("application/pdf", e.Extensions[ClientErrorExtensions.ContentType]);
+		Assert.Equal(3L, e.Extensions[ClientErrorExtensions.ContentLength]);
+		IsTrue(!e.Extensions.ContainsKey(ClientErrorExtensions.TextPayload));
+	}
+
+	[Fact(DisplayName = "A custom-naming envelope that cannot be read says so")]
+	public async Task CustomNaming_Unreadable_SaysSo()
+	{
+		var res = await Message(HttpStatusCode.OK, """{"IS_SUCCESS":true,"PAYLOAD":{"NAME":"x","AGE":1}}""", "application/vnd.fuxion.response+json; naming=custom").AsResponseAsync<Person>();
+		IsTrue(res.TryGetValue(out Error e));
+		Assert.Contains("custom naming", e.Message);
+	}
+	record Person(string Name, int Age);
 }

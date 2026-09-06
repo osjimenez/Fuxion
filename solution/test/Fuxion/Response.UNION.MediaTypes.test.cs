@@ -67,4 +67,46 @@ public class ResponseMediaTypesTest(ITestOutputHelper output) : BaseTest<Respons
 		Assert.Same(source, ResponseNaming.Apply(source, null));
 		Assert.Same(source, ResponseNaming.Apply(source, "shouting"));
 	}
+
+	[Theory(DisplayName = "Every .NET naming policy has a wire value")]
+	[InlineData(null, ResponseNaming.Pascal)]
+	[InlineData("camel", ResponseNaming.Camel)]
+	[InlineData("snake-lower", ResponseNaming.Snake)]
+	[InlineData("snake-upper", ResponseNaming.SnakeUpper)]
+	[InlineData("kebab-lower", ResponseNaming.Kebab)]
+	[InlineData("kebab-upper", ResponseNaming.KebabUpper)]
+	public void FromPolicy_CoversDotNet(string? policyName, string expected)
+	{
+		JsonNamingPolicy? policy = policyName switch
+		{
+			null => null,
+			"camel" => JsonNamingPolicy.CamelCase,
+			"snake-lower" => JsonNamingPolicy.SnakeCaseLower,
+			"snake-upper" => JsonNamingPolicy.SnakeCaseUpper,
+			"kebab-lower" => JsonNamingPolicy.KebabCaseLower,
+			_ => JsonNamingPolicy.KebabCaseUpper
+		};
+		Assert.Equal(expected, ResponseNaming.FromPolicy(policy));
+		IsTrue(ResponseNaming.TryGetPolicy(expected, out var back));
+		Assert.Same(policy, back);
+	}
+
+	[Fact(DisplayName = "A custom policy is announced as custom and cannot be resolved back")]
+	public void CustomPolicy_IsAnnouncedAsCustom()
+	{
+		var custom = new UpperInvariantPolicy();
+		Assert.Equal(ResponseNaming.Custom, ResponseNaming.FromPolicy(custom));
+		Assert.Equal($"{ResponseMediaTypes.ResponseJson}; naming=custom", ResponseNaming.WithNaming(ResponseMediaTypes.ResponseJson, custom));
+		IsTrue(!ResponseNaming.TryGetPolicy(ResponseNaming.Custom, out _));
+		IsTrue(!ResponseNaming.IsSupported(ResponseNaming.Custom));
+		var source = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+		Assert.Same(source, ResponseNaming.Apply(source, ResponseNaming.Custom));
+	}
+
+	[Theory(DisplayName = "Only separator namings need transcoding")]
+	[InlineData("snake", true)] [InlineData("SNAKE-UPPER", true)] [InlineData("kebab", true)] [InlineData("kebab-upper", true)]
+	[InlineData("camel", false)] [InlineData("pascal", false)] [InlineData("custom", false)] [InlineData(null, false)]
+	public void NeedsSeparatorTranscoding(string? naming, bool expected) => Assert.Equal(expected, ResponseNaming.NeedsSeparatorTranscoding(naming));
+
+	sealed class UpperInvariantPolicy : JsonNamingPolicy { public override string ConvertName(string name) => name.ToUpperInvariant(); }
 }

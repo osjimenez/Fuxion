@@ -1,12 +1,13 @@
 using System;
 using System.IO;
+using System.Linq;
 using Fuxion;
 using Fuxion.AspNetCore;
 using Test.AspNetCore.Service.Endpoints;
 using Microsoft.AspNetCore.Mvc;
 using Fuxion.Union;
 using Microsoft.AspNetCore.Http;
-using Test.AspNetCore.Service;
+using Test.Responses.Shared;
 
 namespace Test.AspNetCore.Union.Service.Controllers;
 
@@ -39,6 +40,14 @@ public class ResponseTestController : ControllerBase
 	{
 		return TestPayload.Default;
 	}
+	// A multi-word payload under bare application/json: proves a requested naming policy is never
+	// stamped on an un-announced shape (see Fuxion.Union.ResponseWireMapper.TryMap).
+	[Route("naming-payload")]
+	[HttpGet]
+	public Response<TestNamingPayload> NamingPayload()
+	{
+		return new TestNamingPayload("Ada", 36);
+	}
 	[Route("error-message")]
 	[HttpGet]
 	public Response<Unit> ErrorMessage()
@@ -62,6 +71,12 @@ public class ResponseTestController : ControllerBase
 	public Response<string, TestBusinessError> TypedError()
 	{
 		return TestBusinessError.Default;
+	}
+	[Route("typed-error-foreign")]
+	[HttpGet]
+	public Response<string, TestForeignError> TypedErrorForeign()
+	{
+		return new TestForeignError("quota");
 	}
 	[Route("error-exception")]
 	[HttpGet]
@@ -182,6 +197,16 @@ public class NamingTestController : ControllerBase
 {
 	[HttpPost("echo")]
 	public object Echo([FromBody] TestNamingPayload payload) => new { firstName = payload.FirstName, age = payload.Age };
+
+	// A declared Consumes media type: proves the naming parameter is still honoured (or ignored, if the
+	// controller is skipped by RequestNamingEndpoint.Apply) by MVC's own per-request formatter path,
+	// independent of the minimal-API RequestDelegate wrapper.
+	[HttpPost("consumes")]
+	[Consumes(typeof(TestNamingPayload), "application/json")]
+	public object Consumes([FromBody] TestNamingPayload payload) => new { firstName = payload.FirstName, age = payload.Age };
+
+	[HttpPost("dictionary")]
+	public object Dictionary([FromBody] TestDictionaryPayload payload) => new { keys = payload.Tags.Keys.OrderBy(k => k).ToArray(), name = payload.FirstName };
 }
 
 [ApiController]

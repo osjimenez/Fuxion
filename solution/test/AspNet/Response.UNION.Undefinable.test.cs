@@ -5,37 +5,21 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using System.Web.Http;
 using Fuxion.AspNet;
+using Fuxion.Union;
 using Fuxion.Xunit;
-using Test.AspNet.Service;
+using Test.Responses.Shared;
 using Xunit;
 
 namespace Test.AspNet.Union;
 
 // Web API 2 serializes with Newtonsoft by default; UseResponses installs a System.Text.Json formatter so
 // requests and non-union responses follow the same JSON rules as the union wire (incl. Undefinable omission).
+// The omission/binding contract itself lives in Test.Responses.Shared.UndefinableTests.
+// Everything below is Web API 2 specific: the formatter used directly, and opting out of the replacement.
 public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTest>(output)
 {
-	[Fact(DisplayName = "An undefined member is omitted from a plain (non-union) response")]
-	public async Task UndefinedMember_IsOmitted()
-	{
-		var res = await AspNetHost.Create().GetAsync("undefinable/partial");
-		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-		var json = JsonNode.Parse(await res.Content.ReadAsStringAsync())!.AsObject();
-		Assert.False(json.ContainsKey("name"));
-		Assert.Equal(123, (int?)json["age"]);
-	}
-
-	[Fact(DisplayName = "An absent member is bound as undefined")]
-	public async Task AbsentMember_IsBoundAsUndefined()
-	{
-		var res = await AspNetHost.Create().PostAsync("undefinable/echo", new StringContent("""{ "age": 7 }""", System.Text.Encoding.UTF8, "application/json"));
-		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-		var json = JsonNode.Parse(await res.Content.ReadAsStringAsync())!.AsObject();
-		Assert.False((bool)json["nameDefined"]!);
-		Assert.True((bool)json["ageDefined"]!);
-	}
-
 	// The classic Newtonsoft formatter treats an empty body with no Content-Length header (chunked or
 	// custom content) as a default value, not as malformed JSON. The formatter must match that, without
 	// starting to swallow genuinely malformed bodies.
@@ -75,7 +59,7 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 	[Fact(DisplayName = "Keeping the Newtonsoft formatter is possible")]
 	public async Task ReplaceJsonFormatter_CanBeOptedOut()
 	{
-		var client = AspNetHost.Create(replaceJsonFormatter: false);
+		var client = AspNetHost.Create(scope: JsonFormatterScope.None);
 
 		// Newtonsoft still answers non-union requests; its body shape is not asserted on here, only that
 		// the endpoint still works.
@@ -88,5 +72,43 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 		Assert.Equal("application/json", payload.Content.Headers.ContentType?.MediaType);
 		var body = JsonNode.Parse(await payload.Content.ReadAsStringAsync())!;
 		Assert.Equal("test", (string?)body["name"]);
+	}
+
+	[Fact(DisplayName = "Existing plain endpoints keep Newtonsoft and PascalCase after UseResponses")]
+	public async Task PlainEndpoint_KeepsNewtonsoft()
+	{
+		var res = await AspNetHost.Create().GetAsync("plain/poco");
+		var json = JsonNode.Parse(await res.Content.ReadAsStringAsync())!.AsObject();
+		Assert.True(json.ContainsKey("Name"));
+		Assert.False(json.ContainsKey("name"));
+	}
+
+	[Fact(DisplayName = "The Newtonsoft formatter stays registered by default and is gone with scope All")]
+	public void JsonFormatter_Presence()
+	{
+		var keep = new HttpConfiguration(); keep.UseResponses();
+		Assert.NotNull(keep.Formatters.JsonFormatter);
+		var all = new HttpConfiguration(); all.UseResponses(scope: JsonFormatterScope.All);
+		Assert.Null(all.Formatters.JsonFormatter);
+	}
+
+	[Fact(DisplayName = "Scope All moves plain endpoints to System.Text.Json (camelCase)")]
+	public async Task ScopeAll_PlainEndpoint_IsCamel()
+	{
+		var res = await AspNetHost.Create(scope: JsonFormatterScope.All).GetAsync("plain/poco");
+		Assert.True(JsonNode.Parse(await res.Content.ReadAsStringAsync())!.AsObject().ContainsKey("name"));
+	}
+
+	// Web API 2 builds a route-not-found HttpError itself, before any formatter (Newtonsoft or ours) is ever
+	// consulted for a union or plain type: it always writes its own PascalCase keys, whichever formatter is
+	// installed. UseResponses() must not change that.
+	[Fact(DisplayName = "Framework HttpError bodies keep their PascalCase keys under the default scope")]
+	public async Task FrameworkHttpError_KeepsPascalCase()
+	{
+		var res = await AspNetHost.Create().GetAsync("plain/does-not-exist");
+		Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
+		var json = JsonNode.Parse(await res.Content.ReadAsStringAsync())!.AsObject();
+		Assert.True(json.ContainsKey("Message"));
+		Assert.False(json.ContainsKey("message"));
 	}
 }

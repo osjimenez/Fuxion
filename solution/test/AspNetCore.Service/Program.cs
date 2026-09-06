@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Fuxion;
@@ -6,6 +7,7 @@ using Fuxion.Text.Json.Serialization;
 using Fuxion.Union;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Test.Responses.Shared;
 
 namespace Test.AspNetCore.Service;
 
@@ -30,6 +32,8 @@ public class Program
 			opts.SerializeFullResponses = false;
 			opts.SerializeErrorAsProblemDetails = true;
 			opts.StrictNone = false;
+			opts.BusinessErrorStatus = e => e is TestForeignError ? HttpStatusCode.TooManyRequests : null;
+			opts.RequestNamingMaxBodySize = 64 * 1024;
 		});
 
 		builder.Services.AddControllers(options => options.UseResponses())
@@ -48,7 +52,11 @@ public class Program
 		// Example of overriding options at group level (demo)
 		var sub = responses.MapGroup("sub").UseResponses(meta => meta.SerializeFullResponses = true);
 
-		app.MapControllers();
+		// Controllers get the response-side wire contract from AddControllers(o => o.UseResponses()) above,
+		// not from this endpoint convention (MVC ignores endpoint filter factories). The chain here exists to
+		// prove that RequestNamingEndpoint.Apply skips controller endpoints (they already have per-request
+		// naming support via ResponseNamingInputFormatter), so request bodies are never transcoded twice.
+		app.MapControllers().UseResponses();
 		responses.MapEndpointsForAssembly(typeof(Program).Assembly);
 
 		app.Run();

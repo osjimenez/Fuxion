@@ -19,6 +19,7 @@ public sealed class FileContent : IDisposable
 		ContentType = string.IsNullOrWhiteSpace(contentType) ? BinaryPayload.DefaultContentType : contentType!;
 		FileName = fileName;
 		Length = stream.CanSeek ? stream.Length : null;
+		EnableRangeProcessing = stream.CanSeek;
 	}
 
 	/// <summary>
@@ -49,8 +50,8 @@ public sealed class FileContent : IDisposable
 	public string? ETag { get; init; }
 
 	/// <summary>
-	/// Whether the server should honour Range requests (206) for this content. Range requests can only
-	/// be served when the stream is seekable; otherwise the body is written in full.
+	/// Whether the server should honour Range requests (206) for this content. Defaults to the stream's
+	/// seekability; range requests need a known length and random access.
 	/// </summary>
 	public bool EnableRangeProcessing { get; init; }
 

@@ -2,10 +2,12 @@ namespace Test.AspNet.Service;
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Web.Http;
 using Fuxion.AspNet;
 using Fuxion.Union;
+using Test.Responses.Shared;
 
 [RoutePrefix("response")]
 public class ResponseController : ApiController
@@ -14,9 +16,13 @@ public class ResponseController : ApiController
 	[HttpGet, Route("none")] public ResponseMaybe<Unit> None_() => None.Value;
 	[HttpGet, Route("string")] public Response<string> String_() => "test";
 	[HttpGet, Route("payload")] public Response<TestPayload> Payload() => TestPayload.Default;
+	// A multi-word payload under bare application/json: proves a requested naming policy is never
+	// stamped on an un-announced shape (see Fuxion.Union.ResponseWireMapper.TryMap).
+	[HttpGet, Route("naming-payload")] public Response<TestNamingPayload> NamingPayload() => new TestNamingPayload("Ada", 36);
 	[HttpGet, Route("error-message")] public Response<Unit> ErrorMessage() => Error.Custom("test");
 	[HttpGet, Route("error-type")] public Response<Unit> ErrorType() => Error.NotImplemented();
 	[HttpGet, Route("typed-error")] public Response<string, TestBusinessError> TypedError() => TestBusinessError.Default;
+	[HttpGet, Route("typed-error-foreign")] public Response<string, TestForeignError> TypedErrorForeign() => new TestForeignError("quota");
 	[HttpGet, Route("unset")] public Response<string> Unset() => default;
 	// Proves the filter maps an async union action the same as a sync one: the framework awaits the
 	// Task before OnActionExecuted runs, but ActionDescriptor.ReturnType still reports Task<Response<T>>.
@@ -47,6 +53,13 @@ public class PlainController : ApiController
 	// framework's own 204 (no content) alone rather than throw on a null declared return type.
 	[HttpGet, Route("void")] public void Void_() { }
 	[HttpGet, Route("task")] public Task Task_() => Task.CompletedTask;
+
+	// A plain (non-Fuxion) POCO: whichever JSON formatter is in effect handles it, not the Fuxion one.
+	[HttpGet, Route("poco")] public PlainPoco Poco() => new("x", 1);
+
+	// A single-word property (PlainPoco.Name) never exercises naming: snake_case of "Name" is still "name",
+	// so this needs a multi-word one to tell transcoding apart from an untouched (Newtonsoft) bind.
+	[HttpPost, Route("two-words")] public object TwoWords([FromBody] PlainTwoWords poco) => new { firstName = poco?.FirstName };
 }
 
 [RoutePrefix("undefinable")]
@@ -67,6 +80,11 @@ public class NamingController : ApiController
 	[HttpPost, Route("validate")]
 	public IHttpActionResult Validate([FromBody] TestNamingPayload? payload)
 		=> ModelState.IsValid && payload is not null ? Ok() : BadRequest(ModelState);
+
+	// Dictionary keys must never be renamed by a naming policy, only object property names.
+	[HttpPost, Route("dictionary")]
+	public object Dictionary([FromBody] TestDictionaryPayload payload)
+		=> new { keys = payload.Tags.Keys.OrderBy(k => k).ToArray(), name = payload.FirstName };
 }
 
 [RoutePrefix("binary")]

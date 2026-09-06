@@ -14,6 +14,26 @@ namespace Fuxion.Union.Net.Http;
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 /// <summary>
+/// Names of the extension members a client-side reading failure carries so that a body which could
+/// not be understood is not lost: the raw text, the parsed-but-unfit <see cref="JsonElement"/>, and
+/// the announced content type/length.
+/// </summary>
+public static class ClientErrorExtensions
+{
+	/// <summary>The raw response text, present when the body was read but was not valid JSON.</summary>
+	public const string TextPayload = "textPayload";
+
+	/// <summary>The parsed <see cref="JsonElement"/>, present when the body was valid JSON but did not fit the requested type.</summary>
+	public const string JsonPayload = "jsonPayload";
+
+	/// <summary>The announced Content-Type media type.</summary>
+	public const string ContentType = "contentType";
+
+	/// <summary>The announced Content-Length, when the body was refused before being read.</summary>
+	public const string ContentLength = "contentLength";
+}
+
+/// <summary>
 /// Reads union responses out of HTTP messages. The client trusts only what the message says about
 /// itself: the media type says the body shape, the naming parameter says how it was written and the
 /// status code says whether it went well. There are no format flags: a Fuxion server describes every
@@ -47,8 +67,25 @@ public static class ResponseExtensions
 #endif
 	}
 
-	static bool TryDeserialize<T>(string body, JsonSerializerOptions jsonOptions, out T value, out Error failure)
+	// Try, and keep what could not be understood: the raw text when it is not JSON, the JsonElement when it
+	// is JSON but does not fit the type. Mirrors the pre-union parser (StringContent / JsonContent / JsonError).
+	static bool TryDeserialize<T>(string body, JsonSerializerOptions jsonOptions, string? contentType, out T value, out Error failure)
 	{
+		JsonElement element;
+		try
+		{
+			using var document = JsonDocument.Parse(body);
+			element = document.RootElement.Clone();
+		}
+		catch (JsonException ex)
+		{
+			value = default!;
+			failure = Error.Critical("The response body is not JSON.", exception: ex);
+			failure.Extensions[ClientErrorExtensions.TextPayload] = body;
+			failure.Extensions[ClientErrorExtensions.ContentType] = MediaTypeOf(contentType);
+			return false;
+		}
+
 		var deserialization = body.Fx.Json.Deserialize<T>(options: jsonOptions);
 		if (deserialization.IsSuccess)
 		{
@@ -57,15 +94,22 @@ public static class ResponseExtensions
 			return true;
 		}
 
+		var hint = string.Equals(ResponseNaming.GetParameter(contentType), ResponseNaming.Custom, StringComparison.OrdinalIgnoreCase)
+			? " The server announced a custom naming policy; pass JsonSerializerOptions with the same policy."
+			: string.Empty;
 		value = default!;
-		failure = Error.Critical(deserialization.Message, exception: deserialization.Exception);
+		failure = Error.Critical($"The JSON body could not be read as '{typeof(T).GetSignature()}'.{hint}", exception: deserialization.Exception);
+		failure.Extensions[ClientErrorExtensions.JsonPayload] = element;
+		failure.Extensions[ClientErrorExtensions.ContentType] = MediaTypeOf(contentType);
 		return false;
 	}
 
+	static string? MediaTypeOf(string? contentType) => ResponseMediaTypes.TryParse(contentType, out var parsed) ? parsed.MediaType : contentType;
+
 	// RFC 9457. Some servers omit "status": the HTTP status is the authoritative fallback.
-	static Error ReadProblem(string body, JsonSerializerOptions jsonOptions, HttpStatusCode status)
+	static Error ReadProblem(string body, JsonSerializerOptions jsonOptions, HttpStatusCode status, string? contentType)
 	{
-		if (!TryDeserialize<ResponseProblemDetails>(body, jsonOptions, out var problem, out var failure))
+		if (!TryDeserialize<ResponseProblemDetails>(body, jsonOptions, contentType, out var problem, out var failure))
 			return failure;
 
 		var error = ErrorProblemDetailsConverter.ToError(problem, jsonOptions);
@@ -120,6 +164,20 @@ public static class ResponseExtensions
 			|| media.Equals("text/json", StringComparison.OrdinalIgnoreCase)
 			|| media.EndsWith("+json", StringComparison.OrdinalIgnoreCase)
 			|| ResponseMediaTypes.IsFuxion(contentType);
+	}
+
+	// A text media type is worth trying: the body is read and parsed as JSON even though the server
+	// did not announce it as such (a legacy or misconfigured server serializing JSON as text/plain).
+	static bool IsTextContentType(string? contentType)
+		=> ResponseMediaTypes.TryParse(contentType, out var parsed) && (parsed.MediaType?.StartsWith("text/", StringComparison.OrdinalIgnoreCase) ?? false);
+
+	// Neither JSON nor text: refused without reading, so a large binary body never gets buffered into a string.
+	static Error UnreadableBinary(HttpResponseMessage me, Type target)
+	{
+		var error = Error.Critical($"The response body is '{me.Content?.Headers.ContentType?.MediaType}', not JSON nor text, and '{target.GetSignature()}' cannot be read from it.");
+		error.Extensions[ClientErrorExtensions.ContentType] = me.Content?.Headers.ContentType?.MediaType;
+		error.Extensions[ClientErrorExtensions.ContentLength] = me.Content?.Headers.ContentLength;
+		return error;
 	}
 
 	static async Task<Stream> ReadStreamAsync(HttpResponseMessage me, CancellationToken ct)
@@ -231,25 +289,25 @@ public static class ResponseExtensions
 					return binarySuccess ? binaryPayload : Error.Critical(binaryFailureMessage);
 				}
 				// Unit consumes no content: a legacy server may answer 200 with an empty text/plain body.
-				if (typeof(TSuccess) != typeof(Unit) && !IsJsonContentType(contentType))
-					return Error.Critical($"The response body is '{me.Content?.Headers.ContentType?.MediaType}', not JSON, and '{typeof(TSuccess).GetSignature()}' cannot be read from it.");
+				if (typeof(TSuccess) != typeof(Unit) && !IsJsonContentType(contentType) && !IsTextContentType(contentType))
+					return UnreadableBinary(me, typeof(TSuccess));
 			}
 
 			var body = await ReadBodyAsync(me, ct);
 
 			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ResponseJson))
 			{
-				if (TryDeserialize<ResponseMaybe<TSuccess>>(body, currentJsonOptions, out var envelope, out var envelopeFailure))
+				if (TryDeserialize<ResponseMaybe<TSuccess>>(body, currentJsonOptions, contentType, out var envelope, out var envelopeFailure))
 					return envelope;
 				return envelopeFailure;
 			}
 
 			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ProblemJson))
-				return ReadProblem(body, currentJsonOptions, me.StatusCode);
+				return ReadProblem(body, currentJsonOptions, me.StatusCode, contentType);
 
 			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ErrorJson))
 			{
-				if (TryDeserialize<Error>(body, currentJsonOptions, out var nativeError, out var nativeFailure))
+				if (TryDeserialize<Error>(body, currentJsonOptions, contentType, out var nativeError, out var nativeFailure))
 					return nativeError;
 				return nativeFailure;
 			}
@@ -260,7 +318,7 @@ public static class ResponseExtensions
 			if (string.IsNullOrWhiteSpace(body))
 				return TryGetUnitPayload<TSuccess>(out var legacyUnit) ? legacyUnit : Error.Critical($"The response status code is '{(int)me.StatusCode}' and the body is empty.");
 
-			if (TryDeserialize<TSuccess>(body, currentJsonOptions, out var payload, out var payloadFailure))
+			if (TryDeserialize<TSuccess>(body, currentJsonOptions, contentType, out var payload, out var payloadFailure))
 				return payload;
 			return payloadFailure;
 		}
@@ -296,22 +354,22 @@ public static class ResponseExtensions
 					return binarySuccess ? binaryPayload : throw CreateDeserializationError(binaryFailureMessage);
 				}
 				// Unit consumes no content: a legacy server may answer 200 with an empty text/plain body.
-				if (typeof(TSuccess) != typeof(Unit) && !IsJsonContentType(contentType))
-					throw CreateDeserializationError($"The response body is '{me.Content?.Headers.ContentType?.MediaType}', not JSON, and '{typeof(TSuccess).GetSignature()}' cannot be read from it.");
+				if (typeof(TSuccess) != typeof(Unit) && !IsJsonContentType(contentType) && !IsTextContentType(contentType))
+					throw CreateDeserializationError(UnreadableBinary(me, typeof(TSuccess)).Message);
 			}
 
 			var body = await ReadBodyAsync(me, ct);
 
 			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ResponseJson))
 			{
-				if (TryDeserialize<ResponseMaybe<TSuccess, TError>>(body, currentJsonOptions, out var envelope, out var envelopeFailure))
+				if (TryDeserialize<ResponseMaybe<TSuccess, TError>>(body, currentJsonOptions, contentType, out var envelope, out var envelopeFailure))
 					return envelope;
 				throw CreateDeserializationError(envelopeFailure.Message, envelopeFailure.Exception);
 			}
 
 			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ProblemJson))
 			{
-				var problemError = ReadProblem(body, currentJsonOptions, me.StatusCode);
+				var problemError = ReadProblem(body, currentJsonOptions, me.StatusCode, contentType);
 				return errorIsNative ? (TError)(object)problemError : ReadTypedError<TError>(problemError, currentJsonOptions);
 			}
 
@@ -319,7 +377,7 @@ public static class ResponseExtensions
 			{
 				if (!errorIsNative)
 					throw CreateDeserializationError($"The response carries a native Error but '{typeof(TError).GetSignature()}' was expected.");
-				if (TryDeserialize<Error>(body, currentJsonOptions, out var nativeError, out var nativeFailure))
+				if (TryDeserialize<Error>(body, currentJsonOptions, contentType, out var nativeError, out var nativeFailure))
 					return (TError)(object)nativeError;
 				throw CreateDeserializationError(nativeFailure.Message, nativeFailure.Exception);
 			}
@@ -330,7 +388,7 @@ public static class ResponseExtensions
 					return (TError)(object)ReadForeignError(me, body);
 				if (string.IsNullOrWhiteSpace(body))
 					throw CreateDeserializationError($"The response status code is '{(int)me.StatusCode}' and the body is empty.");
-				if (TryDeserialize<TError>(body, currentJsonOptions, out var typed, out var typedFailure))
+				if (TryDeserialize<TError>(body, currentJsonOptions, contentType, out var typed, out var typedFailure))
 					return typed;
 				throw CreateDeserializationError(typedFailure.Message ?? $"The error body could not be deserialized as '{typeof(TError).GetSignature()}'.", typedFailure.Exception);
 			}
@@ -338,7 +396,7 @@ public static class ResponseExtensions
 			if (string.IsNullOrWhiteSpace(body))
 				return TryGetUnitPayload<TSuccess>(out var legacyUnit) ? legacyUnit : throw CreateDeserializationError($"The response status code is '{(int)me.StatusCode}' and the body is empty.");
 
-			if (TryDeserialize<TSuccess>(body, currentJsonOptions, out var payload, out var payloadFailure))
+			if (TryDeserialize<TSuccess>(body, currentJsonOptions, contentType, out var payload, out var payloadFailure))
 				return payload;
 			throw CreateDeserializationError(payloadFailure.Message, payloadFailure.Exception);
 		}

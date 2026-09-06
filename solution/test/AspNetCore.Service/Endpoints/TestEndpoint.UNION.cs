@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text.Json;
 //using Fuxion;
@@ -8,7 +9,7 @@ using Fuxion.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Http;
-using Test.AspNetCore.Service;
+using Test.Responses.Shared;
 using Fuxion;
 using Fuxion.Text.Json.Serialization.Metadata;
 using System.Threading.Tasks;
@@ -46,6 +47,13 @@ public class TestEndpoint : IEndpoint
 			return TestPayload.Default;
 		});
 
+		// A multi-word payload under bare application/json: proves a requested naming policy is never
+		// stamped on an un-announced shape (see Fuxion.Union.ResponseWireMapper.TryMap).
+		responseGroup.MapGet("naming-payload", Response<TestNamingPayload> () =>
+		{
+			return new TestNamingPayload("Ada", 36);
+		});
+
 		responseGroup.MapGet("error-message", Response<Unit> () =>
 		{
 			return Error.Custom("test");
@@ -79,6 +87,10 @@ public class TestEndpoint : IEndpoint
 			return TestBusinessError.Default;
 		});
 
+		responseGroup.MapGet("typed-error-foreign", Response<string, TestForeignError> () => new TestForeignError("quota"));
+
+		responseGroup.MapGet("unset", Response<string> () => default);
+
 		#endregion
 
 		#region IResult
@@ -92,6 +104,10 @@ public class TestEndpoint : IEndpoint
 			Response<TestPayload> response = TestPayload.Default;
 			return response.ToResult();
 		});
+
+		// Reached through two UseResponses() call sites (the root group and this one): proves the naming
+		// wrapper is idempotent instead of double-wrapping the RequestDelegate.
+		specialGroup.MapPost("naming-echo", (TestNamingPayload payload) => new { firstName = payload.FirstName, age = payload.Age });
 
 		// SUCCESS
 		resultGroup.MapGet("unit", () => Unit.Result);
@@ -253,6 +269,13 @@ public class TestEndpoint : IEndpoint
 		// Echoes what the binder understood, so a test can prove the request naming parameter was honoured.
 		var namingGroup = minimalGroup.MapGroup("naming");
 		namingGroup.MapPost("echo", (TestNamingPayload payload) => new { firstName = payload.FirstName, age = payload.Age });
+		namingGroup.MapPost("dictionary", (TestDictionaryPayload payload) => new { keys = payload.Tags.Keys.OrderBy(k => k).ToArray(), name = payload.FirstName });
+		namingGroup.MapPost("raw", async (HttpContext ctx) =>
+		{
+			using var r = new StreamReader(ctx.Request.Body);
+			var text = await r.ReadToEndAsync();
+			return new { hasSnake = text.Contains("first_name") };
+		});
 
 		#endregion
 

@@ -15,6 +15,7 @@
 		<ProjectReference Include="$(AspNetCoreProjectPath)" />
 		<ProjectReference Include="..\..\src\Http\Fuxion.Http.csproj" />
 		<ProjectReference Include="$(Test_AspNetCore_ServiceProjectPath)" />
+		<ProjectReference Include="$(Test_Responses_SharedProjectPath)" />
 	</ItemGroup>
 
 </Project>
