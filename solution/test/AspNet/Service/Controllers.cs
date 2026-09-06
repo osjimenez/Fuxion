@@ -95,6 +95,7 @@ public class BinaryController : ApiController
 	[HttpGet, Route("bytes")] public Response<byte[]> Bytes() => TestFile.Bytes;
 	[HttpGet, Route("none")] public ResponseMaybe<FileContent> None_() => None.Value;
 	[HttpGet, Route("error")] public Response<FileContent> Error_() => Error.NotFound("missing");
+	[HttpGet, Route("chunked")] public Response<Stream> Chunked() => new NonSeekableStream(TestFile.Bytes);
 }
 
 // Exercises the deferred ToHttpActionResult extensions: the action does not touch the request itself,

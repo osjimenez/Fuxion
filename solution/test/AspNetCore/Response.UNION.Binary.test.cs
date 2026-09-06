@@ -33,6 +33,16 @@ public class BinaryWireTest(ITestOutputHelper output, WebApplicationFactory<Prog
 		Assert.Equal(HttpStatusCode.NotModified, res.StatusCode);
 		Assert.Empty(await res.Content.ReadAsByteArrayAsync());
 	}
+
+	[Fact(DisplayName = "A 304 from a conditional GET is read by the client as an error typed NotModified")]
+	public async Task IfNoneMatch_ClientReads304()
+	{
+		var request = Get("minimal/binary/file");
+		request.Headers.TryAddWithoutValidation("If-None-Match", TestFile.ETag);
+		var response = await factory.CreateClient().SendAsync(request, HttpCompletionOption.ResponseHeadersRead).AsResponseAsync<FileContent>();
+		IsTrue(response.TryGetValue(out Error error));
+		Assert.Equal(HttpStatusCode.NotModified, error.Type);
+	}
 }
 
 // AsResponseAsync<FileContent> is covered for both prefixes by Test.Responses.Shared.ClientTests.Client_ReadsFile;

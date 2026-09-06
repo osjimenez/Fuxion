@@ -162,6 +162,11 @@ public class ResultTestController : ControllerBase
 			return response.ToActionResult();
 		}
 	}
+	// Explicit options passed to ToActionResult() win over both the scope's cascade and the request's Accept header.
+	[HttpGet("explicit-envelope")]
+	public IActionResult ExplicitEnvelope() => ((Fuxion.Union.IResponse)(Response<TestPayload>)TestPayload.Default).ToActionResult(new ResponseOptions { SerializeFullResponses = true });
+	[HttpGet("explicit-plain")]
+	public IActionResult ExplicitPlain() => ((Fuxion.Union.IResponse)(Response<TestPayload>)TestPayload.Default).ToActionResult(new ResponseOptions { SerializeFullResponses = false });
 }
 
 [ApiController]
@@ -223,6 +228,8 @@ public class BinaryTestController : ControllerBase
 	public ResponseMaybe<FileContent> None_() => None.Value;
 	[HttpGet("error")]
 	public Response<FileContent> Error_() => Error.NotFound("missing");
+	[HttpGet("chunked")]
+	public Response<Stream> Chunked() => new NonSeekableStream(TestFile.Bytes);
 }
 
 // Proves the ResponseOptionsAttribute cascade (global -> controller -> action) still works after the

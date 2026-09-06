@@ -80,4 +80,17 @@ public class JsonNamingTranscoderTest(ITestOutputHelper output) : BaseTest<JsonN
 	[Fact(DisplayName = "A malformed body still throws JsonException")]
 	public void Typed_Malformed_Throws()
 		=> Assert.ThrowsAny<JsonException>(() => JsonNamingTranscoder.Transcode(Encoding.UTF8.GetBytes("{ not json"), typeof(Body), new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+	[Fact(DisplayName = "Unicode keys and escaped values survive transcoding: textual yields Pascal, typed yields the property name")]
+	public void Unicode_Survives()
+	{
+		const string json = """{"nombre_día":"añó 😀","emoji_😀":"x","tags":{"clave_ñ":1}}""";
+		var textual = JsonNode.Parse(JsonNamingTranscoder.Transcode(json))!.AsObject();
+		Assert.Equal("añó 😀", (string?)textual["NombreDía"]);
+		Assert.Equal("x", (string?)textual["Emoji😀"]);
+		var typed = JsonNode.Parse(Encoding.UTF8.GetString(JsonNamingTranscoder.Transcode(Encoding.UTF8.GetBytes(json), typeof(Unicode), new JsonSerializerOptions(JsonSerializerDefaults.Web))))!.AsObject();
+		Assert.Equal("añó 😀", (string?)typed["nombreDía"]);
+		Assert.Equal(1, (int?)typed["tags"]!["clave_ñ"]);
+	}
+	record Unicode(string NombreDía, Dictionary<string, int> Tags);
 }

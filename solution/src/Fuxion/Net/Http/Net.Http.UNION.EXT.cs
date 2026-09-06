@@ -54,10 +54,12 @@ public static class ResponseExtensions
 	static InvalidOperationException CreateDeserializationError(string? message, Exception? innerException = null)
 		=> new(message ?? "The HTTP response body could not be deserialized.", innerException);
 
-	// The token is honoured where the target framework exposes an overload that accepts it. On the
-	// older frameworks the read cannot be cancelled, so cancellation is observed before starting it.
+	// Cancellation is always observed before starting the read, regardless of target framework: the
+	// BCL overload is used where available, but an already-cancelled token must not depend on whether
+	// that overload happens to check it for content that is already buffered.
 	static async Task<string> ReadBodyAsync(HttpResponseMessage me, CancellationToken ct)
 	{
+		ct.ThrowIfCancellationRequested();
 		if (me.Content is null) return string.Empty;
 #if NET5_0_OR_GREATER
 		return await me.Content.ReadAsStringAsync(ct);
@@ -182,6 +184,7 @@ public static class ResponseExtensions
 
 	static async Task<Stream> ReadStreamAsync(HttpResponseMessage me, CancellationToken ct)
 	{
+		ct.ThrowIfCancellationRequested();
 #if NET5_0_OR_GREATER
 		return await me.Content.ReadAsStreamAsync(ct);
 #else
@@ -198,6 +201,7 @@ public static class ResponseExtensions
 	static async Task<(bool Success, TSuccess Value, string? FailureMessage)> TryReadBinaryAsync<TSuccess>(HttpResponseMessage me, CancellationToken ct)
 		where TSuccess : notnull
 	{
+		ct.ThrowIfCancellationRequested();
 		if (typeof(TSuccess) == typeof(byte[]))
 		{
 #if NET5_0_OR_GREATER

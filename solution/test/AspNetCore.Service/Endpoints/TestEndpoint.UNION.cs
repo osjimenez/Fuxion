@@ -47,6 +47,9 @@ public class TestEndpoint : IEndpoint
 			return TestPayload.Default;
 		});
 
+		// Per-endpoint override: forces the full envelope on this single route, leaving the rest of the group untouched.
+		responseGroup.MapGet("payload-enveloped", Response<TestPayload> () => TestPayload.Default).UseResponses(meta => meta.SerializeFullResponses = true);
+
 		// A multi-word payload under bare application/json: proves a requested naming policy is never
 		// stamped on an un-announced shape (see Fuxion.Union.ResponseWireMapper.TryMap).
 		responseGroup.MapGet("naming-payload", Response<TestNamingPayload> () =>
@@ -259,10 +262,80 @@ public class TestEndpoint : IEndpoint
 		// Una pena que no se puedan crear conversores explícitos mediante extensiones (Microsoft presentó algún diseño de esto, pero no se ha implementado finalmente)
 		resultGroup.MapGet("syntax-demo-7-1", IResult () => Do().ToResult());
 		resultGroup.MapGet("syntax-demo-7-2", IResult () => DoMaybe().ToResult());
-		// Caso 8 - Metodos de extension para convertir cualqueir tipo en Response
-		// Ayudaría a mitigar un poco la sintaxis de de demos 1 y 2
-		//resultGroup.MapGet("syntax-demo-8-1", () => 123.ToResponse());
-		//resultGroup.MapGet("syntax-demo-8-2", () => "".ToResponseMaybe());
+
+		// Explicit options passed to ToResult() win over both the scope's cascade and the request's Accept header.
+		resultGroup.MapGet("explicit-envelope", IResult () => Do().ToResult(new ResponseOptions { SerializeFullResponses = true }));
+		resultGroup.MapGet("explicit-plain", IResult () => Do().ToResult(new ResponseOptions { SerializeFullResponses = false }));
+
+		#region PLAIN
+
+		// Neighbours with no union return type: UseResponses must leave them exactly as the framework would.
+		var plainGroup = minimalGroup.MapGroup("plain");
+		plainGroup.MapGet("list", () => new[] { "a", "b" });
+		plainGroup.MapGet("ok", IResult () => Results.Ok(new { name = "plain" }));
+
+		#endregion
+
+		#region FORMS
+
+		// Deterministic (no Random): every union form, sync or wrapped in Task/ValueTask.
+		var formsGroup = minimalGroup.MapGroup("forms");
+		formsGroup.MapGet("response", Response<int> () => 123);
+		formsGroup.MapGet("response-task", async Task<Response<int>> () =>
+		{
+			await Task.Yield();
+			return 123;
+		});
+		formsGroup.MapGet("response-valuetask", async ValueTask<Response<int>> () =>
+		{
+			await Task.Yield();
+			return 123;
+		});
+		formsGroup.MapGet("typed", Response<int, string> () => 123);
+		formsGroup.MapGet("typed-task", async Task<Response<int, string>> () =>
+		{
+			await Task.Yield();
+			return 123;
+		});
+		formsGroup.MapGet("typed-valuetask", async ValueTask<Response<int, string>> () =>
+		{
+			await Task.Yield();
+			return 123;
+		});
+		formsGroup.MapGet("maybe", ResponseMaybe<int> () => 123);
+		formsGroup.MapGet("maybe-task", async Task<ResponseMaybe<int>> () =>
+		{
+			await Task.Yield();
+			return 123;
+		});
+		formsGroup.MapGet("maybe-valuetask", async ValueTask<ResponseMaybe<int>> () =>
+		{
+			await Task.Yield();
+			return 123;
+		});
+		formsGroup.MapGet("maybe-typed", ResponseMaybe<int, string> () => 123);
+		formsGroup.MapGet("maybe-typed-task", async Task<ResponseMaybe<int, string>> () =>
+		{
+			await Task.Yield();
+			return 123;
+		});
+		formsGroup.MapGet("maybe-typed-valuetask", async ValueTask<ResponseMaybe<int, string>> () =>
+		{
+			await Task.Yield();
+			return 123;
+		});
+		formsGroup.MapGet("maybe-typed-none-valuetask", async ValueTask<ResponseMaybe<int, string>> () =>
+		{
+			await Task.Yield();
+			return None.Value;
+		});
+		formsGroup.MapGet("typed-error-task", async Task<Response<int, string>> () =>
+		{
+			await Task.Yield();
+			return "business";
+		});
+
+		#endregion
 
 		#region NAMING
 
@@ -288,6 +361,7 @@ public class TestEndpoint : IEndpoint
 		binaryGroup.MapGet("bytes", Response<byte[]> () => TestFile.Bytes);
 		binaryGroup.MapGet("none", ResponseMaybe<FileContent> () => None.Value);
 		binaryGroup.MapGet("error", Response<FileContent> () => Error.NotFound("missing"));
+		binaryGroup.MapGet("chunked", Response<Stream> () => new NonSeekableStream(TestFile.Bytes));
 
 		#endregion
 
@@ -310,21 +384,6 @@ public class TestEndpoint : IEndpoint
 	private Response<int> Do() => 123;
 	private ResponseMaybe<int> DoMaybe() => None.Value;
 }
-//public static class Extensions
-//{
-//	extension<T>(T? me) where T : struct
-//	{
-//		public ResponseMaybe<T> ToResponseMaybe() => me is null ? None.Value : me.Value;
-//	}
-//	extension<T>(T? me) where T : class
-//	{
-//		public ResponseMaybe<T> ToResponseMaybe() => me is null ? None.Value : me;
-//	}
-//	extension<T>(T me) where T : notnull
-//	{
-//		public Response<T> ToResponse() => me;
-//	}
-//}
 file class Level1
 {
 	public void Throw() => new Level2().Throw();

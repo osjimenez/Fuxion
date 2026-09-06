@@ -506,6 +506,30 @@ public class ErrorTest(ITestOutputHelper output) : BaseTest<ResponseTest>(output
    }
 
    #endregion
+
+   #region InnerErrors
+
+   [Fact(DisplayName = "An empty innerErrors array is stored as null")]
+   public void InnerErrors_Empty_IsNull()
+   {
+      Assert.Null(Error.Custom("x", innerErrors: []).InnerErrors);
+      Assert.Single(Error.Custom("x", innerErrors: [Error.Custom("inner")]).InnerErrors!);
+   }
+   [Fact(DisplayName = "Every factory accepts innerErrors and keeps them")]
+   public void Factories_KeepInnerErrors()
+   {
+      Error[] inner = [Error.Custom("inner")];
+      Error[] all =
+      [
+         Error.Custom("m", innerErrors: inner), Error.NotFound("m", innerErrors: inner), Error.Forbidden("m", innerErrors: inner),
+         Error.Unauthorized("m", innerErrors: inner), Error.InvalidData("m", innerErrors: inner), Error.Conflict("m", innerErrors: inner),
+         Error.Critical("m", innerErrors: inner), Error.NotImplemented("m", innerErrors: inner), Error.Unavailable("m", innerErrors: inner),
+         Error.Timeout("m", innerErrors: inner)
+      ];
+      Assert.All(all, e => Assert.Equal("inner", Assert.Single(e.InnerErrors!).Message));
+   }
+
+   #endregion
 }
 file record CustomInfo(string Message, int Code)
 {

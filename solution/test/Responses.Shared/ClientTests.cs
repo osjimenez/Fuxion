@@ -118,4 +118,21 @@ public abstract class ClientTests : BaseTest<ClientTests>
 		IsTrue(response.TryGetValue(out TestNamingPayload? payload));
 		Assert.Equal("Ada", payload!.FirstName);
 	}
+
+	[Fact(DisplayName = "PreferNativeErrors makes the server answer with the native error and the client reads it")]
+	public async Task PreferNativeErrors_EndToEnd()
+	{
+		var options = new FuxionHttpClientOptions { PreferNativeErrors = true };
+		var client = new FuxionHttpClient(Host.CreateClient(), options);
+		var request = new HttpRequestMessage(HttpMethod.Get, Host.Route("response/error-type"));
+		var response = await client.SendAsync<TestPayload>(request);
+		Assert.Contains(request.Headers.Accept, a => a.MediaType == ResponseMediaTypes.ErrorJson);
+		IsTrue(response.TryGetValue(out Error error));
+		Assert.Equal(HttpStatusCode.NotImplemented, error.Type);
+
+		var raw = new HttpRequestMessage(HttpMethod.Get, Host.Route("response/error-type"));
+		foreach (var accept in request.Headers.Accept) raw.Headers.Accept.Add(accept);
+		var wire = await client.HttpClient.SendAsync(raw);
+		Assert.Equal(ResponseMediaTypes.ErrorJson, wire.Content.Headers.ContentType?.MediaType);
+	}
 }

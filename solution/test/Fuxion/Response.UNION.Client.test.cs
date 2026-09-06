@@ -1,8 +1,10 @@
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Fuxion.Union;
 using Fuxion.Union.Net.Http;
@@ -102,6 +104,8 @@ public class ClientReadingTest(ITestOutputHelper output) : BaseTest<ClientReadin
 	{
 		IsTrue((await Message(HttpStatusCode.NoContent, null, null).AsResponseAsync<Unit>()).IsNone);
 		IsTrue((await Message(HttpStatusCode.OK, "", null).AsResponseAsync<Unit>()).TryGetValue(out Unit _));
+		// Same fallback for a legacy server that announces an empty text/plain body instead of no content type.
+		IsTrue((await Message(HttpStatusCode.OK, "", "text/plain; charset=utf-8").AsResponseAsync<Unit>()).TryGetValue(out Unit _));
 	}
 
 	[Fact(DisplayName = "With a custom error type, a foreign JSON error body is deserialized as that type")]
@@ -182,5 +186,121 @@ public class ClientReadingTest(ITestOutputHelper output) : BaseTest<ClientReadin
 		IsTrue(res.TryGetValue(out Error e));
 		Assert.Contains("custom naming", e.Message);
 	}
+
+	[Fact(DisplayName = "An envelope announced by its media type is read with the client default (camel) options, no flag needed")]
+	public async Task Envelope_IsReadByMediaTypeWithClientDefaults()
+	{
+		var response = await Message(HttpStatusCode.OK, """{"isSuccess":true,"isNone":false,"payload":{"name":"envelope"}}""", ResponseMediaTypes.ResponseJson).AsResponseAsync<Payload>();
+		IsTrue(response.TryGetValue(out Payload? payload));
+		Assert.Equal("envelope", payload!.Name);
+	}
+
+	[Fact(DisplayName = "A problem+json body is read by its media type even if the caller expected a payload")]
+	public async Task Problem_IsReadByMediaType()
+	{
+		var response = await Message(HttpStatusCode.InternalServerError, """{"status":500,"title":"Internal server error","detail":"boom"}""", ResponseMediaTypes.ProblemJson).AsResponseAsync<Payload>();
+		IsTrue(response.TryGetValue(out Error error));
+		Assert.Equal("boom", error.Message);
+		Assert.Equal(HttpStatusCode.InternalServerError, error.Type);
+	}
+
+	[Fact(DisplayName = "An already cancelled token stops the body read")]
+	public async Task CancellationToken_IsHonoured()
+	{
+		using var cts = new CancellationTokenSource();
+		cts.Cancel();
+		await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Message(HttpStatusCode.OK, """{"name":"test"}""", "application/json").AsResponseAsync<Payload>(ct: cts.Token));
+	}
+
+	[Fact(DisplayName = "A truncated JSON body is a critical error that keeps the raw text")]
+	public async Task MalformedBody_IsCriticalAndKeepsText()
+	{
+		const string body = """{"name":"broken",""";
+		var response = await Message(HttpStatusCode.OK, body, "application/json").AsResponseAsync<Payload>();
+		IsTrue(response.TryGetValue(out Error error));
+		IsTrue(error.IsCritical);
+		Assert.Equal(body, error.Extensions[ClientErrorExtensions.TextPayload]);
+	}
+
+	[Theory(DisplayName = "A malformed body under a Fuxion media type is a critical error that keeps the text")]
+	[InlineData(ResponseMediaTypes.ProblemJson, HttpStatusCode.InternalServerError)]
+	[InlineData(ResponseMediaTypes.ErrorJson, HttpStatusCode.BadRequest)]
+	[InlineData(ResponseMediaTypes.ResponseJson, HttpStatusCode.OK)]
+	public async Task FuxionMediaType_Malformed_IsCritical(string mediaType, HttpStatusCode status)
+	{
+		const string body = "{ not json";
+		var response = await Message(status, body, mediaType).AsResponseAsync<Payload>();
+		IsTrue(response.TryGetValue(out Error error));
+		IsTrue(error.IsCritical);
+		Assert.Equal(body, error.Extensions[ClientErrorExtensions.TextPayload]);
+	}
+
+	[Fact(DisplayName = "A success with an empty body and a non-Unit type is a critical error")]
+	public async Task EmptySuccess_NonUnit_IsCritical()
+	{
+		var response = await Message(HttpStatusCode.OK, "", "application/json").AsResponseAsync<Payload>();
+		IsTrue(response.TryGetValue(out Error error));
+		IsTrue(error.IsCritical);
+		Assert.Contains("empty", error.Message);
+	}
+
+	[Fact(DisplayName = "With a custom error type, a malformed error body throws instead of inventing an error")]
+	public async Task TypedError_Malformed_Throws()
+		=> await Assert.ThrowsAsync<InvalidOperationException>(() => Message(HttpStatusCode.BadRequest, "{ not json", "application/json").AsResponseAsync<Payload, CustomError>());
+
+	[Fact(DisplayName = "With a custom error type, a binary body for a non-binary success type throws without reading it")]
+	public async Task TypedError_BinaryBody_Throws()
+	{
+		var content = new ObservingContent();
+		var message = new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+		var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => message.AsResponseAsync<Payload, CustomError>());
+		Assert.Contains("application/pdf", ex.Message);
+		IsTrue(!content.Read);
+	}
+
+	// Makes "without reading it" observable: SerializeToStreamAsync flips Read to true only if the body is
+	// actually consumed, so the assertion above proves the short-circuit happens before any stream I/O.
+	sealed class ObservingContent : HttpContent
+	{
+		public bool Read { get; private set; }
+
+		public ObservingContent() => Headers.ContentType = new("application/pdf");
+
+		protected override bool TryComputeLength(out long length)
+		{
+			length = 3;
+			return true;
+		}
+
+		protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+		{
+			Read = true;
+			var bytes = new byte[] { 1, 2, 3 };
+			await stream.WriteAsync(bytes, 0, bytes.Length);
+		}
+	}
+
+	[Fact(DisplayName = "TError = Error is not a supported combination: the two-generic overload cannot even be instantiated (use Response<T>)")]
+	public async Task TypedErrorIsError_IsRejectedByDesign()
+	{
+		const string body = """{"status":404,"title":"Not found","detail":"missing"}""";
+		var ex = await Assert.ThrowsAsync<TypeInitializationException>(() => Message(HttpStatusCode.NotFound, body, ResponseMediaTypes.ProblemJson).AsResponseAsync<Payload, Error>());
+		Assert.IsType<ResponseInitializationException>(ex.InnerException);
+	}
+
+	[Fact(DisplayName = "The Task<HttpResponseMessage> overloads propagate jsonOptions and the cancellation token")]
+	public async Task TaskOverloads_PropagateOptionsAndToken()
+	{
+		var snake = new JsonSerializerOptions(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+		var response = await Task.FromResult(Message(HttpStatusCode.OK, """{"first_name":"Ada"}""", "application/json")).AsResponseAsync<TwoWords>(snake);
+		IsTrue(response.TryGetValue(out TwoWords? p));
+		Assert.Equal("Ada", p!.FirstName);
+
+		using var cts = new CancellationTokenSource();
+		cts.Cancel();
+		await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Task.FromResult(Message(HttpStatusCode.OK, """{"first_name":"Ada"}""", "application/json")).AsResponseAsync<TwoWords>(snake, cts.Token));
+		await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Task.FromResult(Message(HttpStatusCode.OK, """{"first_name":"Ada"}""", "application/json")).AsResponseAsync<TwoWords, CustomError>(snake, cts.Token));
+	}
+	record TwoWords(string FirstName);
 	record Person(string Name, int Age);
 }

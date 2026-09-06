@@ -102,4 +102,14 @@ public abstract class BinaryWireTests : BaseTest<BinaryWireTests>
 		var nativeError = await cli.SendAsync(Get(Host.Route("binary/error"), accept: "application/vnd.fuxion.error+json, application/json;q=0.9"));
 		Assert.Equal(ResponseMediaTypes.ErrorJson, nativeError.Content.Headers.ContentType?.MediaType);
 	}
+
+	[Fact(DisplayName = "A non-seekable stream is served in full, without ranges")]
+	public async Task NonSeekableStream_NoRanges()
+	{
+		var res = await Host.CreateClient().SendAsync(Get(Host.Route("binary/chunked"), range: "bytes=0-3"));
+		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+		IsTrue(!res.Headers.AcceptRanges.Any());
+		Assert.Null(res.Content.Headers.ContentRange);
+		Assert.Equal(TestFile.Bytes, await res.Content.ReadAsByteArrayAsync());
+	}
 }

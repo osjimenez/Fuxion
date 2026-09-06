@@ -51,6 +51,13 @@ public class Program
 
 		// Example of overriding options at group level (demo)
 		var sub = responses.MapGroup("sub").UseResponses(meta => meta.SerializeFullResponses = true);
+		sub.MapGet("payload", Response<TestPayload> () => TestPayload.Default);
+		sub.MapGet("none", ResponseMaybe<Unit> () => None.Value);
+
+		// A third scope level: overrides StrictNone alone, inheriting SerializeFullResponses from "sub".
+		var deep = sub.MapGroup("deep").UseResponses(meta => meta.StrictNone = true);
+		deep.MapGet("payload", Response<TestPayload> () => TestPayload.Default);
+		deep.MapGet("none", ResponseMaybe<Unit> () => None.Value);
 
 		// Controllers get the response-side wire contract from AddControllers(o => o.UseResponses()) above,
 		// not from this endpoint convention (MVC ignores endpoint filter factories). The chain here exists to
