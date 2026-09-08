@@ -5,10 +5,9 @@ using Fuxion.Text.Json;
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Linq;
 
 namespace Test.Fuxion;
-
-
 
 public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTest>(output)
 {
@@ -17,8 +16,8 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 	{
 		var definedJson = """
 		{
-		   "Integer": 123,
-		   "NullableInteger": null,
+			"Integer": 123,
+			"NullableInteger": null,
 			"String": "Hello",
 			"NullableString": null,
 			"DateTime": "2021-09-01",
@@ -43,8 +42,12 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 		var definedSample = JsonSerializer.Deserialize<UndefinableSample>(definedJson, options);
 		Assert.NotNull(definedSample);
 
-		IsTrue(definedSample.Integer.IsDefined);
-		Assert.Equal(123, definedSample.Integer.Value);
+		{
+			if (definedSample.Integer is not int value)
+				Assert.Fail("Integer no es int");
+			else
+				Assert.Equal(123, value);
+		}
 
 		IsTrue(definedSample.NullableInteger.IsDefined);
 		Assert.Null(definedSample.NullableInteger.Value);
@@ -62,10 +65,13 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 		Assert.Null(definedSample.NullableDateTime.Value);
 
 		IsTrue(definedSample.Object.IsDefined);
-		IsTrue(definedSample.Object.Value.Integer.IsDefined);
-		Assert.Equal(123, definedSample.Object.Value.Integer.Value);
-		IsTrue(definedSample.Object.Value.NullableInteger.IsDefined);
-		Assert.Null(definedSample.Object.Value.NullableInteger.Value);
+		if(definedSample.Object is UndefinableObject uo)
+		{
+			IsTrue(uo.Integer.IsDefined);
+			Assert.Equal(123, uo.Integer.Value);
+			IsTrue(uo.NullableInteger.IsDefined);
+			Assert.Null(uo.NullableInteger.Value);
+		}
 
 		IsTrue(definedSample.NullableObject.IsDefined);
 		Assert.Null(definedSample.NullableObject.Value);
@@ -116,7 +122,7 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 			IndentSize = 1,
 			WriteIndented = true
 		};
-		var definedJson = definedSample.Fx.Json.Serialize(true).Payload;
+		var definedJson = definedSample.Fx.Json.Serialize(true).SuccessOrThrow();
 		var undefinedJson = JsonSerializer.Serialize(undefinedSample, options);
 
 		Output.WriteLine(definedJson ?? "null");

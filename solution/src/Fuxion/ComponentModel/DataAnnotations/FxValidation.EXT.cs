@@ -96,12 +96,12 @@ public static class DataAnnotationsExtensions
 	}
 	const string ValidationResultsKey = "validation-results";
 
-	extension(ResponseExtensionsDictionary me)
+	extension(ExtensionsDictionary me)
 	{
 		/// <summary>
-      /// Gets or sets the validation results stored in the response extensions dictionary.
+		/// Gets or sets the validation results stored in the response extensions dictionary.
 		/// </summary>
-      /// <value>
+		/// <value>
 		/// A <see cref="Undefinable{T}"/> containing the list of <see cref="ValidationResult"/> items associated with the response,
 		/// or <see cref="Undefinable{T}.Undefined"/> when no validation results are present.
 		/// </value>
@@ -148,11 +148,11 @@ public static class DataAnnotationsExtensions
 	extension<T>(ValidationExtensions<T?> me)
 	{
 		/// <summary>
-		///    Validates the wrapped value and converts the result into a <see cref="IResponse" />.
+		///    Validates the wrapped value and converts the result into a <see cref="Response{T}" />.
 		/// </summary>
 		/// <param name="nullValueIsValid">
 		///    When <see langword="true" />, a <see langword="null" /> value is considered valid and produces a success response.
-		///    When <see langword="false" />, a <see langword="null" /> value produces an <see cref="ErrorType.InvalidData" />
+		///    When <see langword="false" />, a <see langword="null" /> value produces an <see cref="Error" />
 		///    response.
 		/// </param>
 		/// <returns>
@@ -174,29 +174,29 @@ public static class DataAnnotationsExtensions
 		///     Console.WriteLine(response.Message);
 		/// </code>
 		/// </example>
-		public IResponse ToResponse(bool nullValueIsValid = false)
+		public Response<Unit> ToResponse(bool nullValueIsValid = false)
 		{
 			if (me.Value is null)
 				return nullValueIsValid
-					? Response.Get.Success()
-					: Response.Get.InvalidData(
+					? Unit.Value
+					: Error.InvalidData(
 						"Value is null",
-						extensions: new ResponseExtensionsDictionary()
+						extensions: new ExtensionsDictionary()
 						{
 							ValidationResults = new List<ValidationResult>([new("Value is null")])
-						}.ToEnumerable());
+						});
 
 			List<ValidationResult> validation = [];
 			Validator.TryValidateObject(me.Value, new(me.Value), validation, true);
 
 			return validation.IsNullOrEmpty()
-				? Response.Get.Success()
-				: Response.Get.InvalidData(
+				? Unit.Value
+				: Error.InvalidData(
 					string.Join("\r\n", validation.Select(v => v.ErrorMessage)),
-					extensions: new ResponseExtensionsDictionary()
+					extensions: new ExtensionsDictionary()
 					{
 						ValidationResults = validation
-					}.ToEnumerable());
+					});
 		}
 	}
 }

@@ -13,7 +13,7 @@
 	<ItemGroup>
 		<ProjectReference Include="$(XunitProjectPath)" />
 		<ProjectReference Include="$(AspNetCoreProjectPath)" />
-		<ProjectReference Include="..\..\src\Http\Fuxion.Http.csproj" />
+		<ProjectReference Include="$(HttpProjectPath)" />
 		<ProjectReference Include="$(Test_AspNetCore_ServiceProjectPath)" />
 		<ProjectReference Include="$(Test_Responses_SharedProjectPath)" />
 	</ItemGroup>

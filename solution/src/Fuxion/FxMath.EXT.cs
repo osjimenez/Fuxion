@@ -11,7 +11,7 @@ using System.Runtime.CompilerServices;
 /// <remarks>
 /// This class uses the extension mechanism to add mathematical functionality to numeric types
 /// (<see cref="int"/>, <see cref="long"/>, and <see cref="byte"/> arrays) through the Fuxion extensions framework.
-/// All operations return <see cref="IResponse{T}"/> objects to enable proper error handling.
+/// All operations return <see cref="Response{T}"/> objects to enable proper error handling.
 /// <para>
 /// The class provides operations for:
 /// <list type="bullet">
@@ -86,17 +86,16 @@ public static class MathExtensions
 		/// </summary>
 		/// <param name="divisor">The divisor used for the division.</param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is a tuple with <see cref="long"/> <c>Quotient</c> and <c>Remainder</c>
+		/// A <see cref="Response{T}"/> whose payload is a tuple with <see cref="long"/> <c>Quotient</c> and <c>Remainder</c>
 		/// when <paramref name="divisor"/> is not zero; otherwise, an error response indicating that the divisor is invalid.
 		/// </returns>
-		public IResponse<(long Quotient, long Remainder)> DivisionAndRemainder(long divisor)
+		public Response<(long Quotient, long Remainder)> DivisionAndRemainder(long divisor)
 		{
 			if (divisor == 0)
-				return Response.Get.InvalidData($"Argument '{nameof(divisor)}' cannot be zero.")
-					.AsPayload<(long Quotient, long Remainder)>();
+				return Error.InvalidData($"Argument '{nameof(divisor)}' cannot be zero.");
 
 			var quotient = Math.DivRem(me.Value, divisor, out var remainder);
-			return Response.Get.SuccessPayload((quotient, remainder));
+			return (quotient, remainder);
 		}
 
 		/// <summary>
@@ -106,14 +105,13 @@ public static class MathExtensions
 		/// The number of bits of the power of two used as divisor. Must be between 0 and 62 (inclusive).
 		/// </param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is a tuple with <see cref="long"/> <c>Quotient</c> and <c>Remainder</c>
+		/// A <see cref="Response{T}"/> whose payload is a tuple with <see cref="long"/> <c>Quotient</c> and <c>Remainder</c>
 		/// when <paramref name="bitCount"/> is in range; otherwise, an error response describing the problem.
 		/// </returns>
-		public IResponse<(long Quotient, long Remainder)> DivisionByPowerOfTwo(int bitCount)
+		public Response<(long Quotient, long Remainder)> DivisionByPowerOfTwo(int bitCount)
 		{
 			if (bitCount is < 0 or > 62)
-				return Response.Get.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).")
-					.AsPayload<(long Quotient, long Remainder)>();
+				return Error.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).");
 
 			// 2^bitCount without going through double
 			var divisor = 1L << bitCount;
@@ -129,15 +127,14 @@ public static class MathExtensions
 		/// </summary>
 		/// <param name="divisor">The divisor used for the division.</param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is a tuple with <see cref="long"/> <c>Quotient</c> and <c>Remainder</c>
+		/// A <see cref="Response{T}"/> whose payload is a tuple with <see cref="long"/> <c>Quotient</c> and <c>Remainder</c>
 		/// when the underlying value is not <c>null</c> and <paramref name="divisor"/> is not zero;
 		/// otherwise, an error response indicating that the source value is <c>null</c> or the divisor is invalid.
 		/// </returns>
-		public IResponse<(long Quotient, long Remainder)> DivisionAndRemainder(long divisor)
+		public Response<(long Quotient, long Remainder)> DivisionAndRemainder(long divisor)
 		{
 			if (me.Value is null)
-				return Response.Get.InvalidData("Source long is null.")
-					.AsPayload<(long Quotient, long Remainder)>();
+				return Error.InvalidData("Source long is null.");
 
 			return me.Value.Value.Fx.Math.DivisionAndRemainder(divisor);
 		}
@@ -149,15 +146,14 @@ public static class MathExtensions
 		/// The number of bits of the power of two used as divisor. Must be between 0 and 62 (inclusive).
 		/// </param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is a tuple with <see cref="long"/> <c>Quotient</c> and <c>Remainder</c>
+		/// A <see cref="Response{T}"/> whose payload is a tuple with <see cref="long"/> <c>Quotient</c> and <c>Remainder</c>
 		/// when the underlying value is not <c>null</c> and <paramref name="bitCount"/> is in range;
 		/// otherwise, an error response describing the problem.
 		/// </returns>
-		public IResponse<(long Quotient, long Remainder)> DivisionByPowerOfTwo(int bitCount)
+		public Response<(long Quotient, long Remainder)> DivisionByPowerOfTwo(int bitCount)
 		{
 			if (me.Value is null)
-				return Response.Get.InvalidData("Source long is null.")
-					.AsPayload<(long Quotient, long Remainder)>();
+				return Error.InvalidData("Source long is null.");
 
 			return me.Value.Value.Fx.Math.DivisionByPowerOfTwo(bitCount);
 		}
@@ -169,17 +165,16 @@ public static class MathExtensions
 		/// </summary>
 		/// <param name="divisor">The divisor used for the division.</param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is a tuple with <see cref="int"/> <c>Quotient</c> and <c>Remainder</c>
+		/// A <see cref="Response{T}"/> whose payload is a tuple with <see cref="int"/> <c>Quotient</c> and <c>Remainder</c>
 		/// when <paramref name="divisor"/> is not zero; otherwise, an error response indicating that the divisor is invalid.
 		/// </returns>
-		public IResponse<(int Quotient, int Remainder)> DivisionAndRemainder(int divisor)
+		public Response<(int Quotient, int Remainder)> DivisionAndRemainder(int divisor)
 		{
 			if (divisor == 0)
-				return Response.Get.InvalidData($"Argument '{nameof(divisor)}' cannot be zero.")
-					.AsPayload<(int Quotient, int Remainder)>();
+				return Error.InvalidData($"Argument '{nameof(divisor)}' cannot be zero.");
 
 			var quotient = Math.DivRem(me.Value, divisor, out var remainder);
-			return Response.Get.SuccessPayload((quotient, remainder));
+			return (quotient, remainder);
 		}
 
 		/// <summary>
@@ -189,14 +184,13 @@ public static class MathExtensions
 		/// The number of bits of the power of two used as divisor. Must be between 0 and 62 (inclusive).
 		/// </param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is a tuple with <see cref="int"/> <c>Quotient</c> and <c>Remainder</c>
+		/// A <see cref="Response{T}"/> whose payload is a tuple with <see cref="int"/> <c>Quotient</c> and <c>Remainder</c>
 		/// when <paramref name="bitCount"/> is in range; otherwise, an error response describing the problem.
 		/// </returns>
-		public IResponse<(int Quotient, int Remainder)> DivisionByPowerOfTwo(int bitCount)
+		public Response<(int Quotient, int Remainder)> DivisionByPowerOfTwo(int bitCount)
 		{
 			if (bitCount is < 0 or > 62)
-				return Response.Get.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).")
-					.AsPayload<(int Quotient, int Remainder)>();
+				return Error.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).");
 
 			// 2^bitCount without going through double
 			var divisor = 1 << bitCount;
@@ -211,15 +205,14 @@ public static class MathExtensions
 		/// </summary>
 		/// <param name="divisor">The divisor used for the division.</param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is a tuple with <see cref="int"/> <c>Quotient</c> and <c>Remainder</c>
+		/// A <see cref="Response{T}"/> whose payload is a tuple with <see cref="int"/> <c>Quotient</c> and <c>Remainder</c>
 		/// when the underlying value is not <c>null</c> and <paramref name="divisor"/> is not zero;
 		/// otherwise, an error response indicating that the source value is <c>null</c> or the divisor is invalid.
 		/// </returns>
-		public IResponse<(int Quotient, int Remainder)> DivisionAndRemainder(int divisor)
+		public Response<(int Quotient, int Remainder)> DivisionAndRemainder(int divisor)
 		{
 			if (me.Value is null)
-				return Response.Get.InvalidData("Source int is null.")
-					.AsPayload<(int Quotient, int Remainder)>();
+				return Error.InvalidData("Source int is null.");
 
 			return me.Value.Value.Fx.Math.DivisionAndRemainder(divisor);
 		}
@@ -231,15 +224,14 @@ public static class MathExtensions
 		/// The number of bits of the power of two used as divisor. Must be between 0 and 62 (inclusive).
 		/// </param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is a tuple with <see cref="int"/> <c>Quotient</c> and <c>Remainder</c>
+		/// A <see cref="Response{T}"/> whose payload is a tuple with <see cref="int"/> <c>Quotient</c> and <c>Remainder</c>
 		/// when the underlying value is not <c>null</c> and <paramref name="bitCount"/> is in range;
 		/// otherwise, an error response describing the problem.
 		/// </returns>
-		public IResponse<(int Quotient, int Remainder)> DivisionByPowerOfTwo(int bitCount)
+		public Response<(int Quotient, int Remainder)> DivisionByPowerOfTwo(int bitCount)
 		{
 			if (me.Value is null)
-				return Response.Get.InvalidData("Source long is null.")
-					.AsPayload<(int Quotient, int Remainder)>();
+				return Error.InvalidData("Source long is null.");
 
 			return me.Value.Value.Fx.Math.DivisionByPowerOfTwo(bitCount);
 		}
@@ -259,23 +251,20 @@ public static class MathExtensions
 		/// When <c>false</c>, the first byte is treated as the most significant byte.
 		/// </param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is a tuple with <see cref="long"/> <c>Quotient</c> and <c>Remainder</c>
+		/// A <see cref="Response{T}"/> whose payload is a tuple with <see cref="long"/> <c>Quotient</c> and <c>Remainder</c>
 		/// when the underlying byte array is not <c>null</c>, has a length between 1 and 8 bytes (inclusive),
 		/// and <paramref name="bitCount"/> is in range; otherwise, an error response describing the problem.
 		/// </returns>
-		public IResponse<(long Quotient, long Remainder)> DivisionByPowerOfTwo(int bitCount, bool isLittleEndian = true)
+		public Response<(long Quotient, long Remainder)> DivisionByPowerOfTwo(int bitCount, bool isLittleEndian = true)
 		{
 			if (me.Value is null)
-				return Response.Get.InvalidData("Source byte array is null.")
-					.AsPayload<(long Quotient, long Remainder)>();
+				return Error.InvalidData("Source byte array is null.");
 
 			if (me.Value.Length is < 1 or > 8)
-				return Response.Get.InvalidData("Length must be between 1 and 8 bytes.")
-					.AsPayload<(long Quotient, long Remainder)>();
+				return Error.InvalidData("Length must be between 1 and 8 bytes.");
 
 			if (bitCount is < 0 or > 62)
-				return Response.Get.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).")
-					.AsPayload<(long Quotient, long Remainder)>();
+				return Error.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).");
 
 			long value = 0;
 

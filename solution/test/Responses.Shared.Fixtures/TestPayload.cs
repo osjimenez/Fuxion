@@ -1,4 +1,4 @@
-namespace Test.Responses.Shared;
+namespace Test.Responses.Shared.Fixtures;
 
 /// <summary>A plain success payload shared by every wire-contract test host.</summary>
 public record TestPayload(string Name, int Age)

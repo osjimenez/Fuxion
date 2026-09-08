@@ -1,8 +1,8 @@
-using Fuxion.Resources;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Fuxion.Resources;
 
 namespace Fuxion;
 
@@ -337,10 +337,12 @@ public static class TimeExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public IResponse<long> ToEpochSeconds(bool errorIfPrior1970 = false)
-			=> me.ToEpochMilliseconds(errorIfPrior1970).Match(
-				r => Response.Get.SuccessPayload(r.Payload / 1000),
-				r => r);
+		public Response<long> ToEpochSeconds(bool errorIfPrior1970 = false)
+			=> me.ToEpochMilliseconds(errorIfPrior1970) switch
+			{
+				Error error => error,
+				long value => value / 1000
+			};
 
 		/// <summary>
 		/// Converts a DateTime to EPOCH milliseconds.
@@ -358,12 +360,11 @@ public static class TimeExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public IResponse<long> ToEpochMilliseconds(bool errorIfPrior1970 = false)
+		public Response<long> ToEpochMilliseconds(bool errorIfPrior1970 = false)
 			=> (me.Value - EpochStartTime).TotalMilliseconds switch
 			{
-				< 0 when errorIfPrior1970 => Response.Get
-					.InvalidData("DateTime cannot be prior 1/1/1970 to be converted to EPOCH date").AsPayload<long>(),
-				var r => Response.Get.SuccessPayload((long)r)
+				< 0 when errorIfPrior1970 => Error.InvalidData("DateTime cannot be prior 1/1/1970 to be converted to EPOCH date"),
+				var r => (long)r
 			};
 	}
 

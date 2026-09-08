@@ -96,10 +96,10 @@ public class PatcherTest(ITestOutputHelper output) : BaseTest<PatcherTest>(outpu
 		dyn.Integer = 111;
 		
 		// Serialize and deserialize to simulate network service passthrough
-		var res = ((Patcher<ToPatch>)dyn).Fx.Json.Serialize().Payload.Fx.Json.Deserialize<Patcher<ToPatch>>();
+		var res = ((Patcher<ToPatch>)dyn).Fx.Json.Serialize().SuccessOrThrow().Fx.Json.Deserialize<Patcher<ToPatch>>();
 		Assert.True(res.IsSuccess);
 		PrintVariable(toPatch.Integer, name: "Before path");
-		res.Payload.Patch(toPatch);
+		res.SuccessOrThrow().Patch(toPatch);
 		PrintVariable(toPatch.Integer, name: "After patch");
 		Assert.Equal(111, toPatch.Integer);
 	}
@@ -110,7 +110,7 @@ public class PatcherTest(ITestOutputHelper output) : BaseTest<PatcherTest>(outpu
 			c.Integer = 123;
 			c.String = "TEST";
 		});
-		Logger.LogInformation($"JSON:\r\n{pat.Fx.Json.Serialize().Payload}");
+		Logger.LogInformation($"JSON:\r\n{pat.Fx.Json.Serialize().SuccessOrThrow()}");
 	}
 	[Fact(DisplayName = "Patcher - From object (anonymous types)")]
 	public void FromObject()
@@ -119,7 +119,7 @@ public class PatcherTest(ITestOutputHelper output) : BaseTest<PatcherTest>(outpu
 			Integer = 123,
 			String = "TEST"
 		});
-		Logger.LogInformation($"JSON:\r\n{pat.Fx.Json.Serialize().Payload}");
+		Logger.LogInformation($"JSON:\r\n{pat.Fx.Json.Serialize().SuccessOrThrow()}");
 	}
 	
 }

@@ -14,8 +14,8 @@ public class TimeExtensionsTest(ITestOutputHelper output) : BaseTest<TimeExtensi
 		var dt = new DateTime(2000, 1, 1);
 		var res = dt.Fx.Time.ToEpochSeconds();
 		Assert.True(res.IsSuccess);
-		Assert.True(res.Payload > 0);
-		PrintVariable(res.Payload);
+		Assert.True(res.SuccessOrThrow() > 0);
+		PrintVariable(res.SuccessOrThrow());
 	}
 
 	[Fact]
@@ -24,8 +24,8 @@ public class TimeExtensionsTest(ITestOutputHelper output) : BaseTest<TimeExtensi
 		var dt = new DateTime(1900, 1, 1);
 		var res = dt.Fx.Time.ToEpochSeconds();
 		Assert.True(res.IsSuccess);
-		Assert.True(res.Payload < 0);
-		PrintVariable(res.Payload);
+		Assert.True(res.SuccessOrThrow() < 0);
+		PrintVariable(res.SuccessOrThrow());
 	}
 
 	[Fact]
@@ -34,7 +34,7 @@ public class TimeExtensionsTest(ITestOutputHelper output) : BaseTest<TimeExtensi
 		var dt = new DateTime(1900, 1, 1);
 		var res = dt.Fx.Time.ToEpochSeconds(true);
 		Assert.True(res.IsError);
-		PrintVariable(res.Payload);
+		PrintVariable(res);
 	}
 
 	[Fact]
@@ -43,6 +43,6 @@ public class TimeExtensionsTest(ITestOutputHelper output) : BaseTest<TimeExtensi
 		var dt = new DateTime(2000, 1, 1);
 		var resSeconds = dt.Fx.Time.ToEpochSeconds();
 		var resMilliseconds = dt.Fx.Time.ToEpochMilliseconds();
-		Assert.Equal(resSeconds.Payload * 1000, resMilliseconds.Payload);
+		Assert.Equal(resSeconds.SuccessOrThrow() * 1000, resMilliseconds.SuccessOrThrow());
 	}
 }

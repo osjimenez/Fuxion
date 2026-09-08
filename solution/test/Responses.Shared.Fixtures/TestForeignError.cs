@@ -1,4 +1,4 @@
-namespace Test.Responses.Shared;
+namespace Test.Responses.Shared.Fixtures;
 
 // No IHttpStatusError here: this error travels only with the status the service assigns it
 // through ResponseOptions.BusinessErrorStatus.

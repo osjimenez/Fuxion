@@ -343,7 +343,7 @@ public static class CollectionsExtensions
 		foreach (var i in res) outputConsole?.Invoke("  - " + i);
 		return res;
 	}
-	
+
 	/// <summary>
 	/// Distributes a total number of items across multiple categories based on percentage values.
 	/// </summary>
@@ -369,16 +369,14 @@ public static class CollectionsExtensions
 	/// // Result: [(30%, 30, 30.0), (50%, 50, 50.0), (20%, 20, 20.0)]
 	/// </code>
 	/// </example>
-	public static IResponse<IEnumerable<(double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(this IEnumerable<double> percentages, int amountOfItems)
+	public static Response<IEnumerable<(double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(this IEnumerable<double> percentages, int amountOfItems)
 	{
 		var count = percentages.Count();
 		if (count > amountOfItems)
-			return Response.Get.InvalidData($"{nameof(percentages)}.Count ({count}) must be less than {nameof(amountOfItems)} ({amountOfItems})")
-				.AsPayload<IEnumerable<(double Percentage, int Rounded, double Exact)>>();
+			return Error.InvalidData($"{nameof(percentages)}.Count ({count}) must be less than {nameof(amountOfItems)} ({amountOfItems})");
 		var sum = percentages.Sum();
 		if (sum != 100)
-			return Response.Get.InvalidData($"Percentages must sum 100, but sum {sum}")
-				.AsPayload<IEnumerable<(double Percentage, int Rounded, double Exact)>>();
+			return Error.InvalidData($"Percentages must sum 100, but sum {sum}");
 		var ordered = percentages.OrderBy(x => x);
 		var quantities = ordered.Select(value => new
 		{
@@ -396,8 +394,7 @@ public static class CollectionsExtensions
 		{
 			var quantity = quantities.MaxBy(_ => _.Rounded);
 			if (quantity is null)
-				return Response.Get.Critical($"{nameof(quantity)} cannot be null")
-					.AsPayload<IEnumerable<(double Percentage, int Rounded, double Exact)>>();
+				return Error.Critical($"{nameof(quantity)} cannot be null");
 			var index = quantities.IndexOf(quantity);
 			quantities.Remove(quantity);
 			quantities.Insert(index, quantity with
@@ -405,9 +402,9 @@ public static class CollectionsExtensions
 				Rounded = quantity.Rounded - 1
 			});
 		}
-		return Response.Get.SuccessPayload(quantities.Select(x => (x.Percentage, x.Rounded, x.Exact)));
+		return quantities.Select(x => (x.Percentage, x.Rounded, x.Exact));
 	}
-	
+
 	/// <summary>
 	/// Distributes a total number of items across labeled categories based on percentage values.
 	/// </summary>
@@ -434,14 +431,12 @@ public static class CollectionsExtensions
 	/// // Result: { "Small": (30%, 30, 30.0), "Medium": (50%, 50, 50.0), "Large": (20%, 20, 20.0) }
 	/// </code>
 	/// </example>
-	public static IResponse<Dictionary<string, (double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(this IList<(string Label, double Percentage)> percentages, int amountOfItems)
+	public static Response<Dictionary<string, (double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(this IList<(string Label, double Percentage)> percentages, int amountOfItems)
 	{
 		if (percentages.Count > amountOfItems)
-			return Response.Get.InvalidData($"{nameof(percentages)}.Count ({percentages.Count}) must be less than {nameof(amountOfItems)} ({amountOfItems})")
-				.AsPayload<Dictionary<string, (double Percentage, int Rounded, double Exact)>>();
+			return Error.InvalidData($"{nameof(percentages)}.Count ({percentages.Count}) must be less than {nameof(amountOfItems)} ({amountOfItems})");
 		if (percentages.Sum(x => x.Percentage) != 100d)
-			return Response.Get.InvalidData($"Percentages must sum 100, but sum {percentages.Sum(x => x.Percentage)}")
-				.AsPayload<Dictionary<string, (double Percentage, int Rounded, double Exact)>>();
+			return Error.InvalidData($"Percentages must sum 100, but sum {percentages.Sum(x => x.Percentage)}");
 		var ordered = percentages.OrderBy(x => x.Percentage);
 		var quantities = ordered.Select(value => new
 		{
@@ -461,8 +456,7 @@ public static class CollectionsExtensions
 			var quantity = quantities.OrderByDescending(x => x.Rounded)
 				.MaxBy(y => y.Exact);
 			if (quantity is null)
-				return Response.Get.Critical($"{nameof(quantity)} cannot be null")
-					.AsPayload<Dictionary<string, (double Percentage, int Rounded, double Exact)>>();
+				return Error.Critical($"{nameof(quantity)} cannot be null");
 			var index = quantities.IndexOf(quantity);
 			quantities.Remove(quantity);
 			quantities.Insert(index, quantity with
@@ -476,8 +470,7 @@ public static class CollectionsExtensions
 			var quantity = quantities.OrderBy(x => x.Rounded)
 				.MaxBy(y => y.Exact);
 			if (quantity is null)
-				return Response.Get.Critical($"{nameof(quantity)} cannot be null")
-					.AsPayload<Dictionary<string, (double Percentage, int Rounded, double Exact)>>();
+				return Error.Critical($"{nameof(quantity)} cannot be null");
 			var index = quantities.IndexOf(quantity);
 			quantities.Remove(quantity);
 			quantities.Insert(index, quantity with
@@ -486,7 +479,7 @@ public static class CollectionsExtensions
 			});
 		}
 
-		return Response.Get.SuccessPayload(quantities.Select(x => (x.Label, x.Percentage, x.Rounded, x.Exact))
-			.ToDictionary(x => x.Label, x => (x.Percentage, x.Rounded, x.Exact)));
+		return quantities.Select(x => (x.Label, x.Percentage, x.Rounded, x.Exact))
+			.ToDictionary(x => x.Label, x => (x.Percentage, x.Rounded, x.Exact));
 	}
 }

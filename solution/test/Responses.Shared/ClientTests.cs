@@ -1,3 +1,7 @@
+using Fuxion;
+using Fuxion.Net.Http;
+using Test.Responses.Shared.Fixtures;
+
 namespace Test.Responses.Shared;
 
 using System.IO;
@@ -5,8 +9,6 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Fuxion.Http;
-using Fuxion.Union;
-using Fuxion.Union.Net.Http;
 using Fuxion.Xunit;
 using Xunit;
 

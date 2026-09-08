@@ -1,485 +1,623 @@
-using Fuxion.Collections.Generic;
-using Fuxion.Reflection;
-using Fuxion.Text.Json.Serialization;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+using Fuxion.Reflection;
 
 namespace Fuxion;
 
-/// <summary>
-///    Represents the result of an operation with success/failure information and optional metadata.
-/// </summary>
-/// <param name="isSuccess">Indicates whether the operation succeeded.</param>
-/// <param name="message">Optional message describing the result.</param>
-/// <param name="errorType">Optional error type categorization (e.g., ErrorType enum).</param>
-/// <param name="exception">Optional exception that caused the failure.</param>
-/// <remarks>
-///    <para>
-///       This class implements the Result pattern (also known as Railway Oriented Programming) to provide
-///       a standardized way to handle operation outcomes without relying on exceptions for flow control.
-///    </para>
-///    <para>
-///       Key benefits:
-///    </para>
-///    <list type="bullet">
-///       <item>
-///          <description>Explicit success/failure handling without exceptions</description>
-///       </item>
-///       <item>
-///          <description>Rich metadata through Extensions dictionary</description>
-///       </item>
-///       <item>
-///          <description>Type-safe error categorization</description>
-///       </item>
-///       <item>
-///          <description>Implicit conversion to bool for easy checking</description>
-///       </item>
-///       <item>
-///          <description>JSON serialization support with conditional properties</description>
-///       </item>
-///    </list>
-///    <para>
-///       The Extensions dictionary allows attaching arbitrary metadata to responses, useful for:
-///    </para>
-///    <list type="bullet">
-///       <item>
-///          <description>HTTP status codes and headers</description>
-///       </item>
-///       <item>
-///          <description>Validation errors</description>
-///       </item>
-///       <item>
-///          <description>Correlation IDs</description>
-///       </item>
-///       <item>
-///          <description>Performance metrics</description>
-///       </item>
-///    </list>
-/// </remarks>
-/// <example>
-///    <code>
-/// // Success response
-/// var success = new Response(true, "Operation completed successfully");
-/// if (success)
-/// {
-///     Console.WriteLine(success.Message);
-/// }
-/// 
-/// // Error response with exception
-/// try
-/// {
-///     // Some operation
-///     throw new InvalidOperationException("Something went wrong");
-/// }
-/// catch (Exception ex)
-/// {
-///     var error = new Response(false, "Operation failed", ErrorType.Critical, ex);
-///     Console.WriteLine($"Error: {error.Message}");
-///     Console.WriteLine($"Type: {error.ErrorType}");
-/// }
-/// 
-/// // Using extensions for metadata
-/// var response = new Response(true, "User created");
-/// response.Extensions["user-id"] = 12345;
-/// response.Extensions["created-at"] = DateTime.UtcNow;
-/// 
-/// // Implicit bool conversion
-/// Response result = PerformOperation();
-/// if (result) // Automatically checks IsSuccess
-/// {
-///     Console.WriteLine("Success!");
-/// }
-/// </code>
-/// </example>
-public class ResponseBase(bool isSuccess, string? message = null, object? errorType = null, Exception? exception = null) : IResponse
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
+public interface IResponse : IUnion
 {
-   /// <summary>
-   ///    Gets a value indicating whether the operation was successful.
-   /// </summary>
-   /// <value>true if the operation succeeded; otherwise, false.</value>
-   public bool IsSuccess { get; protected init; } = isSuccess;
-
-   /// <summary>
-   ///    Gets a value indicating whether the operation failed.
-   /// </summary>
-   /// <value>true if the operation failed; otherwise, false.</value>
-   /// <remarks>
-   ///    This property is the inverse of <see cref="IsSuccess" /> and is provided for convenience.
-   ///    It is excluded from JSON serialization.
-   /// </remarks>
-   [JsonIgnore]
-   public bool IsError => !IsSuccess;
-
-   /// <summary>
-   ///    Gets the message describing the result of the operation.
-   /// </summary>
-   /// <value>A message describing success or failure, or null if no message was provided.</value>
-   /// <remarks>
-   ///    This property is omitted from JSON when null.
-   /// </remarks>
-   [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-   public string? Message { get; init; } = message;
-
-   /// <summary>
-   ///    Gets the error type categorization for failed operations.
-   /// </summary>
-   /// <value>
-   ///    An object representing the error type (typically an <see cref="ErrorType" /> enum value),
-   ///    or null for successful operations.
-   /// </value>
-   /// <remarks>
-   ///    <para>
-   ///       This property is used to categorize errors for proper handling. Common error types include:
-   ///    </para>
-   ///    <list type="bullet">
-   ///       <item>
-   ///          <description>InvalidData - Client-side validation errors</description>
-   ///       </item>
-   ///       <item>
-   ///          <description>NotFound - Resource not found</description>
-   ///       </item>
-   ///       <item>
-   ///          <description>PermissionDenied - Authorization failures</description>
-   ///       </item>
-   ///       <item>
-   ///          <description>Conflict - State conflicts</description>
-   ///       </item>
-   ///       <item>
-   ///          <description>Critical - Unexpected server errors</description>
-   ///       </item>
-   ///    </list>
-   ///    <para>This property is omitted from JSON when null.</para>
-   /// </remarks>
-   [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-   public object? ErrorType { get; init; } = errorType;
-
-   /// <summary>
-   ///    Gets the exception that caused the operation to fail, if any.
-   /// </summary>
-   /// <value>The exception that occurred during the operation, or null if no exception occurred.</value>
-   /// <remarks>
-   ///    <para>
-   ///       This property captures the original exception for logging and diagnostics while keeping
-   ///       the failure information in the Response object.
-   ///    </para>
-   ///    <para>
-   ///       Uses a custom <see cref="ExceptionConverter" /> for JSON serialization to handle exception
-   ///       serialization safely (excluding non-serializable properties).
-   ///    </para>
-   ///    <para>This property is omitted from JSON when default/null.</para>
-   /// </remarks>
-   [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-   [JsonConverter(typeof(ExceptionConverter))]
-   public Exception? Exception { get; init; } = exception;
-
-   /// <summary>
-   ///    Gets the dictionary of extension data for attaching arbitrary metadata to the response.
-   /// </summary>
-   /// <value>A dictionary with case-sensitive string keys containing additional response metadata.</value>
-   /// <remarks>
-   ///    <para>
-   ///       This dictionary is serialized as JSON extension data (properties at the root level).
-   ///       It's commonly used for:
-   ///    </para>
-   ///    <list type="bullet">
-   ///       <item>
-   ///          <description>HTTP metadata (status codes, headers)</description>
-   ///       </item>
-   ///       <item>
-   ///          <description>Validation error details</description>
-   ///       </item>
-   ///       <item>
-   ///          <description>RFC 7807 Problem Details</description>
-   ///       </item>
-   ///       <item>
-   ///          <description>Correlation/trace IDs</description>
-   ///       </item>
-   ///       <item>
-   ///          <description>Performance metrics</description>
-   ///       </item>
-   ///    </list>
-   /// </remarks>
-   /// <example>
-   ///    <code>
-   /// var response = new Response(false, "Validation failed");
-   /// response.Extensions["status-code"] = 400;
-   /// response.Extensions["validation-errors"] = new[] 
-   /// { 
-   ///     "Email is required", 
-   ///     "Password must be at least 8 characters" 
-   /// };
-   /// </code>
-   /// </example>
-   [JsonExtensionData]
-   public ResponseExtensionsDictionary Extensions { get; init; } = [with(StringComparer.Ordinal)];
-
-   ///// <summary>
-   /////    Implicitly converts a Response to a boolean value.
-   ///// </summary>
-   ///// <param name="response">The response to convert.</param>
-   ///// <returns>true if the response indicates success; otherwise, false.</returns>
-   ///// <remarks>
-   /////    This conversion allows using Response objects directly in conditional statements.
-   ///// </remarks>
-   ///// <example>
-   /////    <code>
-   ///// Response result = PerformOperation();
-   ///// if (result) // Implicitly checks result.IsSuccess
-   ///// {
-   /////     Console.WriteLine("Success!");
-   ///// }
-   ///// </code>
-   ///// </example>
-   //public static implicit operator bool(ResponseInt response)
-   //	=> response.IsSuccess;
-
-   /// <summary>
-   ///    Returns a human-readable string representation of the response.
-   /// </summary>
-   /// <returns>
-   ///    A string in the format <c>"Success"</c>, <c>"Success - Message"</c>,
-   ///    <c>"ErrorType"</c>, or <c>"ErrorType - Message"</c> depending on the response state.
-   /// </returns>
-   public override string ToString()
-   {
-      var status = IsSuccess ? "Success" : ErrorType?.ToString() ?? "Error";
-      var messagePart = string.IsNullOrWhiteSpace(Message) ? null : Message;
-      return string.Join(" - ", new[] { status, messagePart }.Where(p => p is not null));
-   }
+	bool IsSuccess { get; }
+	bool IsError { get; }
+	ExtensionsDictionary<IResponse> Extensions { get; }
+}
+public interface IResponseMaybe : IResponse
+{
+	bool IsNone { get; }
 }
 
-/// <summary>
-///    Represents the result of an operation with a typed payload value.
-/// </summary>
-/// <typeparam name="TPayload">The type of the payload value.</typeparam>
-/// <param name="isSuccess">Indicates whether the operation succeeded.</param>
-/// <param name="payload">The payload value (required for success, typically null/default for failure).</param>
-/// <param name="message">Optional message describing the result.</param>
-/// <param name="errorType">Optional error type categorization.</param>
-/// <param name="exception">Optional exception that caused the failure.</param>
-/// <remarks>
-///    <para>
-///       Extends <see cref="ResponseBase" /> to include a strongly-typed payload value. The payload is:
-///    </para>
-///    <list type="bullet">
-///       <item>
-///          <description>Required (non-null) when <see cref="ResponseBase.IsSuccess" /> is true</description>
-///       </item>
-///       <item>
-///          <description>Typically null/default when <see cref="ResponseBase.IsSuccess" /> is false</description>
-///       </item>
-///    </list>
-///    <para>
-///       The <see cref="MemberNotNullWhenAttribute" /> attributes ensure nullable reference type safety:
-///       When <c>IsSuccess</c> is true, the compiler knows <c>Payload</c> is not null.
-///    </para>
-///    <para>
-///       <strong>Important restriction:</strong> Payload cannot be another Response type to prevent
-///       nested Response objects which would be confusing and violate the pattern's design.
-///    </para>
-/// </remarks>
-/// <example>
-///    <code>
-/// // Success with payload
-/// var successResult = new Response&lt;User&gt;(true, new User { Id = 1, Name = "John" });
-/// if (successResult.IsSuccess)
-/// {
-///     var user = successResult.Payload; // Compiler knows this is not null
-///     Console.WriteLine(user.Name);
-/// }
-/// 
-/// // Error without payload
-/// var errorResult = new Response&lt;User&gt;(false, null, "User not found", ErrorType.NotFound);
-/// if (errorResult.IsError)
-/// {
-///     Console.WriteLine(errorResult.Message);
-/// }
-/// 
-/// // Implicit conversion to payload
-/// Response&lt;int&gt; calcResult = Calculate();
-/// int value = calcResult; // Implicitly extracts Payload
-/// 
-/// // Implicit conversion from payload
-/// Response&lt;string&gt; result = "Success!"; // Creates success response with payload
-/// </code>
-/// </example>
-public class ResponseBase<TPayload>(bool isSuccess, TPayload payload, string? message = null, object? errorType = null, Exception? exception = null)
-   : ResponseBase(isSuccess, message, errorType, exception), IResponse<TPayload>
+//public static class Response;
+
+static class ResponseConstants
 {
-   /// <summary>
-   ///    Gets a value indicating whether the operation was successful.
-   /// </summary>
-   /// <value>true if the operation succeeded (and Payload is not null); otherwise, false.</value>
-   /// <remarks>
-   ///    This override adds nullable analysis with <see cref="MemberNotNullWhenAttribute" /> to inform
-   ///    the compiler that when this returns true, <see cref="Payload" /> is guaranteed not to be null.
-   /// </remarks>
-   [MemberNotNullWhen(true, nameof(Payload))]
-   public new bool IsSuccess
-   {
-      get => base.IsSuccess;
-      protected init => base.IsSuccess = value;
-   }
+	public const string PayloadPropertyName = "Payload";
+	public const string ErrorPropertyName = "Error";
+	public static readonly HashSet<string> ResponseExtensionsReservedKeys = new([nameof(Response<>.IsSuccess), PayloadPropertyName, ErrorPropertyName], StringComparer.OrdinalIgnoreCase);
+	public static readonly HashSet<string> ResponseMaybeExtensionsReservedKeys = new([.. ResponseExtensionsReservedKeys, nameof(ResponseMaybe<>.IsNone)], StringComparer.OrdinalIgnoreCase);
 
-   /// <summary>
-   ///    Gets a value indicating whether the operation failed.
-   /// </summary>
-   /// <value>true if the operation failed (and Payload might be null); otherwise, false.</value>
-   /// <remarks>
-   ///    This override adds nullable analysis with <see cref="MemberNotNullWhenAttribute" /> to inform
-   ///    the compiler about the relationship between failure and potentially null payload.
-   ///    It is excluded from JSON serialization.
-   /// </remarks>
-   [MemberNotNullWhen(false, nameof(Payload))]
-   [JsonIgnore]
-   public new bool IsError => base.IsError;
+	public static ExtensionsDictionary<IResponse> EnsureResponseReservedKeys(ExtensionsDictionary? extensions)
+		=> ExtensionsDictionary.EnsureReservedKeys<IResponse>(extensions, ResponseExtensionsReservedKeys);
 
-   /// <summary>
-   ///    Gets the payload value containing the operation's result data.
-   /// </summary>
-   /// <value>
-   ///    The result data when successful; typically null or default when the operation failed.
-   /// </value>
-   /// <remarks>
-   ///    <para>
-   ///       When <see cref="IsSuccess" /> is true, the compiler (via nullable reference types and
-   ///       <see cref="MemberNotNullWhenAttribute" />) knows this value is not null, enabling safe access
-   ///       without null checks.
-   ///    </para>
-   ///    <para>
-   ///       The setter validates that the payload is not another Response type, preventing
-   ///       confusing nested Response structures.
-   ///    </para>
-   ///    <para>This property is omitted from JSON when default/null.</para>
-   /// </remarks>
-   /// <exception cref="ArgumentException">
-   ///    Thrown when attempting to set a payload that derives from Response&lt;T&gt;.
-   /// </exception>
-   [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-   public TPayload? Payload
-   {
-      get;
-      init
-         => field = value?.GetType()
-            .IsSubclassOfGenericDefinition(typeof(ResponseBase<>)) ?? false // PEND Change typeof(Response<>) by is IResponse<> - Make test to try it
-            ? throw new ArgumentException(
-               $"Payload is '{value.GetType().GetSignature()}' type, but can't be derived from '{typeof(ResponseBase<>).GetSignature()}' to avoid nested responses.",
-               nameof(Payload))
-            : value;
-   } = payload;
-
-   ///// <summary>
-   /////    Implicitly converts a Response&lt;TPayload&gt; to its payload value.
-   ///// </summary>
-   ///// <param name="response">The response to extract the payload from.</param>
-   ///// <returns>The payload value from the response.</returns>
-   ///// <remarks>
-   /////    <para>
-   /////       This conversion allows using Response&lt;TPayload&gt; objects directly as their payload type.
-   /////    </para>
-   /////    <para>
-   /////       <strong>Warning:</strong> This will return null/default if the response is a failure.
-   /////       Always check <see cref="IsSuccess" /> before relying on implicit conversion in critical code paths.
-   /////    </para>
-   ///// </remarks>
-   ///// <example>
-   /////    <code>
-   ///// Response&lt;int&gt; Calculate() => new(true, 42);
-   ///// 
-   ///// int result = Calculate(); // Implicitly extracts the 42
-   ///// Console.WriteLine(result); // 42
-   ///// </code>
-   ///// </example>
-   //public static implicit operator TPayload?(ResponseInt<TPayload> response)
-   //	=> response.Payload;
-
-   ///// <summary>
-   /////    Implicitly converts a payload value to a successful Response&lt;TPayload&gt;.
-   ///// </summary>
-   ///// <param name="payload">The payload value to wrap in a response.</param>
-   ///// <returns>A successful Response&lt;TPayload&gt; containing the payload.</returns>
-   ///// <remarks>
-   /////    This conversion allows returning payload values directly from methods that return Response&lt;TPayload&gt;,
-   /////    automatically wrapping them in a success response.
-   ///// </remarks>
-   ///// <example>
-   /////    <code>
-   ///// Response&lt;string&gt; GetGreeting()
-   ///// {
-   /////     return "Hello, World!"; // Implicitly creates successful response
-   ///// }
-   ///// 
-   ///// var response = GetGreeting();
-   ///// // response.IsSuccess == true
-   ///// // response.Payload == "Hello, World!"
-   ///// </code>
-   ///// </example>
-   //public static implicit operator ResponseInt<TPayload>(TPayload payload)
-   //	=> new(true, payload);
-
-   /// <summary>
-   ///    Returns a human-readable string representation of the response, including the payload type when present.
-   /// </summary>
-   /// <returns>
-   ///    A string combining status, optional payload type signature, and optional message, separated by <c>" - "</c>.
-   ///    Examples: <c>"Success"</c>, <c>"Success - User"</c>, <c>"Success - User - Created"</c>,
-   ///    <c>"NotFound"</c>, <c>"NotFound - User - User not found"</c>.
-   /// </returns>
-   /// <remarks>
-   ///    The payload type signature is obtained via <c>typeof(TPayload).GetSignature()</c> for a compact, readable representation.
-   ///    It is only included when <see cref="Payload"/> is not <see langword="null"/>.
-   /// </remarks>
-   public override string ToString()
-   {
-      var status = IsSuccess ? "Success" : ErrorType?.ToString() ?? "Error";
-      var payloadPart = Payload is not null ? typeof(TPayload).GetSignature() : null;
-      var messagePart = string.IsNullOrWhiteSpace(Message) ? null : Message;
-      return string.Join(" - ", new[] { status, payloadPart, messagePart }.Where(p => p is not null));
-   }
+	public static ExtensionsDictionary<IResponse> EnsureResponseMaybeReservedKeys(ExtensionsDictionary? extensions)
+		=> ExtensionsDictionary.EnsureReservedKeys<IResponse>(extensions, ResponseMaybeExtensionsReservedKeys);
 }
 
-/// <summary>
-/// Represents a specialized dictionary for storing response extension metadata.
-/// </summary>
-/// <param name="comparer">The string comparer used to compare extension keys.</param>
-/// <remarks>
-/// This type is used by <see cref="IResponse.Extensions"/> to store arbitrary metadata associated with a response,
-/// such as correlation identifiers, validation details, transport-specific information, or other custom values.
-/// </remarks>
-public class ResponseExtensionsDictionary(IEqualityComparer<string> comparer) : Dictionary<string, object?>(comparer)
+[Union]
+[JsonConverter(typeof(ResponseOfTSuccessJsonConverterFactory))]
+public readonly struct Response<TSuccess> : IResponse
+	where TSuccess : notnull
 {
-   /// <summary>
-   /// Initializes a new instance of the <see cref="ResponseExtensionsDictionary"/> class from an enumerable sequence of key/value pairs.
-   /// </summary>
-   /// <param name="extensions">The extension entries to copy into the dictionary.</param>
-   /// <param name="comparer">The string comparer used to compare extension keys.</param>
-   public ResponseExtensionsDictionary(IEnumerable<(string Property, object? Value)>? extensions = null, IEqualityComparer<string>? comparer = null)
-      : this(comparer ?? StringComparer.Ordinal)
-   {
-      if (extensions is not null)
-         foreach (var (Property, Value) in extensions)
-            Add(Property, Value);
-   }
-   /// <summary>
-   /// Initializes a new instance of the <see cref="ResponseExtensionsDictionary"/> class from an existing dictionary.
-   /// </summary>
-   /// <param name="dictionary">The dictionary whose entries will be copied into the new instance.</param>
-   /// <param name="comparer">The string comparer used to compare extension keys.</param>
-   public ResponseExtensionsDictionary(IDictionary<string, object?> dictionary, IEqualityComparer<string>? comparer = null)
-      : this(comparer ?? StringComparer.Ordinal)
-   {
-      foreach (var item in dictionary)
-         Add(item.Key, item.Value);
-   }
-   /// <summary>
-   /// Converts the dictionary contents to an enumerable sequence of tuples.
-   /// </summary>
-   /// <returns>An enumerable sequence containing each extension entry as a <c>(Property, Value)</c> tuple.</returns>
-   public IEnumerable<(string Property, object? Value)> ToEnumerable()
-      => this.Select(kvp => (kvp.Key, kvp.Value));
+	private const byte UnsetKind = 0;
+	private const byte SuccessKind = 1;
+	private const byte ErrorKind = 2;
+
+	private readonly byte _kind;
+	private readonly TSuccess? _success;
+	private readonly Error? _error;
+
+	static Response()
+	{
+		if (typeof(TSuccess) == typeof(Error))
+			throw new ResponseInitializationException($"The {typeof(Response<TSuccess>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(Error)}'.");
+
+		if (typeof(TSuccess) == typeof(None))
+			throw new ResponseInitializationException($"The {typeof(Response<TSuccess>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(None)}'. Consider using Response<Unit> type instead.");
+	}
+
+	[MemberNotNullWhen(true, nameof(_success))]
+	public bool IsSuccess => _kind == SuccessKind;
+
+	[MemberNotNullWhen(true, nameof(_error))]
+	public bool IsError => _kind == ErrorKind;
+
+	public Response(TSuccess value)
+	{
+		if (value is null)
+			throw new ArgumentNullException(nameof(value), "Success value cannot be null.");
+
+		_kind = SuccessKind;
+		_success = value;
+		_error = default;
+	}
+
+	public Response(Error value)
+	{
+		_kind = ErrorKind;
+		_success = default;
+		_error = value;
+	}
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public bool HasValue => _kind != UnsetKind;
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public object? Value => _kind switch
+	{
+		SuccessKind => _success,
+		ErrorKind => _error,
+		_ => null
+	};
+
+	public ExtensionsDictionary<IResponse> Extensions
+	{
+		get => field ?? [with(ResponseConstants.ResponseExtensionsReservedKeys)];
+		init => field = ResponseConstants.EnsureResponseReservedKeys(value);
+	}
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public bool TryGetValue([NotNullWhen(true)] out TSuccess? value)
+	{
+		if (IsSuccess)
+		{
+			value = _success;
+			return true;
+		}
+
+		value = default;
+		return false;
+	}
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public bool TryGetValue(out Error value)
+	{
+		if (IsError)
+		{
+			value = _error.Value;
+			return true;
+		}
+
+		value = default;
+		return false;
+	}
+
+	public static implicit operator Response<TSuccess>(TSuccess value)
+		=> new(value);
+
+	public static implicit operator Response<TSuccess>(Error value)
+		=> new(value);
+
+	public static explicit operator TSuccess(Response<TSuccess> value)
+		=> value.IsSuccess
+			? value._success
+			: throw new InvalidOperationException("Explicit conversion between this response and its success type is not allowed because this response is not success");
+
+	public static explicit operator Error(Response<TSuccess> value)
+		=> value.IsError
+			? value._error.Value
+			: throw new InvalidOperationException("Explicit conversion between this response and its error type is not allowed because this response is not error");
 }
+
+[Union]
+[JsonConverter(typeof(ResponseOfTSuccessAndTErrorJsonConverterFactory))]
+public readonly struct Response<TSuccess, TError> : IResponse
+	where TSuccess : notnull
+	where TError : notnull
+{
+	private const byte UnsetKind = 0;
+	private const byte SuccessKind = 1;
+	private const byte ErrorKind = 2;
+
+	private readonly byte _kind;
+	private readonly TSuccess? _success;
+	private readonly TError? _error;
+
+	static Response()
+	{
+		if (typeof(TSuccess) == typeof(TError))
+			throw new ResponseInitializationException($"The {typeof(Response<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} and {nameof(TError)} cannot be the same type ('{typeof(TSuccess).GetSignature()}').");
+
+		if (typeof(TSuccess) == typeof(None))
+			throw new ResponseInitializationException($"The {typeof(Response<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(None)}'. Consider using {typeof(Response<Unit, TError>).GetSignature()} type instead.");
+		if (typeof(TSuccess) == typeof(Error))
+			throw new ResponseInitializationException($"The {typeof(Response<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(Error)}'.");
+
+		if (typeof(TError) == typeof(None))
+			throw new ResponseInitializationException($"The {typeof(Response<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TError)} cannot be '{nameof(None)}'. Consider using {typeof(ResponseMaybe<TSuccess>).GetSignature()} type instead.");
+		if (typeof(TError) == typeof(Error))
+			throw new ResponseInitializationException($"The {typeof(Response<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TError)} cannot be '{nameof(Error)}'. Consider using {typeof(Response<TSuccess>).GetSignature()} type instead.");
+	}
+
+	[MemberNotNullWhen(true, nameof(_success))]
+	public bool IsSuccess => _kind == SuccessKind;
+
+	[MemberNotNullWhen(true, nameof(_error))]
+	public bool IsError => _kind == ErrorKind;
+
+	public Response(TSuccess value)
+	{
+		if (value is null)
+			throw new ArgumentNullException(nameof(value), "Success value cannot be null.");
+
+		_kind = SuccessKind;
+		_success = value;
+		_error = default;
+	}
+
+	public Response(TError value)
+	{
+		if (value is null)
+			throw new ArgumentNullException(nameof(value), "Error value cannot be null.");
+
+		_kind = ErrorKind;
+		_success = default;
+		_error = value;
+	}
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public bool HasValue => _kind != UnsetKind;
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public object? Value => _kind switch
+	{
+		SuccessKind => _success,
+		ErrorKind => _error,
+		_ => null
+	};
+
+	public ExtensionsDictionary<IResponse> Extensions
+	{
+		get => field ?? [with(ResponseConstants.ResponseExtensionsReservedKeys)];
+		init => field = ResponseConstants.EnsureResponseReservedKeys(value);
+	}
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public bool TryGetValue([NotNullWhen(true)] out TSuccess? value)
+	{
+		if (IsSuccess)
+		{
+			value = _success;
+			return true;
+		}
+
+		value = default;
+		return false;
+	}
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public bool TryGetValue([NotNullWhen(true)] out TError? value)
+	{
+		if (IsError)
+		{
+			value = _error;
+			return true;
+		}
+
+		value = default;
+		return false;
+	}
+
+	public static implicit operator Response<TSuccess, TError>(TSuccess value)
+		=> new(value);
+
+	public static implicit operator Response<TSuccess, TError>(TError value)
+		=> new(value);
+
+	public static explicit operator TSuccess(Response<TSuccess, TError> value)
+		=> value.IsSuccess
+			? value._success
+			: throw new InvalidOperationException("Explicit conversion between this response and its success type is not allowed because this response is not success");
+
+	public static explicit operator TError(Response<TSuccess, TError> value)
+		=> value.IsError
+			? value._error
+			: throw new InvalidOperationException("Explicit conversion between this response and its error type is not allowed because this response is not error");
+}
+
+[Union]
+[JsonConverter(typeof(ResponseMaybeOfTSuccessJsonConverterFactory))]
+public readonly struct ResponseMaybe<TSuccess> : IResponseMaybe
+	where TSuccess : notnull
+{
+	private const byte UnsetKind = 0;
+	private const byte SuccessKind = 1;
+	private const byte NoneKind = 2;
+	private const byte ErrorKind = 3;
+
+	private readonly byte _kind;
+	private readonly TSuccess? _success;
+	private readonly Error? _error;
+
+	static ResponseMaybe()
+	{
+		if (typeof(TSuccess) == typeof(Error))
+			throw new ResponseInitializationException($"The {typeof(ResponseMaybe<TSuccess>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(Error)}'.");
+		if (typeof(TSuccess) == typeof(None))
+			throw new ResponseInitializationException($"The {typeof(ResponseMaybe<TSuccess>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(None)}'. Consider using ResponseMaybe<Unit> type instead.");
+	}
+
+	public bool IsSuccess => _kind is SuccessKind or NoneKind;
+
+	[MemberNotNullWhen(true, nameof(_error))]
+	public bool IsError => _kind == ErrorKind;
+
+	public bool IsNone => _kind == NoneKind;
+
+	public ResponseMaybe(TSuccess value)
+	{
+		if (value is null)
+			throw new ArgumentNullException(nameof(value), "Success value cannot be null.");
+
+		_kind = SuccessKind;
+		_success = value;
+		_error = default;
+	}
+
+	public ResponseMaybe(Error value)
+	{
+		_kind = ErrorKind;
+		_success = default;
+		_error = value;
+	}
+#pragma warning disable IDE0060 // Remove unused parameter
+	public ResponseMaybe(None value)
+#pragma warning restore IDE0060 // Remove unused parameter
+	{
+		_kind = NoneKind;
+		_success = default;
+		_error = default;
+	}
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public bool HasValue => _kind != UnsetKind;
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public object? Value => _kind switch
+	{
+		SuccessKind => _success,
+		ErrorKind => _error,
+		NoneKind => None.Value,
+		_ => null
+	};
+
+	public ExtensionsDictionary<IResponse> Extensions
+	{
+		get => field ?? [with(ResponseConstants.ResponseExtensionsReservedKeys)];
+		init => field = ResponseConstants.EnsureResponseMaybeReservedKeys(value);
+	}
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public bool TryGetValue([NotNullWhen(true)] out TSuccess? value)
+	{
+		if (IsSuccess && !IsNone)
+		{
+			value = _success!;
+			return true;
+		}
+
+		value = default;
+		return false;
+	}
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public bool TryGetValue(out Error value)
+	{
+		if (IsError)
+		{
+			value = _error.Value;
+			return true;
+		}
+
+		value = default;
+		return false;
+	}
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public bool TryGetValue(out None value)
+	{
+		if (IsNone)
+		{
+			value = None.Value;
+			return true;
+		}
+
+		value = default;
+		return false;
+	}
+
+	public static implicit operator ResponseMaybe<TSuccess>(TSuccess value)
+		=> new(value);
+
+	public static implicit operator ResponseMaybe<TSuccess>(Error value)
+		=> new(value);
+
+	public static implicit operator ResponseMaybe<TSuccess>(None value)
+		=> new(value);
+
+	public static explicit operator TSuccess(ResponseMaybe<TSuccess> value)
+		=> value.IsError
+			? throw new InvalidOperationException($"Explicit conversion between this response and {typeof(TSuccess)} is not allowed because this response is error")
+			: value.IsNone
+				? throw new InvalidOperationException($"Explicit conversion between this response and {typeof(TSuccess)} is not allowed because this response is none")
+				: value._success!;
+
+	public static explicit operator Error(ResponseMaybe<TSuccess> value)
+		=> value.IsNone
+			? throw new InvalidOperationException($"Explicit conversion between this response and Error is not allowed because this response is none")
+			: value.IsSuccess
+				? throw new InvalidOperationException($"Explicit conversion between this response and Error is not allowed because this response is success")
+				: value._error!.Value;
+
+	public static explicit operator None(ResponseMaybe<TSuccess> value)
+		=> value.IsError
+			? throw new InvalidOperationException("Explicit conversion between this response and None is not allowed because this response is error")
+			: value.IsSuccess && !value.IsNone
+				? throw new InvalidOperationException("Explicit conversion between this response and None is not allowed because this response is success")
+				: None.Value;
+}
+
+[Union]
+[JsonConverter(typeof(ResponseMaybeOfTSuccessAndTErrorJsonConverterFactory))]
+public readonly struct ResponseMaybe<TSuccess, TError> : IResponseMaybe
+	where TSuccess : notnull
+	where TError : notnull
+{
+	private const byte UnsetKind = 0;
+	private const byte SuccessKind = 1;
+	private const byte NoneKind = 2;
+	private const byte ErrorKind = 3;
+
+	private readonly byte _kind;
+	private readonly TSuccess? _success;
+	private readonly TError? _error;
+
+	static ResponseMaybe()
+	{
+		if (typeof(TSuccess) == typeof(TError))
+			throw new ResponseInitializationException($"The {typeof(ResponseMaybe<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} and {nameof(TError)} cannot be the same type ('{typeof(TSuccess).GetSignature()}').");
+
+		if (typeof(TSuccess) == typeof(None))
+			throw new ResponseInitializationException($"The {typeof(ResponseMaybe<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(None)}'. Consider using {typeof(ResponseMaybe<Unit, TError>).GetSignature()} type instead.");
+		if (typeof(TSuccess) == typeof(Error))
+			throw new ResponseInitializationException($"The {typeof(ResponseMaybe<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TSuccess)} cannot be '{nameof(Error)}'.");
+
+		if (typeof(TError) == typeof(None))
+			throw new ResponseInitializationException($"The {typeof(ResponseMaybe<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TError)} cannot be '{nameof(None)}'. Consider using {typeof(ResponseMaybe<TSuccess>).GetSignature()} type instead.");
+		if (typeof(TError) == typeof(Error))
+			throw new ResponseInitializationException($"The {typeof(ResponseMaybe<TSuccess, TError>).GetSignature()} type arguments are invalid: {nameof(TError)} cannot be '{nameof(Error)}'. Consider using {typeof(ResponseMaybe<TSuccess>).GetSignature()} type instead.");
+	}
+
+	public bool IsSuccess => _kind is SuccessKind or NoneKind;
+
+	[MemberNotNullWhen(true, nameof(_error))]
+	public bool IsError => _kind == ErrorKind;
+
+	public bool IsNone => _kind == NoneKind;
+
+	public ResponseMaybe(TSuccess value)
+	{
+		if (value is null)
+			throw new ArgumentNullException(nameof(value), "Success value cannot be null.");
+
+		_kind = SuccessKind;
+		_success = value;
+		_error = default;
+	}
+
+	public ResponseMaybe(TError value)
+	{
+		if (value is null)
+			throw new ArgumentNullException(nameof(value), "Error value cannot be null.");
+
+		_kind = ErrorKind;
+		_success = default;
+		_error = value;
+	}
+#pragma warning disable IDE0060 // Remove unused parameter
+	public ResponseMaybe(None value)
+#pragma warning restore IDE0060 // Remove unused parameter
+	{
+		_kind = NoneKind;
+		_success = default;
+		_error = default;
+	}
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public bool HasValue => _kind != UnsetKind;
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public object? Value => _kind switch
+	{
+		SuccessKind => _success,
+		ErrorKind => _error,
+		NoneKind => None.Value,
+		_ => null
+	};
+
+	public ExtensionsDictionary<IResponse> Extensions
+	{
+		get => field ?? [with(ResponseConstants.ResponseExtensionsReservedKeys)];
+		init => field = ResponseConstants.EnsureResponseMaybeReservedKeys(value);
+	}
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public bool TryGetValue([NotNullWhen(true)] out TSuccess? value)
+	{
+		if (IsSuccess && !IsNone)
+		{
+			value = _success!;
+			return true;
+		}
+
+		value = default;
+		return false;
+	}
+
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public bool TryGetValue([NotNullWhen(true)] out TError? value)
+	{
+		if (IsError)
+		{
+			value = _error;
+			return true;
+		}
+
+		value = default;
+		return false;
+	}
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public bool TryGetValue(out None value)
+	{
+		if (IsNone)
+		{
+			value = None.Value;
+			return true;
+		}
+
+		value = default;
+		return false;
+	}
+
+	public static implicit operator ResponseMaybe<TSuccess, TError>(TSuccess value)
+		=> new(value);
+
+	public static implicit operator ResponseMaybe<TSuccess, TError>(TError value)
+		=> new(value);
+
+	public static implicit operator ResponseMaybe<TSuccess, TError>(None value)
+		=> new(value);
+
+	public static explicit operator TSuccess(ResponseMaybe<TSuccess, TError> value)
+	=> value.IsError
+		? throw new InvalidOperationException($"Explicit conversion between this response and {typeof(TSuccess)} is not allowed because this response is error")
+		: value.IsNone
+			? throw new InvalidOperationException($"Explicit conversion between this response and {typeof(TSuccess)} is not allowed because this response is none")
+			: value._success!;
+
+	public static explicit operator TError(ResponseMaybe<TSuccess, TError> value)
+		=> value.IsNone
+			? throw new InvalidOperationException($"Explicit conversion between this response and Error is not allowed because this response is none")
+			: value.IsSuccess
+				? throw new InvalidOperationException($"Explicit conversion between this response and Error is not allowed because this response is success")
+				: value._error!;
+
+	public static explicit operator None(ResponseMaybe<TSuccess, TError> value)
+		=> value.IsError
+			? throw new InvalidOperationException("Explicit conversion between this response and None is not allowed because this response is error")
+			: value.IsSuccess && !value.IsNone
+				? throw new InvalidOperationException("Explicit conversion between this response and None is not allowed because this response is success")
+				: None.Value;
+}
+
+public class ResponseInitializationException(string message) : FuxionException(message);
+
+//static class RemoteResponseConstants
+//{
+//	public const string PayloadPropertyName = "Payload";
+//	public const string ErrorPropertyName = "Error";
+//	public static readonly HashSet<string> RemoteResponseExtensionsReservedKeys = new([nameof(Response<>.IsSuccess), PayloadPropertyName, ErrorPropertyName], StringComparer.OrdinalIgnoreCase);
+//	public static readonly HashSet<string> RemoteResponseMaybeExtensionsReservedKeys = new([.. RemoteResponseExtensionsReservedKeys, nameof(ResponseMaybe<>.IsNone)], StringComparer.OrdinalIgnoreCase);
+
+//	public static ExtensionsDictionary<RemoteResponseBase> EnsureResponseReservedKeys(ExtensionsDictionary? extensions)
+//		=> ExtensionsDictionary.EnsureReservedKeys<RemoteResponseBase>(extensions, RemoteResponseExtensionsReservedKeys);
+
+//	public static ExtensionsDictionary<RemoteResponseBase> EnsureResponseMaybeReservedKeys(ExtensionsDictionary? extensions)
+//		=> ExtensionsDictionary.EnsureReservedKeys<RemoteResponseBase>(extensions, RemoteResponseMaybeExtensionsReservedKeys);
+//}
+
+//public abstract class RemoteResponseBase
+//{
+//	public string OperationId { get; set; } = string.Empty.RandomString(10);
+
+//	//public string Status { get; set; }
+//	//public string StatusUrl { get; set; }
+//	//public string ResultUrl { get; set; }
+//	public ExtensionsDictionary<RemoteResponseBase> Extensions
+//	{
+//		get => field ?? [with(RemoteResponseConstants.RemoteResponseExtensionsReservedKeys)];
+//		init => field = RemoteResponseConstants.EnsureResponseMaybeReservedKeys(value);
+//	}
+//}
+//public sealed class RemoteResponse<TSuccess>(Task<Response<TSuccess>> task) : RemoteResponseBase
+//	where TSuccess : notnull
+//{
+//	public TaskAwaiter<Response<TSuccess>> GetAwaiter()
+//		=> task.GetAwaiter();
+
+//	public Task<Response<TSuccess>> AsTask()
+//		=> task;
+//}
+//public sealed class RemoteResponse<TSuccess, TError>(Task<Response<TSuccess, TError>> task) : RemoteResponseBase
+//	where TSuccess : notnull
+//	where TError : notnull
+//{
+//	public TaskAwaiter<Response<TSuccess, TError>> GetAwaiter()
+//		=> task.GetAwaiter();
+
+//	public Task<Response<TSuccess, TError>> AsTask()
+//		=> task;
+//}
+//public sealed class RemoteResponseMaybe<TSuccess>(Task<ResponseMaybe<TSuccess>> task) : RemoteResponseBase
+//	where TSuccess : notnull
+//{
+//	public TaskAwaiter<ResponseMaybe<TSuccess>> GetAwaiter()
+//		=> task.GetAwaiter();
+
+//	public Task<ResponseMaybe<TSuccess>> AsTask()
+//		=> task;
+//}
+//public sealed class RemoteResponseMaybe<TSuccess, TError>(Task<ResponseMaybe<TSuccess, TError>> task) : RemoteResponseBase
+//	where TSuccess : notnull
+//	where TError : notnull
+//{
+//	public TaskAwaiter<ResponseMaybe<TSuccess, TError>> GetAwaiter()
+//		=> task.GetAwaiter();
+
+//	public Task<ResponseMaybe<TSuccess, TError>> AsTask()
+//		=> task;
+//}
+
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

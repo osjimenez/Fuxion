@@ -1,552 +1,280 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using Fuxion.Net.Http;
-using Fuxion.Text.Json.Serialization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Net.Http.Headers;
-using static Fuxion.Net.Http.Extensions;
-
 namespace Fuxion.AspNetCore;
 
-/// <summary>
-///    Provides extension methods to convert <see cref="IResponse" /> and <see cref="IResponse{TPayload}" /> objects
-///    into ASP.NET Core action results (<see cref="IResult" /> and <see cref="IActionResult" />).
-/// </summary>
-/// <remarks>
-///    This class handles the conversion of Response objects to appropriate HTTP responses, including:
-///    <list type="bullet">
-///       <item>
-///          <description>Success responses with various payload types (objects, streams, bytes, strings)</description>
-///       </item>
-///       <item>
-///          <description>Error responses mapped to standard HTTP status codes</description>
-///       </item>
-///       <item>
-///          <description>File download support for Stream and byte array payloads</description>
-///       </item>
-///       <item>
-///          <description>ProblemDetails format for errors following RFC 7807</description>
-///       </item>
-///    </list>
-/// </remarks>
-public static class ResponseExtensions
+using System;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Fuxion;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Microsoft.Net.Http.Headers;
+using HttpJsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
+using MvcJsonOptions = Microsoft.AspNetCore.Mvc.JsonOptions;
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
+public static class ResponseMiddlewareExtensions
 {
-	/// <summary>
-	///    Gets or sets a value indicating whether exception details should be included in error responses.
-	/// </summary>
-	/// <value>
-	///    <see langword="true" /> to include exception information in responses; otherwise, <see langword="false" />.
-	///    Default is <see langword="true" />.
-	/// </value>
-	/// <remarks>
-	///    When enabled, exception information is serialized and added to the response extensions.
-	///    This should typically be disabled in production environments to avoid leaking sensitive information.
-	/// </remarks>
-	public static bool IncludeException { get; set; } = true;
-
-	/// <summary>
-	///    Core helper method that converts an <see cref="IResponse" /> to an <see cref="IResult" /> for minimal API endpoints.
-	/// </summary>
-	/// <param name="me">The response to convert.</param>
-	/// <param name="contentType">The content type for file responses.</param>
-	/// <param name="fileDownloadName">The filename for file download responses.</param>
-	/// <param name="lastModified">The last modified date for file responses.</param>
-	/// <param name="entityTag">The entity tag for file responses.</param>
-	/// <param name="enableRangeProcessing">Whether to enable range processing for file responses.</param>
-	/// <param name="fullSerialization">Whether to serialize the entire response object or just the payload.</param>
-	/// <returns>An <see cref="IResult" /> representing the response.</returns>
-	private static IResult ToApiResultCore(
-		IResponse me,
-		string? contentType,
-		string? fileDownloadName,
-		DateTimeOffset? lastModified,
-		EntityTagHeaderValue? entityTag,
-		bool enableRangeProcessing,
-		bool fullSerialization)
+	public static MvcOptions UseResponses(this MvcOptions options)
 	{
-		if (me.IsSuccess)
-		{
-			if (me.TryGetPayload(out var payload))
-			{
-				if (payload is Stream stream)
-					return Results.File(stream, contentType, fileDownloadName, lastModified, entityTag,
-						enableRangeProcessing);
-				if (payload is IEnumerable<byte> bytes)
-					return Results.File(bytes.ToArray(), contentType, fileDownloadName, enableRangeProcessing, lastModified,
-						entityTag);
-				if (payload is string str)
-					return Results.Content(str, contentType ?? "text/plain", Encoding.UTF8,
-						StatusCodes.Status200OK); // PEND Poner el status como parámetro
-				return Results.Ok(fullSerialization ? me : payload);
-			}
-
-			if (me.Message is not null || fullSerialization)
-				return fullSerialization
-					? Results.Ok(me)
-					: Results.Content(me.Message, "text/plain");
-			return Results.NoContent();
-		}
-
-		me.Extensions.StatusCode = Undefinable<int>.Undefined;
-		me.Extensions.ReasonPhrase = Undefinable<string>.Undefined;
-
-		if (me.TryGetPayload(out var payload2) && payload2 is not Stream) me.Extensions.Payload = payload2;
-		if (IncludeException && me.Exception is not null)
-			me.Extensions.Exception = JsonSerializer.SerializeToElement(me.Exception, options: new()
-			{
-				Converters = { new ExceptionConverter() }
-			});
-
-		return me.ErrorType switch
-		{
-			ErrorType.NotFound => Results.Problem(me.Message, statusCode: StatusCodes.Status404NotFound, title: "Not found", extensions: me.Extensions),
-			ErrorType.PermissionDenied => Results.Problem(me.Message, statusCode: StatusCodes.Status403Forbidden, title: "Forbidden", extensions: me.Extensions),
-			ErrorType.InvalidData => Results.Problem(me.Message, statusCode: StatusCodes.Status400BadRequest, title: "Bad request", extensions: me.Extensions),
-			ErrorType.Conflict => Results.Problem(me.Message, statusCode: StatusCodes.Status409Conflict, title: "Conflict", extensions: me.Extensions),
-			ErrorType.Critical => Results.Problem(me.Message, statusCode: StatusCodes.Status500InternalServerError, title: "Internal server error", extensions: me.Extensions),
-			ErrorType.NotSupported => Results.Problem(me.Message, statusCode: StatusCodes.Status501NotImplemented, title: "Not implemented", extensions: me.Extensions),
-			ErrorType.Unavailable => Results.Problem(me.Message, statusCode: StatusCodes.Status503ServiceUnavailable, title: "Service unavailable", extensions: me.Extensions),
-			ErrorType.Timeout => Results.Problem(me.Message, statusCode: StatusCodes.Status408RequestTimeout, title: "Request timeout", extensions: me.Extensions),
-			_ => Results.Problem(me.Message, statusCode: StatusCodes.Status500InternalServerError, title: "Internal server error", extensions: me.Extensions)
-		};
+		options.Filters.Add<ResponseActionFilter>();
+		return options;
 	}
 
-	/// <summary>
-	///    Core helper method that converts an <see cref="IResponse" /> to an <see cref="IActionResult" /> for MVC controllers.
-	/// </summary>
-	/// <param name="me">The response to convert.</param>
-	/// <param name="contentType">The content type for file responses.</param>
-	/// <param name="fileDownloadName">The filename for file download responses.</param>
-	/// <param name="lastModified">The last modified date for file responses.</param>
-	/// <param name="entityTag">The entity tag for file responses.</param>
-	/// <param name="enableRangeProcessing">Whether to enable range processing for file responses.</param>
-	/// <param name="fullSerialization">Whether to serialize the entire response object or just the payload.</param>
-	/// <returns>An <see cref="IActionResult" /> representing the response.</returns>
-	private static IActionResult ToApiActionResultCore(
-		IResponse me,
-		string? contentType,
-		string? fileDownloadName,
-		DateTimeOffset? lastModified,
-		EntityTagHeaderValue? entityTag,
-		bool enableRangeProcessing,
-		bool fullSerialization)
-	{
-		if (me.IsSuccess)
-		{
-			if (me.TryGetPayload(out var payload))
-			{
-				if (payload is Stream stream)
-					return new FileStreamResult(stream, contentType ?? string.Empty)
-					{
-						FileDownloadName = fileDownloadName,
-						LastModified = lastModified,
-						EntityTag = entityTag,
-						EnableRangeProcessing = enableRangeProcessing
-					};
-				if (payload is IEnumerable<byte> bytes)
-					return new FileContentResult(bytes.ToArray(), contentType ?? string.Empty)
-					{
-						FileDownloadName = fileDownloadName,
-						LastModified = lastModified,
-						EntityTag = entityTag,
-						EnableRangeProcessing = enableRangeProcessing
-					};
-				if (payload is string str)
-					return new ContentResult
-					{
-						Content = str, ContentType = contentType ?? "text/plain", StatusCode = StatusCodes.Status200OK
-					}; // PEND Poner el status como parámetro
-				return new OkObjectResult(fullSerialization ? me : payload);
-			}
-
-			if (me.Message is not null || fullSerialization)
-				return fullSerialization
-					? new OkObjectResult(me)
-					: new ContentResult { Content = me.Message, ContentType = "text/plain" };
-			return new NoContentResult();
-		}
-
-		var extensions = me.Extensions.ToDictionary();
-		if (me.TryGetPayload(out var payload2) && payload2 is not Stream) extensions["payload"] = payload2;
-		//if (me is Response<object?> me3 && me3.Payload is not null && me3.Payload is not Stream) extensions["payload"] = me3.Payload;
-		if (IncludeException && me.Exception is not null)
-			extensions["exception"] = JsonSerializer.SerializeToElement(me.Exception, options: new()
-			{
-				Converters = { new ExceptionConverter() }
-			});
-
-		return me.ErrorType switch
-		{
-			ErrorType.NotFound => new(GetProblem(me.Message, StatusCodes.Status404NotFound, "Not found", extensions))
-				{ StatusCode = StatusCodes.Status404NotFound },
-			ErrorType.PermissionDenied => new(GetProblem(me.Message, StatusCodes.Status403Forbidden, "Forbidden",
-				extensions)) { StatusCode = StatusCodes.Status403Forbidden },
-			ErrorType.InvalidData => new(
-					GetProblem(me.Message, StatusCodes.Status400BadRequest, "Bad request", extensions))
-				{ StatusCode = StatusCodes.Status400BadRequest },
-			ErrorType.Conflict => new(GetProblem(me.Message, StatusCodes.Status409Conflict, "Conflict", extensions))
-				{ StatusCode = StatusCodes.Status409Conflict },
-			ErrorType.Critical => new(GetProblem(me.Message, StatusCodes.Status500InternalServerError,
-				"Internal server error", extensions)) { StatusCode = StatusCodes.Status500InternalServerError },
-			ErrorType.NotSupported => new(GetProblem(me.Message, StatusCodes.Status501NotImplemented, "Not implemented",
-				extensions)) { StatusCode = StatusCodes.Status501NotImplemented },
-			_ => new ObjectResult(GetProblem(me.Message, StatusCodes.Status500InternalServerError, "Internal server error",
-				extensions)) { StatusCode = StatusCodes.Status500InternalServerError }
-		};
-
-		ProblemDetails GetProblem(string? detail, int? status, string? title, Dictionary<string, object?>? extensions)
-		{
-			var res = new ProblemDetails
-			{
-				Detail = detail, Status = status, Title = title,
-				Type = status is not null ? GetTypeFromInt(status.Value) : null
-			};
-			if (extensions is not null) res.Extensions = extensions;
-			return res;
-		}
-	}
-
-	private static string GetTypeFromInt(int status)
-		=> GetTypeFromStatusCode((HttpStatusCode)status);
-
-	/// <summary>
-	///    Maps an HTTP status code to its corresponding RFC 7231/7232/7233/7235 specification URL.
-	/// </summary>
-	/// <param name="status">The HTTP status code.</param>
-	/// <returns>The URL of the RFC specification for the status code.</returns>
-	/// <exception cref="NotImplementedException">Thrown when the status code is not supported.</exception>
-	private static string GetTypeFromStatusCode(HttpStatusCode status)
-		=> status switch
-		{
-			HttpStatusCode.Continue => "https://www.rfc-editor.org/rfc/rfc9110#name-100-continue",
-			HttpStatusCode.SwitchingProtocols => "https://www.rfc-editor.org/rfc/rfc9110#name-101-switching-protocols",
-
-			HttpStatusCode.OK => "https://www.rfc-editor.org/rfc/rfc9110#name-200-ok",
-			HttpStatusCode.Created => "https://www.rfc-editor.org/rfc/rfc9110#name-201-created",
-			HttpStatusCode.Accepted => "https://www.rfc-editor.org/rfc/rfc9110#name-202-accepted",
-			HttpStatusCode.NonAuthoritativeInformation => "https://www.rfc-editor.org/rfc/rfc9110#name-203-non-authoritative-info",
-			HttpStatusCode.NoContent => "https://www.rfc-editor.org/rfc/rfc9110#name-204-no-content",
-			HttpStatusCode.ResetContent => "https://www.rfc-editor.org/rfc/rfc9110#name-205-reset-content",
-			HttpStatusCode.PartialContent => "https://www.rfc-editor.org/rfc/rfc9110#name-206-partial-content",
-
-			HttpStatusCode.MultipleChoices => "https://www.rfc-editor.org/rfc/rfc9110#name-300-multiple-choices",
-			HttpStatusCode.MovedPermanently => "https://www.rfc-editor.org/rfc/rfc9110#name-301-moved-permanently",
-			HttpStatusCode.Found => "https://www.rfc-editor.org/rfc/rfc9110#name-302-found",
-			HttpStatusCode.SeeOther => "https://www.rfc-editor.org/rfc/rfc9110#name-303-see-other",
-			HttpStatusCode.NotModified => "https://www.rfc-editor.org/rfc/rfc9110#name-304-not-modified",
-			HttpStatusCode.UseProxy => "https://www.rfc-editor.org/rfc/rfc9110#name-305-use-proxy",
-			HttpStatusCode.Unused => "https://www.rfc-editor.org/rfc/rfc9110#name-306-unused",
-			HttpStatusCode.TemporaryRedirect => "https://www.rfc-editor.org/rfc/rfc9110#name-307-temporary-redirect",
-
-			HttpStatusCode.BadRequest => "https://www.rfc-editor.org/rfc/rfc9110#name-400-bad-request",
-			HttpStatusCode.Unauthorized => "https://www.rfc-editor.org/rfc/rfc9110#name-401-unauthorized",
-			HttpStatusCode.PaymentRequired => "https://www.rfc-editor.org/rfc/rfc9110#name-402-payment-required",
-			HttpStatusCode.Forbidden => "https://www.rfc-editor.org/rfc/rfc9110#name-403-forbidden",
-			HttpStatusCode.NotFound => "https://www.rfc-editor.org/rfc/rfc9110#name-404-not-found",
-			HttpStatusCode.MethodNotAllowed => "https://www.rfc-editor.org/rfc/rfc9110#name-405-method-not-allowed",
-			HttpStatusCode.NotAcceptable => "https://www.rfc-editor.org/rfc/rfc9110#name-406-not-acceptable",
-			HttpStatusCode.ProxyAuthenticationRequired => "https://www.rfc-editor.org/rfc/rfc9110#name-407-proxy-authentication-re",
-			HttpStatusCode.RequestTimeout => "https://www.rfc-editor.org/rfc/rfc9110#name-408-request-timeout",
-			HttpStatusCode.Conflict => "https://www.rfc-editor.org/rfc/rfc9110#name-409-conflict",
-			HttpStatusCode.Gone => "https://www.rfc-editor.org/rfc/rfc9110#name-410-gone",
-			HttpStatusCode.LengthRequired => "https://www.rfc-editor.org/rfc/rfc9110#name-411-length-required",
-			HttpStatusCode.PreconditionFailed => "https://www.rfc-editor.org/rfc/rfc9110#name-412-precondition-failed",
-			HttpStatusCode.RequestEntityTooLarge => "https://www.rfc-editor.org/rfc/rfc9110#name-413-content-too-large",
-			HttpStatusCode.RequestUriTooLong => "https://www.rfc-editor.org/rfc/rfc9110#name-414-uri-too-long",
-			HttpStatusCode.UnsupportedMediaType => "https://www.rfc-editor.org/rfc/rfc9110#name-415-unsupported-media-type",
-			HttpStatusCode.RequestedRangeNotSatisfiable => "https://www.rfc-editor.org/rfc/rfc9110#name-416-range-not-satisfiable",
-			HttpStatusCode.ExpectationFailed => "https://www.rfc-editor.org/rfc/rfc9110#name-417-expectation-failed",
-			HttpStatusCode.UpgradeRequired => "https://www.rfc-editor.org/rfc/rfc9110#name-426-upgrade-required",
-
-			HttpStatusCode.InternalServerError => "https://www.rfc-editor.org/rfc/rfc9110#name-500-internal-server-error",
-			HttpStatusCode.NotImplemented => "https://www.rfc-editor.org/rfc/rfc9110#name-501-not-implemented",
-			HttpStatusCode.BadGateway => "https://www.rfc-editor.org/rfc/rfc9110#name-502-bad-gateway",
-			HttpStatusCode.ServiceUnavailable => "https://www.rfc-editor.org/rfc/rfc9110#name-503-service-unavailable",
-			HttpStatusCode.GatewayTimeout => "https://www.rfc-editor.org/rfc/rfc9110#name-504-gateway-timeout",
-			HttpStatusCode.HttpVersionNotSupported => "https://www.rfc-editor.org/rfc/rfc9110#name-505-http-version-not-suppor",
-
-			_ => throw new NotImplementedException($"Status code '{status}' is not supported")
-		};
-
-	// Task<Response<TPayload>> with Stream payload
-	extension<TPayload>(Task<IResponse<TPayload>> me)
-		where TPayload : Stream
-	{
-		/// <summary>
-		///    Converts an async response with a <see cref="Stream" /> payload to a result for minimal APIs.
-		/// </summary>
-		/// <param name="fullSerialization">
-		///    If <see langword="true" />, serializes the entire response object; otherwise, only the
-		///    payload.
-		/// </param>
-		/// <returns>A task that represents the asynchronous operation. The task result contains an <see cref="IResult" />.</returns>
-		public async Task<IResult> ToApiResultAsync(bool fullSerialization = false)
-			=> ToApiResultCore(await me, null, null, null, null, false, fullSerialization);
-
-		/// <summary>
-		///    Converts an async response with a <see cref="Stream" /> payload to an action result for MVC controllers.
-		/// </summary>
-		/// <param name="fullSerialization">
-		///    If <see langword="true" />, serializes the entire response object; otherwise, only the
-		///    payload.
-		/// </param>
-		/// <returns>A task that represents the asynchronous operation. The task result contains an <see cref="IActionResult" />.</returns>
-		public async Task<IActionResult> ToApiActionResultAsync(bool fullSerialization = false)
-			=> ToApiActionResultCore(await me, null, null, null, null, false, fullSerialization);
-	}
-
-	// Task<IResponse<TPayload>> receivers (general)
-	extension<TPayload>(Task<IResponse<TPayload>> me)
-	{
-		/// <summary>
-		///    Converts an async generic response to a result for minimal APIs.
-		/// </summary>
-		/// <returns>A task that represents the asynchronous operation. The task result contains an <see cref="IResult" />.</returns>
-		public async Task<IResult> ToApiResultAsync()
-			=> ToApiResultCore(await me, null, null, null, null, false, false);
-
-		/// <summary>
-		///    Converts an async generic response to an action result for MVC controllers.
-		/// </summary>
-		/// <returns>A task that represents the asynchronous operation. The task result contains an <see cref="IActionResult" />.</returns>
-		public async Task<IActionResult> ToApiActionResultAsync()
-			=> ToApiActionResultCore(await me, null, null, null, null, false, false);
-	}
-
-	// Task<IResponse<TPayload>> specialized for stream
-	extension<TPayload>(Task<IResponse<TPayload>> me)
-		where TPayload : Stream
-	{
-		/// <summary>
-		///    Converts an async response with a <see cref="Stream" /> payload to a file stream result for minimal APIs.
-		/// </summary>
-		/// <param name="contentType">The content type of the file.</param>
-		/// <param name="fileDownloadName">The filename to use for the download.</param>
-		/// <param name="lastModified">The last modified date of the file.</param>
-		/// <param name="entityTag">The entity tag for cache validation.</param>
-		/// <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
-		/// <returns>A task that represents the asynchronous operation. The task result contains an <see cref="IResult" />.</returns>
-		public async Task<IResult> ToApiFileStreamResultAsync(
-			string? contentType = null,
-			string? fileDownloadName = null,
-			DateTimeOffset? lastModified = null,
-			EntityTagHeaderValue? entityTag = null,
-			bool enableRangeProcessing = false)
-			=> ToApiResultCore(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing,
-				false);
-
-		/// <summary>
-		///    Converts an async response with a <see cref="Stream" /> payload to a file stream action result for MVC controllers.
-		/// </summary>
-		/// <param name="contentType">The content type of the file.</param>
-		/// <param name="fileDownloadName">The filename to use for the download.</param>
-		/// <param name="lastModified">The last modified date of the file.</param>
-		/// <param name="entityTag">The entity tag for cache validation.</param>
-		/// <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
-		/// <returns>A task that represents the asynchronous operation. The task result contains an <see cref="IActionResult" />.</returns>
-		public async Task<IActionResult> ToApiFileStreamActionResultAsync(
-			string? contentType = null,
-			string? fileDownloadName = null,
-			DateTimeOffset? lastModified = null,
-			EntityTagHeaderValue? entityTag = null,
-			bool enableRangeProcessing = false)
-			=> ToApiActionResultCore(await me, contentType, fileDownloadName, lastModified, entityTag,
-				enableRangeProcessing, false);
-	}
-
-	// Task<IResponse<TPayload>> specialized for bytes
-	extension<TPayload>(Task<IResponse<TPayload>> me)
-		where TPayload : IEnumerable<byte>
-	{
-		/// <summary>
-		///    Converts an async response with a byte array payload to a file bytes result for minimal APIs.
-		/// </summary>
-		/// <param name="contentType">The content type of the file.</param>
-		/// <param name="fileDownloadName">The filename to use for the download.</param>
-		/// <param name="lastModified">The last modified date of the file.</param>
-		/// <param name="entityTag">The entity tag for cache validation.</param>
-		/// <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
-		/// <returns>A task that represents the asynchronous operation. The task result contains an <see cref="IResult" />.</returns>
-		public async Task<IResult> ToApiFileBytesResultAsync(
-			string? contentType = null,
-			string? fileDownloadName = null,
-			DateTimeOffset? lastModified = null,
-			EntityTagHeaderValue? entityTag = null,
-			bool enableRangeProcessing = false)
-			=> ToApiResultCore(await me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing,
-				false);
-
-		/// <summary>
-		///    Converts an async response with a byte array payload to a file bytes action result for MVC controllers.
-		/// </summary>
-		/// <param name="contentType">The content type of the file.</param>
-		/// <param name="fileDownloadName">The filename to use for the download.</param>
-		/// <param name="lastModified">The last modified date of the file.</param>
-		/// <param name="entityTag">The entity tag for cache validation.</param>
-		/// <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
-		/// <returns>A task that represents the asynchronous operation. The task result contains an <see cref="IActionResult" />.</returns>
-		public async Task<IActionResult> ToApiFileBytesActionResultAsync(
-			string? contentType = null,
-			string? fileDownloadName = null,
-			DateTimeOffset? lastModified = null,
-			EntityTagHeaderValue? entityTag = null,
-			bool enableRangeProcessing = false)
-			=> ToApiActionResultCore(await me, contentType, fileDownloadName, lastModified, entityTag,
-				enableRangeProcessing, false);
-	}
-
-	// Task<IResponse> and Task<Response> receivers
-	extension(Task<IResponse> me)
-	{
-		/// <summary>
-		///    Converts an async concrete response to a result for minimal APIs.
-		/// </summary>
-		/// <param name="fullSerialization">
-		///    If <see langword="true" />, serializes the entire response object; otherwise, only the
-		///    message.
-		/// </param>
-		/// <returns>A task that represents the asynchronous operation. The task result contains an <see cref="IResult" />.</returns>
-		public async Task<IResult> ToApiResultAsync(bool fullSerialization = false)
-			=> ToApiResultCore(await me, null, null, null, null, false, fullSerialization);
-
-		/// <summary>
-		///    Converts an async concrete response to an action result for MVC controllers.
-		/// </summary>
-		/// <param name="fullSerialization">
-		///    If <see langword="true" />, serializes the entire response object; otherwise, only the
-		///    message.
-		/// </param>
-		/// <returns>A task that represents the asynchronous operation. The task result contains an <see cref="IActionResult" />.</returns>
-		public async Task<IActionResult> ToApiActionResultAsync(bool fullSerialization = false)
-			=> ToApiActionResultCore(await me, null, null, null, null, false, fullSerialization);
-	}
-
-	// IResponse<TPayload> receivers
-	extension<TPayload>(IResponse<TPayload> me)
-	{
-		/// <summary>
-		///    Converts a generic response to a result for minimal APIs.
-		/// </summary>
-		/// <returns>An <see cref="IResult" /> representing the response.</returns>
-		public IResult ToApiResult()
-			=> ToApiResultCore(me, null, null, null, null, false, false);
-
-		/// <summary>
-		///    Converts a generic response to an action result for MVC controllers.
-		/// </summary>
-		/// <returns>An <see cref="IActionResult" /> representing the response.</returns>
-		public IActionResult ToApiActionResult()
-			=> ToApiActionResultCore(me, null, null, null, null, false, false);
-	}
-
-	extension<TPayload>(IResponse<TPayload> me)
-		where TPayload : Stream
-	{
-		/// <summary>
-		///    Converts a response with a <see cref="Stream" /> payload to a file stream result for minimal APIs.
-		/// </summary>
-		/// <param name="contentType">The content type of the file.</param>
-		/// <param name="fileDownloadName">The filename to use for the download.</param>
-		/// <param name="lastModified">The last modified date of the file.</param>
-		/// <param name="entityTag">The entity tag for cache validation.</param>
-		/// <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
-		/// <returns>An <see cref="IResult" /> representing the file response.</returns>
-		public IResult ToApiFileStreamResult(
-			string? contentType = null,
-			string? fileDownloadName = null,
-			DateTimeOffset? lastModified = null,
-			EntityTagHeaderValue? entityTag = null,
-			bool enableRangeProcessing = false)
-			=> ToApiResultCore(me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
-
-		/// <summary>
-		///    Converts a response with a <see cref="Stream" /> payload to a file stream action result for MVC controllers.
-		/// </summary>
-		/// <param name="contentType">The content type of the file.</param>
-		/// <param name="fileDownloadName">The filename to use for the download.</param>
-		/// <param name="lastModified">The last modified date of the file.</param>
-		/// <param name="entityTag">The entity tag for cache validation.</param>
-		/// <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
-		/// <returns>An <see cref="IActionResult" /> representing the file response.</returns>
-		public IActionResult ToApiFileStreamActionResult(
-			string? contentType = null,
-			string? fileDownloadName = null,
-			DateTimeOffset? lastModified = null,
-			EntityTagHeaderValue? entityTag = null,
-			bool enableRangeProcessing = false)
-			=> ToApiActionResultCore(me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing,
-				false);
-	}
-
-	extension<TPayload>(IResponse<TPayload> me)
-		where TPayload : IEnumerable<byte>
-	{
-		/// <summary>
-		///    Converts a response with a byte array payload to a file bytes result for minimal APIs.
-		/// </summary>
-		/// <param name="contentType">The content type of the file.</param>
-		/// <param name="fileDownloadName">The filename to use for the download.</param>
-		/// <param name="lastModified">The last modified date of the file.</param>
-		/// <param name="entityTag">The entity tag for cache validation.</param>
-		/// <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
-		/// <returns>An <see cref="IResult" /> representing the file response.</returns>
-		public IResult ToApiFileBytesResult(
-			string? contentType = null,
-			string? fileDownloadName = null,
-			DateTimeOffset? lastModified = null,
-			EntityTagHeaderValue? entityTag = null,
-			bool enableRangeProcessing = false)
-			=> ToApiResultCore(me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing, false);
-
-		/// <summary>
-		///    Converts a response with a byte array payload to a file bytes action result for MVC controllers.
-		/// </summary>
-		/// <param name="contentType">The content type of the file.</param>
-		/// <param name="fileDownloadName">The filename to use for the download.</param>
-		/// <param name="lastModified">The last modified date of the file.</param>
-		/// <param name="entityTag">The entity tag for cache validation.</param>
-		/// <param name="enableRangeProcessing">Whether to enable HTTP range requests.</param>
-		/// <returns>An <see cref="IActionResult" /> representing the file response.</returns>
-		public IActionResult ToApiFileBytesActionResult(
-			string? contentType = null,
-			string? fileDownloadName = null,
-			DateTimeOffset? lastModified = null,
-			EntityTagHeaderValue? entityTag = null,
-			bool enableRangeProcessing = false)
-			=> ToApiActionResultCore(me, contentType, fileDownloadName, lastModified, entityTag, enableRangeProcessing,
-				false);
-	}
-
-	// IResponse receivers
 	extension(IResponse me)
 	{
-		/// <summary>
-		///    Converts a response to a result for minimal APIs.
-		/// </summary>
-		/// <param name="fullSerialization">
-		///    If <see langword="true" />, serializes the entire response object; otherwise, only the
-		///    message.
-		/// </param>
-		/// <returns>An <see cref="IResult" /> representing the response.</returns>
-		public IResult ToApiResult(bool fullSerialization = false)
-			=> ToApiResultCore(me, null, null, null, null, false, fullSerialization);
+		/// <summary>Deferred: the effective options (scope + Accept) are resolved when the result executes.</summary>
+		public IResult ToResult() => new DeferredResponseResult(me);
 
-		/// <summary>
-		///    Converts a response to an action result for MVC controllers.
-		/// </summary>
-		/// <param name="fullSerialization">
-		///    If <see langword="true" />, serializes the entire response object; otherwise, only the
-		///    message.
-		/// </param>
-		/// <returns>An <see cref="IActionResult" /> representing the response.</returns>
-		public IActionResult ToApiActionResult(bool fullSerialization = false)
-			=> ToApiActionResultCore(me, null, null, null, null, false, fullSerialization);
+		/// <summary>Explicit options, for callers without an HTTP context. Accept is not consulted.</summary>
+		public IResult ToResult(ResponseOptions options)
+			=> ResponseWireMapper.TryMap(me, options, out var mapping)
+				? new WireResult(mapping)
+				: throw new NotSupportedException($"The union response value of type '{me.Value?.GetType().FullName ?? "null"}' is not supported.");
+
+		public IActionResult ToActionResult() => new DeferredResponseActionResult(me);
+
+		public IActionResult ToActionResult(ResponseOptions options)
+			=> ResponseWireMapper.TryMap(me, options, out var mapping)
+				? new WireActionResult(mapping)
+				: throw new NotSupportedException($"The union response value of type '{me.Value?.GetType().FullName ?? "null"}' is not supported.");
+	}
+
+	sealed class DeferredResponseResult(IResponse response) : IResult
+	{
+		public Task ExecuteAsync(HttpContext httpContext)
+		{
+			if (!ResponseHttpAdapter.TryMap(httpContext, response, out var mapping))
+				throw new NotSupportedException("The union response value is not supported by the current response mapping.");
+			return new WireResult(mapping).ExecuteAsync(httpContext);
+		}
+	}
+
+	sealed class DeferredResponseActionResult(IResponse response) : IActionResult
+	{
+		public Task ExecuteResultAsync(ActionContext context)
+		{
+			if (!ResponseHttpAdapter.TryMap(context.HttpContext, response, out var mapping))
+				throw new NotSupportedException("The union response value is not supported by the current response mapping.");
+			return new WireActionResult(mapping).ExecuteResultAsync(context);
+		}
+	}
+
+	/// <summary>
+	/// Enables the union response wire contract on this endpoint convention builder: mapped union return values
+	/// are turned into the appropriate HTTP response (envelope, native/problem error, Unit...), and a request
+	/// body's own per-request <c>naming</c> Content-Type parameter (spec Â§3) is honored by wrapping the
+	/// endpoint's <c>RequestDelegate</c> (<see cref="RequestNamingEndpoint.Apply"/>).
+	/// </summary>
+	/// <remarks>
+	/// This call is for minimal-API endpoints. A controller action reached through this builder (e.g.
+	/// <c>app.MapControllers().UseResponses()</c>) gets nothing from it: MVC ignores endpoint filter factories,
+	/// so the response-side contract for controllers comes from <c>AddControllers(o =&gt; o.UseResponses())</c>
+	/// (<see cref="UseResponses(MvcOptions)"/>), and the request-naming wrapper skips controller endpoints on
+	/// purpose because they already get per-request naming support from <see cref="ResponseNamingInputFormatter"/>
+	/// (registered by <c>AddResponses</c>); wrapping them too would transcode the request body twice.
+	/// </remarks>
+	public static TBuilder UseResponses<TBuilder>(this TBuilder builder)
+		where TBuilder : IEndpointConventionBuilder
+	{
+		builder.AddEndpointFilterFactory(ResponseEndpointFilterFactory.Create);
+		// Route handler RequestDelegates are set after normal conventions run, so only a Finally convention
+		// can see (and wrap) the final delegate to apply the per-request naming support (spec D7).
+		builder.Finally(RequestNamingEndpoint.Apply);
+		return builder;
+	}
+
+	/// <summary>
+	/// Same as the parameterless <see cref="UseResponses{TBuilder}(TBuilder)"/>, but also attaches a
+	/// <see cref="ResponseOptionsAttribute"/> built by <paramref name="configure"/>, overriding the response
+	/// options (scope + error shape) for every endpoint reached through this builder.
+	/// </summary>
+	/// <param name="builder">The endpoint convention builder (a route group, a mapped endpoint...) to enable the wire contract on.</param>
+	/// <param name="configure">Sets the per-endpoint (or per-group) response options override.</param>
+	/// <remarks>
+	/// As with the parameterless overload, a controller action reached through this builder is skipped by the
+	/// request-naming wrapper (<see cref="RequestNamingEndpoint.Apply"/>): MVC controllers already get
+	/// per-request naming support from <see cref="ResponseNamingInputFormatter"/>, registered independently by
+	/// <c>AddResponses</c>. Only minimal-API endpoints have their <c>RequestDelegate</c> wrapped by this call.
+	/// </remarks>
+	public static TBuilder UseResponses<TBuilder>(this TBuilder builder, Action<ResponseOptionsAttribute> configure)
+		where TBuilder : IEndpointConventionBuilder
+	{
+		var meta = new ResponseOptionsAttribute();
+		configure?.Invoke(meta);
+		builder.WithMetadata(meta);
+		builder.AddEndpointFilterFactory(ResponseEndpointFilterFactory.Create);
+		// Same as the parameterless overload: a nested group that calls this overload directly (instead of
+		// only inheriting its parent's) must still get the naming wrapper. RequestNamingEndpoint.Apply is
+		// idempotent, so an endpoint reached by both this and an ancestor's UseResponses() is only wrapped once.
+		builder.Finally(RequestNamingEndpoint.Apply);
+		return builder;
 	}
 }
+
+/// <summary>Shortcuts to map the <see cref="Unit"/> value to an HTTP response.</summary>
+public static class UnitResponseExtensions
+{
+	extension(Unit)
+	{
+		/// <summary>An <see cref="IResult"/> representing an operation that completed without a result.</summary>
+		public static IResult Result => ((IResponse)(Response<Unit>)Unit.Value).ToResult();
+
+		/// <summary>An <see cref="IActionResult"/> representing an operation that completed without a result.</summary>
+		public static IActionResult ActionResult => ((IResponse)(Response<Unit>)Unit.Value).ToActionResult();
+	}
+}
+
+/// <summary>Shortcuts to map the <see cref="None"/> value to an HTTP response.</summary>
+public static class NoneResponseExtensions
+{
+	extension(None)
+	{
+		/// <summary>An <see cref="IResult"/> representing the absence of a result.</summary>
+		public static IResult Result => ((IResponse)(ResponseMaybe<Unit>)None.Value).ToResult();
+
+		/// <summary>An <see cref="IActionResult"/> representing the absence of a result.</summary>
+		public static IActionResult ActionResult => ((IResponse)(ResponseMaybe<Unit>)None.Value).ToActionResult();
+	}
+}
+
+static class ResponseEndpointFilterFactory
+{
+	public static EndpointFilterDelegate Create(EndpointFilterFactoryContext context, EndpointFilterDelegate next)
+	{
+		// Build-time gate: endpoints that did not declare a union return type are never touched.
+		if (!ResponseWireMapper.IsSupportedDeclaredResponseType(context.MethodInfo.ReturnType))
+			return next;
+
+		return async invocationContext =>
+		{
+			var value = await next(invocationContext);
+			return ResponseHttpAdapter.TryMap(invocationContext.HttpContext, value, out var mapping)
+				? new WireResult(mapping)
+				: value;
+		};
+	}
+}
+
+sealed class ResponseActionFilter : IActionFilter
+{
+	public void OnActionExecuting(ActionExecutingContext context) { }
+
+	public void OnActionExecuted(ActionExecutedContext context)
+	{
+		if (context.ActionDescriptor is not ControllerActionDescriptor action) return;
+		if (!ResponseWireMapper.IsSupportedDeclaredResponseType(action.MethodInfo.ReturnType)) return;
+		if (context.Result is not ObjectResult result) return;
+		if (!ResponseHttpAdapter.TryMap(context.HttpContext, result.Value, out var mapping)) return;
+
+		context.Result = new WireActionResult(mapping);
+	}
+}
+
+/// <summary>
+/// The ASP.NET Core side of the wire contract: resolves the effective options (scope defaults + the
+/// request's Accept), delegates the decision to <see cref="ResponseWireMapper"/> and writes the result.
+/// </summary>
+static class ResponseHttpAdapter
+{
+	public static ResponseOptions ResolveEffectiveOptions(HttpContext httpContext)
+		=> ResponseAccept.Apply(ResponseOptionsResolver.Resolve(httpContext), httpContext.Request.Headers.Accept.ToString());
+
+	public static bool TryMap(HttpContext httpContext, object? value, out ResponseWireMapping mapping)
+	{
+		// Already materialized results are never touched.
+		if (value is IResult || value is IActionResult)
+		{
+			mapping = null!;
+			return false;
+		}
+
+		return ResponseWireMapper.TryMap(value, ResolveEffectiveOptions(httpContext), out mapping);
+	}
+
+	// The shape depends on Accept, so shared caches must key on it. StringValues.Contains is an exact
+	// element match, so a pre-existing "Vary: Accept, Origin" needs a comma-separated-value comparison
+	// (case-insensitively) instead, or Accept would be appended a second time.
+	public static void MarkVaryByAccept(HttpResponse response)
+	{
+		var existing = response.Headers.GetCommaSeparatedValues(HeaderNames.Vary);
+		foreach (var value in existing)
+			if (string.Equals(value, HeaderNames.Accept, StringComparison.OrdinalIgnoreCase))
+				return;
+
+		response.Headers.Append(HeaderNames.Vary, HeaderNames.Accept);
+	}
+
+	public static JsonSerializerOptions ResolveHttpJsonOptions(HttpContext httpContext)
+		=> httpContext.RequestServices.GetService<IOptions<HttpJsonOptions>>()?.Value.SerializerOptions
+			?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+	public static JsonSerializerOptions ResolveMvcJsonOptions(HttpContext httpContext)
+		=> httpContext.RequestServices.GetService<IOptions<MvcJsonOptions>>()?.Value.JsonSerializerOptions
+			?? httpContext.RequestServices.GetService<IOptions<HttpJsonOptions>>()?.Value.SerializerOptions
+			?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+	public static EntityTagHeaderValue? ParseETag(string? etag)
+		=> !string.IsNullOrWhiteSpace(etag) && EntityTagHeaderValue.TryParse(etag, out var parsed) ? parsed : null;
+}
+
+sealed class WireResult(ResponseWireMapping mapping) : IResult
+{
+	public Task ExecuteAsync(HttpContext httpContext)
+	{
+		if (mapping.Shape == ResponseWireShape.Binary)
+			return BinaryResult((FileContent)mapping.Value!).ExecuteAsync(httpContext);
+
+		ResponseHttpAdapter.MarkVaryByAccept(httpContext.Response);
+
+		if (!mapping.HasBody)
+			return Results.StatusCode(mapping.StatusCode).ExecuteAsync(httpContext);
+
+		var jsonOptions = ResponseHttpAdapter.ResolveHttpJsonOptions(httpContext);
+		var (contentType, body, serializerOptions) = mapping.Materialize(jsonOptions);
+		return Results.Json(body, serializerOptions ?? jsonOptions, contentType, mapping.StatusCode).ExecuteAsync(httpContext);
+	}
+
+	// The framework writes the stream (and disposes it), sets Content-Disposition, Content-Length,
+	// ETag/Last-Modified and serves Range requests. No Vary: a file's shape does not depend on Accept.
+	static IResult BinaryResult(FileContent file)
+		=> Results.File(file.Stream, file.ContentType, file.FileName, file.LastModified, ResponseHttpAdapter.ParseETag(file.ETag), file.EnableRangeProcessing);
+}
+
+sealed class WireActionResult(ResponseWireMapping mapping) : IActionResult
+{
+	public Task ExecuteResultAsync(ActionContext context)
+	{
+		var http = context.HttpContext;
+
+		if (mapping.Shape == ResponseWireShape.Binary)
+		{
+			var file = (FileContent)mapping.Value!;
+			return new FileStreamResult(file.Stream, file.ContentType)
+			{
+				FileDownloadName = file.FileName,
+				LastModified = file.LastModified,
+				EntityTag = ResponseHttpAdapter.ParseETag(file.ETag),
+				EnableRangeProcessing = file.EnableRangeProcessing
+			}.ExecuteResultAsync(context);
+		}
+
+		ResponseHttpAdapter.MarkVaryByAccept(http.Response);
+		http.Response.StatusCode = mapping.StatusCode;
+
+		if (!mapping.HasBody)
+			return Task.CompletedTask;
+
+		var jsonOptions = ResponseHttpAdapter.ResolveMvcJsonOptions(http);
+		var (contentType, body, serializerOptions) = mapping.Materialize(jsonOptions);
+		return http.Response.WriteAsJsonAsync(body, body!.GetType(), serializerOptions ?? jsonOptions, contentType, http.RequestAborted);
+	}
+}
+
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

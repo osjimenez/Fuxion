@@ -1,10 +1,11 @@
+using Fuxion;
+
 namespace Test.Responses.Shared;
 
 using System.Net;
 using System.Net.Http;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using Fuxion.Union;
 using Fuxion.Xunit;
 using Xunit;
 

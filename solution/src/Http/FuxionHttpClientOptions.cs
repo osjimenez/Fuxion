@@ -1,6 +1,5 @@
 namespace Fuxion.Http;
 
-using Fuxion.Union;
 using System.Collections.Generic;
 using System.Text.Json;
 

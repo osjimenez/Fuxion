@@ -1,7 +1,7 @@
-namespace Test.Responses.Shared;
-
 using System.Net;
-using Fuxion.Union;
+using Fuxion;
+
+namespace Test.Responses.Shared.Fixtures;
 
 /// <summary>A typed business error that declares its own HTTP status through <see cref="IHttpStatusError"/>.</summary>
 public record TestBusinessError(string Code, string Reason) : IHttpStatusError

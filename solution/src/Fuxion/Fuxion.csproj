@@ -31,18 +31,6 @@
 			<Generator>PublicResXFileCodeGenerator</Generator>
 			<LastGenOutput>Strings.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
-		<Compile Update="Response.ProblemDetails.cs">
-			<DependentUpon>Response.cs</DependentUpon>
-		</Compile>
-		<Compile Update="Response.EXT.cs">
-			<DependentUpon>Response.cs</DependentUpon>
-		</Compile>
-		<Compile Update="Response.Get.EXT.cs">
-			<DependentUpon>Response.cs</DependentUpon>
-		</Compile>
-		<Compile Update="Response.ErrorType.cs">
-			<DependentUpon>Response.cs</DependentUpon>
-		</Compile>
 
 		<Compile Update="SemanticVersion.Exception.cs">
 			<DependentUpon>SemanticVersion.cs</DependentUpon>

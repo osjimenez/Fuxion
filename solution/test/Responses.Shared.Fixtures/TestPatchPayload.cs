@@ -1,6 +1,6 @@
-namespace Test.Responses.Shared;
+using Fuxion;
 
-using Fuxion.Union;
+namespace Test.Responses.Shared.Fixtures;
 
 /// <summary>
 /// Payload used to verify that undefined members are omitted by the ASP.NET/ASP.NET Core serializers.

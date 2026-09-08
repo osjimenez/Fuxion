@@ -2,13 +2,15 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Fuxion;
+using Fuxion.Text.Json;
 using Fuxion.Xunit;
 using Xunit;
 
 namespace Test.Fuxion;
 
-using global::Fuxion;
-using global::Fuxion.Text.Json;
+using Fuxion;
+using Fuxion.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -90,39 +92,94 @@ public class SerializeTest(ITestOutputHelper output) : BaseTest<SerializeTest>(o
 			("EX", "STRING") => ((Exception?)input.Object).Fx.Json.Serialize(input.Formatted, input.HasOptions ? options : null, input.ErrorIfNull),
 			("EX", "NODE") => ((Exception?)input.Object).Fx.Json.SerializeToNode(input.Formatted, input.HasOptions ? options : null),
 			("EX", "ELEMENT") => ((Exception?)input.Object).Fx.Json.SerializeToElement(input.Formatted, input.HasOptions ? options : null, input.ErrorIfNull),
-			_ => throw new ArgumentException("input.Metho no tiene un valor soportado"),
+			_ => throw new ArgumentException("input.Method no tiene un valor soportado"),
 		};
-		PrintVariable(res.Message);
 		Assert.Equal(asserts.IsSuccess, res.IsSuccess);
-		if (res is IResponse<JsonNode> resNode)
+		// The error, if any, lives inside the concrete Response<T>; the interface only exposes the kind.
+		Error? failure = res switch
 		{
-			Assert.Equal(asserts.PayloadIsNull, resNode.Payload is null);
-			if (!asserts.PayloadIsNull)
+			Response<JsonNode> r when r.TryGetValue(out Error e) => e,
+			Response<JsonElement> r when r.TryGetValue(out Error e) => e,
+			Response<string> r when r.TryGetValue(out Error e) => e,
+			_ => null
+		};
+		Assert.Equal(asserts.ExceptionIsNull, failure?.Exception is null);
+		if (res is Response<JsonNode> resNode)
+		{
+			if (asserts.PayloadIsNull)
 			{
-				PrintVariable(resNode.Payload);
-				
-			}
-		}
-		else if (res is IResponse<JsonElement> resEle)
-		{
-			Assert.Equal(asserts.PayloadIsNull, resEle.Payload.ValueKind == JsonValueKind.Undefined);
-			if (!asserts.PayloadIsNull)
-				PrintVariable(resEle.Payload);
-		}
-		else if (res is IResponse<string> resObj)
-		{
-			Assert.Equal(asserts.PayloadIsNull, resObj.Payload is null);
-			if (!asserts.PayloadIsNull && input.Object is not null)
-			{
-				PrintVariable(resObj.Payload);
-				if (input.Formatted)
-					Assert.Equal("{\r\n\t\"", resObj.Payload!.Substring(0,5));
+				if(resNode is not Error error)
+					Assert.Fail("res is not of type Error");
 				else
-					Assert.Equal("{\"", resObj.Payload!.Substring(0, 2));
+					PrintVariable(error);
 			}
-		}else Assert.Fail("res has an unexpected type");
-		
-		Assert.Equal(asserts.ExceptionIsNull, res.Exception is null);
+			else
+			{
+				PrintVariable(resNode);
+			}
+			//Assert.Equal(asserts.PayloadIsNull, resNode.Payload is null);
+			//if (!asserts.PayloadIsNull)
+			//{
+			//	PrintVariable(resNode.Payload);
+
+			//}
+		}
+		else if (res is Response<JsonElement> resEle)
+		{
+			if (asserts.PayloadIsNull)
+			{
+				if (resEle is not Error error)
+					Assert.Fail("res is not of type Error");
+				else
+					PrintVariable(error);
+			}
+			else
+			{
+				PrintVariable(resEle);
+			}
+			//Assert.Equal(asserts.PayloadIsNull, resEle.Payload.ValueKind == JsonValueKind.Undefined);
+			//if (!asserts.PayloadIsNull)
+			//	PrintVariable(resEle.Payload);
+		}
+		else if (res is Response<string> resObj)
+		{
+			if (asserts.PayloadIsNull)
+			{
+				if (resObj is not Error error)
+					Assert.Fail("res is not of type Error");
+				else
+					PrintVariable(error);
+			}
+			else
+			{
+				if (resObj is not string json)
+					Assert.Fail("res is not of type Response<string>");
+				else
+				{
+					PrintVariable(json);
+					if (input.Object is null)
+						Assert.Equal("null", json);
+					else
+					{
+						if (input.Formatted)
+							Assert.Equal("{\r\n\t\"", json.Substring(0, 5));
+						else
+							Assert.Equal("{\"", json.Substring(0, 2));
+					}
+				}
+			}
+			//Assert.Equal(asserts.PayloadIsNull, resObj.Payload is null);
+			//if (!asserts.PayloadIsNull && input.Object is not null)
+			//{
+			//	PrintVariable(resObj.Payload);
+			//	if (input.Formatted)
+			//		Assert.Equal("{\r\n\t\"", resObj.Payload!.Substring(0, 5));
+			//	else
+			//		Assert.Equal("{\"", resObj.Payload!.Substring(0, 2));
+			//}
+		}
+		else Assert.Fail("res has an unexpected type");
+
 	}
 }
 
@@ -140,7 +197,10 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		var res = json.Fx.Json.Deserialize<TestClass>();
 
 		Assert.True(res.IsSuccess);
-		PrintVariable(res.Payload);
+		if (res is not TestClass payload)
+			Assert.Fail("res is not of type TestClass");
+		else
+			PrintVariable(payload);
 	}
 	[Fact]
 	public void Deserialize_Ok_Untyped()
@@ -154,7 +214,10 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		var res = json.Fx.Json.Deserialize(typeof(TestClass));
 
 		Assert.True(res.IsSuccess);
-		PrintVariable(res.Payload);
+		if(res is not TestClass payload)
+			Assert.Fail("res is not of type TestClass");
+		else
+			PrintVariable(payload);
 	}
 
 	[Fact]
@@ -170,7 +233,10 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		var res = json.Fx.Json.Deserialize<TestClass>(true);
 
 		Assert.True(res.IsSuccess);
-		PrintVariable(res.Payload);
+		if(res is not TestClass payload)
+			Assert.Fail("res is not of type TestClass");
+		else
+			PrintVariable(payload);
 	}
 
 	[Fact]
@@ -186,7 +252,10 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		var res = json.Fx.Json.Deserialize(typeof(TestClass), true);
 
 		Assert.True(res.IsSuccess);
-		PrintVariable(res.Payload);
+		if (res is not TestClass payload)
+			Assert.Fail("res is not of type TestClass");
+		else
+			PrintVariable(payload);
 	}
 
 	[Fact]
@@ -196,10 +265,15 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		var res = badJson.Fx.Json.Deserialize<TestClass>();
 
 		Assert.True(res.IsError);
-		Assert.NotNull(res.Exception);
-		Assert.NotNull(res.Exception.StackTrace);
-		PrintVariable(res.Message);
-		PrintVariable(res.Exception.StackTrace);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+		{
+			Assert.NotNull(error.Exception);
+			Assert.NotNull(error.Exception.StackTrace);
+			PrintVariable(error.Message);
+			PrintVariable(error.Exception.StackTrace);
+		}
 	}
 
 	[Fact]
@@ -209,10 +283,15 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		var res = badJson.Fx.Json.Deserialize(typeof(TestClass));
 
 		Assert.True(res.IsError);
-		Assert.NotNull(res.Exception);
-		Assert.NotNull(res.Exception.StackTrace);
-		PrintVariable(res.Message);
-		PrintVariable(res.Exception.StackTrace);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+		{
+			Assert.NotNull(error.Exception);
+			Assert.NotNull(error.Exception.StackTrace);
+			PrintVariable(error.Message);
+			PrintVariable(error.Exception.StackTrace);
+		}
 	}
 
 	[Fact]
@@ -222,7 +301,10 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		var res = nullValue.Fx.Json.Deserialize<TestClass>();
 
 		Assert.True(res.IsError);
-		Assert.Null(res.Payload);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+			PrintVariable(error.Message);
 	}
 
 	[Fact]
@@ -232,7 +314,10 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		var res = nullValue.Fx.Json.Deserialize(typeof(TestClass));
 
 		Assert.True(res.IsError);
-		Assert.Null(res.Payload);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+			PrintVariable(error.Message);
 	}
 
 	[Fact]
@@ -242,7 +327,10 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		var res = nullString.Fx.Json.Deserialize<TestClass>();
 
 		Assert.True(res.IsError);
-		Assert.Null(res.Payload);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+			PrintVariable(error.Message);
 	}
 
 	[Fact]
@@ -252,11 +340,14 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		var res = nullString.Fx.Json.Deserialize(typeof(TestClass));
 
 		Assert.True(res.IsError);
-		Assert.Null(res.Payload);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+			PrintVariable(error.Message);
 	}
 
 	[Fact]
-	public void Deserialize_Nullable_Ok_Typed()
+	public void DeserializeMaybe_Ok_Typed()
 	{
 		const string json = """
 			{
@@ -264,63 +355,73 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 				"Age": 30
 			}
 			""";
-		var res = json.Fx.Json.Deserialize<TestClass>();
-		PrintVariable(res.Message);
+		var res = json.Fx.Json.DeserializeMaybe<TestClass>();
 		Assert.True(res.IsSuccess);
-		Assert.NotNull(res.Payload);
-		PrintVariable(res.Payload);
+		if (res is not TestClass payload)
+			Assert.Fail("res is not of type TestClass");
+		else
+			PrintVariable(payload);
 	}
 
 	[Fact]
-	public void Deserialize_Nullable_BadJson_Typed()
+	public void DeserializeMaybe_BadJson_Typed()
 	{
 		var badJson = "--";
-		var res = badJson.Fx.Json.DeserializeNullable<TestClass>();
+		var res = badJson.Fx.Json.DeserializeMaybe<TestClass>();
 
 		Assert.NotNull(res);
 		Assert.True(res.IsError);
-		Assert.NotNull(res.Exception);
-		Assert.NotNull(res.Exception.StackTrace);
-		PrintVariable(res.Message);
-		PrintVariable(res.Exception.StackTrace);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+		{
+			Assert.NotNull(error.Exception);
+			Assert.NotNull(error.Exception.StackTrace);
+			PrintVariable(error.Message);
+			PrintVariable(error.Exception.StackTrace);
+		}
 	}
 
 	[Fact]
-	public void Deserialize_Nullable_NullValue_Typed()
+	public void DeserializeMaybe_NullValue_Typed()
 	{
 		string? nullValue = null;
-		var res = nullValue.Fx.Json.DeserializeNullable<TestClass>();
+		var res = nullValue.Fx.Json.DeserializeMaybe<TestClass>();
 
-		Assert.Null(res);
+		if(res is not None none)
+			Assert.Fail("res is not of type None");
 	}
 
 	[Fact]
-	public void Deserialize_Nullable_NullString_Typed()
+	public void DeserializeMaybe_NullString_Typed()
 	{
 		string nullString = "null";
-		var res = nullString.Fx.Json.DeserializeNullable<TestClass>();
+		var res = nullString.Fx.Json.DeserializeMaybe<TestClass>();
 
-		Assert.Null(res);
+		if (res is not None none)
+			Assert.Fail("res is not of type None");
 	}
 	[Fact]
-	public void Deserialize_Nullable_NullValue_Untyped()
+	public void DeserializeMaybe_NullValue_Untyped()
 	{
 		string? nullValue = null;
-		var res = nullValue.Fx.Json.DeserializeNullable(typeof(TestClass));
+		var res = nullValue.Fx.Json.DeserializeMaybe(typeof(TestClass));
 
-		Assert.Null(res);
+		if (res is not None none)
+			Assert.Fail("res is not of type None");
 	}
 
 	[Fact]
-	public void Deserialize_Nullable_NullString_Untyped()
+	public void DeserializeMaybe_NullString_Untyped()
 	{
 		string nullString = "null";
-		var res = nullString.Fx.Json.DeserializeNullable(typeof(TestClass));
+		var res = nullString.Fx.Json.DeserializeMaybe(typeof(TestClass));
 
-		Assert.Null(res);
+		if (res is not None none)
+			Assert.Fail("res is not of type None");
 	}
 	[Fact]
-	public void Deserialize_Nullable_Ok_Untyped()
+	public void DeserializeMaybe_Ok_Untyped()
 	{
 		const string json = """
 			{
@@ -328,34 +429,42 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 				"Age": 30
 			}
 			""";
-		var res = json.Fx.Json.Deserialize(typeof(TestClass));
+		var res = json.Fx.Json.DeserializeMaybe(typeof(TestClass));
 
 		Assert.True(res.IsSuccess);
-		Assert.NotNull(res.Payload);
-		PrintVariable(res.Payload);
+		if (res is not TestClass payload)
+			Assert.Fail("res is not of type TestClass");
+		else
+			PrintVariable(payload);
 	}
 
 	[Fact]
-	public void Deserialize_Nullable_BadJson_Untyped()
+	public void DeserializeMaybe_BadJson_Untyped()
 	{
 		var badJson = "--";
-		var res = badJson.Fx.Json.DeserializeNullable(typeof(TestClass));
+		var res = badJson.Fx.Json.DeserializeMaybe(typeof(TestClass));
 
 		Assert.NotNull(res);
 		Assert.True(res.IsError);
-		Assert.NotNull(res.Exception);
-		Assert.NotNull(res.Exception.StackTrace);
-		PrintVariable(res.Message);
-		PrintVariable(res.Exception.StackTrace);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+		{
+			Assert.NotNull(error.Exception);
+			Assert.NotNull(error.Exception.StackTrace);
+			PrintVariable(error.Message);
+			PrintVariable(error.Exception.StackTrace);
+		}
 	}
 
 	[Fact]
-	public void Deserialize_Nullable_Null_Untyped()
+	public void DeserializeMaybe_Null_Untyped()
 	{
 		string? nullJson = null;
-		var res = nullJson.Fx.Json.DeserializeNullable(typeof(TestClass));
+		var res = nullJson.Fx.Json.DeserializeMaybe(typeof(TestClass));
 
-		Assert.Null(res);
+		if (res is not None none)
+			Assert.Fail("res is not of type None");
 	}
 
 	[Fact]
@@ -368,9 +477,15 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 			""";
 		var res = json.Fx.Json.Deserialize<TestClass>();
 		Assert.True(res.IsError);
-		Assert.NotNull(res.Exception);
-		Assert.NotNull(res.Exception.StackTrace);
-		PrintVariable(res.Message);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+		{
+			Assert.NotNull(error.Exception);
+			Assert.NotNull(error.Exception.StackTrace);
+			PrintVariable(error.Message);
+			PrintVariable(error.Exception.StackTrace);
+		}
 	}
 
 	[Fact]
@@ -383,9 +498,15 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 			""";
 		var res = json.Fx.Json.Deserialize(typeof(TestClass));
 		Assert.True(res.IsError);
-		Assert.NotNull(res.Exception);
-		Assert.NotNull(res.Exception.StackTrace);
-		PrintVariable(res.Message);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+		{
+			Assert.NotNull(error.Exception);
+			Assert.NotNull(error.Exception.StackTrace);
+			PrintVariable(error.Message);
+			PrintVariable(error.Exception.StackTrace);
+		}
 	}
 
 	[Fact]
@@ -394,7 +515,10 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		object? obj = null;
 		var res = obj.Fx.Json.Serialize();
 		Assert.True(res.IsSuccess);
-		Assert.Equal("null", res.Payload);
+		if(res is not string value)
+			Assert.Fail("res is not of type string");
+		else
+			Assert.Equal("null", value);
 	}
 	[Fact]
 	public void Serialize_ErrorIfNull_Null()
@@ -402,7 +526,10 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		object? obj = null;
 		var res = obj.Fx.Json.Serialize(errorIfNull:true);
 		Assert.True(res.IsError);
-		Assert.Null(res.Payload);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+			PrintVariable(error.Message);
 	}
 	[Fact]
 	public void SerializeToNode_Ok()
@@ -410,8 +537,14 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		var obj = new TestClass("Bob") { Age = 30 };
 		var res = obj.Fx.Json.SerializeToNode();
 		Assert.True(res.IsSuccess);
-		Assert.Equal("Bob", res.Payload[nameof(TestClass.FullName)]?.GetValue<string>());
-		Assert.Equal(30, res.Payload[nameof(TestClass.Age)]?.GetValue<int>());
+		if (res is not JsonNode node)
+			Assert.Fail("res is not of type JsonNode");
+		else
+		{
+			PrintVariable(node);
+			Assert.Equal("Bob", node[nameof(TestClass.FullName)]?.GetValue<string>());
+			Assert.Equal(30, node[nameof(TestClass.Age)]?.GetValue<int>());
+		}
 	}
 	[Fact]
 	public void SerializeToNode_Throw()
@@ -419,8 +552,15 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		var obj = new TestClass("Bob") { Age = 30, Throw = true };
 		var res = obj.Fx.Json.SerializeToNode();
 		Assert.True(res.IsError);
-		Assert.Null(res.Payload);
-		Assert.NotNull(res.Exception);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+		{
+			Assert.NotNull(error.Exception);
+			Assert.NotNull(error.Exception.StackTrace);
+			PrintVariable(error.Message);
+			PrintVariable(error.Exception.StackTrace);
+		}
 	}
 	[Fact]
 	public void SerializeToNode_Null()
@@ -428,7 +568,10 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		object? obj = null;
 		var res = obj.Fx.Json.SerializeToNode();
 		Assert.True(res.IsError);
-		Assert.Null(res.Payload);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+			PrintVariable(error);
 	}
 	[Fact]
 	public void SerializeToElement_Null()
@@ -436,7 +579,10 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		object? obj = null;
 		var res = obj.Fx.Json.SerializeToElement();
 		Assert.True(res.IsSuccess);
-		Assert.Equal(JsonValueKind.Null, res.Payload.ValueKind);
+		if (res is not JsonElement element)
+			Assert.Fail("res is not of type string");
+		else
+			Assert.Equal(JsonValueKind.Null, element.ValueKind);
 	}
 	[Fact]
 	public void SerializeToElement_ErrorIfNull_Null()
@@ -444,8 +590,10 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		object? obj = null;
 		var res = obj.Fx.Json.SerializeToElement(errorIfNull:true);
 		Assert.True(res.IsError);
-		Assert.Equal(JsonValueKind.Undefined, res.Payload.ValueKind);
-		Assert.Equal(default, res.Payload.ValueKind);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+			PrintVariable(error);
 	}
 	[Fact]
 	public void SerializeException_ToString_Null()
@@ -453,7 +601,11 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		Exception? obj = null;
 		var res = obj.Fx.Json.Serialize();
 		Assert.True(res.IsSuccess);
-		Assert.Equal("null", res.Payload);
+		// PEND - Uncomment the logic again
+		if (res is not string value)
+			Assert.Fail("res is not of type string");
+		else
+			Assert.Equal("null", value);
 	}
 	[Fact]
 	public void SerializeException_ToString_ErrorIfNull_Null()
@@ -461,8 +613,10 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		Exception? obj = null;
 		var res = obj.Fx.Json.Serialize(errorIfNull:true);
 		Assert.True(res.IsError);
-		PrintVariable(res.Message);
-		Assert.Null(res.Payload);
+		if (res is not Error error)
+			Assert.Fail("res is not of type Error");
+		else
+			PrintVariable(error.Message);
 	}
 }
 
@@ -499,6 +653,44 @@ public class FuxionFormattedTypeInfoResolverTest
 		var info = resolver.GetTypeInfo(typeof(ResolverPublicCtorType), new JsonSerializerOptions());
 
 		Assert.All(info.Properties, p => Assert.Equal(0, p.Order));
+	}
+}
+
+// Error and None cannot be the success type of Response<T>/ResponseMaybe<T>: the generic deserializers must say so
+// up front, and bare errors are read through TryDeserializeError.
+public class DeserializeUnionCasesTest(ITestOutputHelper output) : BaseTest<DeserializeUnionCasesTest>(output)
+{
+	[Fact(DisplayName = "Deserialize<Error> and DeserializeMaybe<Error> fail fast with a message pointing to TryDeserializeError")]
+	public void Deserialize_Error_IsNotSupported()
+	{
+		var json = Error.NotFound("missing").Fx.Json.Serialize().SuccessOrThrow();
+		var ex = Assert.Throws<NotSupportedException>(() => json.Fx.Json.Deserialize<Error>());
+		Assert.Contains("TryDeserializeError", ex.Message);
+		Assert.Throws<NotSupportedException>(() => json.Fx.Json.DeserializeMaybe<Error>());
+	}
+
+	[Fact(DisplayName = "Deserialize<None> and DeserializeMaybe<None> fail fast with a clear message")]
+	public void Deserialize_None_IsNotSupported()
+	{
+		var ex = Assert.Throws<NotSupportedException>(() => "null".Fx.Json.Deserialize<None>());
+		Assert.Contains(nameof(None), ex.Message);
+		Assert.Throws<NotSupportedException>(() => "null".Fx.Json.DeserializeMaybe<None>());
+	}
+
+	[Fact(DisplayName = "TryDeserializeError reads a bare error and reports malformed or empty input as a failure")]
+	public void TryDeserializeError_Paths()
+	{
+		var json = Error.NotFound("missing").Fx.Json.Serialize().SuccessOrThrow();
+		Assert.True(json.Fx.Json.TryDeserializeError(out var error, out _));
+		Assert.Equal(System.Net.HttpStatusCode.NotFound, error.Type);
+		Assert.Equal("missing", error.Message);
+
+		Assert.False("{ not json".Fx.Json.TryDeserializeError(out _, out var malformed));
+		IsTrue(malformed.IsCritical);
+		Assert.NotNull(malformed.Exception);
+
+		Assert.False("".Fx.Json.TryDeserializeError(out _, out var empty));
+		IsTrue(empty.IsCritical);
 	}
 }
 

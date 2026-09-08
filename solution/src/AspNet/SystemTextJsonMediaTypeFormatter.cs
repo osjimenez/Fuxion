@@ -14,7 +14,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Web.Http;
 using Fuxion;
-using Fuxion.Union;
 
 /// <summary>
 /// A Web API 2 formatter backed by System.Text.Json, so request binding and (depending on which types

@@ -15,15 +15,15 @@ public class ValidationTest(ITestOutputHelper output) : BaseTest<ValidationTest>
 	{
 		Model? model = null;
 
+		// In the union model the validation results travel in the Error's extensions; a success is a bare Unit.
 		var res = model.Fx.Validation.ToResponse();
-		IsTrue(res.IsError);
-		IsTrue(res.Extensions.ValidationResults.IsDefined);
-		PrintVariable(res.Fx.Json.Serialize(true).PayloadOrDefault());
+		IsTrue(res.TryGetValue(out Error error));
+		IsTrue(error.Extensions.ValidationResults.IsDefined);
+		PrintVariable(res.Fx.Json.Serialize(true).SuccessOrThrow());
 
 		res = model.Fx.Validation.ToResponse(true);
-		IsTrue(res.IsSuccess);
-		IsTrue(res.Extensions.ValidationResults.IsUndefined);
-		PrintVariable(res.Fx.Json.Serialize(true).PayloadOrDefault());
+		IsTrue(res.TryGetValue(out Unit _));
+		PrintVariable(res.Fx.Json.Serialize(true).SuccessOrThrow());
 
 		model = new()
 		{
@@ -31,18 +31,17 @@ public class ValidationTest(ITestOutputHelper output) : BaseTest<ValidationTest>
 			Comments = "12345678"
 		};
 		res = model.Fx.Validation.ToResponse();
-		IsTrue(res.IsError);
-		IsTrue(res.Extensions.ValidationResults.IsDefined);
-		PrintVariable(res.Fx.Json.Serialize(true).PayloadOrDefault());
+		IsTrue(res.TryGetValue(out error));
+		IsTrue(error.Extensions.ValidationResults.IsDefined);
+		PrintVariable(res.Fx.Json.Serialize(true).SuccessOrThrow());
 
 		model.Name = "Alice";
 		model.Age = 28;
 		model.Comments = "123456";
 
 		res = model.Fx.Validation.ToResponse();
-		IsTrue(res.IsSuccess);
-		IsTrue(res.Extensions.ValidationResults.IsUndefined);
-		PrintVariable(res.Fx.Json.Serialize(true).PayloadOrDefault());
+		IsTrue(res.TryGetValue(out Unit _));
+		PrintVariable(res.Fx.Json.Serialize(true).SuccessOrThrow());
 	}
 
 	[Fact]
@@ -52,11 +51,11 @@ public class ValidationTest(ITestOutputHelper output) : BaseTest<ValidationTest>
 
 		var res = validatable.Fx.Validation.ToResponse();
 		IsTrue(res.IsError);
-		PrintVariable(res.Fx.Json.Serialize(true).PayloadOrDefault());
+		PrintVariable(res.Fx.Json.Serialize(true).SuccessOrThrow());
 
 		res = validatable.Fx.Validation.ToResponse(true);
 		IsTrue(res.IsSuccess);
-		PrintVariable(res.Fx.Json.Serialize(true).PayloadOrDefault());
+		PrintVariable(res.Fx.Json.Serialize(true).SuccessOrThrow());
 
 		validatable = new()
 		{
@@ -66,7 +65,7 @@ public class ValidationTest(ITestOutputHelper output) : BaseTest<ValidationTest>
 
 		res = validatable.Fx.Validation.ToResponse();
 		IsTrue(res.IsError);
-		PrintVariable(res.Fx.Json.Serialize(true).PayloadOrDefault());
+		PrintVariable(res.Fx.Json.Serialize(true).SuccessOrThrow());
 
 		validatable.Name = "Alice";
 		validatable.Age = 28;
@@ -74,7 +73,7 @@ public class ValidationTest(ITestOutputHelper output) : BaseTest<ValidationTest>
 
 		res = validatable.Fx.Validation.ToResponse();
 		IsTrue(res.IsSuccess);
-		PrintVariable(res.Fx.Json.Serialize(true).PayloadOrDefault());
+		PrintVariable(res.Fx.Json.Serialize(true).SuccessOrThrow());
 	}
 }
 

@@ -1,9 +1,9 @@
-namespace Test.Responses.Shared;
-
 using System;
 using System.IO;
 using System.Text;
-using Fuxion.Union;
+using Fuxion;
+
+namespace Test.Responses.Shared.Fixtures;
 
 /// <summary>A small deterministic file for the binary wire tests.</summary>
 public static class TestFile

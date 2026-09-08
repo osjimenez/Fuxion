@@ -1,9 +1,10 @@
+using Fuxion;
+
 namespace Test.Responses.Shared;
 
 using System;
 using System.Net.Http;
 using System.Text.Json;
-using Fuxion.Union;
 
 /// <summary>What a host must provide for the shared wire matrix: a client against an in-memory server and its routes.</summary>
 public interface IWireHost

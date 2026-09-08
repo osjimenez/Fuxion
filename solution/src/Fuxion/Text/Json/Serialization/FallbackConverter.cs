@@ -1,6 +1,5 @@
 using Fuxion.Reflection;
 using Fuxion.Text.Json;
-using Fuxion.Union;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -667,10 +666,10 @@ public class FallbackConverter<T> : JsonConverter<T>
 		//opt.ReferenceHandler = ReferenceHandler.Preserve;
 		opt.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 		opt.MaxDepth = 6;
-		var json = value.Fx.Json.Serialize(options: opt);
-		if (json.IsSuccess)
+		var serRes = value.Fx.Json.Serialize(options: opt);
+		if (serRes is string json)
 		{
-			using var document = JsonDocument.Parse(json.Payload);
+			using var document = JsonDocument.Parse(json);
 			document.RootElement.WriteTo(writer);
 		}
 		else
@@ -692,25 +691,6 @@ public class FallbackConverter<T> : JsonConverter<T>
 			}
 			writer.WriteEndObject();
 		}
-		//} catch
-		//{
-		//	writer.WriteStartObject();
-		//	foreach (var prop in value.GetType().GetProperties())
-		//	{
-		//		var resolved = false;
-		//		foreach (var resolver in resolvers)
-		//			if (resolver.Match(value, prop))
-		//			{
-		//				resolver.Do(value, prop, writer, options, resolvers);
-		//				resolved = true;
-		//				break;
-		//			}
-		//		if (resolved) continue;
-		//		writer.WritePropertyName(prop.Name);
-		//		FallbackWriteRaw(prop.GetValue(value) ?? throw new NullReferenceException($"The value of property '{prop.Name}' is null"), writer, options, resolvers);
-		//	}
-		//	writer.WriteEndObject();
-		//}
 	}
 
 	/// <summary>
@@ -752,17 +732,13 @@ public class FallbackConverter<T> : JsonConverter<T>
 		//opt.ReferenceHandler = ReferenceHandler.Preserve;
 		opt.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 		opt.MaxDepth = 6;
-		var json = value.Fx.Json.Serialize(options: opt);
-		if (json.IsSuccess)
+		var serRes = value.Fx.Json.Serialize(options: opt);
+		if (serRes is string json)
 		{
-			using var document = JsonDocument.Parse(json.Payload);
+			using var document = JsonDocument.Parse(json);
 			document.RootElement.WriteTo(writer);
 		}
-		else
-			writer.WriteRawValue($"\"ERROR '{json.Exception?.Message}'\"");
-		//} catch (Exception ex)
-		//{
-		//	writer.WriteRawValue($"\"ERROR '{ex.Message}'\"");
-		//}
+		else if (serRes is Error error)
+			writer.WriteRawValue($"\"ERROR '{error.Exception?.Message}'\"");
 	}
 }

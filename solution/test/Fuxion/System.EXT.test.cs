@@ -45,11 +45,11 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 		var value = new byte[] {
 			0xFD, 0x2E, 0xAC, 0x14, 0x00, 0x00, 0x00
 		};
-		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString().PayloadOrDefault());
-		value = "FD-2E-AC-14-00-00-00".Fx.Encoding.ToBytesFromHexString('-').PayloadOrDefault();
-		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString().PayloadOrDefault());
-		value = "00000014AC2EFD".Fx.Encoding.ToBytesFromHexString(isBigEndian: true).PayloadOrDefault();
-		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString().PayloadOrDefault());
+		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString().SuccessOrThrow());
+		value = "FD-2E-AC-14-00-00-00".Fx.Encoding.ToBytesFromHexString('-').SuccessOrThrow();
+		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString().SuccessOrThrow());
+		value = "00000014AC2EFD".Fx.Encoding.ToBytesFromHexString(isBigEndian: true).SuccessOrThrow();
+		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString().SuccessOrThrow());
 	}
 	//[Fact(DisplayName = "System - CloneWithJson")]
 	//public void CloneWithJsonTest()
@@ -68,7 +68,7 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 			GenerateException();
 		} catch (Exception ex)
 		{
-			var json = ex.Fx.Json.Serialize(true).Payload;
+			var json = ex.Fx.Json.Serialize(true).SuccessOrThrow();
 			Output.WriteLine(json ?? "null");
 		} finally
 		{
@@ -80,7 +80,7 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 			GenerateExceptionWithInner();
 		} catch (Exception ex)
 		{
-			var json = ex.Fx.Json.Serialize(true).Payload;
+			var json = ex.Fx.Json.Serialize(true).SuccessOrThrow();
 			Output.WriteLine(json ?? "null");
 		} finally
 		{
@@ -91,14 +91,14 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 	public void FromLong()
 	{
 		// Long
-		Assert.Equal(26_326_605, 496_088_653L.Fx.Math.DivisionByPowerOfTwo(25).Payload.Remainder);
-		Assert.Equal(14, 496_088_653L.Fx.Math.DivisionByPowerOfTwo(25).Payload.Quotient);
+		Assert.Equal(26_326_605, 496_088_653L.Fx.Math.DivisionByPowerOfTwo(25).SuccessOrThrow().Remainder);
+		Assert.Equal(14, 496_088_653L.Fx.Math.DivisionByPowerOfTwo(25).SuccessOrThrow().Quotient);
 		// Bytes
 		var value = new byte[] {
 			0x4D, 0xB6, 0x91, 0x1D, 0x00, 0x00, 0x00
 		};
-		Assert.Equal(26_326_605, value.Fx.Math.DivisionByPowerOfTwo(25).Payload.Remainder);
-		Assert.Equal(14, value.Fx.Math.DivisionByPowerOfTwo(25).Payload.Quotient);
+		Assert.Equal(26_326_605, value.Fx.Math.DivisionByPowerOfTwo(25).SuccessOrThrow().Remainder);
+		Assert.Equal(14, value.Fx.Math.DivisionByPowerOfTwo(25).SuccessOrThrow().Quotient);
 	}
 	[Fact(DisplayName = "IsBetween - First")]
 	public void IsBetween()
@@ -238,10 +238,10 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 	[Fact(DisplayName = "String - ToByteArrayFromHexadecimal")]
 	public void StringToByteArrayFromHexadecimal()
 	{
-		var value = "FD2EAC14000000".Fx.Encoding.ToBytesFromHexString().Payload;
-		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString().PayloadOrDefault());
-		Assert.Equal("FD:2E:AC:14:00:00:00", value.Fx.Encoding.ToHexString(':').PayloadOrDefault());
-		Assert.Equal("00000014AC2EFD", value.Fx.Encoding.ToHexString(asBigEndian: true).PayloadOrDefault());
+		var value = "FD2EAC14000000".Fx.Encoding.ToBytesFromHexString().SuccessOrThrow();
+		Assert.Equal("FD2EAC14000000", value.Fx.Encoding.ToHexString().SuccessOrThrow());
+		Assert.Equal("FD:2E:AC:14:00:00:00", value.Fx.Encoding.ToHexString(':').SuccessOrThrow());
+		Assert.Equal("00000014AC2EFD", value.Fx.Encoding.ToHexString(asBigEndian: true).SuccessOrThrow());
 	}
 	[Fact(DisplayName = "String - SplitInLines")]
 	public void StringSplitInLines()
@@ -508,8 +508,8 @@ public class SystemExtensionsTest(ITestOutputHelper output) : BaseTest<SystemExt
 			foreach (var percentage in list) Logger.LogInformation($"\t{percentage}");
 			var response = list.DistributeAsPercentages(num);
 			IsTrue(response.IsSuccess);
-			Assert.NotNull(response.Payload);
-			var res = response.Payload;
+			Assert.NotNull(response.SuccessOrThrow());
+			var res = response.SuccessOrThrow();
 			Logger.LogInformation("Results:");
 			foreach (var r in res) Logger.LogInformation($"\t{r.Percentage:N2}% - {r.Rounded.ToString(),-5} - {r.Exact:N2}");
 			Logger.LogInformation($"Sum exact: {res.Sum(_ => _.Exact)}");

@@ -1,5 +1,4 @@
 ﻿using Fuxion.Reflection;
-using Fuxion.Union;
 using System;
 using System.Collections;
 using System.Collections.Generic;

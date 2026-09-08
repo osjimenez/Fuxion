@@ -1,3 +1,6 @@
+using Fuxion;
+using Test.Responses.Shared.Fixtures;
+
 namespace Test.AspNet.Service;
 
 using System;
@@ -6,7 +9,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Web.Http;
 using Fuxion.AspNet;
-using Fuxion.Union;
 using Test.Responses.Shared;
 
 [RoutePrefix("response")]

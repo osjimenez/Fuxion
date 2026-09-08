@@ -1,9 +1,9 @@
-namespace Test.Responses.Shared;
-
 using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+
+namespace Test.Responses.Shared.Fixtures;
 
 /// <summary>A read-only, forward-only stream over a byte array: no Length, no Seek. Servers must send it chunked, without ranges.</summary>
 public sealed class NonSeekableStream(byte[] bytes) : Stream

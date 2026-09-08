@@ -307,7 +307,7 @@ public static partial class ReflectionExtensions
 		/// The name of the embedded resource file to retrieve.
 		/// </param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> containing the resource <see cref="Stream"/> if found;
+		/// A <see cref="Response{T}"/> containing the resource <see cref="Stream"/> if found;
 		/// otherwise, an error response indicating the resource was not found or the assembly name is null.
 		/// </returns>
 		/// <remarks>
@@ -325,15 +325,15 @@ public static partial class ReflectionExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public IResponse<Stream> GetResourceStream(string folder, string fileName)
+		public Response<Stream> GetResourceStream(string folder, string fileName)
 		{
 			if (assembly.FullName is null)
-				return Response.Get.Critical("Assembly.FullName is null").AsPayload<Stream>();
+				return Error.Critical("Assembly.FullName is null");
 			var resourceName = assembly.FullName.Split(',')[0] + "." + folder.Replace("\\", ".").Replace("/", ".") + "." + fileName;
 			var res = assembly.GetManifestResourceStream(resourceName);
 			return res is null
-				? Response.Get.NotFound($"Resource with name '{resourceName}' was not found on assembly").AsPayload<Stream>()
-				: Response.Get.SuccessPayload(res);
+				? Error.NotFound($"Resource with name '{resourceName}' was not found on assembly")
+				: res;
 		}
 
 		/// <summary>
@@ -347,7 +347,7 @@ public static partial class ReflectionExtensions
 		/// The name of the embedded resource file to retrieve.
 		/// </param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> containing the resource content as a string if found;
+		/// A <see cref="Response{T}"/> containing the resource content as a string if found;
 		/// otherwise, an error response indicating the resource was not found or the assembly name is null.
 		/// </returns>
 		/// <remarks>
@@ -365,10 +365,12 @@ public static partial class ReflectionExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public IResponse<string> GetResourceAsString(string folder, string fileName) =>
-			GetResourceStream(assembly, folder, fileName).Match(
-				r => Response.Get.SuccessPayload(new StreamReader(r.Payload!).ReadToEnd()),
-				r => r.AsPayload<string>());
+		public Response<string> GetResourceAsString(string folder, string fileName)
+			=> GetResourceStream(assembly, folder, fileName) switch
+			{
+				Error error => error,
+				Stream stream => new StreamReader(stream).ReadToEnd()
+			};
 
 		/// <summary>
 		/// Asynchronously retrieves an embedded resource from the assembly as a string by folder path and file name.
@@ -384,7 +386,7 @@ public static partial class ReflectionExtensions
 		/// A <see cref="CancellationToken"/> to observe while waiting for the task to complete.
 		/// </param>
 		/// <returns>
-		/// A task that represents the asynchronous operation. The task result contains a <see cref="IResponse{T}"/> 
+		/// A task that represents the asynchronous operation. The task result contains a <see cref="Response{T}"/> 
 		/// with the resource content as a string if found; otherwise, an error response indicating 
 		/// the resource was not found or the assembly name is null.
 		/// </returns>
@@ -414,14 +416,16 @@ public static partial class ReflectionExtensions
 		/// }
 		/// </code>
 		/// </example>
-		public async Task<IResponse<string>> GetResourceAsStringAsync(string folder, string fileName, CancellationToken ct = default) =>
-			await GetResourceStream(assembly, folder, fileName).MatchAsync(
-				async r => Response.Get.SuccessPayload(await new StreamReader(r.Payload!).ReadToEndAsync(
+		public async Task<Response<string>> GetResourceAsStringAsync(string folder, string fileName, CancellationToken ct = default)
+			=> GetResourceStream(assembly, folder, fileName) switch
+			{
+				Error error => error,
+				Stream stream => await new StreamReader(stream).ReadToEndAsync(
 #if !STANDARD_OR_OLD_FRAMEWORKS
-				ct
+					ct
 #endif
-				)),
-				r => r.AsPayload<string>());
+				)
+			};
 	}
 	const string FileScopeClassNameRegexPattern = "^(.*)<[a-zA-Z_]+>[A-F0-9]+__(.*)$";
 #if !STANDARD_OR_OLD_FRAMEWORKS

@@ -1,10 +1,12 @@
+using Fuxion;
+using Test.Responses.Shared.Fixtures;
+
 namespace Test.Responses.Shared;
 
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Fuxion.Union;
 using Fuxion.Xunit;
 using Xunit;
 

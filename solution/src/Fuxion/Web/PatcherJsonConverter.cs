@@ -577,10 +577,13 @@ public class PatcherJsonConverter<T> : JsonConverter<Patcher<T>> where T : class
 		foreach (var pvk in value.Properties)
 		{
 			writer.WritePropertyName(pvk.Key);
-			writer.WriteRawValue(pvk.Value.Value.Fx.Json.Serialize(options: options).PayloadOrFallback(r =>
-				throw new JsonException($"Error writing '{value.GetType().GetSignature()}'.", r.Exception)));
-		}
 
+			var serRes = pvk.Value.Value.Fx.Json.Serialize(options: options);
+			if(serRes is Error error)
+				throw new JsonException($"Error writing '{value.GetType().GetSignature()}'.", error.Exception);
+			if (serRes is string json)
+				writer.WriteRawValue(json);
+		}
 		writer.WriteEndObject();
 	}
 }

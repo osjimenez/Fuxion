@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Fuxion.Union;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -821,7 +820,7 @@ public abstract class BaseTest<TBaseTest> where TBaseTest : BaseTest<TBaseTest>
 	{
 		while (expected is not null)
 		{
-			if (expected is global::Fuxion.Union.IUndefinable undefinable)
+			if (expected is IUndefinable undefinable)
 			{
 				if (undefinable.IsUndefined)
 					return null;
@@ -840,4 +839,4 @@ public abstract class BaseTest<TBaseTest> where TBaseTest : BaseTest<TBaseTest>
 /// <param name="Path"></param>
 /// <param name="Value"></param>
 /// <param name="IsPresent"></param>
-public record AssertJsonEntry(string[] Path, global::Fuxion.Union.Undefinable<object?> Value = default, bool? IsPresent = null);
+public record AssertJsonEntry(string[] Path, Undefinable<object?> Value = default, bool? IsPresent = null);

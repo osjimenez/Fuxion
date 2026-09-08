@@ -1,815 +1,430 @@
-using Fuxion.Collections.Generic;
-using Fuxion.Text.Json;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Fuxion.Reflection;
+using Fuxion.Text.Json;
 
 namespace Fuxion.Net.Http;
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
 /// <summary>
-/// Provides extension methods for converting <see cref="HttpResponseMessage"/> to Fuxion <see cref="IResponse"/> objects.
+/// Names of the extension members a client-side reading failure carries so that a body which could
+/// not be understood is not lost: the raw text, the parsed-but-unfit <see cref="JsonElement"/>, and
+/// the announced content type/length.
 /// </summary>
-/// <remarks>
-/// <para>
-/// This class enables seamless integration between HTTP client operations and Fuxion's Response pattern,
-/// providing rich error handling, payload extraction, and RFC 7807 Problem Details support.
-/// </para>
-/// <para>
-/// Key features:
-/// </para>
-/// <list type="bullet">
-/// <item><description>Automatic HTTP status code to ErrorType mapping</description></item>
-/// <item><description>RFC 7807 Problem Details deserialization</description></item>
-/// <item><description>JSON payload extraction with type safety</description></item>
-/// <item><description>Stream and byte array support for file downloads</description></item>
-/// <item><description>Rich extension data (status codes, content types, headers)</description></item>
-/// </list>
-/// </remarks>
-public static class Extensions
+public static class ClientErrorExtensions
 {
-	private const string InnerProblemKey = "inner-problem";
-	private const string StatusCodeKey = "status-code";
-	private const string PayloadKey = "payload";
-	private const string ReasonPhraseKey = "reason-phrase";
-	private const string ExceptionKey = "exception";
-	private const string JsonContentKey = "json-content";
-	private const string JsonErrorKey = "json-error";
-	private const string StringContentKey = "string-content";
-	private const string ContentLengthKey = "content-length";
-	private const string ContentTypeKey = "content-type";
-	private const string FileNameKey = "file-name";
-	extension(ResponseExtensionsDictionary me)
+	/// <summary>The raw response text, present when the body was read but was not valid JSON.</summary>
+	public const string TextPayload = "textPayload";
+
+	/// <summary>The parsed <see cref="JsonElement"/>, present when the body was valid JSON but did not fit the requested type.</summary>
+	public const string JsonPayload = "jsonPayload";
+
+	/// <summary>The announced Content-Type media type.</summary>
+	public const string ContentType = "contentType";
+
+	/// <summary>The announced Content-Length, when the body was refused before being read.</summary>
+	public const string ContentLength = "contentLength";
+}
+
+/// <summary>
+/// Reads union responses out of HTTP messages. The client trusts only what the message says about
+/// itself: the media type says the body shape, the naming parameter says how it was written and the
+/// status code says whether it went well. There are no format flags: a Fuxion server describes every
+/// response and a non-Fuxion server is read as a vanilla API.
+/// </summary>
+public static class ResponseExtensions
+{
+	// Web defaults: any HTTP server serializing the envelope (ASP.NET Core included) uses them, and the
+	// envelope property names are resolved through the naming policy at read time.
+	static readonly JsonSerializerOptions defaultJsonOptions = new(JsonSerializerDefaults.Web);
+
+	static string? ContentType(HttpResponseMessage me) => me.Content?.Headers.ContentType?.ToString();
+
+	// The body announces the naming policy it was written with; the caller options are cloned (cached) with it.
+	static JsonSerializerOptions EffectiveJsonOptions(HttpResponseMessage me, JsonSerializerOptions? jsonOptions)
+		=> ResponseNaming.Apply(jsonOptions ?? defaultJsonOptions, ResponseNaming.GetParameter(ContentType(me)));
+
+	static InvalidOperationException CreateDeserializationError(string? message, Exception? innerException = null)
+		=> new(message ?? "The HTTP response body could not be deserialized.", innerException);
+
+	// Cancellation is always observed before starting the read, regardless of target framework: the
+	// BCL overload is used where available, but an already-cancelled token must not depend on whether
+	// that overload happens to check it for content that is already buffered.
+	static async Task<string> ReadBodyAsync(HttpResponseMessage me, CancellationToken ct)
 	{
-		/// <summary>
-      /// Gets or sets the RFC 7807 problem details extracted from the HTTP response content.
-		/// </summary>
-     /// <value>
-		/// A <see cref="Undefinable{T}"/> containing the inner <see cref="ResponseProblemDetails"/> value,
-		/// or <see cref="Undefinable{T}.Undefined"/> when no problem details were captured.
-		/// </value>
-		/// <remarks>
-		/// This property maps to the <c>"inner-problem"</c> extension entry and is typically populated when
-		/// the response content type is <c>application/problem+json</c>.
-		/// </remarks>
-		public Undefinable<ResponseProblemDetails> InnerProblem
-		{
-			get
-				=> me.TryGetValue(InnerProblemKey, out var val)
-					? val switch
-					{
-						Undefinable<ResponseProblemDetails> und => und,
-						ResponseProblemDetails res => res,
-						_ => Undefinable<ResponseProblemDetails>.Undefined
-					}
-					: Undefinable<ResponseProblemDetails>.Undefined;
-			set
-			{
-				if (value.IsUndefined)
-					me.Remove(InnerProblemKey);
-				else
-					me[InnerProblemKey] = value;
-			}
-		}
-		
-		/// <summary>
-      /// Gets or sets the HTTP status code associated with the response.
-		/// </summary>
-     /// <value>
-		/// A <see cref="Undefinable{T}"/> containing the numeric HTTP status code,
-		/// or <see cref="Undefinable{T}.Undefined"/> when it is not available.
-		/// </value>
-		public Undefinable<int> StatusCode
-		{
-			get
-				=> me.TryGetValue(StatusCodeKey, out var val)
-					? val switch
-					{
-						Undefinable<int> und => und,
-						int res => res,
-						_ => Undefinable<int>.Undefined
-					}
-					: Undefinable<int>.Undefined;
-			set
-			{
-				if (value.IsUndefined)
-					me.Remove(StatusCodeKey);
-				else
-					me[StatusCodeKey] = value;
-			}
-		}
-
-		/// <summary>
-      /// Gets or sets the deserialized payload extracted from the HTTP response.
-		/// </summary>
-     /// <value>
-		/// A <see cref="Undefinable{T}"/> containing the payload object,
-		/// or <see cref="Undefinable{T}.Undefined"/> when no payload was extracted.
-		/// </value>
-		/// <remarks>
-		/// This property provides typed access to the <c>"payload"</c> extension entry.
-		/// It can contain any deserialized object captured during response processing.
-		/// </remarks>
-		public Undefinable<object> Payload
-		{
-			get
-				=> me.TryGetValue(PayloadKey, out var val)
-					? val switch
-					{
-						Undefinable<object> und => und,
-						not null => val,
-						_ => Undefinable<object>.Undefined
-					}
-					: Undefinable<object>.Undefined;
-			set
-			{
-				if (value.IsUndefined)
-					me.Remove(PayloadKey);
-				else
-					me[PayloadKey] = value;
-			}
-		}
-
-		/// <summary>
-      /// Gets or sets the HTTP reason phrase associated with the response.
-		/// </summary>
-      /// <value>
-		/// A <see cref="Undefinable{T}"/> containing the reason phrase,
-		/// or <see cref="Undefinable{T}.Undefined"/> when it is not available.
-		/// </value>
-		public Undefinable<string> ReasonPhrase
-		{
-			get
-				=> me.TryGetValue(ReasonPhraseKey, out var val)
-					? val switch
-					{
-						Undefinable<string> und => und,
-						string res => res,
-						_ => Undefinable<string>.Undefined
-					}
-					: Undefinable<string>.Undefined;
-			set
-			{
-				if (value.IsUndefined)
-					me.Remove(ReasonPhraseKey);
-				else
-					me[ReasonPhraseKey] = value;
-			}
-		}
-
-		/// <summary>
-      /// Gets or sets the serialized exception details produced while processing or deserializing the HTTP response.
-		/// </summary>
-    /// <value>
-		/// A <see cref="Undefinable{T}"/> containing a <see cref="JsonElement"/> with exception information,
-		/// or <see cref="Undefinable{T}.Undefined"/> when no exception details are present.
-		/// </value>
-		public Undefinable<JsonElement> Exception
-		{
-			get
-				=> me.TryGetValue(ExceptionKey, out var val)
-					? val switch
-					{
-						Undefinable<JsonElement> und => und,
-						JsonElement res => res,
-						_ => Undefinable<JsonElement>.Undefined
-					}
-					: Undefinable<JsonElement>.Undefined;
-			set
-			{
-				if (value.IsUndefined)
-					me.Remove(ExceptionKey);
-				else
-					me[ExceptionKey] = value;
-			}
-		}
-
-		/// <summary>
-      /// Gets or sets the JSON content extracted from the HTTP response body.
-		/// </summary>
-     /// <value>
-		/// A <see cref="Undefinable{T}"/> containing the parsed JSON content as a <see cref="JsonElement"/>,
-		/// or <see cref="Undefinable{T}.Undefined"/> when the body is not valid JSON or no JSON content was captured.
-		/// </value>
-		public Undefinable<JsonElement> JsonContent
-		{
-			get
-				=> me.TryGetValue(JsonContentKey, out var val)
-					? val switch
-					{
-						Undefinable<JsonElement> und => und,
-						JsonElement res => res,
-						_ => Undefinable<JsonElement>.Undefined
-					}
-					: Undefinable<JsonElement>.Undefined;
-			set
-			{
-				if (value.IsUndefined)
-					me.Remove(JsonContentKey);
-				else
-					me[JsonContentKey] = value;
-			}
-		}
-
-		/// <summary>
-      /// Gets or sets the JSON error content generated while attempting to deserialize the HTTP response body.
-		/// </summary>
-    /// <value>
-		/// A <see cref="Undefinable{T}"/> containing the serialized deserialization error as a <see cref="JsonElement"/>,
-		/// or <see cref="Undefinable{T}.Undefined"/> when no JSON error information is available.
-		/// </value>
-		public Undefinable<JsonElement> JsonError
-		{
-			get
-				=> me.TryGetValue(JsonErrorKey, out var val)
-					? val switch
-					{
-						Undefinable<JsonElement> und => und,
-						JsonElement res => res,
-						_ => Undefinable<JsonElement>.Undefined
-					}
-					: Undefinable<JsonElement>.Undefined;
-			set
-			{
-				if (value.IsUndefined)
-					me.Remove(JsonErrorKey);
-				else
-					me[JsonErrorKey] = value;
-			}
-		}
-
-		/// <summary>
-      /// Gets or sets the string content extracted from the HTTP response body.
-		/// </summary>
-     /// <value>
-		/// A <see cref="Undefinable{T}"/> containing the response body as plain text,
-		/// or <see cref="Undefinable{T}.Undefined"/> when no string content was captured.
-		/// </value>
-		/// <remarks>
-		/// This property is typically used when the response body is not valid JSON or when the JSON payload itself is a string value.
-		/// </remarks>
-		public Undefinable<string> StringContent
-		{
-			get
-				=> me.TryGetValue(StringContentKey, out var val)
-					? val switch
-					{
-						Undefinable<string> und => und,
-						string res => res,
-						_ => Undefinable<string>.Undefined
-					}
-					: Undefinable<string>.Undefined;
-			set
-			{
-				if (value.IsUndefined)
-					me.Remove(StringContentKey);
-				else
-					me[StringContentKey] = value;
-			}
-		}
-
-		/// <summary>
-      /// Gets or sets the content length reported by the HTTP response.
-		/// </summary>
-    /// <value>
-		/// A <see cref="Undefinable{T}"/> containing the content length in bytes,
-		/// or <see cref="Undefinable{T}.Undefined"/> when the header is not present.
-		/// </value>
-		public Undefinable<long> ContentLength
-		{
-			get
-				=> me.TryGetValue(ContentLengthKey, out var val)
-					? val switch
-					{
-						Undefinable<long> und => und,
-						long res => res,
-						_ => Undefinable<long>.Undefined
-					}
-					: Undefinable<long>.Undefined;
-			set
-			{
-				if (value.IsUndefined)
-					me.Remove(ContentLengthKey);
-				else
-					me[ContentLengthKey] = value;
-			}
-		}
-
-		/// <summary>
-      /// Gets or sets the media type reported by the HTTP response content.
-		/// </summary>
-    /// <value>
-		/// A <see cref="Undefinable{T}"/> containing the content type media value,
-		/// or <see cref="Undefinable{T}.Undefined"/> when the header is not present.
-		/// </value>
-		public Undefinable<string> ContentType
-		{
-			get
-				=> me.TryGetValue(ContentTypeKey, out var val)
-					? val switch
-					{
-						Undefinable<string> und => und,
-						string res => res,
-						_ => Undefinable<string>.Undefined
-					}
-					: Undefinable<string>.Undefined;
-			set
-			{
-				if (value.IsUndefined)
-					me.Remove(ContentTypeKey);
-				else
-					me[ContentTypeKey] = value;
-			}
-		}
-
-		/// <summary>
-      /// Gets or sets the file name reported by the HTTP content disposition header.
-		/// </summary>
-    /// <value>
-		/// A <see cref="Undefinable{T}"/> containing the file name,
-		/// or <see cref="Undefinable{T}.Undefined"/> when the response does not provide one.
-		/// </value>
-		/// <remarks>
-		/// This property is mainly useful for download scenarios where the server includes a suggested file name.
-		/// </remarks>
-		public Undefinable<string> FileName
-		{
-			get
-				=> me.TryGetValue(FileNameKey, out var val)
-					? val switch
-					{
-						Undefinable<string> und => und,
-						string res => res,
-						_ => Undefinable<string>.Undefined
-					}
-					: Undefinable<string>.Undefined;
-			set
-			{
-				if (value.IsUndefined)
-					me.Remove(FileNameKey);
-				else
-					me[FileNameKey] = value;
-			}
-		}
+		ct.ThrowIfCancellationRequested();
+		if (me.Content is null) return string.Empty;
+#if NET5_0_OR_GREATER
+		return await me.Content.ReadAsStringAsync(ct);
+#else
+		ct.ThrowIfCancellationRequested();
+		return await me.Content.ReadAsStringAsync();
+#endif
 	}
 
-	// Internal helper that performs the heavy lifting
-	static async Task<(ResponseExtensionsDictionary Extensions, ResponseProblemDetails? Problem, object? DeserializedBody, Exception? DeserializationException)> DoAsResponse(
-		HttpResponseMessage res,
-		Type? deserializationType = null,
-		JsonSerializerOptions? jsonOptions = null,
-		CancellationToken ct = default)
+	// Try, and keep what could not be understood: the raw text when it is not JSON, the JsonElement when it
+	// is JSON but does not fit the type. Mirrors the pre-union parser (StringContent / JsonContent / JsonError).
+	static bool TryDeserialize<T>(string body, JsonSerializerOptions jsonOptions, string? contentType, out T value, out Error failure) where T : notnull
 	{
-		ResponseExtensionsDictionary extensions = new()
+		JsonElement element;
+		try
 		{
-			StatusCode = (int)res.StatusCode,
-			ReasonPhrase = res.ReasonPhrase is null ? Undefinable<string>.Undefined : res.ReasonPhrase
-		};
-		ResponseProblemDetails? problem = null;
-		object? deserializedBody = null;
-		Exception? deserializationException = null;
-
-		if (deserializationType is not null && typeof(Stream).IsAssignableFrom(deserializationType))
-		{
-			extensions.ContentLength = res.Content.Headers.ContentLength is null // INFO Cannot use ?? because we need implicit conversion from long to Undefinable<long>
-				? Undefinable<long>.Undefined
-				: res.Content.Headers.ContentLength.Value;
-			extensions.ContentType = res.Content.Headers.ContentType?.MediaType is null // INFO Cannot use ?? because we need implicit conversion from string to Undefinable<string>
-				? Undefinable<string>.Undefined
-				: res.Content.Headers.ContentType.MediaType;
-			extensions.FileName = res.Content.Headers.ContentDisposition?.FileName is null // INFO Cannot use ?? because we need implicit conversion from string to Undefinable<string>
-				? Undefinable<string>.Undefined
-				: res.Content.Headers.ContentDisposition.FileName;
-			return (extensions, problem, await res.Content.ReadAsStreamAsync(
-#if !STANDARD_OR_OLD_FRAMEWORKS
-				ct
-#endif
-			), deserializationException);
+			using var document = JsonDocument.Parse(body);
+			element = document.RootElement.Clone();
 		}
-
-		if (deserializationType is not null && typeof(byte[]).IsAssignableFrom(deserializationType))
+		catch (JsonException ex)
 		{
-			extensions.ContentLength = res.Content.Headers.ContentLength is null // INFO Cannot use ?? because we need implicit conversion from long to Undefinable<long>
-				? Undefinable<long>.Undefined
-				: res.Content.Headers.ContentLength.Value;
-			extensions.ContentType = res.Content.Headers.ContentType?.MediaType is null // INFO Cannot use ?? because we need implicit conversion from string to Undefinable<string>
-				? Undefinable<string>.Undefined
-				: res.Content.Headers.ContentType.MediaType;
-			extensions.FileName = res.Content.Headers.ContentDisposition?.FileName is null // INFO Cannot use ?? because we need implicit conversion from string to Undefinable<string>
-				? Undefinable<string>.Undefined
-				: res.Content.Headers.ContentDisposition.FileName;
-			return (extensions, problem, await res.Content.ReadAsByteArrayAsync(
-#if !STANDARD_OR_OLD_FRAMEWORKS
-				ct
-#endif
-			), deserializationException);
-		}
-
-		var strContent = await res.Content.ReadAsStringAsync(
-#if !STANDARD_OR_OLD_FRAMEWORKS
-			ct
-#endif
-		);
-
-
-		if (strContent.IsNeitherNullNorWhiteSpace())
-		{
-
-			if (res.Content.Headers.ContentType?.MediaType == "application/problem+json")
-			{
-				var deserializationProblemRes = strContent.Fx.Json.Deserialize<ResponseProblemDetails>(options: jsonOptions);
-				if (deserializationProblemRes.IsSuccess)
-				{
-					problem = deserializationProblemRes.Payload;
-					extensions.InnerProblem = problem;
-				}
-			}
-			if (problem is null)
-			{
-				try
-				{
-					var element = JsonElement.Parse(strContent);
-					if (element.ValueKind == JsonValueKind.String)
-						extensions.StringContent = element.GetString() == null
-							? Undefinable<string>.Undefined
-							: element.ToString();
-					else
-						extensions.JsonContent = element;
-				}
-				catch 
-				{
-					extensions.StringContent = strContent;
-				}
-				if (deserializationType is not null)
-				{
-					var deserializationRes = strContent.Fx.Json.Deserialize(deserializationType, options: jsonOptions);
-					if (deserializationRes.IsSuccess)
-						deserializedBody = deserializationRes.Payload;
-					else
-					{
-						if (deserializationRes.Exception is not null)
-						{
-							deserializationException = deserializationRes.Exception;
-							var jsonErrorExceptionSerializationRes = deserializationRes.Exception.Fx.Json.SerializeToElement(options: jsonOptions);
-							if (jsonErrorExceptionSerializationRes.IsSuccess)
-								extensions.JsonError = jsonErrorExceptionSerializationRes.Payload;
-						}
-					}
-				}
-			}
-		}
-		return (extensions, problem, deserializedBody, deserializationException);
-	}
-
-	// Core wrappers to produce Response objects from an HttpResponseMessage
-	static async Task<IResponse> AsResponseFromMessageAsync(HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
-	{
-		var (extensions, problem, _, exception) = await DoAsResponse(res, null, jsonOptions, ct);
-
-		if (res.IsSuccessStatusCode)
-			if (extensions.Any(e => e.Key == StringContentKey))
-				return Response.Get.SuccessMessage(extensions.First(e => e.Key == StringContentKey)
-					.Value?.ToString() ?? string.Empty, extensions.ToEnumerable());
-			else
-				return Response.Get.Success(extensions.ToEnumerable());
-
-		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
-
-		return Response.Get
-			.ErrorMessage(
-				problem?.Detail
-				?? extensions.FirstOrDefault(e => e.Key == StringContentKey).Value?.ToString()
-				?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.",
-				type: errorType,
-				extensions: extensions.ToEnumerable(),
-				exception: exception);
-	}
-
-	static async Task<IResponse<TPayload>> AsResponseFromMessageAsync<TPayload>(HttpResponseMessage res, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
-	{
-		var (extensions, problem, deserializedBody, exception) = await DoAsResponse(res, typeof(TPayload), jsonOptions, ct);
-
-		if (res.IsSuccessStatusCode)
-		{
-			if (deserializedBody is TPayload payload)
-				return Response.Get.SuccessPayload(payload, extensions: extensions.ToEnumerable());
-			if (extensions.JsonContent.IsDefined)
-				return Response.Get
-					.InvalidData($"The content of the response isn't '{typeof(TPayload).GetSignature()}' type.",
-						extensions: extensions.ToEnumerable(),
-						exception: exception)
-					.AsPayload<TPayload>();
-			return Response.Get
-				.InvalidData("The content of the response isn't a valid json.",
-					extensions: extensions.ToEnumerable(),
-					exception: exception)
-				.AsPayload<TPayload>();
-		}
-		var errorType = HttpStatusCodeToErrorType(res.StatusCode);
-
-		return Response.Get
-			.ErrorMessage(
-				problem?.Detail
-				?? extensions.FirstOrDefault(e => e.Key == StringContentKey).Value?.ToString()
-				?? $"The response status code is '{(int)res.StatusCode}' and the reason phrase is '{res.ReasonPhrase}'.",
-				type: errorType,
-				extensions: extensions.ToEnumerable(),
-				exception: exception)
-			.AsPayload<TPayload>();
-	}
-
-	/// <summary>
-	/// Maps HTTP status codes to Fuxion ErrorType values.
-	/// </summary>
-	/// <param name="statusCode">The HTTP status code to map.</param>
-	/// <returns>The corresponding <see cref="ErrorType"/>.</returns>
-	/// <remarks>
-	/// This method provides comprehensive mapping for all standard HTTP 4xx and 5xx status codes
-	/// based on their semantic meaning. The mappings follow RFC 7231 and related HTTP specifications.
-	/// </remarks>
-	static ErrorType HttpStatusCodeToErrorType(HttpStatusCode statusCode)
-		=> statusCode switch
-		{
-			// 400 - Indicates that the request could not be understood by the server. BadRequest is sent when no other error is applicable, or if the exact error is unknown or does not have its own error code.
-			HttpStatusCode.BadRequest => ErrorType.InvalidData,
-			// 401 - Indicates that the requested resource requires authentication. The WWW-Authenticate header contains the details of how to perform the authentication.
-			HttpStatusCode.Unauthorized => ErrorType.PermissionDenied,
-			// 402 - Is reserved for future use.
-			HttpStatusCode.PaymentRequired => ErrorType.PermissionDenied,
-			// 403 - Indicates that the server refuses to fulfill the request.
-			HttpStatusCode.Forbidden => ErrorType.PermissionDenied,
-			// 404 - Indicates that the requested resource does not exist on the server.
-			HttpStatusCode.NotFound => ErrorType.NotFound,
-			// 405 - Indicates that the request method (POST or GET) is not allowed on the requested resource.
-			HttpStatusCode.MethodNotAllowed => ErrorType.Unavailable,
-			// 406 - Indicates that the client has indicated with Accept headers that it will not accept any of the available representations of the resource.
-			HttpStatusCode.NotAcceptable => ErrorType.InvalidData,
-			// 407 - Indicates that the requested proxy requires authentication. The Proxy-authenticate header contains the details of how to perform the authentication.
-			HttpStatusCode.ProxyAuthenticationRequired => ErrorType.PermissionDenied,
-			// 408 - Indicates that the client did not send a request within the time the server was expecting the request.
-			HttpStatusCode.RequestTimeout => ErrorType.Timeout,
-			// 409 - Indicates that the request could not be carried out because of a conflict on the server.
-			HttpStatusCode.Conflict => ErrorType.Conflict,
-			// 410 - Indicates that the requested resource is no longer available.
-			HttpStatusCode.Gone => ErrorType.Unavailable,
-			// 411 - Indicates that the required Content-length header is missing.
-			HttpStatusCode.LengthRequired => ErrorType.InvalidData,
-			// 412 - Indicates that a condition set for this request failed, and the request cannot be carried out. Conditions are set with conditional request headers like If-Match, If-None-Match, or If-Unmodified-Since.
-			HttpStatusCode.PreconditionFailed => ErrorType.InvalidData,
-			// 413 - Indicates that the request is too large for the server to process.
-			HttpStatusCode.RequestEntityTooLarge => ErrorType.InvalidData,
-			// 414 - Indicates that the URI is too long.
-			HttpStatusCode.RequestUriTooLong => ErrorType.NotSupported,
-			// 415 - Indicates that the request is an unsupported type.
-			HttpStatusCode.UnsupportedMediaType => ErrorType.NotSupported,
-			// 416 - Indicates that the range of data requested from the resource cannot be returned, either because the beginning of the range is before the beginning of the resource, or the end of the range is after the end of the resource.
-			HttpStatusCode.RequestedRangeNotSatisfiable => ErrorType.InvalidData,
-			// 417 - Indicates that an expectation given in an Expect header could not be met by the server.
-			HttpStatusCode.ExpectationFailed => ErrorType.InvalidData,
-#if !STANDARD_OR_OLD_FRAMEWORKS
-			// 421 - Indicates that the request was directed at a server that is not able to produce a response.
-			HttpStatusCode.MisdirectedRequest => ErrorType.Unavailable,
-			// 422 - Indicates that the request was well-formed but was unable to be followed due to semantic errors.
-			// UnprocessableContent is a synonym for UnprocessableEntity.
-			//HttpStatusCode.UnprocessableContent => ErrorType.Unavailable,
-			// 422 - Indicates that the request was well-formed but was unable to be followed due to semantic errors.
-			// UnprocessableEntity is a synonym for UnprocessableContent.
-			HttpStatusCode.UnprocessableEntity => ErrorType.Unavailable,
-			// 423 - Indicates that the source or destination resource is locked.
-			HttpStatusCode.Locked => ErrorType.Unavailable,
-			// 424 - Indicates that the method couldn't be performed on the resource because the requested action depended on another action and that action failed.
-			HttpStatusCode.FailedDependency => ErrorType.Conflict,
-#endif
-			// 426 - Indicates that the client should switch to a different protocol such as TLS/1.0.
-			HttpStatusCode.UpgradeRequired => ErrorType.NotSupported,
-#if !STANDARD_OR_OLD_FRAMEWORKS
-			// 428 - Indicates that the server requires the request to be conditional.
-			HttpStatusCode.PreconditionRequired => ErrorType.InvalidData,
-			// 429 - Indicates that the user has sent too many requests in a given amount of time.
-			HttpStatusCode.TooManyRequests => ErrorType.Unavailable,
-			// 431 - Indicates that the server is unwilling to process the request because its header fields (either an individual header field or all the header fields collectively) are too large.
-			HttpStatusCode.RequestHeaderFieldsTooLarge => ErrorType.Unavailable,
-			// 451 - Indicates that the server is denying access to the resource as a consequence of a legal demand.
-			HttpStatusCode.UnavailableForLegalReasons => ErrorType.PermissionDenied,
-#endif
-			// 500 - Indicates that a generic error has occurred on the server.
-			HttpStatusCode.InternalServerError => ErrorType.Critical,
-			// 501 - Indicates that the server does not support the requested function.
-			HttpStatusCode.NotImplemented => ErrorType.Unavailable,
-			// 502 - Indicates that an intermediate proxy server received a bad response from another proxy or the origin server.
-			HttpStatusCode.BadGateway => ErrorType.Unavailable,
-			// 503 - Indicates that the server is temporarily unavailable, usually due to high load or maintenance.
-			HttpStatusCode.ServiceUnavailable => ErrorType.Unavailable,
-			// 504 - Indicates that an intermediate proxy server timed out while waiting for a response from another proxy or the origin server.
-			HttpStatusCode.GatewayTimeout => ErrorType.Timeout,
-			// 505 - Indicates that the requested HTTP version is not supported by the server.
-			HttpStatusCode.HttpVersionNotSupported => ErrorType.NotSupported,
-#if !STANDARD_OR_OLD_FRAMEWORKS
-			// 506 - Indicates that the chosen variant resource is configured to engage in transparent content negotiation itself and, therefore, isn't a proper endpoint in the negotiation process.
-			HttpStatusCode.VariantAlsoNegotiates => ErrorType.NotSupported,
-			// 507 - Indicates that the server is unable to store the representation needed to complete the request.
-			HttpStatusCode.InsufficientStorage => ErrorType.Unavailable,
-			// 508 - Indicates that the server terminated an operation because it encountered an infinite loop while processing a WebDAV request with "Depth: infinity". This status code is meant for backward compatibility with clients not aware of the 208 status code <see cref="F:System.Net.HttpStatusCode.AlreadyReported" /> appearing in multistatus response bodies.
-			HttpStatusCode.LoopDetected => ErrorType.Critical,
-			// 510 - Indicates that further extensions to the request are required for the server to fulfill it.
-			HttpStatusCode.NotExtended => ErrorType.NotSupported,
-			// 511 - Indicates that the client needs to authenticate to gain network access; it's intended for use by intercepting proxies used to control access to the network.
-			HttpStatusCode.NetworkAuthenticationRequired => ErrorType.PermissionDenied,
-#endif
-			var _ => ErrorType.Critical
-		};
-
-	/// <summary>
-	/// Extension methods for Task&lt;HttpResponseMessage&gt; to convert to Response objects.
-	/// </summary>
-	extension(Task<HttpResponseMessage> me)
-	{
-		/// <summary>
-		/// Converts an HTTP response to a Fuxion <see cref="IResponse"/> object asynchronously.
-		/// </summary>
-		/// <param name="jsonOptions">Optional JSON serialization options.</param>
-		/// <param name="ct">Cancellation token.</param>
-		/// <returns>A <see cref="IResponse"/> object containing success/error information and extensions with HTTP metadata.</returns>
-		/// <remarks>
-		/// This overload doesn't deserialize the response body into a typed payload.
-		/// Use the generic overload if you need typed payload extraction.
-		/// </remarks>
-		/// <example>
-		/// <code>
-		/// var response = await httpClient.GetAsync("/api/endpoint").AsResponseAsync();
-		/// if (response.IsSuccess)
-		/// {
-		///     // Access status code
-		///     var statusCode = response.Extensions[Extensions.StatusCodeKey];
-		/// }
-		/// </code>
-		/// </example>
-		public async Task<IResponse> AsResponseAsync(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
-			=> await Extensions.AsResponseFromMessageAsync(await me, jsonOptions, ct);
-
-		/// <summary>
-		/// Converts an HTTP response to a Fuxion <see cref="IResponse{TPayload}"/> object asynchronously with automatic JSON deserialization.
-		/// </summary>
-		/// <typeparam name="TPayload">The type to deserialize the response body into. Can be Stream or byte[] for binary content.</typeparam>
-		/// <param name="jsonOptions">Optional JSON serialization options.</param>
-		/// <param name="ct">Cancellation token.</param>
-		/// <returns>A <see cref="IResponse{TPayload}"/> object containing the deserialized payload on success or error information.</returns>
-		/// <remarks>
-		/// <para>Special handling for specific payload types:</para>
-		/// <list type="bullet">
-		/// <item><description>Stream: Returns the response stream directly (useful for file downloads)</description></item>
-		/// <item><description>byte[]: Returns the response bytes directly</description></item>
-		/// <item><description>Other types: Attempts JSON deserialization</description></item>
-		/// </list>
-		/// </remarks>
-		/// <example>
-		/// <code>
-		/// // JSON payload
-		/// var response = await httpClient.GetAsync("/api/users/1")
-		///     .AsResponseAsync&lt;User&gt;();
-		/// if (response.IsSuccess)
-		/// {
-		///     var user = response.Payload;
-		///     Console.WriteLine(user.Name);
-		/// }
-		/// 
-		/// // File download
-		/// var fileResponse = await httpClient.GetAsync("/api/files/download")
-		///     .AsResponseAsync&lt;Stream&gt;();
-		/// if (fileResponse.IsSuccess)
-		/// {
-		///     await using var stream = fileResponse.Payload;
-		///     // Save stream to file...
-		/// }
-		/// </code>
-		/// </example>
-		public async Task<IResponse<TPayload>> AsResponseAsync<TPayload>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
-			=> await Extensions.AsResponseFromMessageAsync<TPayload>(await me, jsonOptions, ct);
-	}
-
-	/// <summary>
-	/// Extension methods for HttpResponseMessage to convert to Response objects.
-	/// </summary>
-	extension(HttpResponseMessage res)
-	{
-		/// <summary>
-		/// Converts this HTTP response to a Fuxion <see cref="IResponse"/> object asynchronously.
-		/// </summary>
-		/// <param name="jsonOptions">Optional JSON serialization options.</param>
-		/// <param name="ct">Cancellation token.</param>
-		/// <returns>A <see cref="IResponse"/> object containing success/error information and extensions with HTTP metadata.</returns>
-		/// <example>
-		/// <code>
-		/// HttpResponseMessage httpResponse = await httpClient.GetAsync("/api/endpoint");
-		/// var response = await httpResponse.AsResponseAsync();
-		/// </code>
-		/// </example>
-		public async Task<IResponse> AsResponseAsync(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
-			=> await Extensions.AsResponseFromMessageAsync(res, jsonOptions, ct);
-
-		/// <summary>
-		/// Converts this HTTP response to a Fuxion <see cref="IResponse{TPayload}"/> object asynchronously with automatic JSON deserialization.
-		/// </summary>
-		/// <typeparam name="TPayload">The type to deserialize the response body into.</typeparam>
-		/// <param name="jsonOptions">Optional JSON serialization options.</param>
-		/// <param name="ct">Cancellation token.</param>
-		/// <returns>A <see cref="IResponse{TPayload}"/> object containing the deserialized payload on success or error information.</returns>
-		/// <example>
-		/// <code>
-		/// HttpResponseMessage httpResponse = await httpClient.PostAsync("/api/users", content);
-		/// var response = await httpResponse.AsResponseAsync&lt;User&gt;();
-		/// </code>
-		/// </example>
-		public async Task<IResponse<TPayload>> AsResponseAsync<TPayload>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
-			=> await Extensions.AsResponseFromMessageAsync<TPayload>(res, jsonOptions, ct);
-	}
-
-	/// <summary>
-	/// Extension methods for ResponseProblemDetails to extract typed payloads.
-	/// </summary>
-	extension(ResponseProblemDetails problem)
-	{
-		/// <summary>
-		/// Attempts to extract and deserialize a typed payload from Problem Details extensions.
-		/// </summary>
-		/// <typeparam name="TPayload">The type to deserialize the payload into.</typeparam>
-		/// <param name="payload">When this method returns true, contains the deserialized payload; otherwise, default.</param>
-		/// <param name="jsonOptions">Optional JSON serialization options.</param>
-		/// <returns>true if a payload was successfully extracted and deserialized; otherwise, false.</returns>
-		/// <remarks>
-		/// This method looks for the <see cref="PayloadKey"/> in the Problem Details extensions
-		/// and attempts to deserialize it as a JsonElement to the specified type.
-		/// </remarks>
-		/// <example>
-		/// <code>
-		/// if (response.TryGetProblemDetails(out var problem))
-		/// {
-		///     if (problem.TryGetPayload&lt;ValidationErrors&gt;(out var errors))
-		///     {
-		///         foreach (var error in errors.Errors)
-		///         {
-		///             Console.WriteLine($"Field {error.Field}: {error.Message}");
-		///         }
-		///     }
-		/// }
-		/// </code>
-		/// </example>
-		public bool TryGetPayload<TPayload>([NotNullWhen(true)] out TPayload? payload, JsonSerializerOptions? jsonOptions = null)
-		{
-			if (problem.Extensions.TryGetValue(PayloadKey, out var obj) && obj is JsonElement jsonElement)
-			{
-				try
-				{
-					payload = jsonElement.Deserialize<TPayload>(jsonOptions);
-					if (payload is not null) return true;
-				}
-				catch
-				{
-					// ignored
-				}
-			}
-			payload = default;
+			value = default!;
+			failure = Error.Critical("The response body is not JSON.", exception: ex);
+			failure.Extensions[ClientErrorExtensions.TextPayload] = body;
+			failure.Extensions[ClientErrorExtensions.ContentType] = MediaTypeOf(contentType);
 			return false;
 		}
-		/// <summary>
-      /// Gets the payload contained in the problem details extensions or returns the default value for the requested type.
-		/// </summary>
-     /// <typeparam name="TPayload">Type of the payload to extract from the problem details extensions.</typeparam>
-		/// <param name="jsonOptions">Optional JSON serialization options used during payload deserialization.</param>
-		/// <returns>
-		/// The deserialized payload when the <see cref="PayloadKey"/> extension exists and can be converted to <typeparamref name="TPayload"/>;
-		/// otherwise, the default value for <typeparamref name="TPayload"/>.
-		/// </returns>
-		/// <remarks>
-      /// This is a convenience wrapper over <see cref="TryGetPayload{TPayload}"/> for scenarios
-		/// where callers prefer a direct value instead of handling a Boolean result.
-		/// </remarks>
-		public TPayload? PayloadOrDefault<TPayload>(JsonSerializerOptions? jsonOptions = null)
-			=> problem.TryGetPayload<TPayload>(out var payload, jsonOptions) ? payload : default;
 
-		/// <summary>
-      /// Gets the payload contained in the problem details extensions or computes a fallback value when it cannot be extracted.
-		/// </summary>
-     /// <typeparam name="TPayload">Type of the payload to extract from the problem details extensions.</typeparam>
-		/// <param name="fallback">Function that produces an alternative value using the current <see cref="ResponseProblemDetails"/> instance.</param>
-		/// <param name="jsonOptions">Optional JSON serialization options used during payload deserialization.</param>
-		/// <returns>
-		/// The deserialized payload when the <see cref="PayloadKey"/> extension exists and can be converted to <typeparamref name="TPayload"/>;
-		/// otherwise, the value returned by <paramref name="fallback"/>.
-		/// </returns>
+		// Error cannot be the success type of a Response<T>, so a bare native error is read through its own path.
+		Error deserializationFailure;
+		if (typeof(T) == typeof(Error))
+		{
+			if (body.Fx.Json.TryDeserializeError(out var nativeError, out deserializationFailure, options: jsonOptions))
+			{
+				value = (T)(object)nativeError;
+				failure = default;
+				return true;
+			}
+		}
+		else
+		{
+			var desRes = body.Fx.Json.Deserialize<T>(options: jsonOptions);
+			if (desRes.TryGetValue(out T? desValue))
+			{
+				value = desValue;
+				failure = default;
+				return true;
+			}
+			desRes.TryGetValue(out deserializationFailure);
+		}
+
+		var hint = string.Equals(ResponseNaming.GetParameter(contentType), ResponseNaming.Custom, StringComparison.OrdinalIgnoreCase)
+			? " The server announced a custom naming policy; pass JsonSerializerOptions with the same policy."
+			: string.Empty;
+		value = default!;
+		failure = Error.Critical($"The JSON body could not be read as '{typeof(T).GetSignature()}'.{hint}", exception: deserializationFailure.Exception);
+		failure.Extensions[ClientErrorExtensions.JsonPayload] = element;
+		failure.Extensions[ClientErrorExtensions.ContentType] = MediaTypeOf(contentType);
+		return false;
+	}
+
+	static string? MediaTypeOf(string? contentType) => ResponseMediaTypes.TryParse(contentType, out var parsed) ? parsed.MediaType : contentType;
+
+	// RFC 9457. Some servers omit "status": the HTTP status is the authoritative fallback.
+	static Error ReadProblem(string body, JsonSerializerOptions jsonOptions, HttpStatusCode status, string? contentType)
+	{
+		if (!TryDeserialize<ResponseProblemDetails>(body, jsonOptions, contentType, out var problem, out var failure))
+			return failure;
+
+		var error = ErrorProblemDetailsConverter.ToError(problem, jsonOptions);
+		return error.Type is null ? error with { Type = status } : error;
+	}
+
+	// A typed business error inside problem+json travels in the same errorPayload extension member
+	// that Error.Payload uses, so it is recovered through the same Error machinery.
+	static TError ReadTypedError<TError>(Error problemError, JsonSerializerOptions jsonOptions)
+		where TError : notnull
+	{
+		if (problemError.TryGetPayloadAs<TError>(out var typed, jsonOptions))
+			return typed;
+
+		throw CreateDeserializationError(
+			$"The problem details body does not carry an '{ErrorProblemDetailsConverter.ErrorPayloadExtensionName}' extension member deserializable as '{typeof(TError).GetSignature()}'.");
+	}
+
+	// An error body this client does not recognize (a non-Fuxion server, HTML, plain text...). Nothing is
+	// lost: the HTTP status becomes the error type and the raw body stays reachable as the payload.
+	static Error ReadForeignError(HttpResponseMessage me, string body)
+	{
+		object? payload = null;
+		if (!string.IsNullOrWhiteSpace(body))
+		{
+			try
+			{
+				using var document = JsonDocument.Parse(body);
+				payload = document.RootElement.Clone();
+			}
+			catch (JsonException)
+			{
+				payload = body;
+			}
+		}
+
+		return new Error
+		{
+			Type = me.StatusCode,
+			Message = string.IsNullOrWhiteSpace(me.ReasonPhrase) ? $"The response status code is '{(int)me.StatusCode}'." : me.ReasonPhrase,
+			Payload = payload
+		};
+	}
+
+	// JSON-ish media types. An absent Content-Type is treated as JSON so servers that announce nothing
+	// (legacy) keep working; anything else that is not JSON is a binary body.
+	static bool IsJsonContentType(string? contentType)
+	{
+		if (!ResponseMediaTypes.TryParse(contentType, out var parsed)) return true;
+		var media = parsed.MediaType ?? string.Empty;
+		return media.Equals("application/json", StringComparison.OrdinalIgnoreCase)
+			|| media.Equals("text/json", StringComparison.OrdinalIgnoreCase)
+			|| media.EndsWith("+json", StringComparison.OrdinalIgnoreCase)
+			|| ResponseMediaTypes.IsFuxion(contentType);
+	}
+
+	// A text media type is worth trying: the body is read and parsed as JSON even though the server
+	// did not announce it as such (a legacy or misconfigured server serializing JSON as text/plain).
+	static bool IsTextContentType(string? contentType)
+		=> ResponseMediaTypes.TryParse(contentType, out var parsed) && (parsed.MediaType?.StartsWith("text/", StringComparison.OrdinalIgnoreCase) ?? false);
+
+	// Neither JSON nor text: refused without reading, so a large binary body never gets buffered into a string.
+	static Error UnreadableBinary(HttpResponseMessage me, Type target)
+	{
+		var error = Error.Critical($"The response body is '{me.Content?.Headers.ContentType?.MediaType}', not JSON nor text, and '{target.GetSignature()}' cannot be read from it.");
+		error.Extensions[ClientErrorExtensions.ContentType] = me.Content?.Headers.ContentType?.MediaType;
+		error.Extensions[ClientErrorExtensions.ContentLength] = me.Content?.Headers.ContentLength;
+		return error;
+	}
+
+	static async Task<Stream> ReadStreamAsync(HttpResponseMessage me, CancellationToken ct)
+	{
+		ct.ThrowIfCancellationRequested();
+#if NET5_0_OR_GREATER
+		return await me.Content.ReadAsStreamAsync(ct);
+#else
+		ct.ThrowIfCancellationRequested();
+		return await me.Content.ReadAsStreamAsync();
+#endif
+	}
+
+	// A binary success: the body is handed over as a stream (never buffered here), described by the
+	// standard headers. The returned stream owns the message, so disposing it releases the connection.
+	// Not every requested type can be produced from an HTTP body (an arbitrary Stream subtype cannot be
+	// synthesized), so the outcome is returned rather than thrown: each caller overload decides how a
+	// protocol level failure is reported (Error for the one-generic overload, an exception for the other).
+	static async Task<(bool Success, TSuccess Value, string? FailureMessage)> TryReadBinaryAsync<TSuccess>(HttpResponseMessage me, CancellationToken ct)
+		where TSuccess : notnull
+	{
+		ct.ThrowIfCancellationRequested();
+		if (typeof(TSuccess) == typeof(byte[]))
+		{
+#if NET5_0_OR_GREATER
+			var bytes = await me.Content.ReadAsByteArrayAsync(ct);
+#else
+			ct.ThrowIfCancellationRequested();
+			var bytes = await me.Content.ReadAsByteArrayAsync();
+#endif
+			return (true, (TSuccess)(object)bytes, null);
+		}
+
+		if (typeof(TSuccess) == typeof(MemoryStream))
+		{
+			var source = await ReadStreamAsync(me, ct);
+			var memory = new MemoryStream();
+#if NET5_0_OR_GREATER
+			await source.CopyToAsync(memory, ct);
+#else
+			ct.ThrowIfCancellationRequested();
+			await source.CopyToAsync(memory);
+#endif
+			memory.Position = 0;
+			me.Dispose();
+			return (true, (TSuccess)(object)memory, null);
+		}
+
+		// Stream itself and FileContent (backed by the response stream) are supported below; any other
+		// concrete Stream subtype (e.g. a custom Stream, or FileStream) cannot be conjured out of thin air.
+		if (typeof(TSuccess) != typeof(Stream) && typeof(Stream).IsAssignableFrom(typeof(TSuccess)))
+			return (false, default!, $"'{typeof(TSuccess).GetSignature()}' cannot be produced from an HTTP body; request Stream, MemoryStream, byte[] or FileContent instead.");
+
+		var stream = new HttpResponseStream(await ReadStreamAsync(me, ct), me);
+		if (typeof(TSuccess) == typeof(FileContent))
+		{
+			var headers = me.Content.Headers;
+			var disposition = headers.ContentDisposition;
+			var file = new FileContent(stream, headers.ContentType?.MediaType, (disposition?.FileNameStar ?? disposition?.FileName)?.Trim('"'))
+			{
+				Length = headers.ContentLength,
+				LastModified = headers.LastModified,
+				ETag = me.Headers.ETag?.ToString(),
+				EnableRangeProcessing = me.Headers.AcceptRanges.Any(r => string.Equals(r, "bytes", StringComparison.OrdinalIgnoreCase))
+			};
+			return (true, (TSuccess)(object)file, null);
+		}
+
+		return (true, (TSuccess)(object)stream, null);
+	}
+
+	static bool TryGetUnitPayload<TSuccess>(out TSuccess payload)
+		where TSuccess : notnull
+	{
+		if (typeof(TSuccess) == typeof(Unit))
+		{
+			payload = (TSuccess)(object)Unit.Value;
+			return true;
+		}
+
+		payload = default!;
+		return false;
+	}
+
+	extension(HttpResponseMessage me)
+	{
+		/// <summary>Reads the HTTP response as a <see cref="ResponseMaybe{TSuccess}"/>.</summary>
 		/// <remarks>
-		/// This overload is useful when the caller wants a strongly typed fallback value derived from the problem details
-		/// instead of using the default value of <typeparamref name="TPayload"/>.
+		/// This overload never throws for a protocol level failure: an empty, foreign or undeserializable
+		/// body is returned as an <see cref="Error"/> inside the response, because the error shape is known.
+		/// The overload that also takes a custom error type cannot do this and throws instead.
 		/// </remarks>
-		public TPayload PayloadOrFallback<TPayload>(Func<ResponseProblemDetails, TPayload> fallback, JsonSerializerOptions? jsonOptions = null) 
-			=> problem.TryGetPayload<TPayload>(out var payload, jsonOptions) ? payload : fallback(problem);
+		public async Task<ResponseMaybe<TSuccess>> AsResponseAsync<TSuccess>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+			where TSuccess : notnull
+		{
+			if (me.StatusCode == HttpStatusCode.NoContent)
+				return None.Value;
+
+			var contentType = ContentType(me);
+			var currentJsonOptions = EffectiveJsonOptions(me, jsonOptions);
+
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.UnitJson))
+				return TryGetUnitPayload<TSuccess>(out var unit) ? unit : Error.Critical($"The response is a Unit but '{typeof(TSuccess).GetSignature()}' was expected.");
+
+			// Decide by type and media type BEFORE touching the body: binary payloads are never read as text.
+			if (me.IsSuccessStatusCode && !ResponseMediaTypes.IsFuxion(contentType))
+			{
+				if (BinaryPayload.IsBinaryType(typeof(TSuccess)))
+				{
+					var (binarySuccess, binaryPayload, binaryFailureMessage) = await TryReadBinaryAsync<TSuccess>(me, ct);
+					return binarySuccess ? binaryPayload : Error.Critical(binaryFailureMessage);
+				}
+				// Unit consumes no content: a legacy server may answer 200 with an empty text/plain body.
+				if (typeof(TSuccess) != typeof(Unit) && !IsJsonContentType(contentType) && !IsTextContentType(contentType))
+					return UnreadableBinary(me, typeof(TSuccess));
+			}
+
+			var body = await ReadBodyAsync(me, ct);
+
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ResponseJson))
+			{
+				if (TryDeserialize<ResponseMaybe<TSuccess>>(body, currentJsonOptions, contentType, out var envelope, out var envelopeFailure))
+					return envelope;
+				return envelopeFailure;
+			}
+
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ProblemJson))
+				return ReadProblem(body, currentJsonOptions, me.StatusCode, contentType);
+
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ErrorJson))
+			{
+				if (TryDeserialize<Error>(body, currentJsonOptions, contentType, out var nativeError, out var nativeFailure))
+					return nativeError;
+				return nativeFailure;
+			}
+
+			if (!me.IsSuccessStatusCode)
+				return ReadForeignError(me, body);
+
+			if (string.IsNullOrWhiteSpace(body))
+				return TryGetUnitPayload<TSuccess>(out var legacyUnit) ? legacyUnit : Error.Critical($"The response status code is '{(int)me.StatusCode}' and the body is empty.");
+
+			if (TryDeserialize<TSuccess>(body, currentJsonOptions, contentType, out var payload, out var payloadFailure))
+				return payload;
+			return payloadFailure;
+		}
+
+		/// <summary>Reads the HTTP response as a <see cref="ResponseMaybe{TSuccess, TError}"/>.</summary>
+		/// <remarks>
+		/// Unlike the overload that only takes a success type, this one throws an
+		/// <see cref="InvalidOperationException"/> when the body is empty or cannot be deserialized.
+		/// A value of <typeparamref name="TError"/> cannot be synthesized for an arbitrary type, so a
+		/// protocol level failure has no representation inside the returned response.
+		/// <typeparamref name="TError"/> cannot be <see cref="Error"/> (the union types forbid it by
+		/// design); use the single-generic overload for native errors.
+		/// </remarks>
+		/// <exception cref="InvalidOperationException">The response body is empty or cannot be deserialized.</exception>
+		public async Task<ResponseMaybe<TSuccess, TError>> AsResponseAsync<TSuccess, TError>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+			where TSuccess : notnull
+			where TError : notnull
+		{
+			if (me.StatusCode == HttpStatusCode.NoContent)
+				return None.Value;
+
+			var contentType = ContentType(me);
+			var currentJsonOptions = EffectiveJsonOptions(me, jsonOptions);
+
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.UnitJson))
+				return TryGetUnitPayload<TSuccess>(out var unit) ? unit : throw CreateDeserializationError($"The response is a Unit but '{typeof(TSuccess).GetSignature()}' was expected.");
+
+			// Decide by type and media type BEFORE touching the body: binary payloads are never read as text.
+			if (me.IsSuccessStatusCode && !ResponseMediaTypes.IsFuxion(contentType))
+			{
+				if (BinaryPayload.IsBinaryType(typeof(TSuccess)))
+				{
+					var (binarySuccess, binaryPayload, binaryFailureMessage) = await TryReadBinaryAsync<TSuccess>(me, ct);
+					return binarySuccess ? binaryPayload : throw CreateDeserializationError(binaryFailureMessage);
+				}
+				// Unit consumes no content: a legacy server may answer 200 with an empty text/plain body.
+				if (typeof(TSuccess) != typeof(Unit) && !IsJsonContentType(contentType) && !IsTextContentType(contentType))
+					throw CreateDeserializationError(UnreadableBinary(me, typeof(TSuccess)).Message);
+			}
+
+			var body = await ReadBodyAsync(me, ct);
+
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ResponseJson))
+			{
+				if (TryDeserialize<ResponseMaybe<TSuccess, TError>>(body, currentJsonOptions, contentType, out var envelope, out var envelopeFailure))
+					return envelope;
+				throw CreateDeserializationError(envelopeFailure.Message, envelopeFailure.Exception);
+			}
+
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ProblemJson))
+			{
+				var problemError = ReadProblem(body, currentJsonOptions, me.StatusCode, contentType);
+				return ReadTypedError<TError>(problemError, currentJsonOptions);
+			}
+
+			if (ResponseMediaTypes.Is(contentType, ResponseMediaTypes.ErrorJson))
+				throw CreateDeserializationError($"The response carries a native Error but '{typeof(TError).GetSignature()}' was expected.");
+
+			if (!me.IsSuccessStatusCode)
+			{
+				if (string.IsNullOrWhiteSpace(body))
+					throw CreateDeserializationError($"The response status code is '{(int)me.StatusCode}' and the body is empty.");
+				if (TryDeserialize<TError>(body, currentJsonOptions, contentType, out var typed, out var typedFailure))
+					return typed;
+				throw CreateDeserializationError(typedFailure.Message ?? $"The error body could not be deserialized as '{typeof(TError).GetSignature()}'.", typedFailure.Exception);
+			}
+
+			if (string.IsNullOrWhiteSpace(body))
+				return TryGetUnitPayload<TSuccess>(out var legacyUnit) ? legacyUnit : throw CreateDeserializationError($"The response status code is '{(int)me.StatusCode}' and the body is empty.");
+
+			if (TryDeserialize<TSuccess>(body, currentJsonOptions, contentType, out var payload, out var payloadFailure))
+				return payload;
+			throw CreateDeserializationError(payloadFailure.Message, payloadFailure.Exception);
+		}
+	}
+
+	extension(Task<HttpResponseMessage> me)
+	{
+		public async Task<ResponseMaybe<TSuccess>> AsResponseAsync<TSuccess>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+			where TSuccess : notnull
+			=> await (await me).AsResponseAsync<TSuccess>(jsonOptions, ct);
+
+		public async Task<ResponseMaybe<TSuccess, TError>> AsResponseAsync<TSuccess, TError>(JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default)
+			where TSuccess : notnull
+			where TError : notnull
+			=> await (await me).AsResponseAsync<TSuccess, TError>(jsonOptions, ct);
 	}
 }
+
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

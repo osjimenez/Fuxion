@@ -1,9 +1,9 @@
+using Fuxion.Net.Http;
+
 namespace Fuxion.Http;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-using Fuxion.Union;
-using Fuxion.Union.Net.Http;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;

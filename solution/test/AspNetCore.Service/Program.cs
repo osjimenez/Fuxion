@@ -4,10 +4,10 @@ using System.Text.Json.Serialization;
 using Fuxion;
 using Fuxion.AspNetCore;
 using Fuxion.Text.Json.Serialization;
-using Fuxion.Union;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Test.Responses.Shared;
+using Test.Responses.Shared.Fixtures;
 
 namespace Test.AspNetCore.Service;
 

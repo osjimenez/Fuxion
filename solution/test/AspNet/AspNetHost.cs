@@ -1,13 +1,13 @@
-namespace Test.AspNet.Union;
-
 using System;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Web.Http;
+using Fuxion;
 using Fuxion.AspNet;
-using Fuxion.Union;
-using Test.Responses.Shared;
+using Test.Responses.Shared.Fixtures;
+
+namespace Test.AspNet;
 
 /// <summary>Full Web API 2 pipeline in memory: HttpServer is an HttpMessageHandler, so no sockets, no IIS, no OWIN.</summary>
 public static class AspNetHost

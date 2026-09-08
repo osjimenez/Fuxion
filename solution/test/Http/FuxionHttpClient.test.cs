@@ -1,3 +1,5 @@
+using Fuxion;
+
 namespace Test.Http;
 
 using System;
@@ -9,7 +11,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Fuxion.Http;
-using Fuxion.Union;
 using Fuxion.Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;

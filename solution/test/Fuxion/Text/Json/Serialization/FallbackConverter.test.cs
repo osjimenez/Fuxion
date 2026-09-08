@@ -29,7 +29,7 @@ public class FallbackConverterTest(ITestOutputHelper output) : BaseTest<Fallback
 			}
 		} catch (Exception ex)
 		{
-			var res = ex.Fx.Json.Serialize(true).Payload;
+			var res = ex.Fx.Json.Serialize(true).SuccessOrThrow();
 			Output.WriteLine("Exception serialized JSON:");
 			Output.WriteLine(res ?? "null");
 		}
@@ -58,7 +58,7 @@ public class FallbackConverterTest(ITestOutputHelper output) : BaseTest<Fallback
 			}
 		} catch (Exception ex)
 		{
-			var json = ex.Fx.Json.Serialize(true).PayloadOrThrow();
+			var json = ex.Fx.Json.Serialize(true).SuccessOrThrow();
 			AssertJson(json, [
 				new(["Message"], "InvalidOperationException message"),
             new(["InnerException", "Message"], "LoopException message\r\nNew line"),

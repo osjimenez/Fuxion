@@ -11,7 +11,7 @@ namespace Fuxion;
 /// </summary>
 /// <remarks>
 /// This class uses the extension mechanism to add encoding-related functionality to <see cref="byte" /> and <see cref="string" /> types
-/// through the Fuxion extensions framework. All operations return <see cref="IResponse{T}" /> objects to enable proper error handling.
+/// through the Fuxion extensions framework. All operations return <see cref="Response{T}" /> objects to enable proper error handling.
 /// </remarks>
 public static class EncodingExtensions
 {
@@ -52,16 +52,16 @@ public static class EncodingExtensions
 		/// are encoded in their original order.
 		/// </param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is the hexadecimal string representation of the underlying byte array
+		/// A <see cref="Response{T}"/> whose payload is the hexadecimal string representation of the underlying byte array
 		/// when the operation succeeds, or an error response when the underlying value is <c>null</c>.
 		/// </returns>
-		public IResponse<string> ToHexString(char? separatorChar = null, bool asBigEndian = false)
+		public Response<string> ToHexString(char? separatorChar = null, bool asBigEndian = false)
 		{
 			if (me.Value is null)
-				return Response.Get.InvalidData("Source byte array is null").AsPayload<string>();
+				return Error.InvalidData("Source byte array is null");
 
 			if (me.Value.Length == 0)
-				return Response.Get.SuccessPayload(string.Empty);
+				return string.Empty;
 
 			var byteCount = me.Value.Length;
 			var useSeparator = separatorChar.HasValue;
@@ -77,7 +77,7 @@ public static class EncodingExtensions
 				for (var i = 0; i < byteCount; i++)
 					AppendByte(me.Value[i], i == byteCount - 1);
 
-			return Response.Get.SuccessPayload(builder.ToString());
+			return builder.ToString();
 
 			void AppendByte(byte b, bool isLast)
 			{
@@ -91,32 +91,32 @@ public static class EncodingExtensions
 		/// Converts a byte array value to a regular Base64 string.
 		/// </summary>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is the Base64-encoded string when the operation succeeds,
+		/// A <see cref="Response{T}"/> whose payload is the Base64-encoded string when the operation succeeds,
 		/// or an error response when the underlying value is <c>null</c>.
 		/// </returns>
-		public IResponse<string> ToBase64String()
+		public Response<string> ToBase64String()
 		{
 			if (me.Value is null)
-				return Response.Get.InvalidData("Source byte array is null").AsPayload<string>();
+				return Error.InvalidData("Source byte array is null");
 
-			return Response.Get.SuccessPayload(Convert.ToBase64String(me.Value));
+			return Convert.ToBase64String(me.Value);
 		}
 
 		/// <summary>
 		/// Converts a byte array value to a Base64Url-encoded string.
 		/// </summary>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is the Base64Url-encoded string when the operation succeeds,
+		/// A <see cref="Response{T}"/> whose payload is the Base64Url-encoded string when the operation succeeds,
 		/// or an error response when the underlying value is <c>null</c>.
 		/// </returns>
-		public IResponse<string> ToBase64UrlString()
+		public Response<string> ToBase64UrlString()
 		{
 			if (me.Value is null)
-				return Response.Get.InvalidData("Source byte array is null").AsPayload<string>();
+				return Error.InvalidData("Source byte array is null");
 
 #if NET9_0_OR_GREATER
 			// System.Buffers.Text.Base64Url
-			return Response.Get.SuccessPayload(System.Buffers.Text.Base64Url.EncodeToString(me.Value));
+			return System.Buffers.Text.Base64Url.EncodeToString(me.Value);
 #else
 			// Regular Base64
 			var s = Convert.ToBase64String(me.Value);
@@ -126,7 +126,7 @@ public static class EncodingExtensions
 			s = s.Replace('+', '-');
 			s = s.Replace('/', '_');
 
-			return Response.Get.SuccessPayload(s);
+			return s;
 #endif
 		}
 	}
@@ -146,24 +146,24 @@ public static class EncodingExtensions
 		/// When <c>false</c>, the bytes are returned in the same order as they appear in the hex string.
 		/// </param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is the decoded byte array when the operation succeeds.
+		/// A <see cref="Response{T}"/> whose payload is the decoded byte array when the operation succeeds.
 		/// If the underlying string is <c>null</c> or has an invalid length (odd number of hex characters),
 		/// an error response is returned instead.
 		/// </returns>
-		public IResponse<byte[]> ToBytesFromHexString(char? separatorChar = null, bool isBigEndian = false)
+		public Response<byte[]> ToBytesFromHexString(char? separatorChar = null, bool isBigEndian = false)
 		{
 			if (me.Value is null)
-				return Response.Get.InvalidData("Source string is null").AsPayload<byte[]>();
+				return Error.InvalidData("Source string is null");
 
 			var hex = me.Value;
 			if (separatorChar.HasValue)
 				hex = hex.Replace(separatorChar.Value.ToString(), string.Empty);
 
 			if (hex.Length == 0)
-				return Response.Get.SuccessPayload(Array.Empty<byte>());
+				return Array.Empty<byte>();
 
 			if (hex.Length % 2 != 0)
-				return Response.Get.Critical("Hex string must have an even number of characters.").AsPayload<byte[]>();
+				return Error.Critical("Hex string must have an even number of characters.");
 
 			var byteCount = hex.Length / 2;
 			var bytes = new byte[byteCount];
@@ -177,34 +177,34 @@ public static class EncodingExtensions
 				}
 				catch (Exception ex)
 				{
-					return Response.Get.Critical($"Error converting hexadecimal string '{me.Value}' to byte array. Byte '{byteString}' is not valid.", exception: ex).AsPayload<byte[]>();
+					return Error.Critical($"Error converting hexadecimal string '{me.Value}' to byte array. Byte '{byteString}' is not valid.", exception: ex);
 				}
 			}
 
 			if (isBigEndian)
 				Array.Reverse(bytes);
 
-			return Response.Get.SuccessPayload(bytes);
+			return bytes;
 		}
 
 		/// <summary>
 		/// Decodes a regular Base64 string value into a byte array.
 		/// </summary>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is the decoded byte array when the operation succeeds,
+		/// A <see cref="Response{T}"/> whose payload is the decoded byte array when the operation succeeds,
 		/// or an error response when the underlying string is <c>null</c> or conversion fails.
 		/// </returns>
-		public IResponse<byte[]> ToBytesFromBase64String()
+		public Response<byte[]> ToBytesFromBase64String()
 		{
 			if (me.Value is null)
-				return Response.Get.InvalidData("Source string is null").AsPayload<byte[]>();
+				return Error.InvalidData("Source string is null");
 			try
 			{
-				return Response.Get.SuccessPayload(Convert.FromBase64String(me.Value));
+				return Convert.FromBase64String(me.Value);
 			}
 			catch (Exception ex)
 			{
-				return Response.Get.Critical($"Error converting Base64 string '{me.Value}' to byte array.", exception: ex).AsPayload<byte[]>();
+				return Error.Critical($"Error converting Base64 string '{me.Value}' to byte array.", exception: ex);
 			}
 		}
 
@@ -217,7 +217,7 @@ public static class EncodingExtensions
 		/// When <c>null</c>, defaults to <see cref="Encoding.UTF8"/>.
 		/// </param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is the decoded text string when the operation succeeds,
+		/// A <see cref="Response{T}"/> whose payload is the decoded text string when the operation succeeds,
 		/// or an error response when the underlying string is <c>null</c>, is not valid Base64, or decoding fails.
 		/// </returns>
 		/// <remarks>
@@ -237,13 +237,12 @@ public static class EncodingExtensions
 		/// var decodedLatin1 = base64Latin1.Fx.Encoding.DecodeFromBase64(Encoding.Latin1);
 		/// </code>
 		/// </example>
-		public IResponse<string> DecodeFromBase64(Encoding? encoding = null)
-		{
-			var bytesResponse = me.ToBytesFromBase64String();
-			if (bytesResponse.IsError)
-				return bytesResponse.AsPayload<string>();
-			return Response.Get.SuccessPayload((encoding ?? Encoding.UTF8).GetString(bytesResponse.Payload));
-		}
+		public Response<string> DecodeFromBase64(Encoding? encoding = null)
+			=> me.ToBytesFromBase64String() switch
+			{
+				Error error => error,
+				byte[] bytes => (encoding ?? Encoding.UTF8).GetString(bytes),
+			};
 
 		/// <summary>
 		/// Encodes a text string to a Base64-encoded string using the specified character encoding.
@@ -254,7 +253,7 @@ public static class EncodingExtensions
 		/// When <c>null</c>, defaults to <see cref="Encoding.UTF8"/>.
 		/// </param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is the Base64-encoded string when the operation succeeds,
+		/// A <see cref="Response{T}"/> whose payload is the Base64-encoded string when the operation succeeds,
 		/// or an error response when the underlying string is <c>null</c> or encoding fails.
 		/// </returns>
 		/// <remarks>
@@ -279,10 +278,10 @@ public static class EncodingExtensions
 		/// Console.WriteLine(decoded.Payload);  // Output: "Test data 123"
 		/// </code>
 		/// </example>
-		public IResponse<string> ToBase64String(Encoding? encoding = null)
+		public Response<string> ToBase64String(Encoding? encoding = null)
 		{
 			if (me.Value is null)
-				return Response.Get.InvalidData("Source string is null").AsPayload<string>();
+				return Error.InvalidData("Source string is null");
 
 			var bytes = (encoding ?? Encoding.UTF8).GetBytes(me.Value);
 			return bytes.Fx.Encoding.ToBase64String();
@@ -292,25 +291,24 @@ public static class EncodingExtensions
 		/// Decodes the underlying Base64Url-encoded string into a byte array.
 		/// </summary>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is the decoded byte array when the operation succeeds,
+		/// A <see cref="Response{T}"/> whose payload is the decoded byte array when the operation succeeds,
 		/// or an error response when the underlying string is <c>null</c> or conversion fails.
 		/// </returns>
-		public IResponse<byte[]> ToBytesFromBase64UrlString()
+		public Response<byte[]> ToBytesFromBase64UrlString()
 		{
 			if (me.Value is null)
-				return Response.Get.InvalidData("Source string is null").AsPayload<byte[]>();
+				return Error.InvalidData("Source string is null");
 
 #if NET9_0_OR_GREATER
 			try
 			{
-				return Response.Get.SuccessPayload(System.Buffers.Text.Base64Url.DecodeFromChars(me.Value));
+				return System.Buffers.Text.Base64Url.DecodeFromChars(me.Value);
 			}
 			catch (Exception ex)
 			{
-				return Response.Get.Critical(
+				return Error.Critical(
 						$"Error converting Base64Url string '{me.Value}' to byte array.",
-						exception: ex)
-					.AsPayload<byte[]>();
+						exception: ex);
 			}
 #else
 			var s = me.Value
@@ -328,17 +326,16 @@ public static class EncodingExtensions
 					s += "=";
 					break;
 				default:
-					return Response.Get.InvalidData($"Source string '{me.Value}' has invalid Base64Url string length.")
-						.AsPayload<byte[]>();
+					return Error.InvalidData($"Source string '{me.Value}' has invalid Base64Url string length.");
 			}
 
 			try
 			{
-				return Response.Get.SuccessPayload(Convert.FromBase64String(s));
+				return Convert.FromBase64String(s);
 			}
 			catch (Exception ex)
 			{
-				return Response.Get.Critical($"Error converting Base64Url string '{me.Value}' to byte array.", exception: ex).AsPayload<byte[]>();
+				return Error.Critical($"Error converting Base64Url string '{me.Value}' to byte array.", exception: ex);
 			}
 #endif
 		}
@@ -352,7 +349,7 @@ public static class EncodingExtensions
 		/// When <c>null</c>, defaults to <see cref="Encoding.UTF8"/>.
 		/// </param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is the decoded text string when the operation succeeds,
+		/// A <see cref="Response{T}"/> whose payload is the decoded text string when the operation succeeds,
 		/// or an error response when the underlying string is <c>null</c>, is not valid Base64Url, or decoding fails.
 		/// </returns>
 		/// <remarks>
@@ -380,13 +377,13 @@ public static class EncodingExtensions
 		/// var decodedLatin1 = base64UrlLatin1.Fx.Encoding.DecodeFromBase64Url(Encoding.Latin1);
 		/// </code>
 		/// </example>
-		public IResponse<string> DecodeFromBase64Url(Encoding? encoding = null)
-		{
-			var bytesResponse = me.ToBytesFromBase64UrlString();
-			if (bytesResponse.IsError)
-				return bytesResponse.AsPayload<string>();
-			return Response.Get.SuccessPayload((encoding ?? Encoding.UTF8).GetString(bytesResponse.Payload));
-		}
+		public Response<string> DecodeFromBase64Url(Encoding? encoding = null)
+			=> me.ToBytesFromBase64UrlString() switch
+			{
+				Error error => error,
+				byte[] bytes => (encoding ?? Encoding.UTF8).GetString(bytes),
+			};
+		
 
 		/// <summary>
 		/// Encodes a text string to a Base64Url-encoded string using the specified character encoding.
@@ -397,7 +394,7 @@ public static class EncodingExtensions
 		/// When <c>null</c>, defaults to <see cref="Encoding.UTF8"/>.
 		/// </param>
 		/// <returns>
-		/// A <see cref="IResponse{T}"/> whose payload is the Base64Url-encoded string when the operation succeeds,
+		/// A <see cref="Response{T}"/> whose payload is the Base64Url-encoded string when the operation succeeds,
 		/// or an error response when the underlying string is <c>null</c> or encoding fails.
 		/// </returns>
 		/// <remarks>
@@ -429,10 +426,10 @@ public static class EncodingExtensions
 		/// Console.WriteLine(decoded.Payload);  // Output: "Test data 123"
 		/// </code>
 		/// </example>
-		public IResponse<string> ToBase64UrlString(Encoding? encoding = null)
+		public Response<string> ToBase64UrlString(Encoding? encoding = null)
 		{
 			if (me.Value is null)
-				return Response.Get.InvalidData("Source string is null").AsPayload<string>();
+				return Error.InvalidData("Source string is null");
 
 			var bytes = (encoding ?? Encoding.UTF8).GetBytes(me.Value);
 			return bytes.Fx.Encoding.ToBase64UrlString();
