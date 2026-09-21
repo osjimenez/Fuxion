@@ -19,7 +19,7 @@
 
 This a personal and undocumented repository that contains many helpers and some patterns to build .NET  applications
 
-You can find an empty Docs website at:
+You can find an empty Docs website at: 
 
 https://docs.fuxion.dev
 
