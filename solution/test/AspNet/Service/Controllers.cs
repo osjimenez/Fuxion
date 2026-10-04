@@ -17,6 +17,8 @@ public class ResponseController : ApiController
 	[HttpGet, Route("none")] public ResponseMaybe<Unit> GetNone() => None.Value;
 	[HttpGet, Route("string")] public Response<string> GetString() => "test";
 	[HttpGet, Route("payload")] public Response<TestPayload> Payload() => TestPayload.Default;
+	// Extensions on a bare payload: they are dropped on the wire and the adapter traces a warning.
+	[HttpGet, Route("payload-extended")] public Response<TestPayload> PayloadExtended() => new Response<TestPayload>(TestPayload.Default).WithExtension("trace", "abc");
 	// A multi-word payload under bare application/json: proves a requested naming policy is never
 	// stamped on an un-announced shape (see Fuxion.ResponseWireMapper.TryMap).
 	[HttpGet, Route("naming-payload")] public Response<TestNamingPayload> NamingPayload() => new TestNamingPayload("Ada", 36);
@@ -37,11 +39,11 @@ public class ResponseController : ApiController
 
 // Controller-level attribute: the scope cascade is global -> controller -> action.
 [RoutePrefix("attribute-test")]
-[ResponseOptions(SerializeFullResponses = true)]
+[Responses(SerializeFullResponses = true)]
 public class AttributeTestController : ApiController
 {
 	[HttpGet, Route("payload")] public Response<TestPayload> Payload() => TestPayload.Default;
-	[HttpGet, Route("payload-bare"), ResponseOptions(SerializeFullResponses = false)] public Response<TestPayload> PayloadBare() => TestPayload.Default;
+	[HttpGet, Route("payload-bare"), Responses(SerializeFullResponses = false)] public Response<TestPayload> PayloadBare() => TestPayload.Default;
 }
 
 [RoutePrefix("plain")]
@@ -91,12 +93,14 @@ public class NamingController : ApiController
 [RoutePrefix("binary")]
 public class BinaryController : ApiController
 {
-	[HttpGet, Route("file")] public Response<FileContent> GetFile() => TestFile.Create();
+	[HttpGet, Route("file")] public Response<IOContent> GetFile() => TestFile.Create();
 	[HttpGet, Route("stream")] public Response<Stream> GetStream() => new MemoryStream(TestFile.Bytes, writable: false);
 	[HttpGet, Route("bytes")] public Response<byte[]> Bytes() => TestFile.Bytes;
-	[HttpGet, Route("none")] public ResponseMaybe<FileContent> GetNone() => None.Value;
-	[HttpGet, Route("error")] public Response<FileContent> GetError() => Error.NotFound("missing");
+	[HttpGet, Route("none")] public ResponseMaybe<IOContent> GetNone() => None.Value;
+	[HttpGet, Route("error")] public Response<IOContent> GetError() => Error.NotFound("missing");
 	[HttpGet, Route("chunked")] public Response<Stream> Chunked() => new NonSeekableStream(TestFile.Bytes);
+	[HttpGet, Route("sized-stream")] public Response<IOContent> SizedStream() => new IOContent(new NonSeekableStream(TestFile.Bytes)) { Length = TestFile.Bytes.Length };
+	[HttpGet, Route("range-source")] public Response<IOContent> FromRangeSource() => RangeSource.Content();
 }
 
 // Exercises the deferred ToHttpActionResult extensions: the action does not touch the request itself,

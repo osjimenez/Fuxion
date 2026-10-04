@@ -92,10 +92,10 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 	}
 	static IResponse CreateWithExtension(string form, string key) => form switch
 	{
-		"Response" => new Response<Unit>(Unit.Value) { Extensions = new() { [key] = "reserved" } },
-		"TypedResponse" => new Response<Unit, CustomError>(Unit.Value) { Extensions = new() { [key] = "reserved" } },
-		"Maybe" => new ResponseMaybe<Unit>(Unit.Value) { Extensions = new() { [key] = "reserved" } },
-		"TypedMaybe" => new ResponseMaybe<Unit, CustomError>(Unit.Value) { Extensions = new() { [key] = "reserved" } },
+		"Response" => new Response<Unit>(Unit.Value) { Extensions = new ExtensionsDictionary { [key] = "reserved" } },
+		"TypedResponse" => new Response<Unit, CustomError>(Unit.Value) { Extensions = new ExtensionsDictionary { [key] = "reserved" } },
+		"Maybe" => new ResponseMaybe<Unit>(Unit.Value) { Extensions = new ExtensionsDictionary { [key] = "reserved" } },
+		"TypedMaybe" => new ResponseMaybe<Unit, CustomError>(Unit.Value) { Extensions = new ExtensionsDictionary { [key] = "reserved" } },
 		_ => throw new ArgumentOutOfRangeException(nameof(form)),
 	};
 	static IResponse Create(string form) => form switch
@@ -112,8 +112,75 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 		=> Throws<ReservedKeyExtensionException>(() => CreateWithExtension(form, key));
 	[Theory(DisplayName = "A reserved key cannot be added as an extension afterwards")]
 	[MemberData(nameof(ReservedKeysByForm))]
-	public void Extensions_ReservedKey_ThrowsOnAdd(string form, string key)
-		=> Throws<ReservedKeyExtensionException>(() => Create(form).Extensions.Add(key, "reserved"));
+	public void Extensions_ReservedKey_ThrowsOnWith(string form, string key)
+		=> Throws<ReservedKeyExtensionException>(() => _ = form switch
+		{
+			"Response" => (IResponse)new Response<Unit>(Unit.Value).WithExtension(key, "reserved"),
+			"TypedResponse" => new Response<Unit, CustomError>(Unit.Value).WithExtension(key, "reserved"),
+			"Maybe" => new ResponseMaybe<Unit>(Unit.Value).WithExtension(key, "reserved"),
+			"TypedMaybe" => new ResponseMaybe<Unit, CustomError>(Unit.Value).WithExtension(key, "reserved"),
+			_ => throw new ArgumentOutOfRangeException(nameof(form)),
+		});
+
+	[Fact(DisplayName = "WithExtension returns a new response with the extension and keeps the original and its case")]
+	public void WithExtension_ReturnsANewResponse()
+	{
+		var original = new Response<int>(1);
+		var extended = original.WithExtension("a", 1).WithExtensions([new("b", 2)]);
+		Assert.Empty(original.Extensions);
+		Assert.Equal(2, extended.Extensions.Count);
+		Assert.Equal(1, extended.SuccessOrThrow());
+
+		var error = new Response<int>(Error.NotFound()).WithExtension("a", 1);
+		IsTrue(error.IsError);
+		Assert.Equal(1, error.Extensions["a"]);
+
+		var typedError = new Response<int, string>("bad").WithExtension("a", 1);
+		IsTrue(typedError.IsError);
+		Assert.Equal(1, typedError.Extensions["a"]);
+
+		var none = new ResponseMaybe<int>(None.Value).WithExtension("a", 1);
+		IsTrue(none.IsNone);
+		Assert.Equal(1, none.Extensions["a"]);
+
+		var typedNone = new ResponseMaybe<int, string>(None.Value).WithExtension("a", 1);
+		IsTrue(typedNone.IsNone);
+		Assert.Equal(1, typedNone.Extensions["a"]);
+	}
+
+	[Fact(DisplayName = "Copies of a response never share extensions")]
+	public void Extensions_CopiesAreIndependent()
+	{
+		var original = new Response<int>(1).WithExtension("a", 1);
+		var copy = original;
+		var changed = copy.WithExtension("b", 2);
+
+		Assert.Single(original.Extensions);
+		Assert.Single(copy.Extensions);
+		Assert.Equal(2, changed.Extensions.Count);
+	}
+
+	[Fact(DisplayName = "A dictionary given when creating a response is copied: changing it afterwards has no effect")]
+	public void Extensions_SourceIsCopied()
+	{
+		var source = new ExtensionsDictionary { ["a"] = 1 };
+		var response = new Response<int>(1) { Extensions = source };
+		source["b"] = 2;
+
+		Assert.Single(response.Extensions);
+	}
+
+	[Fact(DisplayName = "A response without extensions, even default, has empty extensions that allocate nothing")]
+	public void Extensions_EmptyWithoutAllocation()
+	{
+		var none = default(Response<int>);
+		var maybe = default(ResponseMaybe<int>);
+
+		Assert.Empty(none.Extensions);
+		Assert.Same(none.Extensions, none.Extensions);
+		Assert.Same(none.Extensions, new Response<int>(1).Extensions);
+		Assert.Same(maybe.Extensions, maybe.Extensions);
+	}
 
 	#endregion
 

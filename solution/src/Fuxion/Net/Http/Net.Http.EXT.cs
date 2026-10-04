@@ -82,9 +82,9 @@ public static class HttpResponseMessageExtensions
 		catch (JsonException ex)
 		{
 			value = default!;
-			failure = Error.InternalServerError("The response body is not JSON.", exception: ex);
-			failure.Extensions[ClientErrorKeys.TextPayload] = body;
-			failure.Extensions[ClientErrorKeys.ContentType] = MediaTypeOf(contentType);
+			failure = Error.InternalServerError("The response body is not JSON.", exception: ex)
+				.WithExtension(ClientErrorKeys.TextPayload, body)
+				.WithExtension(ClientErrorKeys.ContentType, MediaTypeOf(contentType));
 			return false;
 		}
 
@@ -115,9 +115,9 @@ public static class HttpResponseMessageExtensions
 			? " The server announced a custom naming policy; pass JsonSerializerOptions with the same policy."
 			: string.Empty;
 		value = default!;
-		failure = Error.InternalServerError($"The JSON body could not be read as '{typeof(T).GetSignature()}'.{hint}", exception: deserializationFailure.Exception);
-		failure.Extensions[ClientErrorKeys.JsonPayload] = element;
-		failure.Extensions[ClientErrorKeys.ContentType] = MediaTypeOf(contentType);
+		failure = Error.InternalServerError($"The JSON body could not be read as '{typeof(T).GetSignature()}'.{hint}", exception: deserializationFailure.Exception)
+			.WithExtension(ClientErrorKeys.JsonPayload, element)
+			.WithExtension(ClientErrorKeys.ContentType, MediaTypeOf(contentType));
 		return false;
 	}
 
@@ -184,10 +184,9 @@ public static class HttpResponseMessageExtensions
 	// Neither JSON nor text: refused without reading, so a large binary body never gets buffered into a string.
 	static Error UnreadableBinary(HttpResponseMessage me, Type target)
 	{
-		var error = Error.InternalServerError($"The response body is '{me.Content?.Headers.ContentType?.MediaType}', not JSON nor text, and '{target.GetSignature()}' cannot be read from it.");
-		error.Extensions[ClientErrorKeys.ContentType] = me.Content?.Headers.ContentType?.MediaType;
-		error.Extensions[ClientErrorKeys.ContentLength] = me.Content?.Headers.ContentLength;
-		return error;
+		return Error.InternalServerError($"The response body is '{me.Content?.Headers.ContentType?.MediaType}', not JSON nor text, and '{target.GetSignature()}' cannot be read from it.")
+			.WithExtension(ClientErrorKeys.ContentType, me.Content?.Headers.ContentType?.MediaType)
+			.WithExtension(ClientErrorKeys.ContentLength, me.Content?.Headers.ContentLength);
 	}
 
 	static async Task<Stream> ReadStreamAsync(HttpResponseMessage me, CancellationToken ct)
@@ -236,17 +235,17 @@ public static class HttpResponseMessageExtensions
 			return (true, (TSuccess)(object)memory, null);
 		}
 
-		// Stream itself and FileContent (backed by the response stream) are supported below; any other
+		// Stream itself and IOContent (backed by the response stream) are supported below; any other
 		// concrete Stream subtype (e.g. a custom Stream, or FileStream) cannot be conjured out of thin air.
 		if (typeof(TSuccess) != typeof(Stream) && typeof(Stream).IsAssignableFrom(typeof(TSuccess)))
-			return (false, default!, $"'{typeof(TSuccess).GetSignature()}' cannot be produced from an HTTP body; request Stream, MemoryStream, byte[] or FileContent instead.");
+			return (false, default!, $"'{typeof(TSuccess).GetSignature()}' cannot be produced from an HTTP body; request Stream, MemoryStream, byte[] or IOContent instead.");
 
 		var stream = new HttpResponseStream(await ReadStreamAsync(me, ct), me);
-		if (typeof(TSuccess) == typeof(FileContent))
+		if (typeof(TSuccess) == typeof(IOContent))
 		{
 			var headers = me.Content.Headers;
 			var disposition = headers.ContentDisposition;
-			var file = new FileContent(stream, headers.ContentType?.MediaType, (disposition?.FileNameStar ?? disposition?.FileName)?.Trim('"'))
+			var file = new IOContent(stream, headers.ContentType?.MediaType, (disposition?.FileNameStar ?? disposition?.FileName)?.Trim('"'))
 			{
 				Length = headers.ContentLength,
 				LastModified = headers.LastModified,

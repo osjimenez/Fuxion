@@ -1,7 +1,28 @@
 <Project>
-	
+
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
 	</PropertyGroup>
-	
+
+	<!-- Test framework for every test project, declared once here instead of in each csproj. Item conditions are
+	     evaluated after all properties, so this one already sees the OutputType and IsTestProject set by the csproj:
+	     helper libraries living in a test area (OutputType=Library) and executables that are not test projects
+	     (IsTestProject=false, like the service hosted by the ASP.NET Core tests) are left out. -->
+	<ItemGroup Condition="'$(OutputType)' == 'Exe' And '$(IsTestProject)' != 'false'">
+		<PackageReference Include="xunit.v3" />
+		<!-- VSTest infrastructure: kept until the Test Explorer is checked without it (plan H, task 1.2). -->
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<!-- Code coverage on Microsoft.Testing.Platform (see the build-system skill for the dotnet test switches). -->
+		<PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+	</ItemGroup>
+
+	<!-- xunit.v3 brings xunit.analyzers, which the test projects never had (it came private through Fuxion.Xunit).
+	     Turning it on is a change to the tests themselves (see ideas.md), so it is taken off the compiler's analyzer
+	     list. ExcludeAssets cannot do it: the analyzers arrive transitively. -->
+	<Target Name="RemoveXunitAnalyzers" AfterTargets="ResolveLockFileAnalyzers">
+		<ItemGroup>
+			<Analyzer Remove="@(Analyzer)" Condition="'%(Filename)' == 'xunit.analyzers' Or '%(Filename)' == 'xunit.analyzers.fixes'" />
+		</ItemGroup>
+	</Target>
+
 </Project>

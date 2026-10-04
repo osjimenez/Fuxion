@@ -6,10 +6,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.NET.Test.Sdk" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<ProjectReference Include="$(XunitProjectPath)" />
 	</ItemGroup>
 
@@ -31,7 +27,10 @@
 		<Compile Update="Response.Client.test.cs">
 			<DependentUpon>Response.test.cs</DependentUpon>
 		</Compile>
-		<Compile Update="Response.FileContent.test.cs">
+		<Compile Update="Response.EXT.test.cs">
+			<DependentUpon>Response.test.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.IOContent.test.cs">
 			<DependentUpon>Response.test.cs</DependentUpon>
 		</Compile>
 		<Compile Update="Response.Json.SourceGeneration.test.cs">

@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using System.Text.Json;
 using Fuxion;
 using Fuxion.Xunit;
@@ -219,8 +221,8 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 	[InlineData(true)]
 	public void Binary_NeverEnvelope(bool full)
 	{
-		using var file = new FileContent(new System.IO.MemoryStream(new byte[4]), "application/pdf", "a.pdf");
-		Response<FileContent> response = file;
+		using var file = new IOContent(new System.IO.MemoryStream(new byte[4]), "application/pdf", "a.pdf");
+		Response<IOContent> response = file;
 
 		var mapping = Map(response, Options(full: full));
 
@@ -230,29 +232,29 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 	}
 
 	[Fact(DisplayName = "A bare Stream or byte[] success is wrapped as octet-stream file content")]
-	public void StreamAndBytes_AreWrapped()
+	public async Task StreamAndBytes_AreWrapped()
 	{
 		var stream = new System.IO.MemoryStream(new byte[2]);
 		Response<System.IO.Stream> streamResponse = stream;
 		var streamMapping = Map(streamResponse, Options());
 		Assert.Equal(ResponseWireShape.Binary, streamMapping.Shape);
-		var wrapped = Assert.IsType<FileContent>(streamMapping.Value);
-		Assert.Same(stream, wrapped.Stream);
+		var wrapped = Assert.IsType<IOContent>(streamMapping.Value);
+		Assert.Same(stream, await wrapped.OpenAsync());
 		Assert.Equal(BinaryPayload.DefaultContentType, wrapped.ContentType);
 
 		Response<byte[]> bytesResponse = new byte[] { 1, 2, 3 };
 		var bytesMapping = Map(bytesResponse, Options(full: true));
 		Assert.Equal(ResponseWireShape.Binary, bytesMapping.Shape);
-		Assert.Equal(3, Assert.IsType<FileContent>(bytesMapping.Value).Length);
+		Assert.Equal(3, Assert.IsType<IOContent>(bytesMapping.Value).Length);
 	}
 
 	[Fact(DisplayName = "None and errors of a binary response follow the normal rules")]
 	public void BinaryResponse_NoneAndError_AreNormal()
 	{
-		ResponseMaybe<FileContent> none = None.Value;
+		ResponseMaybe<IOContent> none = None.Value;
 		Assert.Equal(ResponseWireShape.NoContent, Map(none, Options()).Shape);
 
-		Response<FileContent> error = Error.NotFound("missing");
+		Response<IOContent> error = Error.NotFound("missing");
 		var mapping = Map(error, Options());
 		Assert.Equal(404, mapping.StatusCode);
 		Assert.Equal(ResponseWireShape.ProblemError, mapping.Shape);
@@ -269,6 +271,49 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 		var ex = Assert.Throws<NotSupportedException>(() => ResponseWireMapper.Map(42, new ResponseOptions()));
 		Assert.Equal("The union response value of type 'System.Int32' is not supported.", ex.Message);
 	}
+	// The extensions of a Response only have a place inside the envelope; every other shape drops them (RF-23).
+	public static TheoryData<string, ResponseWireShape> ShapesWithoutEnvelope() => new()
+	{
+		{ "payload", ResponseWireShape.Payload },
+		{ "unit", ResponseWireShape.Unit },
+		{ "none", ResponseWireShape.NoContent },
+		{ "binary", ResponseWireShape.Binary },
+		{ "native-error", ResponseWireShape.NativeError },
+		{ "problem-error", ResponseWireShape.ProblemError },
+		{ "raw-error", ResponseWireShape.RawError },
+	};
+
+	static (object Response, ResponseOptions Options) WithExtensions(string kind) => kind switch
+	{
+		"payload" => (new Response<string>("test").WithExtension("k1", 1).WithExtension("k2", 2), Options()),
+		"unit" => (new Response<Unit>(Unit.Value).WithExtension("k1", 1).WithExtension("k2", 2), Options()),
+		"none" => (new ResponseMaybe<Unit>(None.Value).WithExtension("k1", 1).WithExtension("k2", 2), Options()),
+		"binary" => (new Response<byte[]>([1, 2]).WithExtension("k1", 1).WithExtension("k2", 2), Options()),
+		"native-error" => (new Response<string>(Error.NotFound()).WithExtension("k1", 1).WithExtension("k2", 2), Options(problem: false)),
+		"problem-error" => (new Response<string>(Error.NotFound()).WithExtension("k1", 1).WithExtension("k2", 2), Options()),
+		_ => (new Response<string, BusinessError>(new BusinessError("business")).WithExtension("k1", 1).WithExtension("k2", 2), Options(problem: false)),
+	};
+
+	[Theory(DisplayName = "A response written without the envelope reports the extensions it drops")]
+	[MemberData(nameof(ShapesWithoutEnvelope))]
+	public void DroppedExtensions_ReportedOutsideTheEnvelope(string kind, ResponseWireShape shape)
+	{
+		var (response, options) = WithExtensions(kind);
+		var mapping = Map(response, options);
+
+		Assert.Equal(shape, mapping.Shape);
+		Assert.Equal(new[] { "k1", "k2" }, mapping.DroppedExtensions.OrderBy(k => k).ToArray());
+	}
+
+	[Fact(DisplayName = "Nothing is reported inside the envelope, without extensions, or for the error's own extensions")]
+	public void DroppedExtensions_NothingToReport()
+	{
+		Assert.Empty(Map(new Response<string>("test").WithExtension("k", 1), Options(full: true, problem: false)).DroppedExtensions);
+		Assert.Empty(Map(new Response<string>("test"), Options()).DroppedExtensions);
+		Assert.Empty(Map(new Response<string>(Error.NotFound().WithExtension("k", 1)), Options()).DroppedExtensions);
+		Assert.Empty(Map(Error.NotFound().WithExtension("k", 1), Options(problem: false)).DroppedExtensions);
+	}
+
 }
 
 public class ResponseWireMaterializeTest(ITestOutputHelper output) : BaseTest<ResponseWireMaterializeTest>(output)
@@ -363,7 +408,7 @@ public class ResponseWireMaterializeTest(ITestOutputHelper output) : BaseTest<Re
 	[Fact(DisplayName = "A binary shape materializes as the file's own media type without parameters or JSON options")]
 	public void Binary_MaterializesAsFileMediaType()
 	{
-		using var file = new FileContent(new System.IO.MemoryStream(new byte[1]), "image/png", "a.png");
+		using var file = new IOContent(new System.IO.MemoryStream(new byte[1]), "image/png", "a.png");
 		var (contentType, body, serializerOptions) = new ResponseWireMapping(200, ResponseWireShape.Binary, file).Materialize(Snake);
 
 		Assert.Equal("image/png", contentType);
@@ -394,3 +439,5 @@ public class ResponseWireMaterializeTest(ITestOutputHelper output) : BaseTest<Re
 		Assert.Same(serverSnake, payload.Materialize(serverSnake).SerializerOptions);
 	}
 }
+
+file record BusinessError(string Message);

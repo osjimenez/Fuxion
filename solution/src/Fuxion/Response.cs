@@ -17,11 +17,9 @@ static class ResponseConstants
 	public static readonly HashSet<string> ResponseExtensionsReservedKeys = new([nameof(Response<>.IsSuccess), PayloadPropertyName, ErrorPropertyName], StringComparer.OrdinalIgnoreCase);
 	public static readonly HashSet<string> ResponseMaybeExtensionsReservedKeys = new([.. ResponseExtensionsReservedKeys, nameof(ResponseMaybe<>.IsNone)], StringComparer.OrdinalIgnoreCase);
 
-	public static ExtensionsDictionary<IResponse> EnsureResponseReservedKeys(ExtensionsDictionary? extensions)
-		=> ExtensionsDictionary.EnsureReservedKeys<IResponse>(extensions, ResponseExtensionsReservedKeys);
-
-	public static ExtensionsDictionary<IResponse> EnsureResponseMaybeReservedKeys(ExtensionsDictionary? extensions)
-		=> ExtensionsDictionary.EnsureReservedKeys<IResponse>(extensions, ResponseMaybeExtensionsReservedKeys);
+	// Empty extensions are kept as null, so two values that differ only in how they were created are still equal.
+	public static ImmutableExtensions<IResponse>? Keep(HashSet<string> reservedKeys, ImmutableExtensions<IResponse>? extensions)
+		=> ImmutableExtensions<IResponse>.For(reservedKeys, extensions) is { Count: > 0 } kept ? kept : null;
 
 	public static InvalidOperationException ConversionNotAllowed(Type target, string state)
 		=> new($"Explicit conversion between this response and {target.GetSignature()} is not allowed because this response is {state}");
@@ -83,11 +81,15 @@ public readonly struct Response<TSuccess> : IResponse
 		_ => null
 	};
 
-	public ExtensionsDictionary<IResponse> Extensions
+	public ImmutableExtensions<IResponse> Extensions
 	{
-		get => field ?? [with(ResponseConstants.ResponseExtensionsReservedKeys)];
-		init => field = ResponseConstants.EnsureResponseReservedKeys(value);
+		get => field ?? ImmutableExtensions<IResponse>.Empty(ResponseConstants.ResponseExtensionsReservedKeys);
+		init => field = ResponseConstants.Keep(ResponseConstants.ResponseExtensionsReservedKeys, value);
 	}
+
+	public Response<TSuccess> WithExtension(string key, object? value) => this with { Extensions = Extensions.With(key, value) };
+
+	public Response<TSuccess> WithExtensions(IEnumerable<KeyValuePair<string, object?>> extensions) => this with { Extensions = Extensions.With(extensions) };
 
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	public bool TryGetValue([NotNullWhen(true)] out TSuccess? value)
@@ -199,11 +201,15 @@ public readonly struct Response<TSuccess, TError> : IResponse
 		_ => null
 	};
 
-	public ExtensionsDictionary<IResponse> Extensions
+	public ImmutableExtensions<IResponse> Extensions
 	{
-		get => field ?? [with(ResponseConstants.ResponseExtensionsReservedKeys)];
-		init => field = ResponseConstants.EnsureResponseReservedKeys(value);
+		get => field ?? ImmutableExtensions<IResponse>.Empty(ResponseConstants.ResponseExtensionsReservedKeys);
+		init => field = ResponseConstants.Keep(ResponseConstants.ResponseExtensionsReservedKeys, value);
 	}
+
+	public Response<TSuccess, TError> WithExtension(string key, object? value) => this with { Extensions = Extensions.With(key, value) };
+
+	public Response<TSuccess, TError> WithExtensions(IEnumerable<KeyValuePair<string, object?>> extensions) => this with { Extensions = Extensions.With(extensions) };
 
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	public bool TryGetValue([NotNullWhen(true)] out TSuccess? value)
@@ -312,11 +318,15 @@ public readonly struct ResponseMaybe<TSuccess> : IResponseMaybe
 		_ => null
 	};
 
-	public ExtensionsDictionary<IResponse> Extensions
+	public ImmutableExtensions<IResponse> Extensions
 	{
-		get => field ?? [with(ResponseConstants.ResponseMaybeExtensionsReservedKeys)];
-		init => field = ResponseConstants.EnsureResponseMaybeReservedKeys(value);
+		get => field ?? ImmutableExtensions<IResponse>.Empty(ResponseConstants.ResponseMaybeExtensionsReservedKeys);
+		init => field = ResponseConstants.Keep(ResponseConstants.ResponseMaybeExtensionsReservedKeys, value);
 	}
+
+	public ResponseMaybe<TSuccess> WithExtension(string key, object? value) => this with { Extensions = Extensions.With(key, value) };
+
+	public ResponseMaybe<TSuccess> WithExtensions(IEnumerable<KeyValuePair<string, object?>> extensions) => this with { Extensions = Extensions.With(extensions) };
 
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	public bool TryGetValue([NotNullWhen(true)] out TSuccess? value)
@@ -463,11 +473,15 @@ public readonly struct ResponseMaybe<TSuccess, TError> : IResponseMaybe
 		_ => null
 	};
 
-	public ExtensionsDictionary<IResponse> Extensions
+	public ImmutableExtensions<IResponse> Extensions
 	{
-		get => field ?? [with(ResponseConstants.ResponseMaybeExtensionsReservedKeys)];
-		init => field = ResponseConstants.EnsureResponseMaybeReservedKeys(value);
+		get => field ?? ImmutableExtensions<IResponse>.Empty(ResponseConstants.ResponseMaybeExtensionsReservedKeys);
+		init => field = ResponseConstants.Keep(ResponseConstants.ResponseMaybeExtensionsReservedKeys, value);
 	}
+
+	public ResponseMaybe<TSuccess, TError> WithExtension(string key, object? value) => this with { Extensions = Extensions.With(key, value) };
+
+	public ResponseMaybe<TSuccess, TError> WithExtensions(IEnumerable<KeyValuePair<string, object?>> extensions) => this with { Extensions = Extensions.With(extensions) };
 
 	[EditorBrowsable(EditorBrowsableState.Never)]
 	public bool TryGetValue([NotNullWhen(true)] out TSuccess? value)

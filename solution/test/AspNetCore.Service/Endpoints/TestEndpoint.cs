@@ -42,6 +42,9 @@ public class TestEndpoint : IEndpoint
 			return TestPayload.Default;
 		});
 
+		// Extensions on a bare payload: they are dropped on the wire and the adapter logs a warning.
+		responseGroup.MapGet("payload-extended", Response<TestPayload> () => new Response<TestPayload>(TestPayload.Default).WithExtension("trace", "abc"));
+
 		// Per-endpoint override: forces the full envelope on this single route, leaving the rest of the group untouched.
 		responseGroup.MapGet("payload-enveloped", Response<TestPayload> () => TestPayload.Default).UseResponses(meta => meta.SerializeFullResponses = true);
 
@@ -258,12 +261,15 @@ public class TestEndpoint : IEndpoint
 
 		// A binary payload is a bare file body: its own media type, Content-Disposition, ranges. Never the envelope.
 		var binaryGroup = minimalGroup.MapGroup("binary");
-		binaryGroup.MapGet("file", Response<FileContent> () => TestFile.Create());
+		binaryGroup.MapGet("file", Response<IOContent> () => TestFile.Create());
 		binaryGroup.MapGet("stream", Response<Stream> () => new MemoryStream(TestFile.Bytes, writable: false));
 		binaryGroup.MapGet("bytes", Response<byte[]> () => TestFile.Bytes);
-		binaryGroup.MapGet("none", ResponseMaybe<FileContent> () => None.Value);
-		binaryGroup.MapGet("error", Response<FileContent> () => Error.NotFound("missing"));
+		binaryGroup.MapGet("none", ResponseMaybe<IOContent> () => None.Value);
+		binaryGroup.MapGet("error", Response<IOContent> () => Error.NotFound("missing"));
 		binaryGroup.MapGet("chunked", Response<Stream> () => new NonSeekableStream(TestFile.Bytes));
+		// A non-seekable stream whose length is known, and a remote-like source that opens ranges by itself.
+		binaryGroup.MapGet("sized-stream", Response<IOContent> () => new IOContent(new NonSeekableStream(TestFile.Bytes)) { Length = TestFile.Bytes.Length });
+		binaryGroup.MapGet("range-source", Response<IOContent> () => RangeSource.Content());
 
 		#endregion
 

@@ -17,6 +17,8 @@ public static class Routes
 	public const string BinaryNone = "binary/none";
 	public const string BinaryError = "binary/error";
 	public const string BinaryChunked = "binary/chunked";
+	public const string BinarySizedStream = "binary/sized-stream";
+	public const string BinaryRangeSource = "binary/range-source";
 
 	public const string NamingEcho = "naming/echo";
 	public const string NamingMalformed = "naming/malformed";

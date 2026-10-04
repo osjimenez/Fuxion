@@ -4,11 +4,11 @@ using System.Reflection;
 
 namespace Test.Responses.Shared;
 
-// Each adapter carries its own ResponseOptionsAttribute (core has no dependency on HTTP metadata), so the two copies
+// Each adapter carries its own ResponsesAttribute (core has no dependency on HTTP metadata), so the two copies
 // can only drift silently. Both hosts compare their attribute against this one public surface: a member added to
 // only one of them fails that host's test. The two types cannot be compared directly, because Fuxion.AspNet is
 // net472 only and never loads in the same process as Fuxion.AspNetCore.
-public static class ResponseOptionsAttributeShape
+public static class ResponsesAttributeShape
 {
 	public static readonly string[] Expected =
 	[

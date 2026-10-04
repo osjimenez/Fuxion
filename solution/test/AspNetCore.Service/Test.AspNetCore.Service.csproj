@@ -2,6 +2,8 @@
 
 	<PropertyGroup>
 		<TargetFramework>$(LatestCoreFramework)</TargetFramework>
+		<!-- The service hosted by Test.AspNetCore, not a test project: keeps the test framework out (Project.Test.props). -->
+		<IsTestProject>false</IsTestProject>
 	</PropertyGroup>
 
 	<ItemGroup>

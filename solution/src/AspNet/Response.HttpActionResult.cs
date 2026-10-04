@@ -26,11 +26,11 @@ public static class ResponseHttpActionResultExtensions
 /// </summary>
 sealed class WireHttpActionResult(HttpRequestMessage request, IResponse response, ResponseOptions? explicitOptions) : IHttpActionResult
 {
-	public Task<HttpResponseMessage> ExecuteAsync(CancellationToken cancellationToken)
+	public async Task<HttpResponseMessage> ExecuteAsync(CancellationToken cancellationToken)
 	{
 		var options = explicitOptions ?? ResponseOptionsResolver.ResolveEffective(request);
 		var mapping = ResponseWireMapper.Map(response, options);
-		return Task.FromResult(ResponseHttpWriter.Write(request, mapping, ResponseOptionsResolver.ResolveJsonOptions(request)));
+		return await ResponseHttpWriter.WriteAsync(request, mapping, ResponseOptionsResolver.ResolveJsonOptions(request), cancellationToken);
 	}
 }
 

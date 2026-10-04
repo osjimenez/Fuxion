@@ -12,7 +12,7 @@ namespace Fuxion.AspNet;
 /// </summary>
 sealed class ResponseActionFilter : ActionFilterAttribute
 {
-	public override void OnActionExecuted(HttpActionExecutedContext context)
+	public override async Task OnActionExecutedAsync(HttpActionExecutedContext context, CancellationToken cancellationToken)
 	{
 		if (context.Exception is not null || context.Response is null) return;
 		// ReflectedHttpActionDescriptor.ReturnType is null for void and non-generic Task actions: there is
@@ -27,7 +27,7 @@ sealed class ResponseActionFilter : ActionFilterAttribute
 
 		// Build the replacement before disposing the original: Materialize/Write can still read from
 		// the extracted value, and the original's ObjectContent must not be dropped without disposal.
-		var replacement = ResponseHttpWriter.Write(request, mapping, ResponseOptionsResolver.ResolveJsonOptions(request));
+		var replacement = await ResponseHttpWriter.WriteAsync(request, mapping, ResponseOptionsResolver.ResolveJsonOptions(request), cancellationToken);
 		original.Dispose();
 		context.Response = replacement;
 	}

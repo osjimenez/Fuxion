@@ -17,6 +17,8 @@ public class ResponseTestController : ControllerBase
 	[HttpGet("none")] public ResponseMaybe<Unit> NoneValue() => None.Value;
 	[HttpGet("string")] public Response<string> String() => "test";
 	[HttpGet("payload")] public Response<TestPayload> Payload() => TestPayload.Default;
+	// Extensions on a bare payload: they are dropped on the wire and the adapter logs a warning.
+	[HttpGet("payload-extended")] public Response<TestPayload> PayloadExtended() => new Response<TestPayload>(TestPayload.Default).WithExtension("trace", "abc");
 	// A multi-word payload under bare application/json: proves a requested naming policy is never
 	// stamped on an un-announced shape (see Fuxion.ResponseWireMapper.TryMap).
 	[HttpGet("naming-payload")] public Response<TestNamingPayload> NamingPayload() => new TestNamingPayload("Ada", 36);
@@ -140,29 +142,33 @@ public class NamingTestController : ControllerBase
 public class BinaryTestController : ControllerBase
 {
 	[HttpGet("file")]
-	public Response<FileContent> GetFile() => TestFile.Create();
+	public Response<IOContent> GetFile() => TestFile.Create();
 	[HttpGet("stream")]
 	public Response<Stream> GetStream() => new MemoryStream(TestFile.Bytes, writable: false);
 	[HttpGet("bytes")]
 	public Response<byte[]> Bytes() => TestFile.Bytes;
 	[HttpGet("none")]
-	public ResponseMaybe<FileContent> GetNone() => None.Value;
+	public ResponseMaybe<IOContent> GetNone() => None.Value;
 	[HttpGet("error")]
-	public Response<FileContent> GetError() => Error.NotFound("missing");
+	public Response<IOContent> GetError() => Error.NotFound("missing");
 	[HttpGet("chunked")]
 	public Response<Stream> Chunked() => new NonSeekableStream(TestFile.Bytes);
+	[HttpGet("sized-stream")]
+	public Response<IOContent> SizedStream() => new IOContent(new NonSeekableStream(TestFile.Bytes)) { Length = TestFile.Bytes.Length };
+	[HttpGet("range-source")]
+	public Response<IOContent> FromRangeSource() => RangeSource.Content();
 }
 
-// Proves the ResponseOptionsAttribute cascade (global -> controller -> action) still works after the
+// Proves the ResponsesAttribute cascade (global -> controller -> action) still works after the
 // bool? -> bool+has-value-flag rework required by CS0655 (Nullable<T> is not a legal attribute parameter type).
 [ApiController]
 [Route("attribute-test")]
-[ResponseOptions(SerializeFullResponses = true)]
+[Responses(SerializeFullResponses = true)]
 public class AttributeTestController : ControllerBase
 {
 	[HttpGet("payload")]
 	public Response<TestPayload> Payload() => TestPayload.Default;
 
-	[HttpGet("payload-bare"), ResponseOptions(SerializeFullResponses = false)]
+	[HttpGet("payload-bare"), Responses(SerializeFullResponses = false)]
 	public Response<TestPayload> PayloadBare() => TestPayload.Default;
 }

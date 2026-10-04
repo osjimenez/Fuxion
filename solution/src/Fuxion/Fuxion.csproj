@@ -41,6 +41,9 @@
 		<Compile Update="SemanticVersion.IdentifierCollection.cs">
 			<DependentUpon>SemanticVersion.cs</DependentUpon>
 		</Compile>
+		<Compile Update="ImmutableExtensions.cs">
+			<DependentUpon>ExtensionsDictionary.cs</DependentUpon>
+		</Compile>
 		<Compile Update="Response.Accept.cs">
 			<DependentUpon>Response.cs</DependentUpon>
 		</Compile>
@@ -50,7 +53,10 @@
 		<Compile Update="Response.Exceptions.cs">
 			<DependentUpon>Response.cs</DependentUpon>
 		</Compile>
-		<Compile Update="Response.FileContent.cs">
+		<Compile Update="Response.IOContent.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.IOContent.Sources.cs">
 			<DependentUpon>Response.cs</DependentUpon>
 		</Compile>
 		<Compile Update="Response.INT.cs">

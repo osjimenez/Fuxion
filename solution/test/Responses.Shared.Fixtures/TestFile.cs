@@ -19,8 +19,8 @@ public static class TestFile
 	/// <summary>The file's ETag.</summary>
 	public const string ETag = "\"v1\"";
 
-	/// <summary>Builds a <see cref="FileContent"/> for <see cref="Bytes"/> with range processing enabled.</summary>
-	public static FileContent Create() => new(new MemoryStream(Bytes, writable: false), ContentType, Name)
+	/// <summary>Builds a <see cref="IOContent"/> for <see cref="Bytes"/> with range processing enabled.</summary>
+	public static IOContent Create() => new(new MemoryStream(Bytes, writable: false), ContentType, Name)
 	{
 		LastModified = LastModified,
 		ETag = ETag,

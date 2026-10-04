@@ -23,7 +23,7 @@ public static class FuxionJsonTypes
 	/// Whether <paramref name="type"/> is a Fuxion union type (<see cref="Error"/>, <see cref="None"/>,
 	/// <see cref="Unit"/>, <see cref="Response{TSuccess}"/>, <see cref="Response{TSuccess, TError}"/>,
 	/// <see cref="ResponseMaybe{TSuccess}"/>, <see cref="ResponseMaybe{TSuccess, TError}"/>,
-	/// <see cref="Undefinable{TValue}"/>, <see cref="FileContent"/>) or reaches one through its public
+	/// <see cref="Undefinable{TValue}"/>, <see cref="IOContent"/>) or reaches one through its public
 	/// property graph (recursively; through arrays, <see cref="IEnumerable{T}"/>, <see cref="Nullable{T}"/>
 	/// and the generic arguments of a dictionary).
 	/// </summary>
@@ -59,7 +59,7 @@ public static class FuxionJsonTypes
 
 	static bool IsFuxionType(Type type)
 	{
-		if (type == typeof(Error) || type == typeof(None) || type == typeof(Unit) || type == typeof(FileContent)) return true;
+		if (type == typeof(Error) || type == typeof(None) || type == typeof(Unit) || type == typeof(IOContent)) return true;
 		if (!type.IsGenericType) return false;
 		var definition = type.GetGenericTypeDefinition();
 		return definition == typeof(Response<>) || definition == typeof(Response<,>)

@@ -41,7 +41,7 @@ public static class ResponseBuilderExtensions
 
 	/// <summary>
 	/// Same as the parameterless <see cref="UseResponses{TBuilder}(TBuilder)"/>, but also attaches a
-	/// <see cref="ResponseOptionsAttribute"/> built by <paramref name="configure"/>, overriding the response
+	/// <see cref="ResponsesAttribute"/> built by <paramref name="configure"/>, overriding the response
 	/// options (scope + error shape) for every endpoint reached through this builder.
 	/// </summary>
 	/// <param name="builder">The endpoint convention builder (a route group, a mapped endpoint...) to enable the wire contract on.</param>
@@ -52,10 +52,10 @@ public static class ResponseBuilderExtensions
 	/// per-request naming support from <see cref="RequestNamingInputFormatter"/>, registered independently by
 	/// <c>AddResponses</c>. Only minimal-API endpoints have their <c>RequestDelegate</c> wrapped by this call.
 	/// </remarks>
-	public static TBuilder UseResponses<TBuilder>(this TBuilder builder, Action<ResponseOptionsAttribute> configure)
+	public static TBuilder UseResponses<TBuilder>(this TBuilder builder, Action<ResponsesAttribute> configure)
 		where TBuilder : IEndpointConventionBuilder
 	{
-		var meta = new ResponseOptionsAttribute();
+		var meta = new ResponsesAttribute();
 		configure?.Invoke(meta);
 		builder.WithMetadata(meta);
 		builder.AddEndpointFilterFactory(ResponseEndpointFilterFactory.Create);

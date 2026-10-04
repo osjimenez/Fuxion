@@ -28,6 +28,8 @@ public class ExtensionsDictionary : IDictionary<string, object?>
 	}
 
 	protected readonly Dictionary<string, object?> dic;
+
+	internal IEqualityComparer<string> Comparer => dic.Comparer;
 	private HashSet<string> reservedKeys = [];
 
 	internal HashSet<string> ReservedKeys

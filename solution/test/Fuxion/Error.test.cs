@@ -380,20 +380,44 @@ public class ErrorTest(ITestOutputHelper output) : BaseTest<ErrorTest>(output)
 		foreach (var key in ErrorConstants.ErrorExtensionsReservedKeys)
 			Throws<ReservedKeyExtensionException>(() => new Error()
 			{
-				Extensions = new()
+				Extensions = new ExtensionsDictionary()
 				{
 					[key] = "reserved"
 				}
 			});
 	}
 	[Fact(DisplayName = "A reserved key cannot be added as an error extension afterwards")]
-	public void Extensions_ReservedKeys_ThrowOnAdd()
+	public void Extensions_ReservedKeys_ThrowOnWith()
 	{
 		foreach (var key in ErrorConstants.ErrorExtensionsReservedKeys)
 		{
 			var error = new Error();
-			Throws<ReservedKeyExtensionException>(() => error.Extensions.Add(key, "reserved"));
+			Throws<ReservedKeyExtensionException>(() => error.WithExtension(key, "reserved"));
+			Throws<ReservedKeyExtensionException>(() => error.WithExtensions([new(key, "reserved")]));
 		}
+	}
+
+	[Fact(DisplayName = "WithExtension returns a new error with the extension and leaves the original untouched")]
+	public void WithExtension_ReturnsANewError()
+	{
+		var original = Error.NotFound("missing");
+		var extended = original.WithExtension("a", 1).WithExtensions([new("b", 2)]);
+
+		Assert.Empty(original.Extensions);
+		Assert.Equal(2, extended.Extensions.Count);
+		Assert.Equal("missing", extended.Message);
+	}
+
+	[Fact(DisplayName = "Two errors with the same extensions are equal, however the extensions were given")]
+	public void Equality_ComparesExtensionsByContent()
+	{
+		// Built by hand: the factories record the calling line as Source, which would make any two errors differ.
+		var built = new Error { Message = "missing", Extensions = new ExtensionsDictionary { ["a"] = 1 } };
+		var added = new Error { Message = "missing" }.WithExtension("a", 1);
+
+		IsTrue(built == added);
+		IsTrue(new Error { Message = "missing" } == new Error { Message = "missing", Extensions = new ExtensionsDictionary() });
+		IsFalse(built == new Error { Message = "missing" }.WithExtension("a", 2));
 	}
 
 	#endregion
@@ -473,6 +497,49 @@ public class ErrorTest(ITestOutputHelper output) : BaseTest<ErrorTest>(output)
 	}
 
 	#endregion
+	#region HTTP vocabulary predicates
+
+	static readonly string[] HttpKinds = ["NotFound", "Forbidden", "Unauthorized", "BadRequest", "Conflict", "InternalServerError", "NotImplemented", "ServiceUnavailable", "RequestTimeout"];
+
+	public static TheoryData<string> HttpKindData() => new(HttpKinds);
+
+	static Error Make(string kind) => kind switch
+	{
+		"NotFound" => Error.NotFound(),
+		"Forbidden" => Error.Forbidden(),
+		"Unauthorized" => Error.Unauthorized(),
+		"BadRequest" => Error.BadRequest(),
+		"Conflict" => Error.Conflict(),
+		"InternalServerError" => Error.InternalServerError(),
+		"NotImplemented" => Error.NotImplemented(),
+		"ServiceUnavailable" => Error.ServiceUnavailable(),
+		_ => Error.RequestTimeout(),
+	};
+
+	static bool Is(Error error, string kind) => kind switch
+	{
+		"NotFound" => error.IsNotFound,
+		"Forbidden" => error.IsForbidden,
+		"Unauthorized" => error.IsUnauthorized,
+		"BadRequest" => error.IsBadRequest,
+		"Conflict" => error.IsConflict,
+		"InternalServerError" => error.IsInternalServerError,
+		"NotImplemented" => error.IsNotImplemented,
+		"ServiceUnavailable" => error.IsServiceUnavailable,
+		_ => error.IsRequestTimeout,
+	};
+
+	[Theory(DisplayName = "Each HTTP factory is recognized by its own predicate and by no other")]
+	[MemberData(nameof(HttpKindData))]
+	public void HttpPredicates_MatchTheirFactory(string kind)
+	{
+		var error = Make(kind);
+		foreach (var other in HttpKinds)
+			Assert.Equal(other == kind, Is(error, other));
+	}
+
+	#endregion
+
 }
 file record CustomInfo(string Message, int Code)
 {

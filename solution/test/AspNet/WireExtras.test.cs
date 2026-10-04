@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using System.Web.Http;
+using System.Web.Http.Tracing;
 using Fuxion;
 using Fuxion.AspNet;
 using Fuxion.Xunit;
@@ -79,5 +81,35 @@ public class WebApi2WireExtrasTest(ITestOutputHelper output) : BaseTest<WebApi2W
 		using var config = new HttpConfiguration();
 		config.UseResponses();
 		Assert.Throws<InvalidOperationException>(() => config.UseResponses());
+	}
+
+	[Fact(DisplayName = "Extensions dropped by a response written without the envelope are traced as a warning")]
+	public async Task DroppedExtensions_TraceAWarning()
+	{
+		var traces = new CapturingTraceWriter();
+		var cli = AspNetHost.Create(traceWriter: traces);
+
+		await cli.GetAsync("response/payload");
+		Assert.DoesNotContain(traces.Records, r => r.Category == "Fuxion.Responses");
+
+		var res = await cli.GetAsync("response/payload-extended");
+
+		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+		Assert.Equal("application/json", res.Content.Headers.ContentType?.MediaType);
+		var warning = Assert.Single(traces.Records, r => r.Category == "Fuxion.Responses");
+		Assert.Equal(TraceLevel.Warn, warning.Level);
+		Assert.Contains("trace", warning.Message);
+	}
+}
+
+file sealed class CapturingTraceWriter : ITraceWriter
+{
+	public ConcurrentQueue<TraceRecord> Records { get; } = new();
+
+	public void Trace(HttpRequestMessage request, string category, TraceLevel level, Action<TraceRecord> traceAction)
+	{
+		var record = new TraceRecord(request, category, level);
+		traceAction(record);
+		Records.Enqueue(record);
 	}
 }

@@ -21,8 +21,8 @@ static class ResponseOptionsResolver
 		var action = request.GetActionDescriptor();
 		if (action is not null)
 		{
-			layers.AddRange(action.ControllerDescriptor.GetCustomAttributes<ResponseOptionsAttribute>().Select(a => a.ToLayer()));
-			layers.AddRange(action.GetCustomAttributes<ResponseOptionsAttribute>().Select(a => a.ToLayer()));
+			layers.AddRange(action.ControllerDescriptor.GetCustomAttributes<ResponsesAttribute>().Select(a => a.ToLayer()));
+			layers.AddRange(action.GetCustomAttributes<ResponsesAttribute>().Select(a => a.ToLayer()));
 		}
 
 		return global.Merge(layers);

@@ -32,13 +32,13 @@ public class AspNetCoreBinaryExtrasTest(ITestOutputHelper output, WebApplication
 	{
 		var request = Get("minimal/binary/file");
 		request.Headers.TryAddWithoutValidation("If-None-Match", TestFile.ETag);
-		var response = await factory.CreateClient().SendAsync(request, HttpCompletionOption.ResponseHeadersRead).AsResponseAsync<FileContent>();
+		var response = await factory.CreateClient().SendAsync(request, HttpCompletionOption.ResponseHeadersRead).AsResponseAsync<IOContent>();
 		IsTrue(response.TryGetValue(out Error error));
 		Assert.Equal(HttpStatusCode.NotModified, error.Type);
 	}
 }
 
-// AsResponseAsync<FileContent> is covered for both prefixes by Test.Responses.Shared.ClientTests.Client_ReadsFile;
+// AsResponseAsync<IOContent> is covered for both prefixes by Test.Responses.Shared.ClientTests.Client_ReadsFile;
 // stream/byte[]/none/error through the client have no shared coverage yet, so they stay here.
 public class AspNetCoreBinaryClientTest(ITestOutputHelper output, WebApplicationFactory<Program> factory) : BaseTest<AspNetCoreBinaryClientTest>(output), IClassFixture<WebApplicationFactory<Program>>
 {
@@ -63,10 +63,10 @@ public class AspNetCoreBinaryClientTest(ITestOutputHelper output, WebApplication
 	[InlineData("controller")]
 	public async Task Client_NoneAndError(string prefix)
 	{
-		var none = await factory.CreateClient().GetAsync($"{prefix}/binary/none").AsResponseAsync<FileContent>();
+		var none = await factory.CreateClient().GetAsync($"{prefix}/binary/none").AsResponseAsync<IOContent>();
 		IsTrue(none.IsNone);
 
-		var error = await factory.CreateClient().GetAsync($"{prefix}/binary/error").AsResponseAsync<FileContent>();
+		var error = await factory.CreateClient().GetAsync($"{prefix}/binary/error").AsResponseAsync<IOContent>();
 		IsTrue(error.TryGetValue(out Error e));
 		Assert.Equal(HttpStatusCode.NotFound, e.Type);
 	}

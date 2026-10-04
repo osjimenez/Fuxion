@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -25,7 +26,7 @@ public enum ResponseWireShape
 	NativeError,
 	/// <summary>A typed business error written as its bare value (application/json).</summary>
 	RawError,
-	/// <summary>A binary payload (<see cref="FileContent"/>) written as a bare file body. Never enveloped.</summary>
+	/// <summary>A binary payload (<see cref="IOContent"/>) written as a bare file body. Never enveloped.</summary>
 	Binary
 }
 
@@ -63,6 +64,10 @@ public sealed record ResponseWireMapping(int StatusCode, ResponseWireShape Shape
 
 	public bool HasBody => Shape != ResponseWireShape.NoContent;
 
+	// The keys of the response extensions that this shape has no place for: they only travel inside the envelope. The
+	// adapters log a warning when it is not empty; the shape itself never changes because of it.
+	public IReadOnlyCollection<string> DroppedExtensions { get; init; } = [];
+
 	/// <summary>
 	/// Resolves the final content type (with the naming parameter for Fuxion types), the object to
 	/// serialize and the options to serialize it with, given the JSON options the adapter would
@@ -87,7 +92,7 @@ public sealed record ResponseWireMapping(int StatusCode, ResponseWireShape Shape
 			ResponseWireShape.Envelope => (ResponseNaming.WithNaming(ResponseMediaTypes.ResponseJson, policy), Value, effective),
 			ResponseWireShape.NativeError => (ResponseNaming.WithNaming(ResponseMediaTypes.ErrorJson, policy), Value, effective),
 			ResponseWireShape.ProblemError => BuildProblemResult(jsonOptions),
-			ResponseWireShape.Binary => (((FileContent)Value!).ContentType, Value, null),
+			ResponseWireShape.Binary => (((IOContent)Value!).ContentType, Value, null),
 			_ => throw new NotSupportedException($"Unknown wire shape '{Shape}'.")
 		};
 	}
@@ -133,6 +138,9 @@ public static class ResponseWireMapper
 		// the body was transcoded; stamping it there would make the client silently misread the body.
 		if (options.Naming is not null && IsAnnouncedShape(mapping.Shape))
 			mapping = mapping with { Naming = options.Naming };
+		// The response extensions only have a place inside the envelope (the error's own extensions travel in every error shape).
+		if (mapping.Shape != ResponseWireShape.Envelope && value is IResponse { Extensions.Count: > 0 } extended)
+			mapping = mapping with { DroppedExtensions = [.. extended.Extensions.Keys] };
 		return true;
 	}
 
@@ -251,13 +259,13 @@ public static class ResponseWireMapper
 			|| definition == typeof(ResponseMaybe<>) || definition == typeof(ResponseMaybe<,>);
 	}
 
-	static bool TryWrapBinary(object? value, out FileContent file)
+	static bool TryWrapBinary(object? value, out IOContent file)
 	{
 		switch (value)
 		{
-			case FileContent content: file = content; return true;
-			case System.IO.Stream stream: file = new FileContent(stream); return true;
-			case byte[] bytes: file = FileContent.FromBytes(bytes); return true;
+			case IOContent content: file = content; return true;
+			case System.IO.Stream stream: file = new IOContent(stream); return true;
+			case byte[] bytes: file = IOContent.FromBytes(bytes); return true;
 			default: file = null!; return false;
 		}
 	}

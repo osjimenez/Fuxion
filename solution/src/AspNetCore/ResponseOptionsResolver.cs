@@ -21,7 +21,7 @@ static class ResponseOptionsResolver
 			return global;
 
 		// Inner scopes override outer ones and unset values are inherited.
-		return global.Merge(endpoint.Metadata.OfType<ResponseOptionsAttribute>().Select(l => l.ToLayer()));
+		return global.Merge(endpoint.Metadata.OfType<ResponsesAttribute>().Select(l => l.ToLayer()));
 	}
 
 	// The scope options plus what the client asked for in Accept.

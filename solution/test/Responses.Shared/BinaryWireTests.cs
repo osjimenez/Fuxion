@@ -109,4 +109,52 @@ public abstract class BinaryWireTests : WireTestBase<BinaryWireTests>
 		Assert.Null(res.Content.Headers.ContentRange);
 		Assert.Equal(TestFile.Bytes, await res.Content.ReadAsByteArrayAsync());
 	}
+
+	[Fact(DisplayName = "A non-seekable stream with a known length is sent with Content-Length")]
+	public async Task SizedStream_SendsContentLength()
+	{
+		// Headers only: a buffered read would compute Content-Length on the client and hide a missing header.
+		var res = await Host.CreateClient().GetAsync(Host.Route(Routes.BinarySizedStream), HttpCompletionOption.ResponseHeadersRead);
+		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+		Assert.Equal(TestFile.Bytes.Length, res.Content.Headers.ContentLength);
+		Assert.Equal(TestFile.Bytes, await res.Content.ReadAsByteArrayAsync());
+	}
+
+	[Fact(DisplayName = "A source that opens ranges is served in full with its length and announces ranges")]
+	public async Task RangeSource_Full()
+	{
+		var res = await Host.CreateClient().GetAsync(Host.Route(Routes.BinaryRangeSource), HttpCompletionOption.ResponseHeadersRead);
+		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+		Assert.Equal(TestFile.Bytes.Length, res.Content.Headers.ContentLength);
+		Assert.Contains("bytes", res.Headers.AcceptRanges);
+		Assert.Equal(TestFile.ETag, res.Headers.ETag?.Tag);
+		Assert.Equal(TestFile.Bytes, await res.Content.ReadAsByteArrayAsync());
+	}
+
+	[Fact(DisplayName = "A range of a source that opens ranges is a 206 with just those bytes, opened from the source")]
+	public async Task RangeSource_Range()
+	{
+		var res = await Host.CreateClient().SendAsync(Get(Host.Route(Routes.BinaryRangeSource), range: "bytes=2-5"), HttpCompletionOption.ResponseHeadersRead);
+		Assert.Equal(HttpStatusCode.PartialContent, res.StatusCode);
+		Assert.Equal(2, res.Content.Headers.ContentRange?.From);
+		Assert.Equal(5, res.Content.Headers.ContentRange?.To);
+		Assert.Equal(TestFile.Bytes.Length, res.Content.Headers.ContentRange?.Length);
+		Assert.Equal(4, res.Content.Headers.ContentLength);
+		Assert.Equal(TestFile.Bytes.Skip(2).Take(4).ToArray(), await res.Content.ReadAsByteArrayAsync());
+	}
+
+	[Fact(DisplayName = "An out-of-bounds range of a source that opens ranges is a 416")]
+	public async Task RangeSource_OutOfBounds_Is416()
+	{
+		var res = await Host.CreateClient().SendAsync(Get(Host.Route(Routes.BinaryRangeSource), range: "bytes=999-1000"));
+		Assert.Equal(HttpStatusCode.RequestedRangeNotSatisfiable, res.StatusCode);
+	}
+
+	[Fact(DisplayName = "Several ranges of a source that opens ranges are served as the whole content")]
+	public async Task RangeSource_SeveralRanges_AreTheWholeContent()
+	{
+		var res = await Host.CreateClient().SendAsync(Get(Host.Route(Routes.BinaryRangeSource), range: "bytes=0-1,4-5"));
+		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+		Assert.Equal(TestFile.Bytes, await res.Content.ReadAsByteArrayAsync());
+	}
 }

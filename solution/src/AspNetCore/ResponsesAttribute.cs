@@ -17,9 +17,9 @@ namespace Fuxion.AspNetCore;
 /// a shadow "has a value" flag set whenever the setter runs; only <see cref="ToLayer"/> exposes the
 /// nullable view used for merging.
 /// </remarks>
-// Keep in sync with Fuxion.AspNet.ResponseOptionsAttribute: ResponseOptionsAttributeShape (Test.Responses.Shared) pins both.
+// Keep in sync with Fuxion.AspNet.ResponsesAttribute: ResponsesAttributeShape (Test.Responses.Shared) pins both.
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
-public sealed class ResponseOptionsAttribute : Attribute
+public sealed class ResponsesAttribute : Attribute
 {
 	bool serializeFullResponses;
 	bool hasSerializeFullResponses;

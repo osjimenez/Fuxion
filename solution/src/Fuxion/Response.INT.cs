@@ -8,7 +8,7 @@ public interface IResponse : IUnion
 {
 	bool IsSuccess { get; }
 	bool IsError { get; }
-	ExtensionsDictionary<IResponse> Extensions { get; }
+	ImmutableExtensions<IResponse> Extensions { get; }
 }
 public interface IResponseMaybe : IResponse
 {

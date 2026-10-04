@@ -126,15 +126,7 @@ public static class DataAnnotationsExtensions
 		/// </example>
 		public Undefinable<List<ValidationResult>> ValidationResults
 		{
-			get
-				=> me.TryGetValue(ValidationResultsKey, out var val)
-					? val switch
-					{
-						Undefinable<List<ValidationResult>> und => und,
-						List<ValidationResult> res => res,
-						_ => Undefinable<List<ValidationResult>>.Undefined
-					}
-					: Undefinable<List<ValidationResult>>.Undefined;
+			get => ReadValidationResults(me.TryGetValue(ValidationResultsKey, out var val), val);
 			set
 			{
 				if (value.IsUndefined)
@@ -144,6 +136,24 @@ public static class DataAnnotationsExtensions
 			}
 		}
 	}
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+	// Read-only view for the extensions of a response or an error; the ExtensionsDictionary one above also sets them.
+	extension(ImmutableExtensions me)
+	{
+		public Undefinable<List<ValidationResult>> ValidationResults => ReadValidationResults(me.TryGetValue(ValidationResultsKey, out var val), val);
+	}
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+
+	static Undefinable<List<ValidationResult>> ReadValidationResults(bool found, object? value)
+		=> found
+			? value switch
+			{
+				Undefinable<List<ValidationResult>> und => und,
+				List<ValidationResult> res => res,
+				_ => Undefinable<List<ValidationResult>>.Undefined
+			}
+			: Undefinable<List<ValidationResult>>.Undefined;
 
 	extension<T>(ValidationExtensions<T?> me)
 	{

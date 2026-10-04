@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json.Nodes;
@@ -5,9 +7,11 @@ using System.Threading.Tasks;
 using Fuxion;
 using Fuxion.Net.Http;
 using Fuxion.Xunit;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Test.AspNetCore.Service;
 using Test.Responses.Shared.Fixtures;
 using Xunit;
@@ -83,5 +87,44 @@ public class AspNetCoreWireExtrasTest(ITestOutputHelper output, WebApplicationFa
 
 		IsTrue(response.TryGetValue(out TestBusinessError? error));
 		Assert.Equal(TestBusinessError.Default, error);
+	}
+
+	[Theory(DisplayName = "Extensions dropped by a response written without the envelope are reported as a warning")]
+	[InlineData("minimal")]
+	[InlineData("controller")]
+	public async Task DroppedExtensions_LogAWarning(string prefix)
+	{
+		var logs = new CapturingLoggerProvider();
+		var cli = factory.WithWebHostBuilder(b => b.ConfigureLogging(l => l.AddProvider(logs))).CreateClient();
+
+		await cli.GetAsync($"{prefix}/response/payload");
+		Assert.DoesNotContain(logs.Entries, e => e.Category == "Fuxion.AspNetCore.Responses");
+
+		var res = await cli.GetAsync($"{prefix}/response/payload-extended");
+
+		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+		Assert.Equal("application/json", res.Content.Headers.ContentType?.MediaType);
+		var warning = Assert.Single(logs.Entries, e => e.Category == "Fuxion.AspNetCore.Responses");
+		Assert.Equal(LogLevel.Warning, warning.Level);
+		Assert.Contains("trace", warning.Message);
+	}
+}
+
+file sealed class CapturingLoggerProvider : ILoggerProvider
+{
+	public ConcurrentQueue<(string Category, LogLevel Level, string Message)> Entries { get; } = new();
+
+	public ILogger CreateLogger(string categoryName) => new CapturingLogger(this, categoryName);
+
+	public void Dispose() { }
+
+	sealed class CapturingLogger(CapturingLoggerProvider owner, string category) : ILogger
+	{
+		public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+		public bool IsEnabled(LogLevel logLevel) => true;
+
+		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+			=> owner.Entries.Enqueue((category, logLevel, formatter(state, exception)));
 	}
 }

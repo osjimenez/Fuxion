@@ -62,15 +62,16 @@ public abstract class ClientTests : WireTestBase<ClientTests>
 	[Fact(DisplayName = "AsResponseAsync streams a file")]
 	public async Task Client_ReadsFile()
 	{
-		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.BinaryFile), HttpCompletionOption.ResponseHeadersRead).AsResponseAsync<FileContent>();
-		IsTrue(response.TryGetValue(out FileContent? file));
+		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.BinaryFile), HttpCompletionOption.ResponseHeadersRead).AsResponseAsync<IOContent>();
+		IsTrue(response.TryGetValue(out IOContent? file));
 		Assert.Equal(TestFile.ContentType, file!.ContentType);
 		Assert.Equal(TestFile.Name, file.FileName);
 		Assert.Equal(TestFile.Bytes.Length, file.Length);
 		Assert.Equal(TestFile.ETag, file.ETag);
 		Assert.Equal(TestFile.LastModified, file.LastModified);
 		using var memory = new MemoryStream();
-		await file.Stream.CopyToAsync(memory);
+		using var content = await file.OpenAsync();
+		await content.CopyToAsync(memory);
 		Assert.Equal(TestFile.Bytes, memory.ToArray());
 	}
 

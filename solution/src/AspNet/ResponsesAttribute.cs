@@ -11,9 +11,9 @@ namespace Fuxion.AspNet;
 // Nullable<T> is not a legal attribute parameter type (CS0655), so a tri-state "not set / true / false"
 // property cannot be typed as bool? here; each value is tracked with a shadow "has a value" flag instead,
 // and only ToLayer() exposes the nullable semantics documented for a response options layer.
-// Keep in sync with Fuxion.AspNetCore.ResponseOptionsAttribute: ResponseOptionsAttributeShape (Test.Responses.Shared) pins both.
+// Keep in sync with Fuxion.AspNetCore.ResponsesAttribute: ResponsesAttributeShape (Test.Responses.Shared) pins both.
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
-public sealed class ResponseOptionsAttribute : Attribute
+public sealed class ResponsesAttribute : Attribute
 {
 	bool serializeFullResponses;
 	bool hasSerializeFullResponses;

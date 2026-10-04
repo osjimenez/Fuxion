@@ -61,19 +61,19 @@ public class ClientBinaryReadingTest(ITestOutputHelper output) : BaseTest<Client
 		Assert.Equal(10, body.BytesRead);
 	}
 
-	[Fact(DisplayName = "FileContent is rebuilt from the standard headers")]
-	public async Task FileContent_FromHeaders()
+	[Fact(DisplayName = "IOContent is rebuilt from the standard headers")]
+	public async Task IOContent_FromHeaders()
 	{
 		var (message, _) = Binary();
 
-		var response = await message.AsResponseAsync<FileContent>();
+		var response = await message.AsResponseAsync<IOContent>();
 
-		IsTrue(response.TryGetValue(out FileContent? file));
+		IsTrue(response.TryGetValue(out IOContent? file));
 		Assert.Equal("application/pdf", file!.ContentType);
 		Assert.Equal("a.pdf", file.FileName);
 		Assert.Equal(10, file.Length);
 		Assert.Equal("\"v1\"", file.ETag);
-		using var reader = new StreamReader(file.Stream);
+		using var reader = new StreamReader(await file.OpenAsync());
 		Assert.Equal("0123456789", await reader.ReadToEndAsync());
 	}
 
@@ -116,9 +116,9 @@ public class ClientBinaryReadingTest(ITestOutputHelper output) : BaseTest<Client
 		var message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(body) };
 		message.Content.Headers.ContentType = null;
 
-		var response = await message.AsResponseAsync<FileContent>();
+		var response = await message.AsResponseAsync<IOContent>();
 
-		IsTrue(response.TryGetValue(out FileContent? file));
+		IsTrue(response.TryGetValue(out IOContent? file));
 		Assert.Equal(BinaryPayload.DefaultContentType, file!.ContentType);
 	}
 
@@ -130,7 +130,7 @@ public class ClientBinaryReadingTest(ITestOutputHelper output) : BaseTest<Client
 			Content = new StringContent("""{"title":"Not Found","status":404,"detail":"missing"}""", Encoding.UTF8, ResponseMediaTypes.ProblemJson)
 		};
 
-		var response = await message.AsResponseAsync<FileContent>();
+		var response = await message.AsResponseAsync<IOContent>();
 
 		IsTrue(response.TryGetValue(out Error error));
 		Assert.Equal(HttpStatusCode.NotFound, error.Type);

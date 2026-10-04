@@ -21,8 +21,9 @@ static class ErrorConstants
 		nameof(Error.Source)],
 		StringComparer.OrdinalIgnoreCase);
 
-	public static ExtensionsDictionary<Error> EnsureErrorReservedKeys(ExtensionsDictionary? extensions = null)
-		=> ExtensionsDictionary.EnsureReservedKeys<Error>(extensions, ErrorExtensionsReservedKeys);
+	// Empty extensions are kept as null, so two errors that differ only in how they were created are still equal.
+	public static ImmutableExtensions<Error>? Keep(IEnumerable<KeyValuePair<string, object?>>? extensions)
+		=> ImmutableExtensions<Error>.For(ErrorExtensionsReservedKeys, extensions) is { Count: > 0 } kept ? kept : null;
 }
 
 [JsonConverter(typeof(ErrorJsonConverter))]
@@ -42,7 +43,7 @@ public readonly record struct Error
 		Payload = payload;
 		Exception = exception;
 		InnerErrors = innerErrors is null || innerErrors.Length == 0 ? null : innerErrors;
-		Extensions = ErrorConstants.EnsureErrorReservedKeys(extensions);
+		Extensions = ImmutableExtensions<Error>.For(ErrorConstants.ErrorExtensionsReservedKeys, extensions);
 		Source = source;
 	}
 
@@ -56,11 +57,15 @@ public readonly record struct Error
 
 	public Error[]? InnerErrors { get; init; }
 
-	public ExtensionsDictionary<Error> Extensions
+	public ImmutableExtensions<Error> Extensions
 	{
-		get => field ?? [with(ErrorConstants.ErrorExtensionsReservedKeys)];
-		init => field = ErrorConstants.EnsureErrorReservedKeys(value);
+		get => field ?? ImmutableExtensions<Error>.Empty(ErrorConstants.ErrorExtensionsReservedKeys);
+		init => field = ErrorConstants.Keep(value);
 	}
+
+	public Error WithExtension(string key, object? value) => this with { Extensions = Extensions.With(key, value) };
+
+	public Error WithExtensions(IEnumerable<KeyValuePair<string, object?>> extensions) => this with { Extensions = Extensions.With(extensions) };
 
 	public ErrorSource? Source { get; init; }
 

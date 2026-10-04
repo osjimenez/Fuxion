@@ -332,7 +332,7 @@ file static class ResponseEnvelopeJson
 		return true;
 	}
 
-	public static void WriteResponseObject(Utf8JsonWriter writer, ResponseJsonPropertyNames propertyNames, bool isSuccess, bool? isNone, ExtensionsDictionary extensions, JsonSerializerOptions options, Action writeSuccess, Action writeError)
+	public static void WriteResponseObject(Utf8JsonWriter writer, ResponseJsonPropertyNames propertyNames, bool isSuccess, bool? isNone, IEnumerable<KeyValuePair<string, object?>> extensions, JsonSerializerOptions options, Action writeSuccess, Action writeError)
 	{
 		writer.WriteStartObject();
 		writer.WriteBoolean(propertyNames.IsSuccess, isSuccess);
@@ -380,7 +380,7 @@ file static class ResponseEnvelopeJson
 		return extensions;
 	}
 
-	public static void WriteExtensionData(Utf8JsonWriter writer, ExtensionsDictionary extensions, JsonSerializerOptions options)
+	public static void WriteExtensionData(Utf8JsonWriter writer, IEnumerable<KeyValuePair<string, object?>> extensions, JsonSerializerOptions options)
 	{
 		foreach (var extension in extensions)
 		{
