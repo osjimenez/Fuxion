@@ -1,12 +1,11 @@
 using Fuxion.Net.Http;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Fuxion.Http;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 
 /// <summary>
 /// An <see cref="HttpClient"/> wrapper that asks for the response shape it prefers and reads Fuxion

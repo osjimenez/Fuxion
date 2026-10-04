@@ -1,5 +1,3 @@
-namespace Fuxion.AspNetCore;
-
 using System;
 using System.IO;
 using System.Linq;
@@ -8,10 +6,14 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Metadata;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
+using Fuxion.Text.Json;
 using HttpJsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
+
+namespace Fuxion.AspNetCore;
 
 /// <summary>
 /// Minimal APIs compile the body binder once per endpoint (RequestDelegateFactory bakes the JsonTypeInfo in), so a
@@ -23,11 +25,11 @@ static class RequestNamingEndpoint
 {
 	public static void Apply(EndpointBuilder builder)
 	{
-		// MVC controller actions already have their own per-request naming support (ResponseNamingInputFormatter,
+		// MVC controller actions already have their own per-request naming support (RequestNamingInputFormatter,
 		// registered via AddResponses()); wrapping their RequestDelegate here too would transcode the body twice.
 		// This lets app.MapControllers().UseResponses() apply the response-side wire contract (envelope, Accept)
 		// to controllers without double-transcoding request bodies.
-		if (builder.Metadata.OfType<Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor>().Any()) return;
+		if (builder.Metadata.OfType<ControllerActionDescriptor>().Any()) return;
 
 		// UseResponses() can be called at more than one nesting level for the same endpoint (a root group and
 		// one of its nested groups both calling it), and Finally runs once per call. The marker makes wrapping
@@ -49,37 +51,14 @@ static class RequestNamingEndpoint
 	// Returns false when a response was already written (400/413).
 	static async Task<bool> TryPrepareBodyAsync(HttpContext context, Type bodyType)
 	{
-		var request = context.Request;
-		if (!MediaTypeHeaderValue.TryParse(request.ContentType, out var contentType) || !IsJson(contentType)) return true;
-
-		var values = contentType.Parameters
-			.Where(p => p.Name.Equals(ResponseMediaTypes.NamingParameter, StringComparison.OrdinalIgnoreCase))
-			.Select(p => p.Value.Value?.Trim('"')).ToList();
-		if (values.Count == 0) return true;
-		if (values.Count > 1 || !ResponseNaming.IsSupported(values[0]))
-		{
-			if (!context.Response.HasStarted)
-				await Results.Problem(statusCode: StatusCodes.Status400BadRequest, detail: $"Unsupported or duplicated '{ResponseMediaTypes.NamingParameter}' parameter: '{string.Join(", ", values)}'.").ExecuteAsync(context);
-			return false;
-		}
-		if (!ResponseNaming.NeedsSeparatorTranscoding(values[0])) return true; // camel/pascal bind as they are
+		if (!TryReadNaming(context.Request.ContentType, out var naming, out var invalidDetail))
+			return await WriteProblemAsync(context, StatusCodes.Status400BadRequest, invalidDetail);
+		if (naming is null || !ResponseNaming.NeedsSeparatorTranscoding(naming)) return true; // absent, or camel/pascal: bind as they are
 
 		var max = context.RequestServices.GetService<IOptions<ResponseOptions>>()?.Value.RequestNamingMaxBodySize ?? new ResponseOptions().RequestNamingMaxBodySize;
-		if (request.ContentLength is { } declared && declared > max)
-		{
-			if (!context.Response.HasStarted)
-				await Results.Problem(statusCode: StatusCodes.Status413PayloadTooLarge, detail: $"Request body exceeds the configured limit of {max} bytes.").ExecuteAsync(context);
-			return false;
-		}
-
-		using var buffer = new MemoryStream();
-		await CopyBoundedAsync(request.Body, buffer, max, context);
-		if (buffer.Length > max)
-		{
-			if (!context.Response.HasStarted)
-				await Results.Problem(statusCode: StatusCodes.Status413PayloadTooLarge, detail: $"Request body exceeds the configured limit of {max} bytes.").ExecuteAsync(context);
-			return false;
-		}
+		using var buffer = await ReadBoundedAsync(context, max);
+		if (buffer is null)
+			return await WriteProblemAsync(context, StatusCodes.Status413PayloadTooLarge, $"Request body exceeds the configured limit of {max} bytes.");
 		if (buffer.Length == 0) return true;
 
 		var jsonOptions = context.RequestServices.GetService<IOptions<HttpJsonOptions>>()?.Value.SerializerOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
@@ -87,25 +66,65 @@ static class RequestNamingEndpoint
 		try { bytes = JsonNamingTranscoder.Transcode(new ReadOnlySpan<byte>(buffer.GetBuffer(), 0, (int)buffer.Length), bodyType, jsonOptions); }
 		catch (JsonException) { bytes = buffer.ToArray(); } // malformed: let the binder fail it the usual way (400)
 
-		request.Body = new MemoryStream(bytes);
-		request.ContentLength = bytes.Length;
+		context.Request.Body = new MemoryStream(bytes);
+		context.Request.ContentLength = bytes.Length;
 		return true;
 	}
 
-	static async Task CopyBoundedAsync(Stream source, MemoryStream target, long max, HttpContext context)
+	// The naming a JSON request declares on its Content-Type. True with a null naming when the body is not JSON
+	// or declares none; false, with the problem detail, when the parameter is unsupported or duplicated.
+	static bool TryReadNaming(string? contentTypeHeader, out string? naming, out string invalidDetail)
 	{
-		var chunk = new byte[16 * 1024];
-		int read;
-		while ((read = await source.ReadAsync(chunk, 0, chunk.Length, context.RequestAborted)) > 0)
+		naming = null;
+		invalidDetail = string.Empty;
+		if (!MediaTypeHeaderValue.TryParse(contentTypeHeader, out var contentType) || !IsJson(contentType)) return true;
+
+		var values = contentType.Parameters
+			.Where(p => p.Name.Equals(ResponseMediaTypes.NamingParameter, StringComparison.OrdinalIgnoreCase))
+			.Select(p => p.Value.Value?.Trim('"')).ToList();
+		if (values.Count == 0) return true;
+		if (values.Count > 1 || !ResponseNaming.IsSupported(values[0]))
 		{
-			target.Write(chunk, 0, read);
-			if (target.Length > max) return; // one byte over is enough to decide
+			invalidDetail = $"Unsupported or duplicated '{ResponseMediaTypes.NamingParameter}' parameter: '{string.Join(", ", values)}'.";
+			return false;
 		}
+		naming = values[0];
+		return true;
 	}
 
+	// The whole body, or null when it is over the limit. A declared Content-Length is checked first so an oversized
+	// body is never read; a chunked one is read only until one byte over the limit, which is enough to decide.
+	static async Task<MemoryStream?> ReadBoundedAsync(HttpContext context, long max)
+	{
+		if (context.Request.ContentLength is { } declared && declared > max) return null;
+
+		var buffer = new MemoryStream();
+		var chunk = new byte[16 * 1024];
+		int read;
+		while ((read = await context.Request.Body.ReadAsync(chunk, 0, chunk.Length, context.RequestAborted)) > 0)
+		{
+			buffer.Write(chunk, 0, read);
+			if (buffer.Length > max)
+			{
+				buffer.Dispose();
+				return null;
+			}
+		}
+		return buffer;
+	}
+
+	static async Task<bool> WriteProblemAsync(HttpContext context, int status, string detail)
+	{
+		if (!context.Response.HasStarted)
+			await Results.Problem(statusCode: status, detail: detail).ExecuteAsync(context);
+		return false;
+	}
+
+	// Minimal APIs only bind application/json and +json bodies: text/json is answered 415 before the handler
+	// runs, so there is nothing to transcode for it.
 	static bool IsJson(MediaTypeHeaderValue contentType)
-		=> contentType.MediaType.Equals("application/json", StringComparison.OrdinalIgnoreCase)
-			|| contentType.MediaType.EndsWith("+json", StringComparison.OrdinalIgnoreCase);
+		=> ResponseMediaTypes.IsJson(contentType.MediaType.Value)
+			&& !ResponseMediaTypes.Is(contentType.MediaType.Value, ResponseMediaTypes.TextJson);
 }
 
 /// <summary>

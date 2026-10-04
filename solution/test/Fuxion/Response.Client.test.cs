@@ -17,7 +17,6 @@ namespace Test.Fuxion;
 public class ClientReadingTest(ITestOutputHelper output) : BaseTest<ClientReadingTest>(output)
 {
 	public record Payload(string Name);
-	public record CustomError(string Code);
 
 	static HttpResponseMessage Message(HttpStatusCode status, string? body, string? contentType)
 	{
@@ -111,9 +110,9 @@ public class ClientReadingTest(ITestOutputHelper output) : BaseTest<ClientReadin
 	[Fact(DisplayName = "With a custom error type, a foreign JSON error body is deserialized as that type")]
 	public async Task Typed_ForeignJson_IsTheTypedError()
 	{
-		var response = await Message(HttpStatusCode.BadRequest, """{"code":"invalid"}""", "application/json").AsResponseAsync<Payload, CustomError>();
+		var response = await Message(HttpStatusCode.BadRequest, """{"code":"invalid"}""", "application/json").AsResponseAsync<Payload, TestError>();
 
-		IsTrue(response.TryGetValue(out CustomError? error));
+		IsTrue(response.TryGetValue(out TestError? error));
 		Assert.Equal("invalid", error!.Code);
 	}
 
@@ -122,7 +121,7 @@ public class ClientReadingTest(ITestOutputHelper output) : BaseTest<ClientReadin
 	{
 		var body = JsonSerializer.Serialize(Error.NotFound("missing"), new JsonSerializerOptions(JsonSerializerDefaults.Web));
 		await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-			await Message(HttpStatusCode.NotFound, body, "application/vnd.fuxion.error+json").AsResponseAsync<Payload, CustomError>());
+			await Message(HttpStatusCode.NotFound, body, "application/vnd.fuxion.error+json").AsResponseAsync<Payload, TestError>());
 	}
 
 	[Fact(DisplayName = "The caller options are never mutated")]
@@ -141,28 +140,28 @@ public class ClientReadingTest(ITestOutputHelper output) : BaseTest<ClientReadin
 	[Fact(DisplayName = "A text/plain body that is valid JSON for the requested type is a success")]
 	public async Task TextPlain_ValidJson_IsSuccess()
 	{
-		var res = await Message(HttpStatusCode.OK, """{"name":"test","age":123}""", "text/plain").AsResponseAsync<Person>();
-		IsTrue(res.TryGetValue(out Person? p));
+		var res = await Message(HttpStatusCode.OK, """{"name":"test","age":123}""", "text/plain").AsResponseAsync<TestPayload>();
+		IsTrue(res.TryGetValue(out TestPayload? p));
 		Assert.Equal("test", p!.Name);
 	}
 
 	[Fact(DisplayName = "A text/plain body that is not JSON is a critical error carrying the text")]
 	public async Task TextPlain_NotJson_KeepsText()
 	{
-		var res = await Message(HttpStatusCode.OK, "hello", "text/plain").AsResponseAsync<Person>();
+		var res = await Message(HttpStatusCode.OK, "hello", "text/plain").AsResponseAsync<TestPayload>();
 		IsTrue(res.TryGetValue(out Error e));
-		IsTrue(e.IsCritical);
-		Assert.Equal("hello", e.Extensions[ClientErrorExtensions.TextPayload]);
-		Assert.Equal("text/plain", e.Extensions[ClientErrorExtensions.ContentType]);
+		IsTrue(e.IsInternalServerError);
+		Assert.Equal("hello", e.Extensions[ClientErrorKeys.TextPayload]);
+		Assert.Equal("text/plain", e.Extensions[ClientErrorKeys.ContentType]);
 	}
 
 	[Fact(DisplayName = "JSON that does not fit the requested type is a critical error carrying the JSON")]
 	public async Task Json_WrongShape_KeepsJson()
 	{
-		var res = await Message(HttpStatusCode.OK, """{"name":"x","age":"not a number"}""", "application/json").AsResponseAsync<Person>();
+		var res = await Message(HttpStatusCode.OK, """{"name":"x","age":"not a number"}""", "application/json").AsResponseAsync<TestPayload>();
 		IsTrue(res.TryGetValue(out Error e));
-		Assert.Contains("Person", e.Message);
-		var element = Assert.IsType<JsonElement>(e.Extensions[ClientErrorExtensions.JsonPayload]);
+		Assert.Contains("TestPayload", e.Message);
+		var element = Assert.IsType<JsonElement>(e.Extensions[ClientErrorKeys.JsonPayload]);
 		Assert.Equal("x", element.GetProperty("name").GetString());
 		Assert.NotNull(e.Exception);
 	}
@@ -172,17 +171,17 @@ public class ClientReadingTest(ITestOutputHelper output) : BaseTest<ClientReadin
 	{
 		var content = new ByteArrayContent(new byte[] { 1, 2, 3 });
 		content.Headers.ContentType = new("application/pdf");
-		var res = await new HttpResponseMessage(HttpStatusCode.OK) { Content = content }.AsResponseAsync<Person>();
+		var res = await new HttpResponseMessage(HttpStatusCode.OK) { Content = content }.AsResponseAsync<TestPayload>();
 		IsTrue(res.TryGetValue(out Error e));
-		Assert.Equal("application/pdf", e.Extensions[ClientErrorExtensions.ContentType]);
-		Assert.Equal(3L, e.Extensions[ClientErrorExtensions.ContentLength]);
-		IsTrue(!e.Extensions.ContainsKey(ClientErrorExtensions.TextPayload));
+		Assert.Equal("application/pdf", e.Extensions[ClientErrorKeys.ContentType]);
+		Assert.Equal(3L, e.Extensions[ClientErrorKeys.ContentLength]);
+		IsFalse(e.Extensions.ContainsKey(ClientErrorKeys.TextPayload));
 	}
 
 	[Fact(DisplayName = "A custom-naming envelope that cannot be read says so")]
 	public async Task CustomNaming_Unreadable_SaysSo()
 	{
-		var res = await Message(HttpStatusCode.OK, """{"IS_SUCCESS":true,"PAYLOAD":{"NAME":"x","AGE":1}}""", "application/vnd.fuxion.response+json; naming=custom").AsResponseAsync<Person>();
+		var res = await Message(HttpStatusCode.OK, """{"IS_SUCCESS":true,"PAYLOAD":{"NAME":"x","AGE":1}}""", "application/vnd.fuxion.response+json; naming=custom").AsResponseAsync<TestPayload>();
 		IsTrue(res.TryGetValue(out Error e));
 		Assert.Contains("custom naming", e.Message);
 	}
@@ -218,8 +217,8 @@ public class ClientReadingTest(ITestOutputHelper output) : BaseTest<ClientReadin
 		const string body = """{"name":"broken",""";
 		var response = await Message(HttpStatusCode.OK, body, "application/json").AsResponseAsync<Payload>();
 		IsTrue(response.TryGetValue(out Error error));
-		IsTrue(error.IsCritical);
-		Assert.Equal(body, error.Extensions[ClientErrorExtensions.TextPayload]);
+		IsTrue(error.IsInternalServerError);
+		Assert.Equal(body, error.Extensions[ClientErrorKeys.TextPayload]);
 	}
 
 	[Theory(DisplayName = "A malformed body under a Fuxion media type is a critical error that keeps the text")]
@@ -231,8 +230,8 @@ public class ClientReadingTest(ITestOutputHelper output) : BaseTest<ClientReadin
 		const string body = "{ not json";
 		var response = await Message(status, body, mediaType).AsResponseAsync<Payload>();
 		IsTrue(response.TryGetValue(out Error error));
-		IsTrue(error.IsCritical);
-		Assert.Equal(body, error.Extensions[ClientErrorExtensions.TextPayload]);
+		IsTrue(error.IsInternalServerError);
+		Assert.Equal(body, error.Extensions[ClientErrorKeys.TextPayload]);
 	}
 
 	[Fact(DisplayName = "A success with an empty body and a non-Unit type is a critical error")]
@@ -240,22 +239,22 @@ public class ClientReadingTest(ITestOutputHelper output) : BaseTest<ClientReadin
 	{
 		var response = await Message(HttpStatusCode.OK, "", "application/json").AsResponseAsync<Payload>();
 		IsTrue(response.TryGetValue(out Error error));
-		IsTrue(error.IsCritical);
+		IsTrue(error.IsInternalServerError);
 		Assert.Contains("empty", error.Message);
 	}
 
 	[Fact(DisplayName = "With a custom error type, a malformed error body throws instead of inventing an error")]
 	public async Task TypedError_Malformed_Throws()
-		=> await Assert.ThrowsAsync<InvalidOperationException>(() => Message(HttpStatusCode.BadRequest, "{ not json", "application/json").AsResponseAsync<Payload, CustomError>());
+		=> await Assert.ThrowsAsync<InvalidOperationException>(() => Message(HttpStatusCode.BadRequest, "{ not json", "application/json").AsResponseAsync<Payload, TestError>());
 
 	[Fact(DisplayName = "With a custom error type, a binary body for a non-binary success type throws without reading it")]
 	public async Task TypedError_BinaryBody_Throws()
 	{
 		var content = new ObservingContent();
 		var message = new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
-		var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => message.AsResponseAsync<Payload, CustomError>());
+		var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => message.AsResponseAsync<Payload, TestError>());
 		Assert.Contains("application/pdf", ex.Message);
-		IsTrue(!content.Read);
+		IsFalse(content.Read);
 	}
 
 	// Makes "without reading it" observable: SerializeToStreamAsync flips Read to true only if the body is
@@ -299,8 +298,12 @@ public class ClientReadingTest(ITestOutputHelper output) : BaseTest<ClientReadin
 		using var cts = new CancellationTokenSource();
 		cts.Cancel();
 		await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Task.FromResult(Message(HttpStatusCode.OK, """{"first_name":"Ada"}""", "application/json")).AsResponseAsync<TwoWords>(snake, cts.Token));
-		await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Task.FromResult(Message(HttpStatusCode.OK, """{"first_name":"Ada"}""", "application/json")).AsResponseAsync<TwoWords, CustomError>(snake, cts.Token));
+		await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Task.FromResult(Message(HttpStatusCode.OK, """{"first_name":"Ada"}""", "application/json")).AsResponseAsync<TwoWords, TestError>(snake, cts.Token));
 	}
+	[Fact(DisplayName = "A problem body without the errorPayload extension cannot synthesize a typed error and throws")]
+	public async Task TypedError_ProblemWithoutPayload_Throws()
+		=> await Assert.ThrowsAsync<InvalidOperationException>(()
+			=> Message(HttpStatusCode.BadRequest, """{"title":"Bad request","status":400}""", ResponseMediaTypes.ProblemJson).AsResponseAsync<Payload, TestError>());
+
 	record TwoWords(string FirstName);
-	record Person(string Name, int Age);
 }

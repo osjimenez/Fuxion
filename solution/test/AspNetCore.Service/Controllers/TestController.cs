@@ -13,75 +13,24 @@ namespace Test.AspNetCore.Service.Controllers;
 public class ResponseTestController : ControllerBase
 {
 	// SUCCESS
-	[Route("unit")]
-	[HttpGet]
-	public Response<Unit> UnitValue()
-	{
-		return Unit.Value;
-	}
-	[Route("none")]
-	[HttpGet]
-	public ResponseMaybe<Unit> NoneValue()
-	{
-		return None.Value;
-	}
-	[Route("string")]
-	[HttpGet]
-	public Response<string> String()
-	{
-		return "test";
-	}
-	[Route("payload")]
-	[HttpGet]
-	public Response<TestPayload> Payload()
-	{
-		return TestPayload.Default;
-	}
+	[HttpGet("unit")] public Response<Unit> UnitValue() => Unit.Value;
+	[HttpGet("none")] public ResponseMaybe<Unit> NoneValue() => None.Value;
+	[HttpGet("string")] public Response<string> String() => "test";
+	[HttpGet("payload")] public Response<TestPayload> Payload() => TestPayload.Default;
 	// A multi-word payload under bare application/json: proves a requested naming policy is never
-	// stamped on an un-announced shape (see Fuxion.Union.ResponseWireMapper.TryMap).
-	[Route("naming-payload")]
-	[HttpGet]
-	public Response<TestNamingPayload> NamingPayload()
-	{
-		return new TestNamingPayload("Ada", 36);
-	}
-	[Route("error-message")]
-	[HttpGet]
-	public Response<Unit> ErrorMessage()
-	{
-		return Error.Custom("test");
-	}
-	[Route("error-type")]
-	[HttpGet]
-	public Response<Unit> ErrorType()
-	{
-		return Error.NotImplemented();
-	}
-	[Route("error-payload")]
-	[HttpGet]
-	public Response<Unit> ErrorPayload()
-	{
-		return Error.Custom(payload: TestPayload.Default);
-	}
-	[Route("typed-error")]
-	[HttpGet]
-	public Response<string, TestBusinessError> TypedError()
-	{
-		return TestBusinessError.Default;
-	}
-	[Route("typed-error-foreign")]
-	[HttpGet]
-	public Response<string, TestForeignError> TypedErrorForeign()
-	{
-		return new TestForeignError("quota");
-	}
-	[Route("error-exception")]
-	[HttpGet]
+	// stamped on an un-announced shape (see Fuxion.ResponseWireMapper.TryMap).
+	[HttpGet("naming-payload")] public Response<TestNamingPayload> NamingPayload() => new TestNamingPayload("Ada", 36);
+	[HttpGet("error-message")] public Response<Unit> ErrorMessage() => Error.Custom("test");
+	[HttpGet("error-type")] public Response<Unit> ErrorType() => Error.NotImplemented();
+	[HttpGet("error-payload")] public Response<Unit> ErrorPayload() => Error.Custom(payload: TestPayload.Default);
+	[HttpGet("typed-error")] public Response<string, TestBusinessError> TypedError() => TestBusinessError.Default;
+	[HttpGet("typed-error-foreign")] public Response<string, TestForeignError> TypedErrorForeign() => new TestForeignError("quota");
+	[HttpGet("error-exception")]
 	public Response<Unit> ErrorException()
 	{
 		try
 		{
-			new Level1().Throw();
+			ThrowingFixture.Throw();
 			return Unit.Value;
 		}
 		catch (Exception ex)
@@ -96,60 +45,44 @@ public class ResponseTestController : ControllerBase
 public class ResultTestController : ControllerBase
 {
 	// SUCCESS
-	[Route("unit")]
-	[HttpGet]
-	public IActionResult UnitValue()
-	{
-		return Unit.ActionResult;
-	}
-	[Route("none")]
-	[HttpGet]
-	public IActionResult NoneValue()
-	{
-		return None.ActionResult;
-	}
-	[Route("string")]
-	[HttpGet]
+	[HttpGet("unit")] public IActionResult UnitValue() => Unit.ActionResult;
+	[HttpGet("none")] public IActionResult NoneValue() => None.ActionResult;
+	[HttpGet("string")]
 	public IActionResult String()
 	{
 		Response<string> response = "test";
 		return response.ToActionResult();
 	}
-	[Route("payload")]
-	[HttpGet]
+	[HttpGet("payload")]
 	public IActionResult Payload()
 	{
 		Response<TestPayload> response = TestPayload.Default;
 		return response.ToActionResult();
 	}
-	[Route("error-message")]
-	[HttpGet]
+	[HttpGet("error-message")]
 	public IActionResult ErrorMessage()
 	{
 		Response<Unit> response = Error.Custom("test");
 		return response.ToActionResult();
 	}
-	[Route("error-type")]
-	[HttpGet]
+	[HttpGet("error-type")]
 	public IActionResult ErrorType()
 	{
 		Response<Unit> response = Error.NotImplemented();
 		return response.ToActionResult();
 	}
-	[Route("error-payload")]
-	[HttpGet]
+	[HttpGet("error-payload")]
 	public IActionResult ErrorPayload()
 	{
 		Response<Unit> response = Error.Custom(payload: TestPayload.Default);
 		return response.ToActionResult();
 	}
-	[Route("error-exception")]
-	[HttpGet]
+	[HttpGet("error-exception")]
 	public IActionResult ErrorException()
 	{
 		try
 		{
-			new Level1().Throw();
+			ThrowingFixture.Throw();
 			Response<Unit> response = Unit.Value;
 			return response.ToActionResult();
 		}
@@ -172,8 +105,7 @@ public class UndefinableTestController : ControllerBase
 {
 	// An undefined member must be absent from the payload, which is the JSON Merge Patch (RFC 7396)
 	// convention, instead of being written with the marker object.
-	[Route("partial")]
-	[HttpGet]
+	[HttpGet("partial")]
 	public TestPatchPayload Partial() => TestPatchPayload.PartiallyDefined;
 
 	[Route("echo")]
@@ -183,14 +115,6 @@ public class UndefinableTestController : ControllerBase
 		nameDefined = payload.Name.IsDefined,
 		ageDefined = payload.Age.IsDefined
 	};
-}
-file class Level1
-{
-	public void Throw() => new Level2().Throw();
-}
-file class Level2
-{
-	public void Throw() => throw new NotImplementedException("message");
 }
 
 [ApiController]
@@ -216,15 +140,15 @@ public class NamingTestController : ControllerBase
 public class BinaryTestController : ControllerBase
 {
 	[HttpGet("file")]
-	public Response<FileContent> File_() => TestFile.Create();
+	public Response<FileContent> GetFile() => TestFile.Create();
 	[HttpGet("stream")]
-	public Response<Stream> Stream_() => new MemoryStream(TestFile.Bytes, writable: false);
+	public Response<Stream> GetStream() => new MemoryStream(TestFile.Bytes, writable: false);
 	[HttpGet("bytes")]
 	public Response<byte[]> Bytes() => TestFile.Bytes;
 	[HttpGet("none")]
-	public ResponseMaybe<FileContent> None_() => None.Value;
+	public ResponseMaybe<FileContent> GetNone() => None.Value;
 	[HttpGet("error")]
-	public Response<FileContent> Error_() => Error.NotFound("missing");
+	public Response<FileContent> GetError() => Error.NotFound("missing");
 	[HttpGet("chunked")]
 	public Response<Stream> Chunked() => new NonSeekableStream(TestFile.Bytes);
 }

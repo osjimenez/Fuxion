@@ -1,6 +1,7 @@
+using System;
+
 namespace Fuxion.AspNetCore;
 
-using System;
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 /// <summary>
@@ -16,6 +17,7 @@ using System;
 /// a shadow "has a value" flag set whenever the setter runs; only <see cref="ToLayer"/> exposes the
 /// nullable view used for merging.
 /// </remarks>
+// Keep in sync with Fuxion.AspNet.ResponseOptionsAttribute: ResponseOptionsAttributeShape (Test.Responses.Shared) pins both.
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
 public sealed class ResponseOptionsAttribute : Attribute
 {
@@ -42,11 +44,6 @@ public sealed class ResponseOptionsAttribute : Attribute
 		get => strictNone;
 		set { strictNone = value; hasStrictNone = true; }
 	}
-
-	public ResponseOptionsAttribute() { }
-
-	public ResponseOptionsAttribute(bool serializeFullResponses)
-		=> SerializeFullResponses = serializeFullResponses;
 
 	/// <summary>Converts this attribute to a core <see cref="ResponseOptionsLayer"/> so it can be merged with <c>ResponseOptionsMerge.Merge</c>.</summary>
 	public ResponseOptionsLayer ToLayer() => new()

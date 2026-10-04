@@ -373,10 +373,10 @@ public static class CollectionsExtensions
 	{
 		var count = percentages.Count();
 		if (count > amountOfItems)
-			return Error.InvalidData($"{nameof(percentages)}.Count ({count}) must be less than {nameof(amountOfItems)} ({amountOfItems})");
+			return Error.BadRequest($"{nameof(percentages)}.Count ({count}) must be less than {nameof(amountOfItems)} ({amountOfItems})");
 		var sum = percentages.Sum();
 		if (sum != 100)
-			return Error.InvalidData($"Percentages must sum 100, but sum {sum}");
+			return Error.BadRequest($"Percentages must sum 100, but sum {sum}");
 		var ordered = percentages.OrderBy(x => x);
 		var quantities = ordered.Select(value => new
 		{
@@ -394,7 +394,7 @@ public static class CollectionsExtensions
 		{
 			var quantity = quantities.MaxBy(_ => _.Rounded);
 			if (quantity is null)
-				return Error.Critical($"{nameof(quantity)} cannot be null");
+				return Error.InternalServerError($"{nameof(quantity)} cannot be null");
 			var index = quantities.IndexOf(quantity);
 			quantities.Remove(quantity);
 			quantities.Insert(index, quantity with
@@ -434,9 +434,9 @@ public static class CollectionsExtensions
 	public static Response<Dictionary<string, (double Percentage, int Rounded, double Exact)>> DistributeAsPercentages(this IList<(string Label, double Percentage)> percentages, int amountOfItems)
 	{
 		if (percentages.Count > amountOfItems)
-			return Error.InvalidData($"{nameof(percentages)}.Count ({percentages.Count}) must be less than {nameof(amountOfItems)} ({amountOfItems})");
+			return Error.BadRequest($"{nameof(percentages)}.Count ({percentages.Count}) must be less than {nameof(amountOfItems)} ({amountOfItems})");
 		if (percentages.Sum(x => x.Percentage) != 100d)
-			return Error.InvalidData($"Percentages must sum 100, but sum {percentages.Sum(x => x.Percentage)}");
+			return Error.BadRequest($"Percentages must sum 100, but sum {percentages.Sum(x => x.Percentage)}");
 		var ordered = percentages.OrderBy(x => x.Percentage);
 		var quantities = ordered.Select(value => new
 		{
@@ -456,7 +456,7 @@ public static class CollectionsExtensions
 			var quantity = quantities.OrderByDescending(x => x.Rounded)
 				.MaxBy(y => y.Exact);
 			if (quantity is null)
-				return Error.Critical($"{nameof(quantity)} cannot be null");
+				return Error.InternalServerError($"{nameof(quantity)} cannot be null");
 			var index = quantities.IndexOf(quantity);
 			quantities.Remove(quantity);
 			quantities.Insert(index, quantity with
@@ -470,7 +470,7 @@ public static class CollectionsExtensions
 			var quantity = quantities.OrderBy(x => x.Rounded)
 				.MaxBy(y => y.Exact);
 			if (quantity is null)
-				return Error.Critical($"{nameof(quantity)} cannot be null");
+				return Error.InternalServerError($"{nameof(quantity)} cannot be null");
 			var index = quantities.IndexOf(quantity);
 			quantities.Remove(quantity);
 			quantities.Insert(index, quantity with

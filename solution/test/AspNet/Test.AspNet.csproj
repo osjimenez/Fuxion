@@ -3,7 +3,6 @@
 	<PropertyGroup>
 		<TargetFrameworks>$(OldFrameworks)</TargetFrameworks>
 		<IsPackable>false</IsPackable>
-		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup>

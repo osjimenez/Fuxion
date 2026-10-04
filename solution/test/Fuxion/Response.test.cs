@@ -23,13 +23,13 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 		}, tiex => tiex.InnerException is TException ? null : $"InnerException isn't {typeof(TException).GetSignature()}");
 		Output.WriteLine("Static constructor throw as expected: " + ex.InnerException!.Message);
 	}
-	[Fact]
+	[Fact(DisplayName = "TSuccess and TError cannot be the same type")]
 	public void TSuccess_TError_CannotBeInitializedWithSameType()
 	{
 		AssertStaticConstructor<Response<string, string>, ResponseInitializationException>();
 		AssertStaticConstructor<ResponseMaybe<string, string>, ResponseInitializationException>();
 	}
-	[Fact]
+	[Fact(DisplayName = "TSuccess cannot be None")]
 	public void TSuccess_CannotBeInitializedWith_None_Type()
 	{
 		AssertStaticConstructor<Response<None>, ResponseInitializationException>();
@@ -37,7 +37,7 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 		AssertStaticConstructor<ResponseMaybe<None>, ResponseInitializationException>();
 		AssertStaticConstructor<ResponseMaybe<None, string>, ResponseInitializationException>();
 	}
-	[Fact]
+	[Fact(DisplayName = "TSuccess cannot be Error")]
 	public void TSuccess_CannotBeInitializedWith_Error_Type()
 	{
 		AssertStaticConstructor<Response<Error>, ResponseInitializationException>();
@@ -45,13 +45,13 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 		AssertStaticConstructor<ResponseMaybe<Error>, ResponseInitializationException>();
 		AssertStaticConstructor<ResponseMaybe<Error, string>, ResponseInitializationException>();
 	}
-	[Fact]
+	[Fact(DisplayName = "TError cannot be None")]
 	public void TError_CannotBeInitializedWith_None_Type()
 	{
 		AssertStaticConstructor<Response<string, None>, ResponseInitializationException>();
 		AssertStaticConstructor<ResponseMaybe<string, None>, ResponseInitializationException>();
 	}
-	[Fact]
+	[Fact(DisplayName = "TError cannot be Error: the native error is the single-generic form")]
 	public void TError_CannotBeInitializedWith_Error_Type()
 	{
 		AssertStaticConstructor<Response<string, Error>, ResponseInitializationException>();
@@ -60,578 +60,9 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 
 	#endregion
 
-	#region Serialization
-
-	void AssertResponseJson(
-		string json,
-		bool isSuccess,
-		bool? isNone = null,
-		bool containsPayload = false,
-		bool containsError = false,
-		AssertJsonEntry[]? additionalAsserts = null)
-	{
-		List<AssertJsonEntry> asserts = [];
-		if (isSuccess)
-			asserts.Add(new([nameof(IResponse.IsSuccess)], true));
-		else
-			asserts.Add(new([nameof(IResponse.IsSuccess)], false));
-
-		if (isNone is null)
-			asserts.Add(new([nameof(ResponseMaybe<>.IsNone)], IsPresent: false));
-		else if (isNone is true)
-			asserts.Add(new([nameof(ResponseMaybe<>.IsNone)], true));
-		else
-			asserts.Add(new([nameof(ResponseMaybe<>.IsNone)], false));
-
-		if (containsPayload)
-			asserts.Add(new([ResponseConstants.PayloadPropertyName]));
-		else
-			asserts.Add(new([ResponseConstants.PayloadPropertyName], IsPresent: false));
-
-		if (containsError)
-			asserts.Add(new([ResponseConstants.ErrorPropertyName]));
-		else
-			asserts.Add(new([ResponseConstants.ErrorPropertyName], IsPresent: false));
-
-		asserts.Add(new([nameof(IUnion.Value)], IsPresent: false));
-
-		if (additionalAsserts is not null)
-			asserts.AddRange(additionalAsserts);
-
-		AssertJson(json, asserts.ToArray());
-	}
-	[Fact]
-	public void Serialization_Success()
-	{
-		Output.WriteLine(" - Response<TSuccess>:");
-		{
-			Response<User> response = new User("test", 123);
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, true, containsPayload: true);
-		}
-		Output.WriteLine(" - Response<TSuccess, TError>:");
-		{
-			Response<User, string> response = new User("test", 123);
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, true, containsPayload: true);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess>:");
-		{
-			ResponseMaybe<User> response = new User("test", 123);
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, true, isNone: false, containsPayload: true);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess, TError>:");
-		{
-			ResponseMaybe<User, string> response = new User("test", 123);
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, true, isNone: false, containsPayload: true);
-		}
-	}
-	[Fact]
-	public void Serialization_None()
-	{
-		Output.WriteLine(" - ResponseMaybe<TSuccess>:");
-		{
-			ResponseMaybe<User> response = None.Value;
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			PrintVariable(json, false);
-			AssertResponseJson(json, true, isNone: true);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess, TError>:");
-		{
-			ResponseMaybe<User, string> response = None.Value;
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, true, isNone: true);
-		}
-	}
-	[Fact]
-	public void Serialization_Error()
-	{
-		Output.WriteLine(" - Response<TSuccess>:");
-		{
-			Response<User> response = Error.Custom("message");
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, false, containsError: true);
-		}
-		Output.WriteLine(" - Response<TSuccess, TError>:");
-		{
-			Response<User, string> response = "error";
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, false, containsError: true);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess>:");
-		{
-			ResponseMaybe<User> response = Error.Custom("message");
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, false, isNone: false, containsError: true);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess, TError>:");
-		{
-			ResponseMaybe<User, string> response = "error";
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, false, isNone: false, containsError: true);
-		}
-	}
-
-	[Fact]
-	public void Serialization_CustomError()
-	{
-		Output.WriteLine(" - Response<TSuccess, TError>:");
-		{
-			Response<User, CustomError> response = new CustomError("message");
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, false, containsError: true, additionalAsserts: [new(["Error", "Message"], "message")]);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess, TError>:");
-		{
-			ResponseMaybe<User, CustomError> response = new CustomError("message");
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, false, isNone: false, containsError: true, additionalAsserts: [new(["Error", "Message"], "message")]);
-		}
-	}
-
-	ExtensionsDictionary<IResponse> defaultExtensions = new()
-	{
-		["Ext1"] = "extension",
-		["Ext2"] = new
-		{
-			Message = "extension",
-		}
-	};
-
-	[Fact]
-	public void Serialization_Extensions()
-	{
-		Output.WriteLine(" - Response<TSuccess>:");
-		{
-			Response<Unit> response = new(Unit.Value) { Extensions = defaultExtensions };
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, true, additionalAsserts: [new(["Ext1"], "extension"), new(["Ext2", "Message"], "extension")]);
-		}
-		Output.WriteLine(" - Response<TSuccess, TError>:");
-		{
-			Response<Unit, string> response = new(Unit.Value) { Extensions = defaultExtensions };
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, true, additionalAsserts: [new(["Ext1"], "extension"), new(["Ext2", "Message"], "extension")]);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess>:");
-		{
-			ResponseMaybe<Unit> response = new(Unit.Value) { Extensions = defaultExtensions };
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, true, isNone: false, additionalAsserts: [new(["Ext1"], "extension"), new(["Ext2", "Message"], "extension")]);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess, TError>:");
-		{
-			ResponseMaybe<Unit, string> response = new(Unit.Value) { Extensions = defaultExtensions };
-			var json = response.Fx.Json.Serialize(true).SuccessOrThrow();
-			AssertResponseJson(json, true, isNone: false, additionalAsserts: [new(["Ext1"], "extension"), new(["Ext2", "Message"], "extension")]);
-		}
-	}
-
-	#endregion
-
-	#region Deserialization
-
-	[Fact]
-	public void Deserialization_Success()
-	{
-		Output.WriteLine(" - Response<TSuccess>:");
-		{
-			var json = """
-            {
-               "IsSuccess": true,
-               "Payload": {
-                  "Age": 123,
-                  "Name": "test"
-               },
-               "Ext1": "extension",
-               "Ext2": {
-                  "Message": "extension"
-               }
-            }
-            """;
-			Response<User> response = json.Fx.Json.Deserialize<Response<User>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			IsTrue(response.IsSuccess);
-			IsFalse(response.IsError);
-			IsTrue(response is User);
-			Assert.Equal("test", ((User)response).Name);
-			Assert.Equal(123, ((User)response).Age);
-		}
-		Output.WriteLine(" - Response<TSuccess, TError>:");
-		{
-			var json = """
-            {
-               "IsSuccess": true,
-               "Payload": {
-                  "Age": 123,
-                  "Name": "test"
-               }
-            }
-            """;
-			Response<User, string> response = json.Fx.Json.Deserialize<Response<User, string>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			IsTrue(response.IsSuccess);
-			IsFalse(response.IsError);
-			IsTrue(response is User);
-			Assert.Equal("test", ((User)response).Name);
-			Assert.Equal(123, ((User)response).Age);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess>:");
-		{
-			var json = """
-            {
-               "IsNone": false,
-               "IsSuccess": true,
-               "Payload": {
-                  "Age": 123,
-                  "Name": "test"
-               }
-            }
-            """;
-			ResponseMaybe<User> response = json.Fx.Json.Deserialize<ResponseMaybe<User>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			IsTrue(response.IsSuccess);
-			IsFalse(response.IsError);
-			IsTrue(response is User);
-			Assert.Equal("test", ((User)response).Name);
-			Assert.Equal(123, ((User)response).Age);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess, TError>:");
-		{
-			var json = """
-            {
-               "IsNone": false,
-               "IsSuccess": true,
-               "Payload": {
-                  "Age": 123,
-                  "Name": "test"
-               }
-            }
-            """;
-			ResponseMaybe<User, string> response = json.Fx.Json.Deserialize<ResponseMaybe<User, string>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			IsTrue(response.IsSuccess);
-			IsFalse(response.IsError);
-			IsTrue(response is User);
-			Assert.Equal("test", ((User)response).Name);
-			Assert.Equal(123, ((User)response).Age);
-		}
-	}
-	[Fact]
-	public void Deserialization_None()
-	{
-		Output.WriteLine(" - ResponseMaybe<TSuccess>:");
-		{
-			var json = """
-            {
-               "IsNone": true,
-               "IsSuccess": true
-            }
-            """;
-			ResponseMaybe<User> response = json.Fx.Json.Deserialize<ResponseMaybe<User>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			IsTrue(response.IsNone);
-			IsTrue(response.IsSuccess);
-			IsFalse(response.IsError);
-			IsTrue(response is None);
-		}
-		{
-			var json = """
-            {
-               "IsNone": true,
-               "IsSuccess": true,
-               "Payload": null
-            }
-            """;
-			ResponseMaybe<User> response = json.Fx.Json.Deserialize<ResponseMaybe<User>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			IsTrue(response.IsNone);
-			IsTrue(response.IsSuccess);
-			IsFalse(response.IsError);
-			IsTrue(response is None);
-		}
-		{
-			var json = """
-            {
-               "IsNone": true,
-               "IsSuccess": true,
-               "Payload": {}
-            }
-            """;
-			ResponseMaybe<User> response = json.Fx.Json.Deserialize<ResponseMaybe<User>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			IsTrue(response.IsNone);
-			IsTrue(response.IsSuccess);
-			IsFalse(response.IsError);
-			IsTrue(response is None);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess, TError>:");
-		{
-			var json = """
-            {
-               "IsNone": true,
-               "IsSuccess": true
-            }
-            """;
-			ResponseMaybe<User, string> response = json.Fx.Json.Deserialize<ResponseMaybe<User, string>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			IsTrue(response.IsNone);
-			IsTrue(response.IsSuccess);
-			IsFalse(response.IsError);
-			IsTrue(response is None);
-		}
-		{
-			var json = """
-            {
-               "IsNone": true,
-               "IsSuccess": true,
-               "Payload": null
-            }
-            """;
-			ResponseMaybe<User, string> response = json.Fx.Json.Deserialize<ResponseMaybe<User, string>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			IsTrue(response.IsNone);
-			IsTrue(response.IsSuccess);
-			IsFalse(response.IsError);
-			IsTrue(response is None);
-		}
-		{
-			var json = """
-            {
-               "IsNone": true,
-               "IsSuccess": true,
-               "Payload": {}
-            }
-            """;
-			ResponseMaybe<User, string> response = json.Fx.Json.Deserialize<ResponseMaybe<User, string>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			IsTrue(response.IsNone);
-			IsTrue(response.IsSuccess);
-			IsFalse(response.IsError);
-			IsTrue(response is None);
-		}
-	}
-	[Fact]
-	public void Deserialization_Error()
-	{
-		Output.WriteLine(" - Response<TSuccess>:");
-		{
-			var json = """
-            {
-               "Error": {
-                  "Exception": {
-                     "Data": [],
-                     "HelpLink": null,
-                     "HResult": -2146233088,
-                     "InnerException": null,
-                     "Message": "exception",
-                     "Source": null,
-                     "StackTrace": null,
-                     "TargetSite": null
-                  },
-                  "Message": "error",
-                  "Payload": {
-                     "Age": 123,
-                     "Name": "test"
-                  },
-                  "Type": "NotFound"
-               },
-               "IsSuccess": false
-            }
-            """;
-			var desRes = json.Fx.Json.Deserialize<Response<User>>();
-			if (desRes is Response<User> response)
-			{
-				IsTrue(response is not null);
-				IsFalse(response.IsSuccess);
-				IsTrue(response.IsError);
-				IsTrue(response is Error);
-				if (response is Error error)
-				{
-					Assert.Equal("error", error.Message);
-					Assert.IsType<RemoteException>(error.Exception);
-					var remote = (RemoteException)error.Exception;
-					Assert.Equal("exception", remote.Message);
-					// The JSON carries the type as a plain string (no discriminator), so it is read back as text.
-					Assert.Equal("NotFound", error.Type?.ToString());
-					Assert.Equal("test", error.GetPayloadAs<User>()?.Name);
-					Assert.Equal(123, error.GetPayloadAs<User>()?.Age);
-				}
-			}
-		}
-		Output.WriteLine(" - Response<TSuccess, TError>:");
-		{
-			var json = """
-            {
-               "IsSuccess": false,
-               "Error": "error"
-            }
-            """;
-			Response<User, string> response = json.Fx.Json.Deserialize<Response<User, string>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			IsFalse(response.IsSuccess);
-			IsTrue(response.IsError);
-			IsTrue(response is string);
-			if (response is string error)
-			{
-				Assert.Equal("error", error);
-			}
-		}
-		{
-			var json = """
-            {
-               "IsSuccess": false,
-               "Error": {
-                  "Message": "error"
-               }
-            }
-            """;
-			Response<User, CustomError> response = json.Fx.Json.Deserialize<Response<User, CustomError>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			IsFalse(response.IsSuccess);
-			IsTrue(response.IsError);
-			IsTrue(response is CustomError);
-			if (response is CustomError error)
-				Assert.Equal("error", error.Message);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess>:");
-		{
-			var json = """
-            {
-               "IsSuccess": false,
-               "IsNone": false,
-               "Error": {
-                  "Exception": null,
-                   "Message": "error",
-                   "Payload": null,
-                   "Type": 123
-               }
-            }
-            """;
-			ResponseMaybe<User> response = json.Fx.Json.Deserialize<ResponseMaybe<User>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			IsFalse(response.IsSuccess);
-			IsFalse(response.IsNone);
-			IsTrue(response.IsError);
-			IsTrue(response is Error);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess, TError>:");
-		{
-			var json = """
-            {
-               "IsSuccess": false,
-               "Error": "error"
-            }
-            """;
-			ResponseMaybe<User, string> response = json.Fx.Json.Deserialize<ResponseMaybe<User, string>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			IsFalse(response.IsSuccess);
-			IsFalse(response.IsNone);
-			IsTrue(response.IsError);
-			IsTrue(response is string);
-			Assert.Equal("error", (string)response);
-		}
-	}
-	[Fact]
-	public void Deserialization_Extensions()
-	{
-		Output.WriteLine(" - Response<TSuccess>:");
-		{
-			var json = """
-            {
-               "IsSuccess": true,
-               "Ext1": "extension",
-               "Ext2": {
-                  "Message": "extension"
-               }
-            }
-            """;
-			Response<Unit> response = json.Fx.Json.Deserialize<Response<Unit>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			Assert.Equal("extension", response.Extensions.GetAs<string>("Ext1"));
-			Assert.Equal("extension", response.Extensions.GetAs<CustomError>("Ext2")?.Message);
-		}
-		Output.WriteLine(" - Response<TSuccess, TError>:");
-		{
-			var json = """
-            {
-               "IsSuccess": true,
-               "Ext1": "extension",
-               "Ext2": {
-                  "Message": "extension"
-               }
-            }
-            """;
-			Response<Unit, string> response = json.Fx.Json.Deserialize<Response<Unit, string>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			Assert.Equal("extension", response.Extensions.GetAs<string>("Ext1"));
-			Assert.Equal("extension", response.Extensions.GetAs<CustomError>("Ext2")?.Message);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess>:");
-		{
-			var json = """
-            {
-               "IsSuccess": true,
-               "Ext1": "extension",
-               "Ext2": {
-                  "Message": "extension"
-               }
-            }
-            """;
-			ResponseMaybe<Unit> response = json.Fx.Json.Deserialize<ResponseMaybe<Unit>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			Assert.Equal("extension", response.Extensions.GetAs<string>("Ext1"));
-			Assert.Equal("extension", response.Extensions.GetAs<CustomError>("Ext2")?.Message);
-		}
-		Output.WriteLine(" - ResponseMaybe<TSuccess, TError>:");
-		{
-			var json = """
-            {
-               "IsSuccess": true,
-               "Ext1": "extension",
-               "Ext2": {
-                  "Message": "extension"
-               }
-            }
-            """;
-			ResponseMaybe<Unit, string> response = json.Fx.Json.Deserialize<ResponseMaybe<Unit, string>>().SuccessOrThrow();
-			IsTrue(response is not null);
-			Assert.Equal("extension", response.Extensions.GetAs<string>("Ext1"));
-			Assert.Equal("extension", response.Extensions.GetAs<CustomError>("Ext2")?.Message);
-		}
-	}
-	[Fact]
-	public void Deserialization_Error_Extensions()
-	{
-		var json = """
-            {
-               "IsSuccess": false,
-               "Error": {
-                  "Type": "NotFound",
-                  "Ext1": "extension",
-                  "Ext2": {
-                     "Message": "extension"
-                  }
-               }
-            }
-            """;
-		Response<Unit> response = json.Fx.Json.Deserialize<Response<Unit>>().SuccessOrThrow();
-		IsTrue(response is not null);
-		IsTrue(response is Error);
-		if (response is Error error)
-		{
-			Assert.Equal("extension", error.Extensions.GetAs<string>("Ext1"));
-			Assert.Equal("extension", error.Extensions.GetAs<CustomError>("Ext2")?.Message);
-		}
-	}
-
-	#endregion
-
 	#region Extensions
 
-	[Fact]
+	[Fact(DisplayName = "The reserved extension keys of each form are its envelope members")]
 	public void Extensions_ReservedKeys_AreDefined()
 	{
 		// Response
@@ -646,74 +77,103 @@ public class ResponseTest(ITestOutputHelper output) : BaseTest<ResponseTest>(out
 		Assert.Contains(nameof(ResponseMaybe<>.IsSuccess), ResponseConstants.ResponseMaybeExtensionsReservedKeys);
 		Assert.Contains(nameof(ResponseMaybe<>.IsNone), ResponseConstants.ResponseMaybeExtensionsReservedKeys);
 	}
-	[Fact]
-	public void Extensions_ReservedKeys_ThrowOnInit()
+	// Every reserved key, per form, written literally so the expectation does not come from the implementation.
+	public static TheoryData<string, string> ReservedKeysByForm()
 	{
-		// Response
-		foreach (var key in ResponseConstants.ResponseExtensionsReservedKeys)
-			Throws<ReservedKeyExtensionException>(() => new Response<Unit>(Unit.Value)
-			{
-				Extensions = new()
-				{
-					[key] = "reserved"
-				}
-			});
-
-		// ResponseMaybe
-		foreach (var key in ResponseConstants.ResponseMaybeExtensionsReservedKeys)
-			Throws<ReservedKeyExtensionException>(() => new ResponseMaybe<Unit>(Unit.Value)
-			{
-				Extensions = new()
-				{
-					[key] = "reserved"
-				}
-			});
+		var data = new TheoryData<string, string>();
+		foreach (var form in new[] { "Response", "TypedResponse", "Maybe", "TypedMaybe" })
+		{
+			foreach (var key in new[] { "IsSuccess", "Payload", "Error" })
+				data.Add(form, key);
+			if (form is "Maybe" or "TypedMaybe")
+				data.Add(form, "IsNone");
+		}
+		return data;
 	}
-
-	[Fact]
-	public void Extensions_ReservedKeys_ThrowOnAdd()
+	static IResponse CreateWithExtension(string form, string key) => form switch
 	{
-		// Response
-		foreach (var key in ResponseConstants.ResponseExtensionsReservedKeys)
-		{
-			var response = new Response<Unit>(Unit.Value);
-			Throws<ReservedKeyExtensionException>(() => response.Extensions.Add(key, "reserved"));
-		}
-
-		// ResponseMaybe
-		foreach (var key in ResponseConstants.ResponseExtensionsReservedKeys)
-		{
-			var response = new Response<Unit>(Unit.Value);
-			Throws<ReservedKeyExtensionException>(() => response.Extensions.Add(key, "reserved"));
-		}
-	}
+		"Response" => new Response<Unit>(Unit.Value) { Extensions = new() { [key] = "reserved" } },
+		"TypedResponse" => new Response<Unit, CustomError>(Unit.Value) { Extensions = new() { [key] = "reserved" } },
+		"Maybe" => new ResponseMaybe<Unit>(Unit.Value) { Extensions = new() { [key] = "reserved" } },
+		"TypedMaybe" => new ResponseMaybe<Unit, CustomError>(Unit.Value) { Extensions = new() { [key] = "reserved" } },
+		_ => throw new ArgumentOutOfRangeException(nameof(form)),
+	};
+	static IResponse Create(string form) => form switch
+	{
+		"Response" => new Response<Unit>(Unit.Value),
+		"TypedResponse" => new Response<Unit, CustomError>(Unit.Value),
+		"Maybe" => new ResponseMaybe<Unit>(Unit.Value),
+		"TypedMaybe" => new ResponseMaybe<Unit, CustomError>(Unit.Value),
+		_ => throw new ArgumentOutOfRangeException(nameof(form)),
+	};
+	[Theory(DisplayName = "A reserved key cannot be set as an extension at initialization")]
+	[MemberData(nameof(ReservedKeysByForm))]
+	public void Extensions_ReservedKey_ThrowsOnInit(string form, string key)
+		=> Throws<ReservedKeyExtensionException>(() => CreateWithExtension(form, key));
+	[Theory(DisplayName = "A reserved key cannot be added as an extension afterwards")]
+	[MemberData(nameof(ReservedKeysByForm))]
+	public void Extensions_ReservedKey_ThrowsOnAdd(string form, string key)
+		=> Throws<ReservedKeyExtensionException>(() => Create(form).Extensions.Add(key, "reserved"));
 
 	#endregion
 
-	[Fact(DisplayName = "The envelope follows the caller naming policy on both write and read")]
-	public void Envelope_FollowsCallerNamingPolicy()
+	#region Explicit conversions
+
+	[Theory(DisplayName = "A not allowed explicit conversion names the target type and the actual state of the response")]
+	[InlineData("Response success to Error")]
+	[InlineData("Response error to TSuccess")]
+	[InlineData("TypedResponse success to TError")]
+	[InlineData("TypedResponse error to TSuccess")]
+	[InlineData("Maybe none to TSuccess")]
+	[InlineData("Maybe error to TSuccess")]
+	[InlineData("Maybe none to Error")]
+	[InlineData("Maybe success to Error")]
+	[InlineData("Maybe success to None")]
+	[InlineData("Maybe error to None")]
+	[InlineData("TypedMaybe none to TSuccess")]
+	[InlineData("TypedMaybe error to TSuccess")]
+	[InlineData("TypedMaybe none to TError")]
+	[InlineData("TypedMaybe success to TError")]
+	[InlineData("TypedMaybe success to None")]
+	[InlineData("TypedMaybe error to None")]
+	public void ExplicitConversion_NotAllowed_NamesTargetAndState(string conversion)
 	{
-		// Un consumidor que configura snake_case en su Program.cs no sabe nada de Fuxion:
-		// el sobre debe escribirse y leerse con su politica, sin configuracion adicional.
-		var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+		Response<TestPayload> responseSuccess = new TestPayload("test", 123);
+		Response<TestPayload> responseError = Error.NotFound();
+		Response<TestPayload, CustomError> typedSuccess = new TestPayload("test", 123);
+		Response<TestPayload, CustomError> typedError = new CustomError("failure");
+		ResponseMaybe<TestPayload> maybeSuccess = new TestPayload("test", 123);
+		ResponseMaybe<TestPayload> maybeError = Error.NotFound();
+		ResponseMaybe<TestPayload> maybeNone = None.Value;
+		ResponseMaybe<TestPayload, CustomError> typedMaybeSuccess = new TestPayload("test", 123);
+		ResponseMaybe<TestPayload, CustomError> typedMaybeError = new CustomError("failure");
+		ResponseMaybe<TestPayload, CustomError> typedMaybeNone = None.Value;
+
+		(Action convert, Type target, string state) = conversion switch
 		{
-			PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+			"Response success to Error" => ((Action)(() => _ = (Error)responseSuccess), typeof(Error), "success"),
+			"Response error to TSuccess" => (() => _ = (TestPayload)responseError, typeof(TestPayload), "error"),
+			"TypedResponse success to TError" => (() => _ = (CustomError)typedSuccess, typeof(CustomError), "success"),
+			"TypedResponse error to TSuccess" => (() => _ = (TestPayload)typedError, typeof(TestPayload), "error"),
+			"Maybe none to TSuccess" => (() => _ = (TestPayload)maybeNone, typeof(TestPayload), "none"),
+			"Maybe error to TSuccess" => (() => _ = (TestPayload)maybeError, typeof(TestPayload), "error"),
+			"Maybe none to Error" => (() => _ = (Error)maybeNone, typeof(Error), "none"),
+			"Maybe success to Error" => (() => _ = (Error)maybeSuccess, typeof(Error), "success"),
+			"Maybe success to None" => (() => _ = (None)maybeSuccess, typeof(None), "success"),
+			"Maybe error to None" => (() => _ = (None)maybeError, typeof(None), "error"),
+			"TypedMaybe none to TSuccess" => (() => _ = (TestPayload)typedMaybeNone, typeof(TestPayload), "none"),
+			"TypedMaybe error to TSuccess" => (() => _ = (TestPayload)typedMaybeError, typeof(TestPayload), "error"),
+			"TypedMaybe none to TError" => (() => _ = (CustomError)typedMaybeNone, typeof(CustomError), "none"),
+			"TypedMaybe success to TError" => (() => _ = (CustomError)typedMaybeSuccess, typeof(CustomError), "success"),
+			"TypedMaybe success to None" => (() => _ = (None)typedMaybeSuccess, typeof(None), "success"),
+			"TypedMaybe error to None" => (() => _ = (None)typedMaybeError, typeof(None), "error"),
+			_ => throw new ArgumentOutOfRangeException(nameof(conversion)),
 		};
 
-		ResponseMaybe<User> response = new User("test", 123);
-
-		var json = JsonSerializer.Serialize(response, options);
-		Output.WriteLine(json);
-
-		Assert.Contains("is_success", json);
-		Assert.Contains("is_none", json);
-
-		var roundTrip = JsonSerializer.Deserialize<ResponseMaybe<User>>(json, options);
-
-		Assert.True(roundTrip.TryGetValue(out User? payload));
-		Assert.Equal("test", payload!.Name);
-		Assert.Equal(123, payload.Age);
+		var ex = Assert.Throws<InvalidOperationException>(convert);
+		Assert.Equal($"Explicit conversion between this response and {target.GetSignature()} is not allowed because this response is {state}", ex.Message);
 	}
+
+	#endregion
 }
-file record User(string Name, int Age);
 file record CustomError(string Message);

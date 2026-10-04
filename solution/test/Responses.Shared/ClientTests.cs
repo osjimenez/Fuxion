@@ -16,22 +16,15 @@ using Xunit;
 /// The client-side extensions (<c>AsResponseAsync</c> and <see cref="FuxionHttpClient"/>) read a real
 /// server's answer identically whichever host produced it.
 /// </summary>
-public abstract class ClientTests : BaseTest<ClientTests>
+public abstract class ClientTests : WireTestBase<ClientTests>
 {
-	/// <summary>The host this test matrix runs against.</summary>
-	protected IWireHost Host { get; }
-
 	/// <summary>Initializes the matrix against the given host, logging which one this run is exercising.</summary>
-	protected ClientTests(ITestOutputHelper output, IWireHost host) : base(output)
-	{
-		Host = host;
-		Output.WriteLine($"Host: {host.GetType().Name}");
-	}
+	protected ClientTests(ITestOutputHelper output, IWireHost host) : base(output, host) { }
 
 	[Fact(DisplayName = "AsResponseAsync reads a payload")]
 	public async Task Client_ReadsPayload()
 	{
-		var response = await Host.CreateClient().GetAsync(Host.Route("response/payload")).AsResponseAsync<TestPayload>();
+		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponsePayload)).AsResponseAsync<TestPayload>();
 		IsTrue(response.TryGetValue(out TestPayload? payload));
 		Assert.Equal(TestPayload.Default, payload);
 	}
@@ -39,7 +32,7 @@ public abstract class ClientTests : BaseTest<ClientTests>
 	[Fact(DisplayName = "AsResponseAsync reads a native error")]
 	public async Task Client_ReadsError()
 	{
-		var response = await Host.CreateClient().GetAsync(Host.Route("response/error-type")).AsResponseAsync<TestPayload>();
+		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponseErrorType)).AsResponseAsync<TestPayload>();
 		IsTrue(response.TryGetValue(out Error error));
 		Assert.Equal(HttpStatusCode.NotImplemented, error.Type);
 	}
@@ -47,7 +40,7 @@ public abstract class ClientTests : BaseTest<ClientTests>
 	[Fact(DisplayName = "AsResponseAsync reads a typed error")]
 	public async Task Client_ReadsTypedError()
 	{
-		var response = await Host.CreateClient().GetAsync(Host.Route("response/typed-error")).AsResponseAsync<string, TestBusinessError>();
+		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponseTypedError)).AsResponseAsync<string, TestBusinessError>();
 		IsTrue(response.TryGetValue(out TestBusinessError? business));
 		Assert.Equal(TestBusinessError.Default, business);
 	}
@@ -55,21 +48,21 @@ public abstract class ClientTests : BaseTest<ClientTests>
 	[Fact(DisplayName = "AsResponseAsync reads Unit")]
 	public async Task Client_ReadsUnit()
 	{
-		var response = await Host.CreateClient().GetAsync(Host.Route("response/unit")).AsResponseAsync<Unit>();
+		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponseUnit)).AsResponseAsync<Unit>();
 		IsTrue(response.TryGetValue(out Unit _));
 	}
 
 	[Fact(DisplayName = "AsResponseAsync reads None")]
 	public async Task Client_ReadsNone()
 	{
-		var response = await Host.CreateClient().GetAsync(Host.Route("response/none")).AsResponseAsync<Unit>();
+		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponseNone)).AsResponseAsync<Unit>();
 		IsTrue(response.IsNone);
 	}
 
 	[Fact(DisplayName = "AsResponseAsync streams a file")]
 	public async Task Client_ReadsFile()
 	{
-		var response = await Host.CreateClient().GetAsync(Host.Route("binary/file"), HttpCompletionOption.ResponseHeadersRead).AsResponseAsync<FileContent>();
+		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.BinaryFile), HttpCompletionOption.ResponseHeadersRead).AsResponseAsync<FileContent>();
 		IsTrue(response.TryGetValue(out FileContent? file));
 		Assert.Equal(TestFile.ContentType, file!.ContentType);
 		Assert.Equal(TestFile.Name, file.FileName);
@@ -87,7 +80,7 @@ public abstract class ClientTests : BaseTest<ClientTests>
 		var options = new FuxionHttpClientOptions { PreferEnvelope = true };
 		var client = new FuxionHttpClient(Host.CreateClient(), options);
 
-		var request = new HttpRequestMessage(HttpMethod.Get, Host.Route("response/payload"));
+		var request = new HttpRequestMessage(HttpMethod.Get, Host.Route(Routes.ResponsePayload));
 		var response = await client.SendAsync<TestPayload>(request);
 
 		// The request is mutated in place by the client before it is sent, so the header survives the send.
@@ -103,7 +96,7 @@ public abstract class ClientTests : BaseTest<ClientTests>
 		var options = new FuxionHttpClientOptions { PreferNaming = ResponseNaming.Snake, PreferEnvelope = true };
 		var client = new FuxionHttpClient(Host.CreateClient(), options);
 
-		var response = await client.GetAsync<TestNamingPayload>(Host.Route("response/naming-payload"));
+		var response = await client.GetAsync<TestNamingPayload>(Host.Route(Routes.ResponseNamingPayload));
 
 		IsTrue(response.TryGetValue(out TestNamingPayload? payload));
 		Assert.Equal("Ada", payload!.FirstName);
@@ -115,7 +108,7 @@ public abstract class ClientTests : BaseTest<ClientTests>
 		var options = new FuxionHttpClientOptions { PreferNaming = ResponseNaming.Snake };
 		var client = new FuxionHttpClient(Host.CreateClient(), options);
 
-		var response = await client.GetAsync<TestNamingPayload>(Host.Route("response/naming-payload"));
+		var response = await client.GetAsync<TestNamingPayload>(Host.Route(Routes.ResponseNamingPayload));
 
 		IsTrue(response.TryGetValue(out TestNamingPayload? payload));
 		Assert.Equal("Ada", payload!.FirstName);
@@ -126,13 +119,13 @@ public abstract class ClientTests : BaseTest<ClientTests>
 	{
 		var options = new FuxionHttpClientOptions { PreferNativeErrors = true };
 		var client = new FuxionHttpClient(Host.CreateClient(), options);
-		var request = new HttpRequestMessage(HttpMethod.Get, Host.Route("response/error-type"));
+		var request = new HttpRequestMessage(HttpMethod.Get, Host.Route(Routes.ResponseErrorType));
 		var response = await client.SendAsync<TestPayload>(request);
 		Assert.Contains(request.Headers.Accept, a => a.MediaType == ResponseMediaTypes.ErrorJson);
 		IsTrue(response.TryGetValue(out Error error));
 		Assert.Equal(HttpStatusCode.NotImplemented, error.Type);
 
-		var raw = new HttpRequestMessage(HttpMethod.Get, Host.Route("response/error-type"));
+		var raw = new HttpRequestMessage(HttpMethod.Get, Host.Route(Routes.ResponseErrorType));
 		foreach (var accept in request.Headers.Accept) raw.Headers.Accept.Add(accept);
 		var wire = await client.HttpClient.SendAsync(raw);
 		Assert.Equal(ResponseMediaTypes.ErrorJson, wire.Content.Headers.ContentType?.MediaType);

@@ -6,7 +6,6 @@ using Fuxion.AspNetCore;
 using Fuxion.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Test.Responses.Shared;
 using Test.Responses.Shared.Fixtures;
 
 namespace Test.AspNetCore.Service;
@@ -19,11 +18,10 @@ public class Program
 
 		// Add services to the container.
 
-		// Configurar la serialización JSON
+		// JSON serialization
 		builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
 		{
 			options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-			//options.SerializerOptions.Converters.Add(new ExceptionConverter());
 		});
 
 		builder.Services.AddResponses(opts =>
@@ -62,7 +60,7 @@ public class Program
 		// Controllers get the response-side wire contract from AddControllers(o => o.UseResponses()) above,
 		// not from this endpoint convention (MVC ignores endpoint filter factories). The chain here exists to
 		// prove that RequestNamingEndpoint.Apply skips controller endpoints (they already have per-request
-		// naming support via ResponseNamingInputFormatter), so request bodies are never transcoded twice.
+		// naming support via RequestNamingInputFormatter), so request bodies are never transcoded twice.
 		app.MapControllers().UseResponses();
 		responses.MapEndpointsForAssembly(typeof(Program).Assembly);
 

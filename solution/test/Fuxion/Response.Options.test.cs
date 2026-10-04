@@ -11,9 +11,9 @@ public class ResponseOptionsTest(ITestOutputHelper output) : BaseTest<ResponseOp
 	{
 		var options = new ResponseOptions();
 
-		IsTrue(!options.SerializeFullResponses);
+		IsFalse(options.SerializeFullResponses);
 		IsTrue(options.SerializeErrorAsProblemDetails);
-		IsTrue(!options.StrictNone);
+		IsFalse(options.StrictNone);
 	}
 
 	[Fact(DisplayName = "Options are a record with value equality so scopes can be compared and cached")]
@@ -35,7 +35,7 @@ public class ResponseOptionsTest(ITestOutputHelper output) : BaseTest<ResponseOp
 		IsTrue(merged.SerializeFullResponses);          // from controller, untouched by action (null)
 		IsTrue(merged.SerializeErrorAsProblemDetails);  // inherited from global
 		IsTrue(merged.StrictNone);                      // from action
-		IsTrue(!global.SerializeFullResponses);          // source never mutated
+		IsFalse(global.SerializeFullResponses);          // source never mutated
 		Assert.Equal(global, global.Merge([]));         // no layers: equal by value
 	}
 }

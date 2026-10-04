@@ -1,8 +1,8 @@
-namespace Fuxion.Http;
-
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Net.Http;
+
+namespace Fuxion.Http;
 
 /// <summary>Registration of Fuxion HTTP clients.</summary>
 public static class FuxionHttpClientServiceExtensions

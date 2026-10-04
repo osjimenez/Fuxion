@@ -58,7 +58,7 @@ public static class EncodingExtensions
 		public Response<string> ToHexString(char? separatorChar = null, bool asBigEndian = false)
 		{
 			if (me.Value is null)
-				return Error.InvalidData("Source byte array is null");
+				return Error.BadRequest("Source byte array is null");
 
 			if (me.Value.Length == 0)
 				return string.Empty;
@@ -97,7 +97,7 @@ public static class EncodingExtensions
 		public Response<string> ToBase64String()
 		{
 			if (me.Value is null)
-				return Error.InvalidData("Source byte array is null");
+				return Error.BadRequest("Source byte array is null");
 
 			return Convert.ToBase64String(me.Value);
 		}
@@ -112,7 +112,7 @@ public static class EncodingExtensions
 		public Response<string> ToBase64UrlString()
 		{
 			if (me.Value is null)
-				return Error.InvalidData("Source byte array is null");
+				return Error.BadRequest("Source byte array is null");
 
 #if NET9_0_OR_GREATER
 			// System.Buffers.Text.Base64Url
@@ -153,7 +153,7 @@ public static class EncodingExtensions
 		public Response<byte[]> ToBytesFromHexString(char? separatorChar = null, bool isBigEndian = false)
 		{
 			if (me.Value is null)
-				return Error.InvalidData("Source string is null");
+				return Error.BadRequest("Source string is null");
 
 			var hex = me.Value;
 			if (separatorChar.HasValue)
@@ -163,7 +163,7 @@ public static class EncodingExtensions
 				return Array.Empty<byte>();
 
 			if (hex.Length % 2 != 0)
-				return Error.Critical("Hex string must have an even number of characters.");
+				return Error.InternalServerError("Hex string must have an even number of characters.");
 
 			var byteCount = hex.Length / 2;
 			var bytes = new byte[byteCount];
@@ -177,7 +177,7 @@ public static class EncodingExtensions
 				}
 				catch (Exception ex)
 				{
-					return Error.Critical($"Error converting hexadecimal string '{me.Value}' to byte array. Byte '{byteString}' is not valid.", exception: ex);
+					return Error.InternalServerError($"Error converting hexadecimal string '{me.Value}' to byte array. Byte '{byteString}' is not valid.", exception: ex);
 				}
 			}
 
@@ -197,14 +197,14 @@ public static class EncodingExtensions
 		public Response<byte[]> ToBytesFromBase64String()
 		{
 			if (me.Value is null)
-				return Error.InvalidData("Source string is null");
+				return Error.BadRequest("Source string is null");
 			try
 			{
 				return Convert.FromBase64String(me.Value);
 			}
 			catch (Exception ex)
 			{
-				return Error.Critical($"Error converting Base64 string '{me.Value}' to byte array.", exception: ex);
+				return Error.InternalServerError($"Error converting Base64 string '{me.Value}' to byte array.", exception: ex);
 			}
 		}
 
@@ -281,7 +281,7 @@ public static class EncodingExtensions
 		public Response<string> ToBase64String(Encoding? encoding = null)
 		{
 			if (me.Value is null)
-				return Error.InvalidData("Source string is null");
+				return Error.BadRequest("Source string is null");
 
 			var bytes = (encoding ?? Encoding.UTF8).GetBytes(me.Value);
 			return bytes.Fx.Encoding.ToBase64String();
@@ -297,7 +297,7 @@ public static class EncodingExtensions
 		public Response<byte[]> ToBytesFromBase64UrlString()
 		{
 			if (me.Value is null)
-				return Error.InvalidData("Source string is null");
+				return Error.BadRequest("Source string is null");
 
 #if NET9_0_OR_GREATER
 			try
@@ -306,7 +306,7 @@ public static class EncodingExtensions
 			}
 			catch (Exception ex)
 			{
-				return Error.Critical(
+				return Error.InternalServerError(
 						$"Error converting Base64Url string '{me.Value}' to byte array.",
 						exception: ex);
 			}
@@ -326,7 +326,7 @@ public static class EncodingExtensions
 					s += "=";
 					break;
 				default:
-					return Error.InvalidData($"Source string '{me.Value}' has invalid Base64Url string length.");
+					return Error.BadRequest($"Source string '{me.Value}' has invalid Base64Url string length.");
 			}
 
 			try
@@ -335,7 +335,7 @@ public static class EncodingExtensions
 			}
 			catch (Exception ex)
 			{
-				return Error.Critical($"Error converting Base64Url string '{me.Value}' to byte array.", exception: ex);
+				return Error.InternalServerError($"Error converting Base64Url string '{me.Value}' to byte array.", exception: ex);
 			}
 #endif
 		}
@@ -429,7 +429,7 @@ public static class EncodingExtensions
 		public Response<string> ToBase64UrlString(Encoding? encoding = null)
 		{
 			if (me.Value is null)
-				return Error.InvalidData("Source string is null");
+				return Error.BadRequest("Source string is null");
 
 			var bytes = (encoding ?? Encoding.UTF8).GetBytes(me.Value);
 			return bytes.Fx.Encoding.ToBase64UrlString();

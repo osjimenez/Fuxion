@@ -1,7 +1,3 @@
-namespace Fuxion.AspNet;
-
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
 using System;
 using System.IO;
 using System.Linq;
@@ -13,7 +9,10 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Web.Http;
-using Fuxion;
+
+namespace Fuxion.AspNet;
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 /// <summary>
 /// A Web API 2 formatter backed by System.Text.Json, so request binding and (depending on which types
@@ -43,8 +42,8 @@ public sealed class SystemTextJsonMediaTypeFormatter : MediaTypeFormatter
 		Options = options ?? throw new ArgumentNullException(nameof(options));
 		this.canRead = canRead;
 		this.writeAll = writeAll;
-		SupportedMediaTypes.Add(new MediaTypeHeaderValue("application/json"));
-		SupportedMediaTypes.Add(new MediaTypeHeaderValue("text/json"));
+		SupportedMediaTypes.Add(new MediaTypeHeaderValue(ResponseMediaTypes.Json));
+		SupportedMediaTypes.Add(new MediaTypeHeaderValue(ResponseMediaTypes.TextJson));
 		SupportedEncodings.Add(new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 	}
 
@@ -70,17 +69,17 @@ public sealed class SystemTextJsonMediaTypeFormatter : MediaTypeFormatter
 			if (buffer.Length == 0)
 				return GetDefaultValueForType(type);
 			buffer.Position = 0;
-			try { return await JsonSerializer.DeserializeAsync(buffer, type, options).ConfigureAwait(false); }
-			catch (JsonException ex) when (formatterLogger is not null)
-			{
-				// BaseJsonMediaTypeFormatter's own behaviour: a malformed body is a model-binding error
-				// (reported through IFormatterLogger, which feeds ModelState), not an unhandled 500 -
-				// unless there is no logger to report it to, in which case the exception still escapes.
-				formatterLogger.LogError(string.Empty, ex);
-				return GetDefaultValueForType(type);
-			}
+			return await DeserializeOrLogAsync(buffer, type, options, formatterLogger).ConfigureAwait(false);
 		}
-		try { return await JsonSerializer.DeserializeAsync(readStream, type, options).ConfigureAwait(false); }
+		return await DeserializeOrLogAsync(readStream, type, options, formatterLogger).ConfigureAwait(false);
+	}
+
+	// BaseJsonMediaTypeFormatter's own behaviour: a malformed body is a model-binding error (reported through
+	// IFormatterLogger, which feeds ModelState), not an unhandled 500 - unless there is no logger to report it
+	// to, in which case the exception still escapes.
+	async Task<object?> DeserializeOrLogAsync(Stream stream, Type type, JsonSerializerOptions options, IFormatterLogger formatterLogger)
+	{
+		try { return await JsonSerializer.DeserializeAsync(stream, type, options).ConfigureAwait(false); }
 		catch (JsonException ex) when (formatterLogger is not null)
 		{
 			formatterLogger.LogError(string.Empty, ex);
@@ -111,7 +110,8 @@ public sealed class SystemTextJsonMediaTypeFormatter : MediaTypeFormatter
 			var problem = new ResponseProblemDetails { Status = (int)HttpStatusCode.BadRequest, Title = "Bad Request", Detail = detail };
 			throw new HttpResponseException(new HttpResponseMessage(HttpStatusCode.BadRequest)
 			{
-				Content = new StringContent(JsonSerializer.Serialize(problem, ProblemOptions), Encoding.UTF8, ResponseMediaTypes.ProblemJson)
+				// Without charset, like every other body the adapter writes (byte-level parity with AspNetCore).
+				Content = new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(problem, ProblemOptions)) { Headers = { ContentType = MediaTypeHeaderValue.Parse(ResponseMediaTypes.ProblemJson) } }
 			});
 		}
 		return ResponseNaming.Apply(Options, values[0]);

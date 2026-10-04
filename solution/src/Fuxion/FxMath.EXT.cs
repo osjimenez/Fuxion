@@ -92,7 +92,7 @@ public static class MathExtensions
 		public Response<(long Quotient, long Remainder)> DivisionAndRemainder(long divisor)
 		{
 			if (divisor == 0)
-				return Error.InvalidData($"Argument '{nameof(divisor)}' cannot be zero.");
+				return Error.BadRequest($"Argument '{nameof(divisor)}' cannot be zero.");
 
 			var quotient = Math.DivRem(me.Value, divisor, out var remainder);
 			return (quotient, remainder);
@@ -111,7 +111,7 @@ public static class MathExtensions
 		public Response<(long Quotient, long Remainder)> DivisionByPowerOfTwo(int bitCount)
 		{
 			if (bitCount is < 0 or > 62)
-				return Error.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).");
+				return Error.BadRequest($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).");
 
 			// 2^bitCount without going through double
 			var divisor = 1L << bitCount;
@@ -134,7 +134,7 @@ public static class MathExtensions
 		public Response<(long Quotient, long Remainder)> DivisionAndRemainder(long divisor)
 		{
 			if (me.Value is null)
-				return Error.InvalidData("Source long is null.");
+				return Error.BadRequest("Source long is null.");
 
 			return me.Value.Value.Fx.Math.DivisionAndRemainder(divisor);
 		}
@@ -153,7 +153,7 @@ public static class MathExtensions
 		public Response<(long Quotient, long Remainder)> DivisionByPowerOfTwo(int bitCount)
 		{
 			if (me.Value is null)
-				return Error.InvalidData("Source long is null.");
+				return Error.BadRequest("Source long is null.");
 
 			return me.Value.Value.Fx.Math.DivisionByPowerOfTwo(bitCount);
 		}
@@ -171,7 +171,7 @@ public static class MathExtensions
 		public Response<(int Quotient, int Remainder)> DivisionAndRemainder(int divisor)
 		{
 			if (divisor == 0)
-				return Error.InvalidData($"Argument '{nameof(divisor)}' cannot be zero.");
+				return Error.BadRequest($"Argument '{nameof(divisor)}' cannot be zero.");
 
 			var quotient = Math.DivRem(me.Value, divisor, out var remainder);
 			return (quotient, remainder);
@@ -190,7 +190,7 @@ public static class MathExtensions
 		public Response<(int Quotient, int Remainder)> DivisionByPowerOfTwo(int bitCount)
 		{
 			if (bitCount is < 0 or > 62)
-				return Error.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).");
+				return Error.BadRequest($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).");
 
 			// 2^bitCount without going through double
 			var divisor = 1 << bitCount;
@@ -212,7 +212,7 @@ public static class MathExtensions
 		public Response<(int Quotient, int Remainder)> DivisionAndRemainder(int divisor)
 		{
 			if (me.Value is null)
-				return Error.InvalidData("Source int is null.");
+				return Error.BadRequest("Source int is null.");
 
 			return me.Value.Value.Fx.Math.DivisionAndRemainder(divisor);
 		}
@@ -231,7 +231,7 @@ public static class MathExtensions
 		public Response<(int Quotient, int Remainder)> DivisionByPowerOfTwo(int bitCount)
 		{
 			if (me.Value is null)
-				return Error.InvalidData("Source long is null.");
+				return Error.BadRequest("Source long is null.");
 
 			return me.Value.Value.Fx.Math.DivisionByPowerOfTwo(bitCount);
 		}
@@ -258,13 +258,13 @@ public static class MathExtensions
 		public Response<(long Quotient, long Remainder)> DivisionByPowerOfTwo(int bitCount, bool isLittleEndian = true)
 		{
 			if (me.Value is null)
-				return Error.InvalidData("Source byte array is null.");
+				return Error.BadRequest("Source byte array is null.");
 
 			if (me.Value.Length is < 1 or > 8)
-				return Error.InvalidData("Length must be between 1 and 8 bytes.");
+				return Error.BadRequest("Length must be between 1 and 8 bytes.");
 
 			if (bitCount is < 0 or > 62)
-				return Error.InvalidData($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).");
+				return Error.BadRequest($"Argument '{nameof(bitCount)}' must be between 0 and 62 (inclusive).");
 
 			long value = 0;
 

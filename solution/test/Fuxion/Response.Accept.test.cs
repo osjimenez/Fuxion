@@ -24,14 +24,14 @@ public class ResponseAcceptTest(ITestOutputHelper output) : BaseTest<ResponseAcc
 
 		IsTrue(result.SerializeFullResponses);
 		IsTrue(result.SerializeErrorAsProblemDetails); // untouched
-		IsTrue(!Defaults.SerializeFullResponses);       // never mutated
+		IsFalse(Defaults.SerializeFullResponses);       // never mutated
 	}
 
 	[Fact(DisplayName = "Asking for native errors turns problem details off")]
 	public void NativeErrors()
 	{
 		var result = ResponseAccept.Apply(Defaults, "application/vnd.fuxion.error+json");
-		IsTrue(!result.SerializeErrorAsProblemDetails);
+		IsFalse(result.SerializeErrorAsProblemDetails);
 	}
 
 	[Fact(DisplayName = "Asking for problem+json turns problem details on")]
@@ -46,7 +46,7 @@ public class ResponseAcceptTest(ITestOutputHelper output) : BaseTest<ResponseAcc
 	public void NativeWinsOverProblem()
 	{
 		var result = ResponseAccept.Apply(Defaults, "application/problem+json, application/vnd.fuxion.error+json");
-		IsTrue(!result.SerializeErrorAsProblemDetails);
+		IsFalse(result.SerializeErrorAsProblemDetails);
 	}
 
 	[Fact(DisplayName = "A media type with q=0 is not acceptable and is ignored")]
@@ -82,7 +82,7 @@ public class ResponseAcceptTest(ITestOutputHelper output) : BaseTest<ResponseAcc
 	public void Naming_OnUnitType_IsHonouredWithoutChangingShape()
 	{
 		var result = ResponseAccept.Apply(new ResponseOptions(), "application/vnd.fuxion.unit+json; naming=kebab, application/json;q=0.9");
-		IsTrue(!result.SerializeFullResponses);
+		IsFalse(result.SerializeFullResponses);
 		IsTrue(result.SerializeErrorAsProblemDetails);
 		Assert.Equal(ResponseNaming.Kebab, result.Naming);
 	}

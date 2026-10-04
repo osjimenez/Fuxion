@@ -25,7 +25,7 @@ public sealed record ResponseOptions
 	/// Naming the client asked for through Accept on a Fuxion media type; null = the server's own policy.
 	/// Never set by configuration; set by ResponseAccept.
 	/// </summary>
-	public string? Naming { get; set; }
+	public string? Naming { get; internal set; }
 
 	/// <summary>
 	/// Status for a business error value the service does not own (or wants to override). Return null for

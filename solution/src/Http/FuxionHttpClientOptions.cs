@@ -1,7 +1,7 @@
-namespace Fuxion.Http;
-
 using System.Collections.Generic;
 using System.Text.Json;
+
+namespace Fuxion.Http;
 
 /// <summary>
 /// What a <see cref="FuxionHttpClient"/> asks for and how it reads. Declared once at registration, so

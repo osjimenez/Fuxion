@@ -686,11 +686,11 @@ public class DeserializeUnionCasesTest(ITestOutputHelper output) : BaseTest<Dese
 		Assert.Equal("missing", error.Message);
 
 		Assert.False("{ not json".Fx.Json.TryDeserializeError(out _, out var malformed));
-		IsTrue(malformed.IsCritical);
+		IsTrue(malformed.IsInternalServerError);
 		Assert.NotNull(malformed.Exception);
 
 		Assert.False("".Fx.Json.TryDeserializeError(out _, out var empty));
-		IsTrue(empty.IsCritical);
+		IsTrue(empty.IsInternalServerError);
 	}
 }
 

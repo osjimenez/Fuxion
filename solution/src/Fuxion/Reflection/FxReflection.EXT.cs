@@ -328,7 +328,7 @@ public static partial class ReflectionExtensions
 		public Response<Stream> GetResourceStream(string folder, string fileName)
 		{
 			if (assembly.FullName is null)
-				return Error.Critical("Assembly.FullName is null");
+				return Error.InternalServerError("Assembly.FullName is null");
 			var resourceName = assembly.FullName.Split(',')[0] + "." + folder.Replace("\\", ".").Replace("/", ".") + "." + fileName;
 			var res = assembly.GetManifestResourceStream(resourceName);
 			return res is null

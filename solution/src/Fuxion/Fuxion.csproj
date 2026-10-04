@@ -41,5 +41,47 @@
 		<Compile Update="SemanticVersion.IdentifierCollection.cs">
 			<DependentUpon>SemanticVersion.cs</DependentUpon>
 		</Compile>
+		<Compile Update="Response.Accept.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.EXT.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.Exceptions.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.FileContent.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.INT.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.Json.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.MediaTypes.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.Naming.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.Options.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.ProblemDetails.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.ProblemDetails.EXT.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.Wire.cs">
+			<DependentUpon>Response.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Error.EXT.cs">
+			<DependentUpon>Error.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Error.Json.cs">
+			<DependentUpon>Error.cs</DependentUpon>
+		</Compile>
 	</ItemGroup>
 </Project>

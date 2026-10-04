@@ -9,17 +9,16 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Web.Http;
 using Fuxion.AspNet;
-using Test.Responses.Shared;
 
 [RoutePrefix("response")]
 public class ResponseController : ApiController
 {
-	[HttpGet, Route("unit")] public Response<Unit> Unit_() => Unit.Value;
-	[HttpGet, Route("none")] public ResponseMaybe<Unit> None_() => None.Value;
-	[HttpGet, Route("string")] public Response<string> String_() => "test";
+	[HttpGet, Route("unit")] public Response<Unit> GetUnit() => Unit.Value;
+	[HttpGet, Route("none")] public ResponseMaybe<Unit> GetNone() => None.Value;
+	[HttpGet, Route("string")] public Response<string> GetString() => "test";
 	[HttpGet, Route("payload")] public Response<TestPayload> Payload() => TestPayload.Default;
 	// A multi-word payload under bare application/json: proves a requested naming policy is never
-	// stamped on an un-announced shape (see Fuxion.Union.ResponseWireMapper.TryMap).
+	// stamped on an un-announced shape (see Fuxion.ResponseWireMapper.TryMap).
 	[HttpGet, Route("naming-payload")] public Response<TestNamingPayload> NamingPayload() => new TestNamingPayload("Ada", 36);
 	[HttpGet, Route("error-message")] public Response<Unit> ErrorMessage() => Error.Custom("test");
 	[HttpGet, Route("error-type")] public Response<Unit> ErrorType() => Error.NotImplemented();
@@ -37,9 +36,9 @@ public class ResponseController : ApiController
 }
 
 // Controller-level attribute: the scope cascade is global -> controller -> action.
-[RoutePrefix("special")]
+[RoutePrefix("attribute-test")]
 [ResponseOptions(SerializeFullResponses = true)]
-public class SpecialController : ApiController
+public class AttributeTestController : ApiController
 {
 	[HttpGet, Route("payload")] public Response<TestPayload> Payload() => TestPayload.Default;
 	[HttpGet, Route("payload-bare"), ResponseOptions(SerializeFullResponses = false)] public Response<TestPayload> PayloadBare() => TestPayload.Default;
@@ -53,8 +52,8 @@ public class PlainController : ApiController
 
 	// ReflectedHttpActionDescriptor.ReturnType is null for both of these; the filter must leave the
 	// framework's own 204 (no content) alone rather than throw on a null declared return type.
-	[HttpGet, Route("void")] public void Void_() { }
-	[HttpGet, Route("task")] public Task Task_() => Task.CompletedTask;
+	[HttpGet, Route("void")] public void ReturnVoid() { }
+	[HttpGet, Route("task")] public Task ReturnTask() => Task.CompletedTask;
 
 	// A plain (non-Fuxion) POCO: whichever JSON formatter is in effect handles it, not the Fuxion one.
 	[HttpGet, Route("poco")] public PlainPoco Poco() => new("x", 1);
@@ -92,11 +91,11 @@ public class NamingController : ApiController
 [RoutePrefix("binary")]
 public class BinaryController : ApiController
 {
-	[HttpGet, Route("file")] public Response<FileContent> File_() => TestFile.Create();
-	[HttpGet, Route("stream")] public Response<Stream> Stream_() => new MemoryStream(TestFile.Bytes, writable: false);
+	[HttpGet, Route("file")] public Response<FileContent> GetFile() => TestFile.Create();
+	[HttpGet, Route("stream")] public Response<Stream> GetStream() => new MemoryStream(TestFile.Bytes, writable: false);
 	[HttpGet, Route("bytes")] public Response<byte[]> Bytes() => TestFile.Bytes;
-	[HttpGet, Route("none")] public ResponseMaybe<FileContent> None_() => None.Value;
-	[HttpGet, Route("error")] public Response<FileContent> Error_() => Error.NotFound("missing");
+	[HttpGet, Route("none")] public ResponseMaybe<FileContent> GetNone() => None.Value;
+	[HttpGet, Route("error")] public Response<FileContent> GetError() => Error.NotFound("missing");
 	[HttpGet, Route("chunked")] public Response<Stream> Chunked() => new NonSeekableStream(TestFile.Bytes);
 }
 
@@ -106,6 +105,6 @@ public class BinaryController : ApiController
 public class ResultController : ApiController
 {
 	[HttpGet, Route("payload")] public IHttpActionResult Payload() { Response<TestPayload> response = TestPayload.Default; return response.ToHttpActionResult(Request); }
-	[HttpGet, Route("error")] public IHttpActionResult Error_() { Response<TestPayload> response = Error.NotFound("missing"); return response.ToHttpActionResult(Request); }
+	[HttpGet, Route("error")] public IHttpActionResult GetError() { Response<TestPayload> response = Error.NotFound("missing"); return response.ToHttpActionResult(Request); }
 	[HttpGet, Route("explicit")] public IHttpActionResult Explicit() { Response<TestPayload> response = TestPayload.Default; return response.ToHttpActionResult(Request, new ResponseOptions { SerializeFullResponses = true }); }
 }

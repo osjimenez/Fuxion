@@ -41,8 +41,8 @@ public class FileContentTest(ITestOutputHelper output) : BaseTest<FileContentTes
 	public void RangeProcessing_DefaultsFromSeekability()
 	{
 		IsTrue(new FileContent(new MemoryStream(new byte[3])).EnableRangeProcessing);
-		IsTrue(!new FileContent(new NonSeekableStream()).EnableRangeProcessing);
-		IsTrue(!new FileContent(new MemoryStream(new byte[3])) { EnableRangeProcessing = false }.EnableRangeProcessing);
+		IsFalse(new FileContent(new NonSeekableStream()).EnableRangeProcessing);
+		IsFalse(new FileContent(new MemoryStream(new byte[3])) { EnableRangeProcessing = false }.EnableRangeProcessing);
 	}
 
 	[Fact(DisplayName = "Metadata is carried by the value itself")]

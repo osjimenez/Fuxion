@@ -1,7 +1,7 @@
-namespace Fuxion;
-
 using System;
 using System.Net.Http.Headers;
+
+namespace Fuxion;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 

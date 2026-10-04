@@ -10,19 +10,6 @@ namespace Fuxion;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-public interface IResponse : IUnion
-{
-	bool IsSuccess { get; }
-	bool IsError { get; }
-	ExtensionsDictionary<IResponse> Extensions { get; }
-}
-public interface IResponseMaybe : IResponse
-{
-	bool IsNone { get; }
-}
-
-//public static class Response;
-
 static class ResponseConstants
 {
 	public const string PayloadPropertyName = "Payload";
@@ -35,6 +22,9 @@ static class ResponseConstants
 
 	public static ExtensionsDictionary<IResponse> EnsureResponseMaybeReservedKeys(ExtensionsDictionary? extensions)
 		=> ExtensionsDictionary.EnsureReservedKeys<IResponse>(extensions, ResponseMaybeExtensionsReservedKeys);
+
+	public static InvalidOperationException ConversionNotAllowed(Type target, string state)
+		=> new($"Explicit conversion between this response and {target.GetSignature()} is not allowed because this response is {state}");
 }
 
 [Union]
@@ -134,12 +124,12 @@ public readonly struct Response<TSuccess> : IResponse
 	public static explicit operator TSuccess(Response<TSuccess> value)
 		=> value.IsSuccess
 			? value._success
-			: throw new InvalidOperationException("Explicit conversion between this response and its success type is not allowed because this response is not success");
+			: throw ResponseConstants.ConversionNotAllowed(typeof(TSuccess), "error");
 
 	public static explicit operator Error(Response<TSuccess> value)
 		=> value.IsError
 			? value._error.Value
-			: throw new InvalidOperationException("Explicit conversion between this response and its error type is not allowed because this response is not error");
+			: throw ResponseConstants.ConversionNotAllowed(typeof(Error), "success");
 }
 
 [Union]
@@ -250,12 +240,12 @@ public readonly struct Response<TSuccess, TError> : IResponse
 	public static explicit operator TSuccess(Response<TSuccess, TError> value)
 		=> value.IsSuccess
 			? value._success
-			: throw new InvalidOperationException("Explicit conversion between this response and its success type is not allowed because this response is not success");
+			: throw ResponseConstants.ConversionNotAllowed(typeof(TSuccess), "error");
 
 	public static explicit operator TError(Response<TSuccess, TError> value)
 		=> value.IsError
 			? value._error
-			: throw new InvalidOperationException("Explicit conversion between this response and its error type is not allowed because this response is not error");
+			: throw ResponseConstants.ConversionNotAllowed(typeof(TError), "success");
 }
 
 [Union]
@@ -303,9 +293,7 @@ public readonly struct ResponseMaybe<TSuccess> : IResponseMaybe
 		_success = default;
 		_error = value;
 	}
-#pragma warning disable IDE0060 // Remove unused parameter
 	public ResponseMaybe(None value)
-#pragma warning restore IDE0060 // Remove unused parameter
 	{
 		_kind = NoneKind;
 		_success = default;
@@ -326,7 +314,7 @@ public readonly struct ResponseMaybe<TSuccess> : IResponseMaybe
 
 	public ExtensionsDictionary<IResponse> Extensions
 	{
-		get => field ?? [with(ResponseConstants.ResponseExtensionsReservedKeys)];
+		get => field ?? [with(ResponseConstants.ResponseMaybeExtensionsReservedKeys)];
 		init => field = ResponseConstants.EnsureResponseMaybeReservedKeys(value);
 	}
 
@@ -379,23 +367,23 @@ public readonly struct ResponseMaybe<TSuccess> : IResponseMaybe
 
 	public static explicit operator TSuccess(ResponseMaybe<TSuccess> value)
 		=> value.IsError
-			? throw new InvalidOperationException($"Explicit conversion between this response and {typeof(TSuccess)} is not allowed because this response is error")
+			? throw ResponseConstants.ConversionNotAllowed(typeof(TSuccess), "error")
 			: value.IsNone
-				? throw new InvalidOperationException($"Explicit conversion between this response and {typeof(TSuccess)} is not allowed because this response is none")
+				? throw ResponseConstants.ConversionNotAllowed(typeof(TSuccess), "none")
 				: value._success!;
 
 	public static explicit operator Error(ResponseMaybe<TSuccess> value)
 		=> value.IsNone
-			? throw new InvalidOperationException($"Explicit conversion between this response and Error is not allowed because this response is none")
+			? throw ResponseConstants.ConversionNotAllowed(typeof(Error), "none")
 			: value.IsSuccess
-				? throw new InvalidOperationException($"Explicit conversion between this response and Error is not allowed because this response is success")
+				? throw ResponseConstants.ConversionNotAllowed(typeof(Error), "success")
 				: value._error!.Value;
 
 	public static explicit operator None(ResponseMaybe<TSuccess> value)
 		=> value.IsError
-			? throw new InvalidOperationException("Explicit conversion between this response and None is not allowed because this response is error")
+			? throw ResponseConstants.ConversionNotAllowed(typeof(None), "error")
 			: value.IsSuccess && !value.IsNone
-				? throw new InvalidOperationException("Explicit conversion between this response and None is not allowed because this response is success")
+				? throw ResponseConstants.ConversionNotAllowed(typeof(None), "success")
 				: None.Value;
 }
 
@@ -456,9 +444,7 @@ public readonly struct ResponseMaybe<TSuccess, TError> : IResponseMaybe
 		_success = default;
 		_error = value;
 	}
-#pragma warning disable IDE0060 // Remove unused parameter
 	public ResponseMaybe(None value)
-#pragma warning restore IDE0060 // Remove unused parameter
 	{
 		_kind = NoneKind;
 		_success = default;
@@ -479,7 +465,7 @@ public readonly struct ResponseMaybe<TSuccess, TError> : IResponseMaybe
 
 	public ExtensionsDictionary<IResponse> Extensions
 	{
-		get => field ?? [with(ResponseConstants.ResponseExtensionsReservedKeys)];
+		get => field ?? [with(ResponseConstants.ResponseMaybeExtensionsReservedKeys)];
 		init => field = ResponseConstants.EnsureResponseMaybeReservedKeys(value);
 	}
 
@@ -531,93 +517,25 @@ public readonly struct ResponseMaybe<TSuccess, TError> : IResponseMaybe
 		=> new(value);
 
 	public static explicit operator TSuccess(ResponseMaybe<TSuccess, TError> value)
-	=> value.IsError
-		? throw new InvalidOperationException($"Explicit conversion between this response and {typeof(TSuccess)} is not allowed because this response is error")
-		: value.IsNone
-			? throw new InvalidOperationException($"Explicit conversion between this response and {typeof(TSuccess)} is not allowed because this response is none")
-			: value._success!;
+		=> value.IsError
+			? throw ResponseConstants.ConversionNotAllowed(typeof(TSuccess), "error")
+			: value.IsNone
+				? throw ResponseConstants.ConversionNotAllowed(typeof(TSuccess), "none")
+				: value._success!;
 
 	public static explicit operator TError(ResponseMaybe<TSuccess, TError> value)
 		=> value.IsNone
-			? throw new InvalidOperationException($"Explicit conversion between this response and Error is not allowed because this response is none")
+			? throw ResponseConstants.ConversionNotAllowed(typeof(TError), "none")
 			: value.IsSuccess
-				? throw new InvalidOperationException($"Explicit conversion between this response and Error is not allowed because this response is success")
+				? throw ResponseConstants.ConversionNotAllowed(typeof(TError), "success")
 				: value._error!;
 
 	public static explicit operator None(ResponseMaybe<TSuccess, TError> value)
 		=> value.IsError
-			? throw new InvalidOperationException("Explicit conversion between this response and None is not allowed because this response is error")
+			? throw ResponseConstants.ConversionNotAllowed(typeof(None), "error")
 			: value.IsSuccess && !value.IsNone
-				? throw new InvalidOperationException("Explicit conversion between this response and None is not allowed because this response is success")
+				? throw ResponseConstants.ConversionNotAllowed(typeof(None), "success")
 				: None.Value;
 }
-
-public class ResponseInitializationException(string message) : FuxionException(message);
-
-//static class RemoteResponseConstants
-//{
-//	public const string PayloadPropertyName = "Payload";
-//	public const string ErrorPropertyName = "Error";
-//	public static readonly HashSet<string> RemoteResponseExtensionsReservedKeys = new([nameof(Response<>.IsSuccess), PayloadPropertyName, ErrorPropertyName], StringComparer.OrdinalIgnoreCase);
-//	public static readonly HashSet<string> RemoteResponseMaybeExtensionsReservedKeys = new([.. RemoteResponseExtensionsReservedKeys, nameof(ResponseMaybe<>.IsNone)], StringComparer.OrdinalIgnoreCase);
-
-//	public static ExtensionsDictionary<RemoteResponseBase> EnsureResponseReservedKeys(ExtensionsDictionary? extensions)
-//		=> ExtensionsDictionary.EnsureReservedKeys<RemoteResponseBase>(extensions, RemoteResponseExtensionsReservedKeys);
-
-//	public static ExtensionsDictionary<RemoteResponseBase> EnsureResponseMaybeReservedKeys(ExtensionsDictionary? extensions)
-//		=> ExtensionsDictionary.EnsureReservedKeys<RemoteResponseBase>(extensions, RemoteResponseMaybeExtensionsReservedKeys);
-//}
-
-//public abstract class RemoteResponseBase
-//{
-//	public string OperationId { get; set; } = string.Empty.RandomString(10);
-
-//	//public string Status { get; set; }
-//	//public string StatusUrl { get; set; }
-//	//public string ResultUrl { get; set; }
-//	public ExtensionsDictionary<RemoteResponseBase> Extensions
-//	{
-//		get => field ?? [with(RemoteResponseConstants.RemoteResponseExtensionsReservedKeys)];
-//		init => field = RemoteResponseConstants.EnsureResponseMaybeReservedKeys(value);
-//	}
-//}
-//public sealed class RemoteResponse<TSuccess>(Task<Response<TSuccess>> task) : RemoteResponseBase
-//	where TSuccess : notnull
-//{
-//	public TaskAwaiter<Response<TSuccess>> GetAwaiter()
-//		=> task.GetAwaiter();
-
-//	public Task<Response<TSuccess>> AsTask()
-//		=> task;
-//}
-//public sealed class RemoteResponse<TSuccess, TError>(Task<Response<TSuccess, TError>> task) : RemoteResponseBase
-//	where TSuccess : notnull
-//	where TError : notnull
-//{
-//	public TaskAwaiter<Response<TSuccess, TError>> GetAwaiter()
-//		=> task.GetAwaiter();
-
-//	public Task<Response<TSuccess, TError>> AsTask()
-//		=> task;
-//}
-//public sealed class RemoteResponseMaybe<TSuccess>(Task<ResponseMaybe<TSuccess>> task) : RemoteResponseBase
-//	where TSuccess : notnull
-//{
-//	public TaskAwaiter<ResponseMaybe<TSuccess>> GetAwaiter()
-//		=> task.GetAwaiter();
-
-//	public Task<ResponseMaybe<TSuccess>> AsTask()
-//		=> task;
-//}
-//public sealed class RemoteResponseMaybe<TSuccess, TError>(Task<ResponseMaybe<TSuccess, TError>> task) : RemoteResponseBase
-//	where TSuccess : notnull
-//	where TError : notnull
-//{
-//	public TaskAwaiter<ResponseMaybe<TSuccess, TError>> GetAwaiter()
-//		=> task.GetAwaiter();
-
-//	public Task<ResponseMaybe<TSuccess, TError>> AsTask()
-//		=> task;
-//}
 
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

@@ -13,4 +13,8 @@
 		<ProjectReference Include="$(FuxionProjectPath)" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">
+		<Reference Include="System.Net.Http" />
+	</ItemGroup>
+
 </Project>

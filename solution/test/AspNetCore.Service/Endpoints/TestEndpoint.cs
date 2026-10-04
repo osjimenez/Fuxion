@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Test.Responses.Shared.Fixtures;
-//using Fuxion;
 
 namespace Test.AspNetCore.Service.Endpoints;
 
@@ -47,7 +46,7 @@ public class TestEndpoint : IEndpoint
 		responseGroup.MapGet("payload-enveloped", Response<TestPayload> () => TestPayload.Default).UseResponses(meta => meta.SerializeFullResponses = true);
 
 		// A multi-word payload under bare application/json: proves a requested naming policy is never
-		// stamped on an un-announced shape (see Fuxion.Union.ResponseWireMapper.TryMap).
+		// stamped on an un-announced shape (see Fuxion.ResponseWireMapper.TryMap).
 		responseGroup.MapGet("naming-payload", Response<TestNamingPayload> () =>
 		{
 			return new TestNamingPayload("Ada", 36);
@@ -72,7 +71,7 @@ public class TestEndpoint : IEndpoint
 		{
 			try
 			{
-				new Level1().Throw();
+				ThrowingFixture.Throw();
 				return Unit.Value;
 			}
 			catch (Exception ex)
@@ -96,7 +95,8 @@ public class TestEndpoint : IEndpoint
 
 		var resultGroup = minimalGroup.MapGroup("result");
 
-		// Demo: subgroup overriding options to serialize full responses
+		// A subgroup with its own options reached through ToResult(): the deferred result resolves the scope when it
+		// executes. The union-returning counterpart is the "sub" group in Program.cs.
 		var specialGroup = minimalGroup.MapGroup("special").UseResponses(meta => meta.SerializeFullResponses = true);
 		specialGroup.MapGet("payload", IResult () =>
 		{
@@ -147,7 +147,7 @@ public class TestEndpoint : IEndpoint
 		{
 			try
 			{
-				new Level1().Throw();
+				ThrowingFixture.Throw();
 				Response<Unit> response = Unit.Value;
 				return response.ToResult();
 			}
@@ -159,105 +159,11 @@ public class TestEndpoint : IEndpoint
 		});
 		#endregion
 
-		// Caso 1 - NO especificamos el tipo de respuesta
-		// Al menos un return tiene que ser Response para que el compilador infiera el tipo de respuesta
-		resultGroup.MapGet("syntax-demo-1", () =>
-		{
-			if (Random.Shared.Next() > 0)
-				return Error.Custom("test");
-			else if (Random.Shared.Next() > 0)
-				return None.Value;
-			return (ResponseMaybe<int>)123;
-		});
-		// Caso 2 - NO especificamos el tipo de respuesta
-		// Al menos un return tiene que ser Response para que el compilador infiera el tipo de respuesta
-		resultGroup.MapGet("syntax-demo-2", () =>
-		{
-			if (Random.Shared.Next() > 0)
-				return Error.Custom("test");
-			return (Response<int>)123;
-		});
-		// Caso 3 - SI especificamos el tipo de respuesta
-		// Caso correcto
-		resultGroup.MapGet("syntax-demo-3-1", ResponseMaybe<int> () =>
-		{
-			if (Random.Shared.Next() > 0)
-				return Error.Custom("test");
-			else if (Random.Shared.Next() > 0)
-				return None.Value;
-			return 123;
-		});
-		resultGroup.MapGet("syntax-demo-3-2", async Task<ResponseMaybe<int>> () =>
-		{
-			await Task.Yield();
-			if (Random.Shared.Next() > 0)
-				return Error.Custom("test");
-			else if (Random.Shared.Next() > 0)
-				return None.Value;
-			return 123;
-		});
-		resultGroup.MapGet("syntax-demo-3-3", async ValueTask<ResponseMaybe<int>> () =>
-		{
-			await Task.Yield();
-			if (Random.Shared.Next() > 0)
-				return Error.Custom("test");
-			else if (Random.Shared.Next() > 0)
-				return None.Value;
-			return 123;
-		});
-		resultGroup.MapGet("syntax-demo-3-4", ResponseMaybe<int, string> () =>
-		{
-			if (Random.Shared.Next() > 0)
-				return "error";
-			else if (Random.Shared.Next() > 0)
-				return None.Value;
-			return 123;
-		});
-		resultGroup.MapGet("syntax-demo-3-5", async Task<ResponseMaybe<int, string>> () =>
-		{
-			await Task.Yield();
-			if (Random.Shared.Next() > 0)
-				return "error";
-			else if (Random.Shared.Next() > 0)
-				return None.Value;
-			return 123;
-		});
-		resultGroup.MapGet("syntax-demo-3-6", async ValueTask<ResponseMaybe<int, string>> () =>
-		{
-			await Task.Yield();
-			if (Random.Shared.Next() > 0)
-				return "error";
-			else if (Random.Shared.Next() > 0)
-				return None.Value;
-			return 123;
-		});
-		// Caso 4 - SI especificamos el tipo de respuesta
-		// Caso incorrecto y peligroso
-		resultGroup.MapGet("syntax-demo-4", object () =>
-		{
-			if (Random.Shared.Next() > 0)
-				return Error.Custom("test");
-			else if (Random.Shared.Next() > 0)
-				return None.Value;
-			return 123;
-		});
-		// Caso 5 - NO especificamos el tipo de respuesta y respondemos solo con uno de los tipos de respuesta
-		// Habrá que serializar Error directamente y convertirlo en IResult de forma adecuada (según config)
-		resultGroup.MapGet("syntax-demo-5-1", () => Error.Custom("test"));
-		// Habrá que serializar None directamente y convertirlo en IResult de forma adecuada (según config)
-		resultGroup.MapGet("syntax-demo-5-2", () => None.Value);
-		// Aqui no podemos hacer nada, el usuario devuelve el tipo que le da la gana, asi que se serializa lo que se devuelve y punto
-		resultGroup.MapGet("syntax-demo-5-3", () => 123);
-		// Caso 6 - Metodo directo
-		// Es un caso perfecto, nada que objetar
-		resultGroup.MapGet("syntax-demo-6-1", () => Do());
-		resultGroup.MapGet("syntax-demo-6-2", () => DoMaybe());
-		// Caso 7 - Metodo con tipo result
-		// Habra que usar los métodos de extensión para convertir el Response en IResult
-		// El compilador no puede inferirlo y podemos definir un conversor explícito porque el Response esta en Fuxion y no tiene los paquetes de AspNetCore
-		// Una pena que no se puedan crear conversores explícitos mediante extensiones (Microsoft presentó algún diseño de esto, pero no se ha implementado finalmente)
-		resultGroup.MapGet("syntax-demo-7-1", IResult () => Do().ToResult());
-		resultGroup.MapGet("syntax-demo-7-2", IResult () => DoMaybe().ToResult());
+		// Bare Error and None returns are mapped like the union they imply (README, syntax demos 5.x); a bare value of
+		// any other type is left to the framework.
+		resultGroup.MapGet("bare-error", () => Error.Custom("test"));
+		resultGroup.MapGet("bare-none", () => None.Value);
+		resultGroup.MapGet("bare-value", () => 123);
 
 		// Explicit options passed to ToResult() win over both the scope's cascade and the request's Accept header.
 		resultGroup.MapGet("explicit-envelope", IResult () => Do().ToResult(new ResponseOptions { SerializeFullResponses = true }));
@@ -378,13 +284,4 @@ public class TestEndpoint : IEndpoint
 		#endregion
 	}
 	private Response<int> Do() => 123;
-	private ResponseMaybe<int> DoMaybe() => None.Value;
-}
-file class Level1
-{
-	public void Throw() => new Level2().Throw();
-}
-file class Level2
-{
-	public void Throw() => throw new NotImplementedException("Not implemented");
 }

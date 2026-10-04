@@ -5,7 +5,6 @@ namespace Fuxion;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-
 /// <summary>
 /// A binary payload that describes itself: the stream plus the HTTP metadata a file needs on the wire.
 /// A file is the purest self-describing HTTP message, so nothing Fuxion is added to it: the media type

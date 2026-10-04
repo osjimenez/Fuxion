@@ -363,7 +363,7 @@ public static class TimeExtensions
 		public Response<long> ToEpochMilliseconds(bool errorIfPrior1970 = false)
 			=> (me.Value - EpochStartTime).TotalMilliseconds switch
 			{
-				< 0 when errorIfPrior1970 => Error.InvalidData("DateTime cannot be prior 1/1/1970 to be converted to EPOCH date"),
+				< 0 when errorIfPrior1970 => Error.BadRequest("DateTime cannot be prior 1/1/1970 to be converted to EPOCH date"),
 				var r => (long)r
 			};
 	}

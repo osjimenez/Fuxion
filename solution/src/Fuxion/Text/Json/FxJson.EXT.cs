@@ -621,18 +621,18 @@ public static class JsonExtensions
 		{
 			ThrowIfUnionCase<T>(nameof(Deserialize));
 			if (me.Value.IsNullOrWhiteSpace())
-				return Error.Critical($"The string cannot be deserialized as '{typeof(T).GetSignature()}' because source string is null, empty or only white spaces");
+				return Error.InternalServerError($"The string cannot be deserialized as '{typeof(T).GetSignature()}' because source string is null, empty or only white spaces");
 
 			try
 			{
 				var res = JsonSerializer.Deserialize<T>(me.Value, (formatted, options).ToFinalOptions());
 				return res is null
-					? Error.Critical($"Deserialization produced a null result")
+					? Error.InternalServerError($"Deserialization produced a null result")
 					: res;
 			}
 			catch (Exception ex)
 			{
-				return Error.Critical($"Error deserializing '{typeof(T).GetSignature()}'", exception: ex);
+				return Error.InternalServerError($"Error deserializing '{typeof(T).GetSignature()}'", exception: ex);
 			}
 		}
 
@@ -649,7 +649,7 @@ public static class JsonExtensions
 			error = default;
 			if (me.Value.IsNullOrWhiteSpace())
 			{
-				failure = Error.Critical($"The string cannot be deserialized as '{typeof(Error).GetSignature()}' because source string is null, empty or only white spaces");
+				failure = Error.InternalServerError($"The string cannot be deserialized as '{typeof(Error).GetSignature()}' because source string is null, empty or only white spaces");
 				return false;
 			}
 
@@ -658,7 +658,7 @@ public static class JsonExtensions
 				var res = JsonSerializer.Deserialize<Error?>(me.Value, (formatted, options).ToFinalOptions());
 				if (res is null)
 				{
-					failure = Error.Critical("Deserialization produced a null result");
+					failure = Error.InternalServerError("Deserialization produced a null result");
 					return false;
 				}
 				error = res.Value;
@@ -667,7 +667,7 @@ public static class JsonExtensions
 			}
 			catch (Exception ex)
 			{
-				failure = Error.Critical($"Error deserializing '{typeof(Error).GetSignature()}'", exception: ex);
+				failure = Error.InternalServerError($"Error deserializing '{typeof(Error).GetSignature()}'", exception: ex);
 				return false;
 			}
 		}
@@ -727,7 +727,7 @@ public static class JsonExtensions
 			}
 			catch (Exception ex)
 			{
-				return Error.Critical($"Error deserializing '{typeof(T).GetSignature()}'", exception: ex);
+				return Error.InternalServerError($"Error deserializing '{typeof(T).GetSignature()}'", exception: ex);
 			}
 		}
 		
@@ -763,18 +763,18 @@ public static class JsonExtensions
 		public Response<object> Deserialize(Type type, bool formatted = false, JsonSerializerOptions? options = null)
 		{
 			if (me.Value.IsNullOrWhiteSpace())
-				return (Response<object>)Error.Critical($"The string cannot be deserialized as '{type.GetSignature()}' because source string is null, empty or only white spaces");
+				return (Response<object>)Error.InternalServerError($"The string cannot be deserialized as '{type.GetSignature()}' because source string is null, empty or only white spaces");
 
 			try
 			{
 				var res = JsonSerializer.Deserialize(me.Value, type, (formatted, options).ToFinalOptions());
 				return res is null
-					? (Response<object>)Error.Critical($"Deserialization produced a null result for '{type.GetSignature()}'")
+					? (Response<object>)Error.InternalServerError($"Deserialization produced a null result for '{type.GetSignature()}'")
 					: res;
 			}
 			catch (Exception ex)
 			{
-				return (Response<object>)Error.Critical($"Error deserializing '{type.GetSignature()}'", exception: ex);
+				return (Response<object>)Error.InternalServerError($"Error deserializing '{type.GetSignature()}'", exception: ex);
 			}
 		}
 
@@ -823,7 +823,7 @@ public static class JsonExtensions
 			}
 			catch (Exception ex)
 			{
-				return (ResponseMaybe<object>)Error.Critical($"Error deserializing '{type.GetSignature()}'", exception: ex);
+				return (ResponseMaybe<object>)Error.InternalServerError($"Error deserializing '{type.GetSignature()}'", exception: ex);
 			}
 		}
 	}
@@ -874,13 +874,13 @@ public static class JsonExtensions
 			try
 			{
 				if (errorIfNull && me.Value is null)
-					return Error.Critical($"The object cannot be serialized as '{typeof(T).GetSignature()}' because source object is null");
+					return Error.InternalServerError($"The object cannot be serialized as '{typeof(T).GetSignature()}' because source object is null");
 
 				return JsonSerializer.Serialize(me.Value, (formatted, options).ToFinalOptions());
 			}
 			catch (Exception ex)
 			{
-				return Error.Critical($"Error serializing '{typeof(T).GetSignature()}'", exception: ex);
+				return Error.InternalServerError($"Error serializing '{typeof(T).GetSignature()}'", exception: ex);
 			}
 		}
 
@@ -917,16 +917,16 @@ public static class JsonExtensions
 			try
 			{
 				if (me.Value is null)
-					return Error.Critical($"The object cannot be serialized as '{typeof(T).GetSignature()}' because source object is null");
+					return Error.InternalServerError($"The object cannot be serialized as '{typeof(T).GetSignature()}' because source object is null");
 
 				var res = JsonSerializer.SerializeToNode(me.Value, (formatted, options).ToFinalOptions());
 				return res is null
-					? Error.Critical($"The object cannot be serializer as '{typeof(T).GetSignature()}' because result was null")
+					? Error.InternalServerError($"The object cannot be serializer as '{typeof(T).GetSignature()}' because result was null")
 					: res;
 			}
 			catch (Exception ex)
 			{
-				return Error.Critical($"Error serializing '{typeof(T).GetSignature()}'", exception: ex);
+				return Error.InternalServerError($"Error serializing '{typeof(T).GetSignature()}'", exception: ex);
 			}
 		}
 
@@ -967,13 +967,13 @@ public static class JsonExtensions
 			try
 			{
 				if (errorIfNull && me.Value is null)
-					return Error.Critical($"The object cannot be serialized as '{typeof(T).GetSignature()}' because source object is null");
+					return Error.InternalServerError($"The object cannot be serialized as '{typeof(T).GetSignature()}' because source object is null");
 				
 				return JsonSerializer.SerializeToElement(me.Value, (formatted, options).ToFinalOptions());
 			}
 			catch (Exception ex)
 			{
-				return Error.Critical($"Error serializing '{typeof(T).GetSignature()}'", exception: ex);
+				return Error.InternalServerError($"Error serializing '{typeof(T).GetSignature()}'", exception: ex);
 			}
 		}
 	}
@@ -1023,7 +1023,7 @@ public static class JsonExtensions
 			try
 			{
 				if (errorIfNull && me.Value is null)
-					return Error.Critical($"The Exception cannot be serialized because source Exception is null");
+					return Error.InternalServerError($"The Exception cannot be serialized because source Exception is null");
 
 				var finalOptions = (formatted, options).ToFinalOptions();
 				if (finalOptions is null)
@@ -1038,7 +1038,7 @@ public static class JsonExtensions
 			}
 			catch (Exception ex)
 			{
-				return Error.Critical($"Error serializing '{typeof(Exception).GetSignature()}'", exception: ex);
+				return Error.InternalServerError($"Error serializing '{typeof(Exception).GetSignature()}'", exception: ex);
 			}
 		}
 
@@ -1082,7 +1082,7 @@ public static class JsonExtensions
 			try
 			{
 				if (me.Value is null)
-					return Error.Critical($"The Exception cannot be serialized because source Exception is null");
+					return Error.InternalServerError($"The Exception cannot be serialized because source Exception is null");
 
 				var finalOptions = (formatted, options).ToFinalOptions();
 				if (finalOptions is null)
@@ -1095,12 +1095,12 @@ public static class JsonExtensions
 
 				var res = JsonSerializer.SerializeToNode(me.Value, finalOptions);
 				if (res is null)
-					return Error.Critical($"The Exception cannot be serialized as '{me.Value?.GetType().GetSignature()}' because result was null");
+					return Error.InternalServerError($"The Exception cannot be serialized as '{me.Value?.GetType().GetSignature()}' because result was null");
 				return res;
 			}
 			catch (Exception ex)
 			{
-				return Error.Critical($"Error serializing '{me.Value?.GetType().GetSignature()}'", exception: ex);
+				return Error.InternalServerError($"Error serializing '{me.Value?.GetType().GetSignature()}'", exception: ex);
 			}
 		}
 
@@ -1148,7 +1148,7 @@ public static class JsonExtensions
 			try
 			{
 				if (errorIfNull && me.Value is null)
-					return Error.Critical($"The Exception cannot be serialized because source Exception is null");
+					return Error.InternalServerError($"The Exception cannot be serialized because source Exception is null");
 
 				var finalOptions = (formatted, options).ToFinalOptions();
 				if (finalOptions is null)
@@ -1163,7 +1163,7 @@ public static class JsonExtensions
 			}
 			catch (Exception ex)
 			{
-				return Error.Critical($"Error serializing '{me.Value?.GetType().GetSignature()}'", exception: ex);
+				return Error.InternalServerError($"Error serializing '{me.Value?.GetType().GetSignature()}'", exception: ex);
 			}
 		}
 	}

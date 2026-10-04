@@ -179,7 +179,7 @@ public static class DataAnnotationsExtensions
 			if (me.Value is null)
 				return nullValueIsValid
 					? Unit.Value
-					: Error.InvalidData(
+					: Error.BadRequest(
 						"Value is null",
 						extensions: new ExtensionsDictionary()
 						{
@@ -191,7 +191,7 @@ public static class DataAnnotationsExtensions
 
 			return validation.IsNullOrEmpty()
 				? Unit.Value
-				: Error.InvalidData(
+				: Error.BadRequest(
 					string.Join("\r\n", validation.Select(v => v.ErrorMessage)),
 					extensions: new ExtensionsDictionary()
 					{

@@ -1,11 +1,12 @@
+using System;
+using System.Net;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Threading.Tasks;
+
 namespace Fuxion;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-using System;
-using System.Net;
-using System.Text.Json;
-using System.Threading.Tasks;
 
 /// <summary>The body shape of a mapped response. The adapter turns it into a concrete HTTP response.</summary>
 public enum ResponseWireShape
@@ -99,7 +100,7 @@ public sealed record ResponseWireMapping(int StatusCode, ResponseWireShape Shape
 
 	ResponseProblemDetails BuildProblem(JsonSerializerOptions? jsonOptions)
 	{
-		var problem = ErrorProblemDetailsConverter.ToProblemDetails((Error)Value!, jsonOptions);
+		var problem = ((Error)Value!).ToProblemDetails(jsonOptions);
 		if (ProblemTitle is not null)
 			problem.Title = ProblemTitle;
 		return problem;
@@ -134,6 +135,12 @@ public static class ResponseWireMapper
 			mapping = mapping with { Naming = options.Naming };
 		return true;
 	}
+
+	// The throwing variant of TryMap, so every adapter reports an unsupported value with the same message.
+	public static ResponseWireMapping Map(object? value, ResponseOptions options)
+		=> TryMap(value, options, out var mapping)
+			? mapping
+			: throw new NotSupportedException($"The union response value of type '{((value as IUnion)?.Value ?? value)?.GetType().FullName ?? "null"}' is not supported.");
 
 	static bool IsAnnouncedShape(ResponseWireShape shape)
 		=> shape is ResponseWireShape.Unit or ResponseWireShape.Envelope or ResponseWireShape.NativeError;
@@ -189,7 +196,7 @@ public static class ResponseWireMapper
 		}
 
 		// default(Response<T>): a programming error, not a business state - but it still follows the error options and Accept.
-		mapping = MapError((Response<Unit>)Error.Critical("The Response value is uninitialized (default)."), options);
+		mapping = MapError((Response<Unit>)Error.InternalServerError("The Response value is uninitialized (default)."), options);
 		return true;
 	}
 
@@ -199,7 +206,7 @@ public static class ResponseWireMapper
 		// programming error. Normalize it to a critical Error up front so the rest of this method - and
 		// therefore the error options and the client's Accept - treat it exactly like any other error.
 		if (response.Value is null)
-			response = (Response<Unit>)Error.Critical("The response is error but it does not contain a supported error payload.");
+			response = (Response<Unit>)Error.InternalServerError("The response is error but it does not contain a supported error payload.");
 
 		var status = ResolveStatus(response.Value, options);
 

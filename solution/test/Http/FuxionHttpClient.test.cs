@@ -1,19 +1,20 @@
-using Fuxion;
-
-namespace Test.Http;
-
 using System;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Fuxion;
 using Fuxion.Http;
 using Fuxion.Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+
+namespace Test.Http;
 
 public class FuxionHttpClientTest(ITestOutputHelper output) : BaseTest<FuxionHttpClientTest>(output)
 {
@@ -37,6 +38,8 @@ public class FuxionHttpClientTest(ITestOutputHelper output) : BaseTest<FuxionHtt
 	}
 
 	record Person(string Name, int Age);
+	record TwoWords(string FirstName);
+	record BusinessError(string Code);
 
 	[Theory(DisplayName = "BuildAccept expresses the preferences with a JSON fallback")]
 	[InlineData(false, false, null, "application/json")]
@@ -71,6 +74,102 @@ public class FuxionHttpClientTest(ITestOutputHelper output) : BaseTest<FuxionHtt
 		var response = await client.GetAsync<Person>("people/1");
 		IsTrue(response.TryGetValue(out Person? p));
 		Assert.Equal("test", p!.Name);
+	}
+
+	[Fact(DisplayName = "The JSON options are applied to every read, and a naming announced by the response overrides them for that body")]
+	public async Task JsonOptions_AreApplied()
+	{
+		// The caller reads with snake_case, the server answers a camelCase envelope that says so in its media type.
+		var (client, _) = Create(
+			new FuxionHttpClientOptions { JsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower }, PreferEnvelope = true },
+			_ =>
+			{
+				var message = Json("""{"isSuccess":true,"payload":{"firstName":"Ada"}}""");
+				message.Content.Headers.ContentType = MediaTypeHeaderValue.Parse($"{ResponseMediaTypes.ResponseJson}; naming={ResponseNaming.Camel}");
+				return message;
+			});
+
+		var response = await client.GetAsync<TwoWords>("people/1");
+
+		IsTrue(response.TryGetValue(out TwoWords? payload));
+		Assert.Equal("Ada", payload!.FirstName);
+	}
+
+	/// <summary>A stream that counts the bytes pulled through it, to observe buffering.</summary>
+	sealed class CountingStream(byte[] data) : Stream
+	{
+		readonly MemoryStream inner = new(data, writable: false);
+		public long BytesRead { get; private set; }
+		public override int Read(byte[] buffer, int offset, int count) { var n = inner.Read(buffer, offset, count); BytesRead += n; return n; }
+		public override bool CanRead => true;
+		public override bool CanSeek => false;
+		public override bool CanWrite => false;
+		public override long Length => throw new NotSupportedException();
+		public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+		public override void Flush() { }
+		public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+		public override void SetLength(long value) => throw new NotSupportedException();
+		public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+	}
+
+	[Fact(DisplayName = "A binary request is sent with ResponseHeadersRead so the body is not buffered by HttpClient")]
+	public async Task Binary_UsesResponseHeadersRead()
+	{
+		var body = new CountingStream(new byte[64 * 1024]);
+		var (client, _) = Create(respond: _ =>
+		{
+			var message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(body) };
+			message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+			return message;
+		});
+
+		var response = await client.GetAsync<Stream>("files/big");
+
+		IsTrue(response.TryGetValue(out Stream? stream));
+		Assert.Equal(0, body.BytesRead); // HttpClient did not pre-read the body
+		using var memory = new MemoryStream();
+		await stream!.CopyToAsync(memory);
+		Assert.Equal(64 * 1024, memory.Length);
+	}
+
+	[Fact(DisplayName = "GetAsync<TSuccess, TError> sends the Accept and recovers the typed error from a problem+json errorPayload")]
+	public async Task GetAsync_TypedError_RecoversErrorPayload()
+	{
+		var (client, handler) = Create(new FuxionHttpClientOptions { PreferEnvelope = true }, _ =>
+		{
+			var message = new HttpResponseMessage(HttpStatusCode.Conflict)
+			{
+				Content = new StringContent("""{"title":"Business error","status":409,"errorPayload":{"code":"stock"}}""", Encoding.UTF8)
+			};
+			message.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(ResponseMediaTypes.ProblemJson);
+			return message;
+		});
+
+		var response = await client.GetAsync<Person, BusinessError>("people/1");
+
+		Assert.Contains(handler.Last!.Headers.Accept, a => a.MediaType == ResponseMediaTypes.ResponseJson);
+		IsTrue(response.TryGetValue(out BusinessError? error));
+		Assert.Equal("stock", error!.Code);
+	}
+
+	[Fact(DisplayName = "GetAsync<Stream, TError> also uses ResponseHeadersRead, so the body is not buffered by HttpClient")]
+	public async Task Binary_TypedError_UsesResponseHeadersRead()
+	{
+		var body = new CountingStream(new byte[64 * 1024]);
+		var (client, _) = Create(respond: _ =>
+		{
+			var message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(body) };
+			message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+			return message;
+		});
+
+		var response = await client.GetAsync<Stream, BusinessError>("files/big");
+
+		IsTrue(response.TryGetValue(out Stream? stream));
+		Assert.Equal(0, body.BytesRead);
+		using var memory = new MemoryStream();
+		await stream!.CopyToAsync(memory);
+		Assert.Equal(64 * 1024, memory.Length);
 	}
 
 	[Fact(DisplayName = "AddFuxionHttpClient registers a configured client")]

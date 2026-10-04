@@ -21,4 +21,40 @@
 		<Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<Compile Update="Response.Accept.test.cs">
+			<DependentUpon>Response.test.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.Client.Binary.test.cs">
+			<DependentUpon>Response.test.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.Client.test.cs">
+			<DependentUpon>Response.test.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.FileContent.test.cs">
+			<DependentUpon>Response.test.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.Json.SourceGeneration.test.cs">
+			<DependentUpon>Response.test.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.MediaTypes.test.cs">
+			<DependentUpon>Response.test.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.Naming.test.cs">
+			<DependentUpon>Response.test.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.Options.test.cs">
+			<DependentUpon>Response.test.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.ProblemDetails.test.cs">
+			<DependentUpon>Response.test.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.Serialization.test.cs">
+			<DependentUpon>Response.test.cs</DependentUpon>
+		</Compile>
+		<Compile Update="Response.Wire.test.cs">
+			<DependentUpon>Response.test.cs</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
 </Project>

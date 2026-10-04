@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Text.Json;
 using Fuxion;
@@ -8,7 +9,6 @@ namespace Test.Fuxion;
 
 public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<ResponseWireMapperTest>(output)
 {
-	public record BusinessError(string Code);
 
 	static ResponseOptions Options(bool full = false, bool problem = true, bool strict = false)
 		=> new() { SerializeFullResponses = full, SerializeErrorAsProblemDetails = problem, StrictNone = strict };
@@ -22,7 +22,7 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 	[Theory(DisplayName = "Unit is a 200 with an empty object body, or the envelope when requested")]
 	[InlineData(false, ResponseWireShape.Unit)]
 	[InlineData(true, ResponseWireShape.Envelope)]
-	public void Unit_(bool full, ResponseWireShape shape)
+	public void Unit_MapsTo200OrEnvelope(bool full, ResponseWireShape shape)
 	{
 		Response<Unit> response = Unit.Value;
 		var mapping = Map(response, Options(full: full));
@@ -37,7 +37,7 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 	[InlineData(false, true, 204, ResponseWireShape.NoContent)]
 	[InlineData(true, true, 204, ResponseWireShape.NoContent)]
 	[InlineData(true, false, 200, ResponseWireShape.Envelope)]
-	public void None_(bool full, bool strict, int status, ResponseWireShape shape)
+	public void None_MapsTo204UnlessEnvelope(bool full, bool strict, int status, ResponseWireShape shape)
 	{
 		ResponseMaybe<Unit> response = None.Value;
 		var mapping = Map(response, Options(full: full, strict: strict));
@@ -50,7 +50,7 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 	[Theory(DisplayName = "A payload is the bare value or the envelope")]
 	[InlineData(false, ResponseWireShape.Payload)]
 	[InlineData(true, ResponseWireShape.Envelope)]
-	public void Payload_(bool full, ResponseWireShape shape)
+	public void Payload_MapsToBareValueOrEnvelope(bool full, ResponseWireShape shape)
 	{
 		Response<string> response = "test";
 		var mapping = Map(response, Options(full: full));
@@ -66,7 +66,7 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 	[InlineData(true, true, ResponseWireShape.ProblemError)]  // problem wins over the envelope
 	[InlineData(true, false, ResponseWireShape.Envelope)]
 	[InlineData(false, false, ResponseWireShape.NativeError)]
-	public void NativeError_(bool full, bool problem, ResponseWireShape shape)
+	public void NativeError_FollowsFlagsAndType(bool full, bool problem, ResponseWireShape shape)
 	{
 		Response<string> response = Error.NotFound("missing");
 		var mapping = Map(response, Options(full: full, problem: problem));
@@ -89,9 +89,9 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 	[InlineData(true, true, ResponseWireShape.ProblemError)]
 	[InlineData(true, false, ResponseWireShape.Envelope)]
 	[InlineData(false, false, ResponseWireShape.RawError)]
-	public void TypedError_(bool full, bool problem, ResponseWireShape shape)
+	public void TypedError_MapsToProblemEnvelopeOrBareValue(bool full, bool problem, ResponseWireShape shape)
 	{
-		Response<string, BusinessError> response = new BusinessError("stock");
+		Response<string, TestError> response = new TestError("stock");
 		var mapping = Map(response, Options(full: full, problem: problem));
 
 		Assert.Equal(500, mapping.StatusCode);
@@ -100,13 +100,13 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 		{
 			case ResponseWireShape.ProblemError:
 				Assert.Equal(ResponseWireMapper.BusinessErrorTitle, mapping.ProblemTitle);
-				Assert.Equal(new BusinessError("stock"), ((Error)mapping.Value!).Payload);
+				Assert.Equal(new TestError("stock"), ((Error)mapping.Value!).Payload);
 				break;
 			case ResponseWireShape.RawError:
-				Assert.Equal(new BusinessError("stock"), mapping.Value);
+				Assert.Equal(new TestError("stock"), mapping.Value);
 				break;
 			case ResponseWireShape.Envelope:
-				Assert.Equal(response, (Response<string, BusinessError>)mapping.Value!);
+				Assert.Equal(response, (Response<string, TestError>)mapping.Value!);
 				break;
 		}
 	}
@@ -163,7 +163,7 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 		IsTrue(ResponseWireMapper.TryMap(default(Response<string>), new ResponseOptions { SerializeErrorAsProblemDetails = problem }, out var mapping));
 		Assert.Equal(500, mapping.StatusCode);
 		Assert.Equal(expected, mapping.Shape);
-		IsTrue(((Error)mapping.Value!).IsCritical);
+		IsTrue(((Error)mapping.Value!).IsInternalServerError);
 	}
 
 	[Fact(DisplayName = "An uninitialized response with the envelope requested travels as an envelope")]
@@ -192,8 +192,8 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 	[Fact(DisplayName = "Anything that is not a union value is not mapped")]
 	public void NotAUnionValue_IsNotMapped()
 	{
-		IsTrue(!ResponseWireMapper.TryMap("plain string", Options(), out _));
-		IsTrue(!ResponseWireMapper.TryMap(null, Options(), out _));
+		IsFalse(ResponseWireMapper.TryMap("plain string", Options(), out _));
+		IsFalse(ResponseWireMapper.TryMap(null, Options(), out _));
 	}
 
 	[Theory(DisplayName = "Only the union shapes, Error and None (and their Task/ValueTask wrappers) are supported declared types")]
@@ -257,6 +257,18 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 		Assert.Equal(404, mapping.StatusCode);
 		Assert.Equal(ResponseWireShape.ProblemError, mapping.Shape);
 	}
+
+	[Fact(DisplayName = "Map returns the same mapping as TryMap, and throws a NotSupportedException naming the value type when TryMap cannot map it")]
+	public void Map_ThrowsWhereTryMapFails()
+	{
+		Response<int> response = 1;
+		IsTrue(ResponseWireMapper.TryMap(response, new ResponseOptions(), out var expected));
+		Assert.Equal(expected, ResponseWireMapper.Map(response, new ResponseOptions()));
+
+		IsFalse(ResponseWireMapper.TryMap(42, new ResponseOptions(), out _));
+		var ex = Assert.Throws<NotSupportedException>(() => ResponseWireMapper.Map(42, new ResponseOptions()));
+		Assert.Equal("The union response value of type 'System.Int32' is not supported.", ex.Message);
+	}
 }
 
 public class ResponseWireMaterializeTest(ITestOutputHelper output) : BaseTest<ResponseWireMaterializeTest>(output)
@@ -274,7 +286,7 @@ public class ResponseWireMaterializeTest(ITestOutputHelper output) : BaseTest<Re
 	}
 
 	[Fact(DisplayName = "Unit is an empty object announced with its media type and the naming parameter")]
-	public void Unit_()
+	public void Unit_MaterializesAsEmptyObjectWithMediaType()
 	{
 		var (contentType, body, serializerOptions) = new ResponseWireMapping(200, ResponseWireShape.Unit, null).Materialize(Web);
 
@@ -285,7 +297,7 @@ public class ResponseWireMaterializeTest(ITestOutputHelper output) : BaseTest<Re
 	}
 
 	[Fact(DisplayName = "A bare payload is plain application/json without parameters")]
-	public void Payload_()
+	public void Payload_MaterializesAsPlainJson()
 	{
 		var (contentType, body, serializerOptions) = new ResponseWireMapping(200, ResponseWireShape.Payload, "test").Materialize(Snake);
 		Assert.Equal(ResponseMediaTypes.Json, contentType);
@@ -306,9 +318,9 @@ public class ResponseWireMaterializeTest(ITestOutputHelper output) : BaseTest<Re
 	}
 
 	[Fact(DisplayName = "A problem error becomes RFC 9457 ProblemDetails, honouring the title override")]
-	public void ProblemError_()
+	public void ProblemError_MaterializesAsProblemDetails()
 	{
-		var wrapped = new Error { Payload = new ResponseWireMapperTest.BusinessError("stock") };
+		var wrapped = new Error { Payload = new TestError("stock") };
 		var (contentType, body, serializerOptions) = new ResponseWireMapping(500, ResponseWireShape.ProblemError, wrapped, ResponseWireMapper.BusinessErrorTitle).Materialize(Web);
 
 		Assert.Equal(ResponseMediaTypes.ProblemJson, contentType);
@@ -332,12 +344,12 @@ public class ResponseWireMaterializeTest(ITestOutputHelper output) : BaseTest<Re
 	[Fact(DisplayName = "problem+json is always written in camel, whatever the server policy")]
 	public void ProblemError_AlwaysCamel_WhateverServerPolicy()
 	{
-		var wrapped = new Error { Payload = new ResponseWireMapperTest.BusinessError("stock") };
+		var wrapped = new Error { Payload = new TestError("stock") };
 		var (_, body, serializerOptions) = new ResponseWireMapping(500, ResponseWireShape.ProblemError, wrapped, ResponseWireMapper.BusinessErrorTitle).Materialize(Snake);
 
 		var problem = Assert.IsType<global::Fuxion.ResponseProblemDetails>(body);
 		IsTrue(problem.Extensions.ContainsKey("errorPayload"));
-		IsTrue(!problem.Extensions.ContainsKey("error_payload"));
+		IsFalse(problem.Extensions.ContainsKey("error_payload"));
 		Assert.Equal(JsonNamingPolicy.CamelCase, serializerOptions?.PropertyNamingPolicy);
 	}
 
@@ -349,7 +361,7 @@ public class ResponseWireMaterializeTest(ITestOutputHelper output) : BaseTest<Re
 	}
 
 	[Fact(DisplayName = "A binary shape materializes as the file's own media type without parameters or JSON options")]
-	public void Binary_()
+	public void Binary_MaterializesAsFileMediaType()
 	{
 		using var file = new FileContent(new System.IO.MemoryStream(new byte[1]), "image/png", "a.png");
 		var (contentType, body, serializerOptions) = new ResponseWireMapping(200, ResponseWireShape.Binary, file).Materialize(Snake);
@@ -363,8 +375,8 @@ public class ResponseWireMaterializeTest(ITestOutputHelper output) : BaseTest<Re
 	public void RequestedNaming_OnlyOnAnnouncedShapes()
 	{
 		var serverSnake = new JsonSerializerOptions(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
-		var options = new ResponseOptions { SerializeFullResponses = true, Naming = ResponseNaming.Kebab };
-		Response<TestPayloadLike> response = new TestPayloadLike("x", 1);
+		var options = ResponseAccept.Apply(new ResponseOptions { SerializeFullResponses = true }, $"{ResponseMediaTypes.ResponseJson}; naming={ResponseNaming.Kebab}");
+		Response<TestPayload> response = new TestPayload("x", 1);
 		IsTrue(ResponseWireMapper.TryMap(response, options, out var mapping));
 		Assert.Equal(ResponseNaming.Kebab, mapping.Naming);
 		var (contentType, _, serializerOptions) = mapping.Materialize(serverSnake);
@@ -381,5 +393,4 @@ public class ResponseWireMaterializeTest(ITestOutputHelper output) : BaseTest<Re
 		Assert.Null(payload.Naming);
 		Assert.Same(serverSnake, payload.Materialize(serverSnake).SerializerOptions);
 	}
-	record TestPayloadLike(string Name, int Age);
 }
