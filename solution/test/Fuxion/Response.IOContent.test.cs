@@ -80,8 +80,8 @@ public class IOContentTest(ITestOutputHelper output) : BaseTest<IOContentTest>(o
 
 		Assert.Equal(7, file.Length);
 		IsFalse(file.Source is IRangeContentSource);
-		Assert.Same(stream, await file.OpenAsync());
-		await Assert.ThrowsAsync<System.InvalidOperationException>(() => file.OpenAsync());
+		Assert.Same(stream, await file.OpenAsync(TestContext.Current.CancellationToken));
+		await Assert.ThrowsAsync<System.InvalidOperationException>(() => file.OpenAsync(TestContext.Current.CancellationToken));
 		Assert.Null(IOContent.FromStream(new NonSeekableStream()).Length);
 	}
 
@@ -99,9 +99,9 @@ public class IOContentTest(ITestOutputHelper output) : BaseTest<IOContentTest>(o
 			Assert.Equal(Path.GetFileName(path), file.FileName);
 			Assert.Equal(new System.DateTimeOffset(File.GetLastWriteTimeUtc(path), System.TimeSpan.Zero), file.LastModified);
 			IsTrue(file.EnableRangeProcessing);
-			using (var first = await file.OpenAsync())
-			using (var second = await file.OpenAsync())
-				Assert.Equal("payload", await new StreamReader(second).ReadToEndAsync());
+			using (var first = await file.OpenAsync(TestContext.Current.CancellationToken))
+			using (var second = await file.OpenAsync(TestContext.Current.CancellationToken))
+				Assert.Equal("payload", await new StreamReader(second).ReadToEndAsync(TestContext.Current.CancellationToken));
 			Assert.Equal("doc.txt", IOContent.FromFile(path, fileName: "doc.txt").FileName);
 		}
 		finally
@@ -117,7 +117,7 @@ public class IOContentTest(ITestOutputHelper output) : BaseTest<IOContentTest>(o
 
 		Assert.Null(file.Length);
 		Assert.Null(file.LastModified);
-		await Assert.ThrowsAsync<FileNotFoundException>(() => file.OpenAsync());
+		await Assert.ThrowsAsync<FileNotFoundException>(() => file.OpenAsync(TestContext.Current.CancellationToken));
 	}
 
 	[Fact(DisplayName = "Range processing is on by default only for sources that can open ranges")]

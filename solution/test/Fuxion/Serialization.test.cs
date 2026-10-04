@@ -369,7 +369,6 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		var badJson = "--";
 		var res = badJson.Fx.Json.DeserializeMaybe<TestClass>();
 
-		Assert.NotNull(res);
 		Assert.True(res.IsError);
 		if (res is not Error error)
 			Assert.Fail("res is not of type Error");
@@ -444,7 +443,6 @@ public class SerializationTest(ITestOutputHelper output) : BaseTest<Serializatio
 		var badJson = "--";
 		var res = badJson.Fx.Json.DeserializeMaybe(typeof(TestClass));
 
-		Assert.NotNull(res);
 		Assert.True(res.IsError);
 		if (res is not Error error)
 			Assert.Fail("res is not of type Error");

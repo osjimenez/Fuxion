@@ -99,8 +99,8 @@ public class MediaTypesTest(ITestOutputHelper output, WebApplicationFactory<Prog
 	public async Task ResultMode_ProblemDetailsExtensions_UseAspNetJsonNamingPolicy(string url, string extensionName)
 	{
 		var cli = factory.CreateClient();
-		var res = await cli.GetAsync(url);
-		var body = await res.Content.ReadAsStringAsync();
+		var res = await cli.GetAsync(url, TestContext.Current.CancellationToken);
+		var body = await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
 		PrintVariable(url, false);
 		PrintVariable(JsonNode.Parse(body)?.ToJsonString(JsonSerializerOptions.Formatted), false);

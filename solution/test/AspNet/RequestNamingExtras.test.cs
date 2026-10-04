@@ -21,7 +21,7 @@ public class WebApi2RequestNamingExtrasTest(ITestOutputHelper output) : BaseTest
 	[Fact(DisplayName = "Without the parameter a snake_case body is not understood")]
 	public async Task Snake_WithoutParameter_IsNotBound()
 	{
-		var res = await AspNetHost.Create().PostAsync("naming/echo", Body("""{"first_name":"Ada","age":36}""", null));
+		var res = await AspNetHost.Create().PostAsync("naming/echo", Body("""{"first_name":"Ada","age":36}""", null), TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
 		Assert.Null((string?)JsonNode.Parse(await res.Content.ReadAsStringAsync())!["firstName"]);
 	}
@@ -32,11 +32,11 @@ public class WebApi2RequestNamingExtrasTest(ITestOutputHelper output) : BaseTest
 	[Fact(DisplayName = "A plain POCO body keeps Newtonsoft and ignores the naming parameter under the default scope")]
 	public async Task PlainPoco_IgnoresNamingUnderDefaultScope()
 	{
-		var defaultScope = await AspNetHost.Create().PostAsync("plain/two-words", Body("""{"first_name":"Ada"}""", "snake"));
+		var defaultScope = await AspNetHost.Create().PostAsync("plain/two-words", Body("""{"first_name":"Ada"}""", "snake"), TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.OK, defaultScope.StatusCode);
 		Assert.Null((string?)JsonNode.Parse(await defaultScope.Content.ReadAsStringAsync())!["firstName"]);
 
-		var allScope = await AspNetHost.Create(scope: JsonFormatterScope.All).PostAsync("plain/two-words", Body("""{"first_name":"Ada"}""", "snake"));
+		var allScope = await AspNetHost.Create(scope: JsonFormatterScope.All).PostAsync("plain/two-words", Body("""{"first_name":"Ada"}""", "snake"), TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.OK, allScope.StatusCode);
 		Assert.Equal("Ada", (string?)JsonNode.Parse(await allScope.Content.ReadAsStringAsync())!["firstName"]);
 	}
@@ -49,7 +49,7 @@ public class WebApi2RequestNamingExtrasTest(ITestOutputHelper output) : BaseTest
 	[Fact(DisplayName = "An unsupported naming parameter is a problem+json 400 whose detail mentions naming")]
 	public async Task UnsupportedNaming_Is400Problem()
 	{
-		var res = await AspNetHost.Create().PostAsync("naming/echo", Body("""{"first_name":"Ada","age":36}""", "whatever"));
+		var res = await AspNetHost.Create().PostAsync("naming/echo", Body("""{"first_name":"Ada","age":36}""", "whatever"), TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
 		Assert.Equal(ResponseMediaTypes.ProblemJson, res.Content.Headers.ContentType?.MediaType);

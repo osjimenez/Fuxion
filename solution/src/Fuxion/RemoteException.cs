@@ -43,11 +43,13 @@ public sealed class ExceptionJson
    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
    public object? TargetSite { get; init; }
 
+   // set, not init: the System.Text.Json 10 source generator binds init properties to the constructor, which an
+   // extension data property cannot be (consumer source-generated contexts fail on .NET 10 and .NET Framework).
    [JsonExtensionData]
    public ExtensionsDictionary<ExceptionJson> Extensions
    {
       get => field ??= [with(ExceptionJsonConstants.ExceptionJsonExtensionsReservedKeys)];
-      init => field = ExceptionJsonConstants.EnsureExceptionJsonReservedKeys(value);
+      set => field = ExceptionJsonConstants.EnsureExceptionJsonReservedKeys(value);
    }
 }
 static class ExceptionJsonConstants

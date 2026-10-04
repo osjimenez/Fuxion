@@ -89,9 +89,8 @@ public static class HttpConfigurationResponseExtensions
 	/// </description></item>
 	/// </list>
 	/// <para>
-	/// Request bodies of any JSON media type read by <see cref="SystemTextJsonMediaTypeFormatter"/> are always
-	/// decoded as UTF-8, regardless of a <c>charset</c> parameter on the request's Content-Type (see
-	/// <see cref="SystemTextJsonMediaTypeFormatter"/>).
+	/// Request bodies of any JSON media type read by <see cref="SystemTextJsonMediaTypeFormatter"/> are decoded in the
+	/// <c>charset</c> they declare (UTF-8 or UTF-16; any other is a 415, see <see cref="SystemTextJsonMediaTypeFormatter"/>).
 	/// </para>
 	/// <para>
 	/// The request's own <c>naming</c> Content-Type parameter (spec §3 - snake_case, kebab-case, etc.) is honoured

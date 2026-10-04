@@ -36,7 +36,7 @@ public class AspNetCoreWireExtrasTest(ITestOutputHelper output, WebApplicationFa
 	[InlineData("controller")]
 	public async Task NativeError_UsesVendorMediaType(string prefix)
 	{
-		var res = await CreateClient(new() { SerializeErrorAsProblemDetails = false }).GetAsync($"{prefix}/response/error-message");
+		var res = await CreateClient(new() { SerializeErrorAsProblemDetails = false }).GetAsync($"{prefix}/response/error-message", TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
 		Assert.Equal(ResponseMediaTypes.ErrorJson, res.Content.Headers.ContentType?.MediaType);
@@ -50,7 +50,7 @@ public class AspNetCoreWireExtrasTest(ITestOutputHelper output, WebApplicationFa
 	[InlineData("minimal/response/error-message")]
 	public async Task MappedResponses_VaryByAccept(string url)
 	{
-		var res = await CreateClient().GetAsync(url);
+		var res = await CreateClient().GetAsync(url, TestContext.Current.CancellationToken);
 		Assert.Contains("Accept", res.Headers.Vary);
 	}
 
@@ -58,14 +58,14 @@ public class AspNetCoreWireExtrasTest(ITestOutputHelper output, WebApplicationFa
 	public async Task Attributes_Cascade()
 	{
 		var cli = CreateClient();
-		Assert.Equal(ResponseMediaTypes.ResponseJson, (await cli.GetAsync("attribute-test/payload")).Content.Headers.ContentType?.MediaType);
-		Assert.Equal("application/json", (await cli.GetAsync("attribute-test/payload-bare")).Content.Headers.ContentType?.MediaType);
+		Assert.Equal(ResponseMediaTypes.ResponseJson, (await cli.GetAsync("attribute-test/payload", TestContext.Current.CancellationToken)).Content.Headers.ContentType?.MediaType);
+		Assert.Equal("application/json", (await cli.GetAsync("attribute-test/payload-bare", TestContext.Current.CancellationToken)).Content.Headers.ContentType?.MediaType);
 	}
 
 	[Fact(DisplayName = "An uninitialized response follows Accept like any other error")]
 	public async Task Unset_FollowsAccept()
 	{
-		var res = await CreateClient().SendAsync(Get("minimal/response/unset", "application/vnd.fuxion.error+json, application/json;q=0.9"));
+		var res = await CreateClient().SendAsync(Get("minimal/response/unset", "application/vnd.fuxion.error+json, application/json;q=0.9"), TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
 		Assert.Equal(ResponseMediaTypes.ErrorJson, res.Content.Headers.ContentType?.MediaType);
@@ -78,12 +78,12 @@ public class AspNetCoreWireExtrasTest(ITestOutputHelper output, WebApplicationFa
 			s.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(o => o.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower)))
 			.CreateClient();
 
-		var res = await cli.GetAsync("minimal/response/typed-error");
+		var res = await cli.GetAsync("minimal/response/typed-error", TestContext.Current.CancellationToken);
 
-		var raw = await res.Content.ReadAsStringAsync();
+		var raw = await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 		IsTrue(JsonNode.Parse(raw)!.AsObject().ContainsKey("errorPayload"));
 
-		var response = await cli.GetAsync("minimal/response/typed-error").AsResponseAsync<string, TestBusinessError>();
+		var response = await cli.GetAsync("minimal/response/typed-error", TestContext.Current.CancellationToken).AsResponseAsync<string, TestBusinessError>(ct: TestContext.Current.CancellationToken);
 
 		IsTrue(response.TryGetValue(out TestBusinessError? error));
 		Assert.Equal(TestBusinessError.Default, error);
@@ -97,10 +97,10 @@ public class AspNetCoreWireExtrasTest(ITestOutputHelper output, WebApplicationFa
 		var logs = new CapturingLoggerProvider();
 		var cli = factory.WithWebHostBuilder(b => b.ConfigureLogging(l => l.AddProvider(logs))).CreateClient();
 
-		await cli.GetAsync($"{prefix}/response/payload");
+		await cli.GetAsync($"{prefix}/response/payload", TestContext.Current.CancellationToken);
 		Assert.DoesNotContain(logs.Entries, e => e.Category == "Fuxion.AspNetCore.Responses");
 
-		var res = await cli.GetAsync($"{prefix}/response/payload-extended");
+		var res = await cli.GetAsync($"{prefix}/response/payload-extended", TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
 		Assert.Equal("application/json", res.Content.Headers.ContentType?.MediaType);

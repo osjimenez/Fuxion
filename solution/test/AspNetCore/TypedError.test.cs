@@ -40,12 +40,12 @@ public class TypedErrorTest(ITestOutputHelper output, WebApplicationFactory<Prog
 		// Defaults: SerializeErrorAsProblemDetails = true.
 		var (cli, _) = CreateClient(new() { SerializeFullResponses = true });
 
-		var res = await cli.GetAsync($"{prefix}/response/typed-error");
+		var res = await cli.GetAsync($"{prefix}/response/typed-error", TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.Conflict, res.StatusCode);
 		Assert.Equal(ResponseMediaTypes.ProblemJson, res.Content.Headers.ContentType?.MediaType);
 
-		var body = JsonNode.Parse(await res.Content.ReadAsStringAsync())!;
+		var body = JsonNode.Parse(await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!;
 		PrintVariable(body.ToJsonString(), false);
 
 		Assert.Equal("Business error", (string?)body["title"]);
@@ -68,7 +68,7 @@ public class TypedErrorTest(ITestOutputHelper output, WebApplicationFactory<Prog
 		ResponseOptions options = new() { SerializeFullResponses = fullResponses };
 		var (cli, jsonOptions) = CreateClient(options);
 
-		var response = await cli.GetAsync($"{prefix}/response/typed-error").AsResponseAsync<string, TestBusinessError>(jsonOptions);
+		var response = await cli.GetAsync($"{prefix}/response/typed-error", TestContext.Current.CancellationToken).AsResponseAsync<string, TestBusinessError>(jsonOptions, TestContext.Current.CancellationToken);
 
 		IsTrue(response.TryGetValue(out TestBusinessError? error));
 		Assert.Equal(TestBusinessError.Default, error);
@@ -82,12 +82,12 @@ public class TypedErrorTest(ITestOutputHelper output, WebApplicationFactory<Prog
 		ResponseOptions options = new() { SerializeErrorAsProblemDetails = false };
 		var (cli, jsonOptions) = CreateClient(options);
 
-		var res = await cli.GetAsync($"{prefix}/response/typed-error");
+		var res = await cli.GetAsync($"{prefix}/response/typed-error", TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.Conflict, res.StatusCode);
 		Assert.Equal("application/json", res.Content.Headers.ContentType?.MediaType);
 
-		var body = JsonNode.Parse(await res.Content.ReadAsStringAsync())!;
+		var body = JsonNode.Parse(await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!;
 		PrintVariable(body.ToJsonString(), false);
 
 		// The body is the bare TError, not the envelope.
@@ -95,7 +95,7 @@ public class TypedErrorTest(ITestOutputHelper output, WebApplicationFactory<Prog
 		Assert.Equal(TestBusinessError.Default.Code, (string?)body["code"]);
 		Assert.Equal(TestBusinessError.Default.Reason, (string?)body["reason"]);
 
-		var response = await res.AsResponseAsync<string, TestBusinessError>(jsonOptions);
+		var response = await res.AsResponseAsync<string, TestBusinessError>(jsonOptions, TestContext.Current.CancellationToken);
 		IsTrue(response.TryGetValue(out TestBusinessError? error));
 		Assert.Equal(TestBusinessError.Default, error);
 	}
@@ -108,16 +108,16 @@ public class TypedErrorTest(ITestOutputHelper output, WebApplicationFactory<Prog
 		ResponseOptions options = new() { SerializeErrorAsProblemDetails = false, SerializeFullResponses = true };
 		var (cli, jsonOptions) = CreateClient(options);
 
-		var res = await cli.GetAsync($"{prefix}/response/typed-error");
+		var res = await cli.GetAsync($"{prefix}/response/typed-error", TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.Conflict, res.StatusCode);
 		Assert.Equal(ResponseMediaTypes.ResponseJson, res.Content.Headers.ContentType?.MediaType);
 
-		var body = JsonNode.Parse(await res.Content.ReadAsStringAsync())!;
+		var body = JsonNode.Parse(await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!;
 		PrintVariable(body.ToJsonString(), false);
 		Assert.False((bool?)body["isSuccess"]);
 
-		var response = await res.AsResponseAsync<string, TestBusinessError>(jsonOptions);
+		var response = await res.AsResponseAsync<string, TestBusinessError>(jsonOptions, TestContext.Current.CancellationToken);
 		IsTrue(response.TryGetValue(out TestBusinessError? error));
 		Assert.Equal(TestBusinessError.Default, error);
 	}

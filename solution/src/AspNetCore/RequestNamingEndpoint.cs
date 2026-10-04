@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -51,8 +52,10 @@ static class RequestNamingEndpoint
 	// Returns false when a response was already written (400/413).
 	static async Task<bool> TryPrepareBodyAsync(HttpContext context, Type bodyType)
 	{
-		if (!TryReadNaming(context.Request.ContentType, out var naming, out var invalidDetail))
+		if (!TryReadNaming(context.Request.ContentType, out var naming, out var charset, out var invalidDetail))
 			return await WriteProblemAsync(context, StatusCodes.Status400BadRequest, invalidDetail);
+		if (!ResponseMediaTypes.TryGetRequestEncoding(charset, out var encoding))
+			return await WriteProblemAsync(context, StatusCodes.Status415UnsupportedMediaType, $"Unsupported charset '{charset}' on the request Content-Type: only UTF-8 and UTF-16 are read.");
 		if (naming is null || !ResponseNaming.NeedsSeparatorTranscoding(naming)) return true; // absent, or camel/pascal: bind as they are
 
 		var max = context.RequestServices.GetService<IOptions<ResponseOptions>>()?.Value.RequestNamingMaxBodySize ?? new ResponseOptions().RequestNamingMaxBodySize;
@@ -62,22 +65,31 @@ static class RequestNamingEndpoint
 		if (buffer.Length == 0) return true;
 
 		var jsonOptions = context.RequestServices.GetService<IOptions<HttpJsonOptions>>()?.Value.SerializerOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
+		// The transcoder works on UTF-8: a UTF-16 body is converted first, and the Content-Type then says so.
+		var utf8 = encoding.Equals(Encoding.UTF8) ? buffer.ToArray() : Encoding.UTF8.GetBytes(encoding.GetString(buffer.GetBuffer(), 0, (int)buffer.Length));
 		byte[] bytes;
-		try { bytes = JsonNamingTranscoder.Transcode(new ReadOnlySpan<byte>(buffer.GetBuffer(), 0, (int)buffer.Length), bodyType, jsonOptions); }
-		catch (JsonException) { bytes = buffer.ToArray(); } // malformed: let the binder fail it the usual way (400)
+		try { bytes = JsonNamingTranscoder.Transcode(utf8, bodyType, jsonOptions); }
+		catch (JsonException) { bytes = utf8; } // malformed: let the binder fail it the usual way (400)
+		if (!encoding.Equals(Encoding.UTF8) && MediaTypeHeaderValue.TryParse(context.Request.ContentType, out var declared))
+		{
+			declared.Charset = "utf-8";
+			context.Request.ContentType = declared.ToString();
+		}
 
 		context.Request.Body = new MemoryStream(bytes);
 		context.Request.ContentLength = bytes.Length;
 		return true;
 	}
 
-	// The naming a JSON request declares on its Content-Type. True with a null naming when the body is not JSON
-	// or declares none; false, with the problem detail, when the parameter is unsupported or duplicated.
-	static bool TryReadNaming(string? contentTypeHeader, out string? naming, out string invalidDetail)
+	// The naming and the charset a JSON request declares on its Content-Type. True with a null naming when the body is
+	// not JSON or declares none; false, with the problem detail, when the parameter is unsupported or duplicated.
+	static bool TryReadNaming(string? contentTypeHeader, out string? naming, out string? charset, out string invalidDetail)
 	{
 		naming = null;
+		charset = null;
 		invalidDetail = string.Empty;
 		if (!MediaTypeHeaderValue.TryParse(contentTypeHeader, out var contentType) || !IsJson(contentType)) return true;
+		charset = contentType.Charset.HasValue ? contentType.Charset.Value : null;
 
 		var values = contentType.Parameters
 			.Where(p => p.Name.Equals(ResponseMediaTypes.NamingParameter, StringComparison.OrdinalIgnoreCase))

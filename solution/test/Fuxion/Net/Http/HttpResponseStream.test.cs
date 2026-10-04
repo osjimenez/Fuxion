@@ -33,7 +33,7 @@ public class HttpResponseStreamTest(ITestOutputHelper output) : BaseTest<HttpRes
 			var first = new byte[10];
 			Assert.Equal(10, stream.Read(first, 0, first.Length));
 			using var rest = new MemoryStream();
-			await stream.CopyToAsync(rest);
+			await stream.CopyToAsync(rest, TestContext.Current.CancellationToken);
 			Assert.Equal(bytes, first.Concat(rest.ToArray()).ToArray());
 			IsFalse(content.Disposed);
 		}

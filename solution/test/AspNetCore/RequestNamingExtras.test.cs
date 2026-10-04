@@ -34,40 +34,40 @@ public class AspNetCoreRequestNamingExtrasTest(ITestOutputHelper output, WebAppl
 	{
 		var content = new StringContent("""{"first_name":"Ada","age":36}""", System.Text.Encoding.UTF8, ResponseMediaTypes.TextJson);
 		content.Headers.ContentType!.Parameters.Add(new NameValueHeaderValue(ResponseMediaTypes.NamingParameter, ResponseNaming.Snake));
-		var res = await factory.CreateClient().PostAsync("minimal/naming/echo", content);
+		var res = await factory.CreateClient().PostAsync("minimal/naming/echo", content, TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.UnsupportedMediaType, res.StatusCode);
 	}
 
 	[Fact(DisplayName = "Without the parameter a snake_case body is not understood: the parameter is what does it")]
 	public async Task Snake_WithoutParameter_IsNotBound()
 	{
-		var res = await factory.CreateClient().PostAsync("minimal/naming/echo", Body("""{"first_name":"Ada","age":36}""", null));
+		var res = await factory.CreateClient().PostAsync("minimal/naming/echo", Body("""{"first_name":"Ada","age":36}""", null), TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-		Assert.Null((string?)JsonNode.Parse(await res.Content.ReadAsStringAsync())!["firstName"]);
+		Assert.Null((string?)JsonNode.Parse(await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!["firstName"]);
 	}
 
 	[Fact(DisplayName = "A camelCase body with naming=camel is left untouched")]
 	public async Task Camel_PassesThrough()
 	{
-		var res = await factory.CreateClient().PostAsync("minimal/naming/echo", Body("""{"firstName":"Ada","age":36}""", ResponseNaming.Camel));
-		Assert.Equal("Ada", (string?)JsonNode.Parse(await res.Content.ReadAsStringAsync())!["firstName"]);
+		var res = await factory.CreateClient().PostAsync("minimal/naming/echo", Body("""{"firstName":"Ada","age":36}""", ResponseNaming.Camel), TestContext.Current.CancellationToken);
+		Assert.Equal("Ada", (string?)JsonNode.Parse(await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!["firstName"]);
 	}
 
 	[Fact(DisplayName = "An endpoint without a declared body type receives the body untouched")]
 	public async Task Minimal_RawEndpoint_Untouched()
 	{
-		var res = await factory.CreateClient().PostAsync("minimal/naming/raw", Body("""{"first_name":"Ada"}""", ResponseNaming.Snake));
+		var res = await factory.CreateClient().PostAsync("minimal/naming/raw", Body("""{"first_name":"Ada"}""", ResponseNaming.Snake), TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-		Assert.True((bool?)JsonNode.Parse(await res.Content.ReadAsStringAsync())!["hasSnake"]);
+		Assert.True((bool?)JsonNode.Parse(await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!["hasSnake"]);
 	}
 
 	[Fact(DisplayName = "A snake body over the configured limit is a 413")]
 	public async Task Minimal_OverLimit_Is413()
 	{
 		var padding = new string('a', 70 * 1024);
-		var res = await factory.CreateClient().PostAsync("minimal/naming/echo", Body($$"""{"first_name":"{{padding}}","age":36}""", ResponseNaming.Snake));
+		var res = await factory.CreateClient().PostAsync("minimal/naming/echo", Body($$"""{"first_name":"{{padding}}","age":36}""", ResponseNaming.Snake), TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.RequestEntityTooLarge, res.StatusCode);
 	}
@@ -76,7 +76,7 @@ public class AspNetCoreRequestNamingExtrasTest(ITestOutputHelper output, WebAppl
 	public async Task Minimal_NoParameter_NotLimited()
 	{
 		var padding = new string('a', 70 * 1024);
-		var res = await factory.CreateClient().PostAsync("minimal/naming/echo", Body($$"""{"first_name":"{{padding}}","age":36}""", null));
+		var res = await factory.CreateClient().PostAsync("minimal/naming/echo", Body($$"""{"first_name":"{{padding}}","age":36}""", null), TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
 	}
@@ -100,7 +100,7 @@ public class AspNetCoreRequestNamingExtrasTest(ITestOutputHelper output, WebAppl
 		content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 		content.Headers.ContentType.Parameters.Add(new NameValueHeaderValue(ResponseMediaTypes.NamingParameter, ResponseNaming.Snake));
 
-		var res = await factory.CreateClient().PostAsync("minimal/naming/echo", content);
+		var res = await factory.CreateClient().PostAsync("minimal/naming/echo", content, TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.RequestEntityTooLarge, res.StatusCode);
 	}
@@ -126,8 +126,8 @@ public class AspNetCoreRequestNamingExtrasTest(ITestOutputHelper output, WebAppl
 		// still surfaces a JsonException-based model error even though the body is legitimately absent, while
 		// ours returns InputFormatterResult.NoValue() cleanly, letting the parameter default instead of failing.
 		// That difference is invisible here because a required body already fails before it could matter.
-		var withNaming = await factory.CreateClient().PostAsync("controller/naming/echo", EmptyContent(ResponseNaming.Snake));
-		var withoutNaming = await factory.CreateClient().PostAsync("controller/naming/echo", EmptyContent(null));
+		var withNaming = await factory.CreateClient().PostAsync("controller/naming/echo", EmptyContent(ResponseNaming.Snake), TestContext.Current.CancellationToken);
+		var withoutNaming = await factory.CreateClient().PostAsync("controller/naming/echo", EmptyContent(null), TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.BadRequest, withNaming.StatusCode);
 		Assert.Equal(HttpStatusCode.BadRequest, withoutNaming.StatusCode);
@@ -137,10 +137,10 @@ public class AspNetCoreRequestNamingExtrasTest(ITestOutputHelper output, WebAppl
 	[Fact(DisplayName = "A controller action still binds a snake body correctly when controllers are mapped under a UseResponses() convention, and RequestNamingEndpoint skips it")]
 	public async Task Controller_MappedUnderUseResponses_StillBindsSnake_AndIsSkippedByTheEndpointWrapper()
 	{
-		var res = await factory.CreateClient().PostAsync("controller/naming/consumes", Body("""{"first_name":"Ada","age":36}""", ResponseNaming.Snake));
+		var res = await factory.CreateClient().PostAsync("controller/naming/consumes", Body("""{"first_name":"Ada","age":36}""", ResponseNaming.Snake), TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-		Assert.Equal("Ada", (string?)JsonNode.Parse(await res.Content.ReadAsStringAsync())!["firstName"]);
+		Assert.Equal("Ada", (string?)JsonNode.Parse(await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!["firstName"]);
 
 		// RequestNamingApplied is internal (visible here via InternalsVisibleTo): a controller endpoint must
 		// carry none of it, proving MVC's own formatter (not the minimal-API RequestDelegate wrapper) is what
@@ -159,13 +159,13 @@ public class AspNetCoreRequestNamingExtrasTest(ITestOutputHelper output, WebAppl
 		var stream = new PeekedByteStream(inner, (byte)'A');
 
 		// A zero-length read must not mark the peeked byte as served, or it would be silently dropped.
-		var zeroLength = await stream.ReadAsync(Array.Empty<byte>(), 0, 0, default);
+		var zeroLength = await stream.ReadAsync(Array.Empty<byte>(), 0, 0, TestContext.Current.CancellationToken);
 		Assert.Equal(0, zeroLength);
 
 		using var buffer = new MemoryStream();
 		var chunk = new byte[16];
 		int read;
-		while ((read = await stream.ReadAsync(chunk, 0, chunk.Length, default)) > 0)
+		while ((read = await stream.ReadAsync(chunk, 0, chunk.Length, TestContext.Current.CancellationToken)) > 0)
 			buffer.Write(chunk, 0, read);
 
 		Assert.Equal("ABC", System.Text.Encoding.ASCII.GetString(buffer.ToArray()));
@@ -176,9 +176,9 @@ public class AspNetCoreRequestNamingExtrasTest(ITestOutputHelper output, WebAppl
 	{
 		// Functional side: the endpoint is reached through two UseResponses() call sites (the root group in
 		// Program.cs and "special"'s own), and still binds a snake body correctly - not corrupted by a second pass.
-		var res = await factory.CreateClient().PostAsync("minimal/special/naming-echo", Body("""{"first_name":"Ada","age":36}""", ResponseNaming.Snake));
+		var res = await factory.CreateClient().PostAsync("minimal/special/naming-echo", Body("""{"first_name":"Ada","age":36}""", ResponseNaming.Snake), TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-		Assert.Equal("Ada", (string?)JsonNode.Parse(await res.Content.ReadAsStringAsync())!["firstName"]);
+		Assert.Equal("Ada", (string?)JsonNode.Parse(await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!["firstName"]);
 
 		// Structural side: RequestNamingApplied is internal (visible here via InternalsVisibleTo), so the
 		// endpoint's own metadata can be inspected directly to prove the wrapper was installed exactly once.

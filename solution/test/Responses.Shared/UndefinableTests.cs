@@ -21,9 +21,9 @@ public abstract class UndefinableTests : WireTestBase<UndefinableTests>
 	[Fact(DisplayName = "An undefined member is omitted from the payload")]
 	public async Task UndefinedMember_IsOmitted()
 	{
-		var res = await Host.CreateClient().GetAsync(Host.Route(Routes.UndefinablePartial));
+		var res = await Host.CreateClient().GetAsync(Host.Route(Routes.UndefinablePartial), TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-		var body = await res.Content.ReadAsStringAsync();
+		var body = await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 		// The raw body is asserted on purpose: deserializing would yield an undefined value both when the
 		// property is omitted and when the marker object is used, so it could not tell them apart.
 		var json = JsonNode.Parse(body)!.AsObject();
@@ -35,9 +35,9 @@ public abstract class UndefinableTests : WireTestBase<UndefinableTests>
 	[Fact(DisplayName = "An absent member is bound as undefined")]
 	public async Task AbsentMember_IsBoundAsUndefined()
 	{
-		var res = await Host.CreateClient().PostAsync(Host.Route(Routes.UndefinableEcho), new StringContent("""{ "age": 7 }""", System.Text.Encoding.UTF8, "application/json"));
+		var res = await Host.CreateClient().PostAsync(Host.Route(Routes.UndefinableEcho), new StringContent("""{ "age": 7 }""", System.Text.Encoding.UTF8, "application/json"), TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-		var json = JsonNode.Parse(await res.Content.ReadAsStringAsync())!.AsObject();
+		var json = JsonNode.Parse(await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!.AsObject();
 		Assert.False((bool)json["nameDefined"]!);
 		Assert.True((bool)json["ageDefined"]!);
 	}

@@ -51,11 +51,11 @@ public class SystemTextJsonMediaTypeFormatterTest(ITestOutputHelper output) : Ba
 
 		// Newtonsoft still answers non-union requests; its body shape is not asserted on here, only that
 		// the endpoint still works.
-		var partial = await client.GetAsync("undefinable/partial");
+		var partial = await client.GetAsync("undefinable/partial", TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.OK, partial.StatusCode);
 
 		// The union wire is unaffected: still plain camelCase application/json.
-		var payload = await client.GetAsync("response/payload");
+		var payload = await client.GetAsync("response/payload", TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.OK, payload.StatusCode);
 		Assert.Equal("application/json", payload.Content.Headers.ContentType?.MediaType);
 		var body = JsonNode.Parse(await payload.Content.ReadAsStringAsync())!;
@@ -65,7 +65,7 @@ public class SystemTextJsonMediaTypeFormatterTest(ITestOutputHelper output) : Ba
 	[Fact(DisplayName = "Existing plain endpoints keep Newtonsoft and PascalCase after UseResponses")]
 	public async Task PlainEndpoint_KeepsNewtonsoft()
 	{
-		var res = await AspNetHost.Create().GetAsync("plain/poco");
+		var res = await AspNetHost.Create().GetAsync("plain/poco", TestContext.Current.CancellationToken);
 		var json = JsonNode.Parse(await res.Content.ReadAsStringAsync())!.AsObject();
 		Assert.True(json.ContainsKey("Name"));
 		Assert.False(json.ContainsKey("name"));
@@ -83,7 +83,7 @@ public class SystemTextJsonMediaTypeFormatterTest(ITestOutputHelper output) : Ba
 	[Fact(DisplayName = "Scope All moves plain endpoints to System.Text.Json (camelCase)")]
 	public async Task ScopeAll_PlainEndpoint_IsCamel()
 	{
-		var res = await AspNetHost.Create(scope: JsonFormatterScope.All).GetAsync("plain/poco");
+		var res = await AspNetHost.Create(scope: JsonFormatterScope.All).GetAsync("plain/poco", TestContext.Current.CancellationToken);
 		Assert.True(JsonNode.Parse(await res.Content.ReadAsStringAsync())!.AsObject().ContainsKey("name"));
 	}
 
@@ -93,7 +93,7 @@ public class SystemTextJsonMediaTypeFormatterTest(ITestOutputHelper output) : Ba
 	[Fact(DisplayName = "Framework HttpError bodies keep their PascalCase keys under the default scope")]
 	public async Task FrameworkHttpError_KeepsPascalCase()
 	{
-		var res = await AspNetHost.Create().GetAsync("plain/does-not-exist");
+		var res = await AspNetHost.Create().GetAsync("plain/does-not-exist", TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
 		var json = JsonNode.Parse(await res.Content.ReadAsStringAsync())!.AsObject();
 		Assert.True(json.ContainsKey("Message"));

@@ -33,9 +33,6 @@
 		<Compile Update="Response.IOContent.test.cs">
 			<DependentUpon>Response.test.cs</DependentUpon>
 		</Compile>
-		<Compile Update="Response.Json.SourceGeneration.test.cs">
-			<DependentUpon>Response.test.cs</DependentUpon>
-		</Compile>
 		<Compile Update="Response.MediaTypes.test.cs">
 			<DependentUpon>Response.test.cs</DependentUpon>
 		</Compile>

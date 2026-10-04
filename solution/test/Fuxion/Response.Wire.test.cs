@@ -239,7 +239,7 @@ public class ResponseWireMapperTest(ITestOutputHelper output) : BaseTest<Respons
 		var streamMapping = Map(streamResponse, Options());
 		Assert.Equal(ResponseWireShape.Binary, streamMapping.Shape);
 		var wrapped = Assert.IsType<IOContent>(streamMapping.Value);
-		Assert.Same(stream, await wrapped.OpenAsync());
+		Assert.Same(stream, await wrapped.OpenAsync(TestContext.Current.CancellationToken));
 		Assert.Equal(BinaryPayload.DefaultContentType, wrapped.ContentType);
 
 		Response<byte[]> bytesResponse = new byte[] { 1, 2, 3 };

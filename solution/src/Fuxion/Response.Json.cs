@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -11,7 +12,10 @@ namespace Fuxion;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-internal sealed class ResponseOfTSuccessJsonConverterFactory : JsonConverterFactory
+// Public only because consumer source-generated contexts instantiate the converter named in the [JsonConverter]
+// attribute (SYSLIB1220 otherwise); not meant to be used directly.
+[EditorBrowsable(EditorBrowsableState.Never)]
+public sealed class ResponseOfTSuccessJsonConverterFactory : JsonConverterFactory
 {
 	public override bool CanConvert(Type typeToConvert)
 		=> typeToConvert.IsGenericType && typeToConvert.GetGenericTypeDefinition() == typeof(Response<>);
@@ -58,7 +62,10 @@ internal sealed class ResponseOfTSuccessJsonConverter<TSuccess> : JsonConverter<
 	}
 }
 
-internal sealed class ResponseOfTSuccessAndTErrorJsonConverterFactory : JsonConverterFactory
+// Public only because consumer source-generated contexts instantiate the converter named in the [JsonConverter]
+// attribute (SYSLIB1220 otherwise); not meant to be used directly.
+[EditorBrowsable(EditorBrowsableState.Never)]
+public sealed class ResponseOfTSuccessAndTErrorJsonConverterFactory : JsonConverterFactory
 {
 	public override bool CanConvert(Type typeToConvert)
 		=> typeToConvert.IsGenericType && typeToConvert.GetGenericTypeDefinition() == typeof(Response<,>);
@@ -106,7 +113,10 @@ internal sealed class ResponseOfTSuccessAndTErrorJsonConverter<TSuccess, TError>
 	}
 }
 
-internal sealed class ResponseMaybeOfTSuccessJsonConverterFactory : JsonConverterFactory
+// Public only because consumer source-generated contexts instantiate the converter named in the [JsonConverter]
+// attribute (SYSLIB1220 otherwise); not meant to be used directly.
+[EditorBrowsable(EditorBrowsableState.Never)]
+public sealed class ResponseMaybeOfTSuccessJsonConverterFactory : JsonConverterFactory
 {
 	public override bool CanConvert(Type typeToConvert)
 		=> typeToConvert.IsGenericType && typeToConvert.GetGenericTypeDefinition() == typeof(ResponseMaybe<>);
@@ -162,7 +172,10 @@ internal sealed class ResponseMaybeOfTSuccessJsonConverter<TSuccess> : JsonConve
 	}
 }
 
-internal sealed class ResponseMaybeOfTSuccessAndTErrorJsonConverterFactory : JsonConverterFactory
+// Public only because consumer source-generated contexts instantiate the converter named in the [JsonConverter]
+// attribute (SYSLIB1220 otherwise); not meant to be used directly.
+[EditorBrowsable(EditorBrowsableState.Never)]
+public sealed class ResponseMaybeOfTSuccessAndTErrorJsonConverterFactory : JsonConverterFactory
 {
 	public override bool CanConvert(Type typeToConvert)
 		=> typeToConvert.IsGenericType && typeToConvert.GetGenericTypeDefinition() == typeof(ResponseMaybe<,>);

@@ -52,12 +52,12 @@ public class ClientBinaryReadingTest(ITestOutputHelper output) : BaseTest<Client
 	{
 		var (message, body) = Binary();
 
-		var response = await message.AsResponseAsync<Stream>();
+		var response = await message.AsResponseAsync<Stream>(ct: TestContext.Current.CancellationToken);
 
 		IsTrue(response.TryGetValue(out Stream? stream));
 		Assert.Equal(0, body.BytesRead);
 		using var reader = new StreamReader(stream!);
-		Assert.Equal("0123456789", await reader.ReadToEndAsync());
+		Assert.Equal("0123456789", await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
 		Assert.Equal(10, body.BytesRead);
 	}
 
@@ -66,22 +66,22 @@ public class ClientBinaryReadingTest(ITestOutputHelper output) : BaseTest<Client
 	{
 		var (message, _) = Binary();
 
-		var response = await message.AsResponseAsync<IOContent>();
+		var response = await message.AsResponseAsync<IOContent>(ct: TestContext.Current.CancellationToken);
 
 		IsTrue(response.TryGetValue(out IOContent? file));
 		Assert.Equal("application/pdf", file!.ContentType);
 		Assert.Equal("a.pdf", file.FileName);
 		Assert.Equal(10, file.Length);
 		Assert.Equal("\"v1\"", file.ETag);
-		using var reader = new StreamReader(await file.OpenAsync());
-		Assert.Equal("0123456789", await reader.ReadToEndAsync());
+		using var reader = new StreamReader(await file.OpenAsync(TestContext.Current.CancellationToken));
+		Assert.Equal("0123456789", await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
 	}
 
 	[Fact(DisplayName = "byte[] materializes the whole body")]
 	public async Task Bytes_AreMaterialized()
 	{
 		var (message, _) = Binary();
-		var response = await message.AsResponseAsync<byte[]>();
+		var response = await message.AsResponseAsync<byte[]>(ct: TestContext.Current.CancellationToken);
 		IsTrue(response.TryGetValue(out byte[]? bytes));
 		Assert.Equal(Encoding.UTF8.GetBytes("0123456789"), bytes);
 	}
@@ -90,12 +90,12 @@ public class ClientBinaryReadingTest(ITestOutputHelper output) : BaseTest<Client
 	public async Task DisposingStream_DisposesMessage()
 	{
 		var (message, _) = Binary();
-		var response = await message.AsResponseAsync<Stream>();
+		var response = await message.AsResponseAsync<Stream>(ct: TestContext.Current.CancellationToken);
 		IsTrue(response.TryGetValue(out Stream? stream));
 
 		stream!.Dispose();
 
-		await Assert.ThrowsAsync<ObjectDisposedException>(() => message.Content.ReadAsStreamAsync());
+		await Assert.ThrowsAsync<ObjectDisposedException>(() => message.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken));
 	}
 
 	[Fact(DisplayName = "A non-binary type receiving a binary body fails without reading it")]
@@ -103,7 +103,7 @@ public class ClientBinaryReadingTest(ITestOutputHelper output) : BaseTest<Client
 	{
 		var (message, body) = Binary();
 
-		var response = await message.AsResponseAsync<Payload>();
+		var response = await message.AsResponseAsync<Payload>(ct: TestContext.Current.CancellationToken);
 
 		IsTrue(response.IsError);
 		Assert.Equal(0, body.BytesRead);
@@ -116,7 +116,7 @@ public class ClientBinaryReadingTest(ITestOutputHelper output) : BaseTest<Client
 		var message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(body) };
 		message.Content.Headers.ContentType = null;
 
-		var response = await message.AsResponseAsync<IOContent>();
+		var response = await message.AsResponseAsync<IOContent>(ct: TestContext.Current.CancellationToken);
 
 		IsTrue(response.TryGetValue(out IOContent? file));
 		Assert.Equal(BinaryPayload.DefaultContentType, file!.ContentType);
@@ -130,7 +130,7 @@ public class ClientBinaryReadingTest(ITestOutputHelper output) : BaseTest<Client
 			Content = new StringContent("""{"title":"Not Found","status":404,"detail":"missing"}""", Encoding.UTF8, ResponseMediaTypes.ProblemJson)
 		};
 
-		var response = await message.AsResponseAsync<IOContent>();
+		var response = await message.AsResponseAsync<IOContent>(ct: TestContext.Current.CancellationToken);
 
 		IsTrue(response.TryGetValue(out Error error));
 		Assert.Equal(HttpStatusCode.NotFound, error.Type);
@@ -141,7 +141,7 @@ public class ClientBinaryReadingTest(ITestOutputHelper output) : BaseTest<Client
 	public async Task Typed_Stream_IsNotBuffered()
 	{
 		var (message, body) = Binary();
-		var response = await message.AsResponseAsync<Stream, Payload>();
+		var response = await message.AsResponseAsync<Stream, Payload>(ct: TestContext.Current.CancellationToken);
 		IsTrue(response.TryGetValue(out Stream? _));
 		Assert.Equal(0, body.BytesRead);
 	}
@@ -151,7 +151,7 @@ public class ClientBinaryReadingTest(ITestOutputHelper output) : BaseTest<Client
 	{
 		var message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("") };
 
-		var response = await message.AsResponseAsync<Unit>();
+		var response = await message.AsResponseAsync<Unit>(ct: TestContext.Current.CancellationToken);
 
 		IsTrue(response.TryGetValue(out Unit _));
 	}
@@ -164,22 +164,22 @@ public class ClientBinaryReadingTest(ITestOutputHelper output) : BaseTest<Client
 	{
 		var (message, _) = Binary();
 
-		var response = await message.AsResponseAsync<MemoryStream>();
+		var response = await message.AsResponseAsync<MemoryStream>(ct: TestContext.Current.CancellationToken);
 
 		IsTrue(response.TryGetValue(out MemoryStream? ms));
 		Assert.Equal(10, ms!.Length);
 		using var reader = new StreamReader(ms);
-		Assert.Equal("0123456789", await reader.ReadToEndAsync());
+		Assert.Equal("0123456789", await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
 	}
 
 	[Fact(DisplayName = "An unsupported Stream subtype is reported as an error, not an exception")]
 	public async Task UnsupportedStreamSubtype_IsError_NotException()
 	{
 		var (message, _) = Binary();
-		var response = await message.AsResponseAsync<OtherStream>();
+		var response = await message.AsResponseAsync<OtherStream>(ct: TestContext.Current.CancellationToken);
 		IsTrue(response.IsError);
 
 		var (typedMessage, _) = Binary();
-		await Assert.ThrowsAsync<InvalidOperationException>(() => typedMessage.AsResponseAsync<OtherStream, Payload>());
+		await Assert.ThrowsAsync<InvalidOperationException>(() => typedMessage.AsResponseAsync<OtherStream, Payload>(ct: TestContext.Current.CancellationToken));
 	}
 }

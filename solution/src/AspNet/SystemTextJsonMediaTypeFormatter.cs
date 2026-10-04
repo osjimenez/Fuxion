@@ -20,8 +20,8 @@ namespace Fuxion.AspNet;
 /// union wire contract (naming policy, converters, omission of undefined members).
 /// </summary>
 /// <remarks>
-/// Request bodies are always decoded as UTF-8: <see cref="System.Text.Json.JsonSerializer"/> reads UTF-8
-/// (or UTF-8 with a BOM) only, so a request declaring a different <c>charset</c> parameter is not honoured.
+/// Request bodies are read in the encoding their <c>charset</c> declares: UTF-8 (also without a charset) or UTF-16,
+/// like ASP.NET Core; any other charset is a 415.
 /// </remarks>
 public sealed class SystemTextJsonMediaTypeFormatter : MediaTypeFormatter
 {
@@ -45,6 +45,7 @@ public sealed class SystemTextJsonMediaTypeFormatter : MediaTypeFormatter
 		SupportedMediaTypes.Add(new MediaTypeHeaderValue(ResponseMediaTypes.Json));
 		SupportedMediaTypes.Add(new MediaTypeHeaderValue(ResponseMediaTypes.TextJson));
 		SupportedEncodings.Add(new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+		SupportedEncodings.Add(new UnicodeEncoding(bigEndian: false, byteOrderMark: true));
 	}
 
 	/// <summary>The base options every read and write goes through, before a per-request <c>naming</c> override.</summary>
@@ -56,9 +57,20 @@ public sealed class SystemTextJsonMediaTypeFormatter : MediaTypeFormatter
 	public override async Task<object?> ReadFromStreamAsync(Type type, Stream readStream, HttpContent content, IFormatterLogger formatterLogger)
 	{
 		var options = OptionsFor(content);
+		var encoding = EncodingFor(content);
 		var contentLength = content?.Headers.ContentLength;
 		if (contentLength == 0)
 			return GetDefaultValueForType(type);
+		// System.Text.Json reads UTF-8 only: a UTF-16 body is decoded to text first (it is legacy, not worth streaming).
+		if (!encoding.Equals(Encoding.UTF8))
+		{
+			string text;
+			using (var reader = new StreamReader(readStream, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true))
+				text = await reader.ReadToEndAsync().ConfigureAwait(false);
+			if (text.Length == 0)
+				return GetDefaultValueForType(type);
+			return await DeserializeOrLogAsync(new MemoryStream(Encoding.UTF8.GetBytes(text)), type, options, formatterLogger).ConfigureAwait(false);
+		}
 		if (contentLength is null)
 		{
 			// Chunked or otherwise length-less content: Web API's own formatters buffer a non-seekable
@@ -93,6 +105,24 @@ public sealed class SystemTextJsonMediaTypeFormatter : MediaTypeFormatter
 	// The Web defaults (camelCase) used to write the problem+json body for a bad 'naming' parameter,
 	// matching what AspNetCore's Results.Problem(...) writes for the same case.
 	static readonly JsonSerializerOptions ProblemOptions = ResponseNaming.Apply(new JsonSerializerOptions(JsonSerializerDefaults.Web), ResponseNaming.Camel);
+
+	// The encoding the request declares in its charset (UTF-8 when it declares none). One it cannot read is a 415,
+	// like ASP.NET Core: the charset is part of the media type the server does not support.
+	static Encoding EncodingFor(HttpContent? content)
+	{
+		var charset = content?.Headers.ContentType?.CharSet;
+		if (ResponseMediaTypes.TryGetRequestEncoding(charset, out var encoding)) return encoding;
+		var problem = new ResponseProblemDetails
+		{
+			Status = (int)HttpStatusCode.UnsupportedMediaType,
+			Title = "Unsupported Media Type",
+			Detail = $"Unsupported charset '{charset}' on the request Content-Type: only UTF-8 and UTF-16 are read."
+		};
+		throw new HttpResponseException(new HttpResponseMessage(HttpStatusCode.UnsupportedMediaType)
+		{
+			Content = new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(problem, ProblemOptions)) { Headers = { ContentType = MediaTypeHeaderValue.Parse(ResponseMediaTypes.ProblemJson) } }
+		});
+	}
 
 	// The request declares its naming on its own Content-Type (spec §3): pick the matching options per request.
 	JsonSerializerOptions OptionsFor(HttpContent? content)

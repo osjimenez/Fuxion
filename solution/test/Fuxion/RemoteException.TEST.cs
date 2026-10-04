@@ -15,22 +15,26 @@ namespace Test.Fuxion;
 
 public class RemoteException_Test(ITestOutputHelper output) : BaseTest<RemoteException_Test>(output)
 {
+   // Builds the JSON the deserialization tests read back: a test never calls another test.
+   static string SerializeExceptionJson() => ExceptionGenerator.GetException().ToExceptionJson().Fx.Json.Serialize(true).SuccessOrThrow();
+
    [Fact]
-   public string Serialization()
+   public void Serialization()
    {
-      var json = ExceptionGenerator.GetException().ToExceptionJson().Fx.Json.Serialize(true).SuccessOrThrow();
+      var json = SerializeExceptionJson();
 
       AssertJson(json, [
          new([nameof(ExceptionJson.Message)],"message"),
          new([nameof(ExceptionJson.Source)],"Test.Fuxion"),
          new(["$type"],nameof(ExceptionWithData))]);
-
-      return json;
    }
+   // Builds the JSON the deserialization tests read back: a test never calls another test.
+   static string SerializeWithInnerJson() => ExceptionGenerator.GetExceptionWithInner().ToExceptionJson().Fx.Json.Serialize(true).SuccessOrThrow();
+
    [Fact]
-   public string Serialization_WithInner()
+   public void Serialization_WithInner()
    {
-      var json = ExceptionGenerator.GetExceptionWithInner().ToExceptionJson().Fx.Json.Serialize(true).SuccessOrThrow();
+      var json = SerializeWithInnerJson();
 
       AssertJson(json, [
          new([nameof(ExceptionJson.Message)],"inner-message"),
@@ -38,38 +42,38 @@ public class RemoteException_Test(ITestOutputHelper output) : BaseTest<RemoteExc
          new([nameof(Exception.InnerException),nameof(ExceptionJson.Message)],"message"),
          new([nameof(Exception.InnerException),"$type"],nameof(ExceptionWithData)),
          new([nameof(Exception.InnerException),nameof(ExceptionJson.Source)],"Test.Fuxion")]);
-
-      return json;
    }
+   // Builds the JSON the deserialization tests read back: a test never calls another test.
+   static string SerializeWithLoopJson() => ExceptionGenerator
+      .GetExceptionWithLoop()
+      .ToExceptionJson()
+      .Fx.Json.Serialize(true)
+      .SuccessOrThrow();
+
    [Fact]
-   public string Serialization_WithLoop()
+   public void Serialization_WithLoop()
    {
-      var json = ExceptionGenerator
-         .GetExceptionWithLoop()
-         .ToExceptionJson()
-         .Fx.Json.Serialize(true)
-         .SuccessOrThrow();
-      
+      var json = SerializeWithLoopJson();
+
       AssertJson(json, [
          new([nameof(ExceptionJson.Message)],"message")]);
-
-      return json;
    }
+   // Builds the JSON the deserialization tests read back: a test never calls another test.
+   static string SerializeAggregateJson() => ExceptionGenerator.GetAggregateException().ToExceptionJson().Fx.Json.Serialize(true).SuccessOrThrow();
+
    [Fact]
-   public string Serialization_Aggregate()
+   public void Serialization_Aggregate()
    {
-      var json = ExceptionGenerator.GetAggregateException().ToExceptionJson().Fx.Json.Serialize(true).SuccessOrThrow();
+      var json = SerializeAggregateJson();
 
       AssertJson(json, [
          new([nameof(ExceptionJson.Message)],"One or more errors occurred. (message) (message)")]);
-
-      return json;
    }
 
    [Fact]
    public void Deserialization()
    {
-      var rex = Serialization().Fx.Json.Deserialize<ExceptionJson>().SuccessOrThrow().ToRemoteException();
+      var rex = SerializeExceptionJson().Fx.Json.Deserialize<ExceptionJson>().SuccessOrThrow().ToRemoteException();
 
       {
          Assert.Equal("message", rex.Message);
@@ -102,7 +106,7 @@ public class RemoteException_Test(ITestOutputHelper output) : BaseTest<RemoteExc
    [Fact]
    public void Deserialization_WithInner()
    {
-      var rex = Serialization_WithInner().Fx.Json.Deserialize<ExceptionJson>().SuccessOrThrow().ToRemoteException();
+      var rex = SerializeWithInnerJson().Fx.Json.Deserialize<ExceptionJson>().SuccessOrThrow().ToRemoteException();
 
       Assert.Equal("inner-message", rex.Message);
       Assert.Null(rex.Source);
@@ -124,7 +128,7 @@ public class RemoteException_Test(ITestOutputHelper output) : BaseTest<RemoteExc
    [Fact]
    public void Deserialization_WithLoop()
    {
-      var rex = Serialization_WithLoop().Fx.Json.Deserialize<ExceptionJson>().SuccessOrThrow().ToRemoteException();
+      var rex = SerializeWithLoopJson().Fx.Json.Deserialize<ExceptionJson>().SuccessOrThrow().ToRemoteException();
       IsTrue(rex is RemoteException);
       Assert.Equal("message", rex.Message);
       Assert.Equal("Test.Fuxion", rex.Source);
@@ -137,7 +141,7 @@ public class RemoteException_Test(ITestOutputHelper output) : BaseTest<RemoteExc
    [Fact]
    public void Deserialization_Aggregate()
    {
-      var rex = Serialization_Aggregate().Fx.Json.Deserialize<ExceptionJson>().SuccessOrThrow().ToRemoteException();
+      var rex = SerializeAggregateJson().Fx.Json.Deserialize<ExceptionJson>().SuccessOrThrow().ToRemoteException();
 
       Assert.Equal("One or more errors occurred. (message) (message)", rex.Message);
       IsTrue(rex.Source is "System.Private.CoreLib" or "mscorlib");

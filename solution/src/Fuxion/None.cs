@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -12,7 +13,9 @@ public readonly struct None
 	public static readonly None Value = default;
 }
 
-internal sealed class NoneJsonConverter : JsonConverter<None>
+// Public only because consumer source-generated contexts instantiate it (SYSLIB1220 otherwise); not meant to be used directly.
+[EditorBrowsable(EditorBrowsableState.Never)]
+public sealed class NoneJsonConverter : JsonConverter<None>
 {
 	public override None Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
 	{

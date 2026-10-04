@@ -17,10 +17,10 @@ public class FormsTest(ITestOutputHelper output, WebApplicationFactory<Program> 
 	[InlineData("maybe-typed")] [InlineData("maybe-typed-task")] [InlineData("maybe-typed-valuetask")]
 	public async Task AllForms_Success(string route)
 	{
-		var res = await factory.CreateClient().GetAsync($"minimal/forms/{route}");
+		var res = await factory.CreateClient().GetAsync($"minimal/forms/{route}", TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
 		Assert.Equal("application/json", res.Content.Headers.ContentType?.MediaType);
-		Assert.Equal("123", await res.Content.ReadAsStringAsync());
+		Assert.Equal("123", await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 		Assert.Contains("Accept", res.Headers.Vary);
 	}
 
@@ -28,9 +28,9 @@ public class FormsTest(ITestOutputHelper output, WebApplicationFactory<Program> 
 	public async Task Wrapped_NoneAndTypedError()
 	{
 		var cli = factory.CreateClient();
-		Assert.Equal(HttpStatusCode.NoContent, (await cli.GetAsync("minimal/forms/maybe-typed-none-valuetask")).StatusCode);
-		var error = await cli.GetAsync("minimal/forms/typed-error-task");
+		Assert.Equal(HttpStatusCode.NoContent, (await cli.GetAsync("minimal/forms/maybe-typed-none-valuetask", TestContext.Current.CancellationToken)).StatusCode);
+		var error = await cli.GetAsync("minimal/forms/typed-error-task", TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.InternalServerError, error.StatusCode);
-		Assert.Equal("business", (string?)JsonNode.Parse(await error.Content.ReadAsStringAsync())!["errorPayload"]);
+		Assert.Equal("business", (string?)JsonNode.Parse(await error.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!["errorPayload"]);
 	}
 }

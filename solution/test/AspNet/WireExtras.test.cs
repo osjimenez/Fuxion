@@ -24,14 +24,14 @@ public class WebApi2WireExtrasTest(ITestOutputHelper output) : BaseTest<WebApi2W
 	public async Task Attributes_Cascade()
 	{
 		var cli = AspNetHost.Create();
-		Assert.Equal(ResponseMediaTypes.ResponseJson, (await cli.GetAsync("attribute-test/payload")).Content.Headers.ContentType?.MediaType);
-		Assert.Equal("application/json", (await cli.GetAsync("attribute-test/payload-bare")).Content.Headers.ContentType?.MediaType);
+		Assert.Equal(ResponseMediaTypes.ResponseJson, (await cli.GetAsync("attribute-test/payload", TestContext.Current.CancellationToken)).Content.Headers.ContentType?.MediaType);
+		Assert.Equal("application/json", (await cli.GetAsync("attribute-test/payload-bare", TestContext.Current.CancellationToken)).Content.Headers.ContentType?.MediaType);
 	}
 
 	[Fact(DisplayName = "An uninitialized response is a 500 problem")]
 	public async Task Unset_Is500()
 	{
-		var res = await AspNetHost.Create().GetAsync("response/unset");
+		var res = await AspNetHost.Create().GetAsync("response/unset", TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
 		Assert.Equal(ResponseMediaTypes.ProblemJson, res.Content.Headers.ContentType?.MediaType);
 	}
@@ -39,7 +39,7 @@ public class WebApi2WireExtrasTest(ITestOutputHelper output) : BaseTest<WebApi2W
 	[Fact(DisplayName = "An uninitialized response follows Accept like any other error")]
 	public async Task Unset_FollowsAccept()
 	{
-		var res = await AspNetHost.Create().SendAsync(Get("response/unset", "application/vnd.fuxion.error+json, application/json;q=0.9"));
+		var res = await AspNetHost.Create().SendAsync(Get("response/unset", "application/vnd.fuxion.error+json, application/json;q=0.9"), TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
 		Assert.Equal(ResponseMediaTypes.ErrorJson, res.Content.Headers.ContentType?.MediaType);
 	}
@@ -47,7 +47,7 @@ public class WebApi2WireExtrasTest(ITestOutputHelper output) : BaseTest<WebApi2W
 	[Fact(DisplayName = "Endpoints that do not declare a union type are never touched")]
 	public async Task NonUnion_IsUntouched()
 	{
-		var res = await AspNetHost.Create().GetAsync("plain/list");
+		var res = await AspNetHost.Create().GetAsync("plain/list", TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
 		IsFalse(res.Headers.Vary.Any());
 		Assert.Equal("""["a","b"]""", await res.Content.ReadAsStringAsync());
@@ -60,14 +60,14 @@ public class WebApi2WireExtrasTest(ITestOutputHelper output) : BaseTest<WebApi2W
 	[InlineData("plain/task")]
 	public async Task VoidAndTask_Keep204(string url)
 	{
-		var res = await AspNetHost.Create().GetAsync(url);
+		var res = await AspNetHost.Create().GetAsync(url, TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.NoContent, res.StatusCode);
 	}
 
 	[Fact(DisplayName = "An async union action is mapped like a sync one")]
 	public async Task AsyncAction_IsMappedLikeSync()
 	{
-		var res = await AspNetHost.Create().GetAsync("response/async-payload");
+		var res = await AspNetHost.Create().GetAsync("response/async-payload", TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
 		Assert.Equal("application/json", res.Content.Headers.ContentType?.MediaType);
 		Assert.Contains("Accept", res.Headers.Vary);
@@ -89,10 +89,10 @@ public class WebApi2WireExtrasTest(ITestOutputHelper output) : BaseTest<WebApi2W
 		var traces = new CapturingTraceWriter();
 		var cli = AspNetHost.Create(traceWriter: traces);
 
-		await cli.GetAsync("response/payload");
+		await cli.GetAsync("response/payload", TestContext.Current.CancellationToken);
 		Assert.DoesNotContain(traces.Records, r => r.Category == "Fuxion.Responses");
 
-		var res = await cli.GetAsync("response/payload-extended");
+		var res = await cli.GetAsync("response/payload-extended", TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
 		Assert.Equal("application/json", res.Content.Headers.ContentType?.MediaType);

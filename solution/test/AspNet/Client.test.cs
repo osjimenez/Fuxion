@@ -19,19 +19,19 @@ public class ClientAgainstAspNetTest(ITestOutputHelper output) : BaseTest<Client
 	public async Task ToHttpActionResult_IsDeferred()
 	{
 		var cli = AspNetHost.Create();
-		var plain = await cli.GetAsync("result/payload");
+		var plain = await cli.GetAsync("result/payload", TestContext.Current.CancellationToken);
 		Assert.Equal("application/json", plain.Content.Headers.ContentType?.MediaType);
 
 		var request = new HttpRequestMessage(HttpMethod.Get, "result/payload");
 		request.Headers.TryAddWithoutValidation("Accept", "application/vnd.fuxion.response+json");
-		var envelope = await cli.SendAsync(request);
+		var envelope = await cli.SendAsync(request, TestContext.Current.CancellationToken);
 		Assert.Equal(ResponseMediaTypes.ResponseJson, envelope.Content.Headers.ContentType?.MediaType);
 
-		var error = await cli.GetAsync("result/error");
+		var error = await cli.GetAsync("result/error", TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.NotFound, error.StatusCode);
 		Assert.Equal(ResponseMediaTypes.ProblemJson, error.Content.Headers.ContentType?.MediaType);
 
-		var explicitOptions = await cli.GetAsync("result/explicit");
+		var explicitOptions = await cli.GetAsync("result/explicit", TestContext.Current.CancellationToken);
 		Assert.Equal(ResponseMediaTypes.ResponseJson, explicitOptions.Content.Headers.ContentType?.MediaType);
 	}
 
@@ -45,13 +45,13 @@ public class ClientAgainstAspNetTest(ITestOutputHelper output) : BaseTest<Client
 		var client = new FuxionHttpClient(AspNetHost.Create(), options);
 
 		var sent = new HttpRequestMessage(HttpMethod.Get, "response/payload");
-		await client.SendAsync<TestPayload>(sent);
+		await client.SendAsync<TestPayload>(sent, TestContext.Current.CancellationToken);
 
 		var raw = new HttpRequestMessage(HttpMethod.Get, "response/payload");
 		foreach (var accept in sent.Headers.Accept)
 			raw.Headers.Accept.Add(accept);
 
-		var response = await client.HttpClient.SendAsync(raw);
+		var response = await client.HttpClient.SendAsync(raw, TestContext.Current.CancellationToken);
 		Assert.Equal(ResponseMediaTypes.ResponseJson, response.Content.Headers.ContentType?.MediaType);
 	}
 }

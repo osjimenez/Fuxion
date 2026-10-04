@@ -24,7 +24,7 @@ public abstract class ClientTests : WireTestBase<ClientTests>
 	[Fact(DisplayName = "AsResponseAsync reads a payload")]
 	public async Task Client_ReadsPayload()
 	{
-		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponsePayload)).AsResponseAsync<TestPayload>();
+		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponsePayload), TestContext.Current.CancellationToken).AsResponseAsync<TestPayload>(ct: TestContext.Current.CancellationToken);
 		IsTrue(response.TryGetValue(out TestPayload? payload));
 		Assert.Equal(TestPayload.Default, payload);
 	}
@@ -32,7 +32,7 @@ public abstract class ClientTests : WireTestBase<ClientTests>
 	[Fact(DisplayName = "AsResponseAsync reads a native error")]
 	public async Task Client_ReadsError()
 	{
-		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponseErrorType)).AsResponseAsync<TestPayload>();
+		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponseErrorType), TestContext.Current.CancellationToken).AsResponseAsync<TestPayload>(ct: TestContext.Current.CancellationToken);
 		IsTrue(response.TryGetValue(out Error error));
 		Assert.Equal(HttpStatusCode.NotImplemented, error.Type);
 	}
@@ -40,7 +40,7 @@ public abstract class ClientTests : WireTestBase<ClientTests>
 	[Fact(DisplayName = "AsResponseAsync reads a typed error")]
 	public async Task Client_ReadsTypedError()
 	{
-		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponseTypedError)).AsResponseAsync<string, TestBusinessError>();
+		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponseTypedError), TestContext.Current.CancellationToken).AsResponseAsync<string, TestBusinessError>(ct: TestContext.Current.CancellationToken);
 		IsTrue(response.TryGetValue(out TestBusinessError? business));
 		Assert.Equal(TestBusinessError.Default, business);
 	}
@@ -48,21 +48,21 @@ public abstract class ClientTests : WireTestBase<ClientTests>
 	[Fact(DisplayName = "AsResponseAsync reads Unit")]
 	public async Task Client_ReadsUnit()
 	{
-		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponseUnit)).AsResponseAsync<Unit>();
+		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponseUnit), TestContext.Current.CancellationToken).AsResponseAsync<Unit>(ct: TestContext.Current.CancellationToken);
 		IsTrue(response.TryGetValue(out Unit _));
 	}
 
 	[Fact(DisplayName = "AsResponseAsync reads None")]
 	public async Task Client_ReadsNone()
 	{
-		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponseNone)).AsResponseAsync<Unit>();
+		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.ResponseNone), TestContext.Current.CancellationToken).AsResponseAsync<Unit>(ct: TestContext.Current.CancellationToken);
 		IsTrue(response.IsNone);
 	}
 
 	[Fact(DisplayName = "AsResponseAsync streams a file")]
 	public async Task Client_ReadsFile()
 	{
-		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.BinaryFile), HttpCompletionOption.ResponseHeadersRead).AsResponseAsync<IOContent>();
+		var response = await Host.CreateClient().GetAsync(Host.Route(Routes.BinaryFile), HttpCompletionOption.ResponseHeadersRead, TestContext.Current.CancellationToken).AsResponseAsync<IOContent>(ct: TestContext.Current.CancellationToken);
 		IsTrue(response.TryGetValue(out IOContent? file));
 		Assert.Equal(TestFile.ContentType, file!.ContentType);
 		Assert.Equal(TestFile.Name, file.FileName);
@@ -70,8 +70,8 @@ public abstract class ClientTests : WireTestBase<ClientTests>
 		Assert.Equal(TestFile.ETag, file.ETag);
 		Assert.Equal(TestFile.LastModified, file.LastModified);
 		using var memory = new MemoryStream();
-		using var content = await file.OpenAsync();
-		await content.CopyToAsync(memory);
+		using var content = await file.OpenAsync(TestContext.Current.CancellationToken);
+		await content.CopyToAsync(memory, TestContext.Current.CancellationToken);
 		Assert.Equal(TestFile.Bytes, memory.ToArray());
 	}
 
@@ -82,7 +82,7 @@ public abstract class ClientTests : WireTestBase<ClientTests>
 		var client = new FuxionHttpClient(Host.CreateClient(), options);
 
 		var request = new HttpRequestMessage(HttpMethod.Get, Host.Route(Routes.ResponsePayload));
-		var response = await client.SendAsync<TestPayload>(request);
+		var response = await client.SendAsync<TestPayload>(request, TestContext.Current.CancellationToken);
 
 		// The request is mutated in place by the client before it is sent, so the header survives the send.
 		Assert.Contains(request.Headers.Accept, a => a.MediaType == ResponseMediaTypes.ResponseJson);
@@ -97,7 +97,7 @@ public abstract class ClientTests : WireTestBase<ClientTests>
 		var options = new FuxionHttpClientOptions { PreferNaming = ResponseNaming.Snake, PreferEnvelope = true };
 		var client = new FuxionHttpClient(Host.CreateClient(), options);
 
-		var response = await client.GetAsync<TestNamingPayload>(Host.Route(Routes.ResponseNamingPayload));
+		var response = await client.GetAsync<TestNamingPayload>(Host.Route(Routes.ResponseNamingPayload), TestContext.Current.CancellationToken);
 
 		IsTrue(response.TryGetValue(out TestNamingPayload? payload));
 		Assert.Equal("Ada", payload!.FirstName);
@@ -109,7 +109,7 @@ public abstract class ClientTests : WireTestBase<ClientTests>
 		var options = new FuxionHttpClientOptions { PreferNaming = ResponseNaming.Snake };
 		var client = new FuxionHttpClient(Host.CreateClient(), options);
 
-		var response = await client.GetAsync<TestNamingPayload>(Host.Route(Routes.ResponseNamingPayload));
+		var response = await client.GetAsync<TestNamingPayload>(Host.Route(Routes.ResponseNamingPayload), TestContext.Current.CancellationToken);
 
 		IsTrue(response.TryGetValue(out TestNamingPayload? payload));
 		Assert.Equal("Ada", payload!.FirstName);
@@ -121,14 +121,14 @@ public abstract class ClientTests : WireTestBase<ClientTests>
 		var options = new FuxionHttpClientOptions { PreferNativeErrors = true };
 		var client = new FuxionHttpClient(Host.CreateClient(), options);
 		var request = new HttpRequestMessage(HttpMethod.Get, Host.Route(Routes.ResponseErrorType));
-		var response = await client.SendAsync<TestPayload>(request);
+		var response = await client.SendAsync<TestPayload>(request, TestContext.Current.CancellationToken);
 		Assert.Contains(request.Headers.Accept, a => a.MediaType == ResponseMediaTypes.ErrorJson);
 		IsTrue(response.TryGetValue(out Error error));
 		Assert.Equal(HttpStatusCode.NotImplemented, error.Type);
 
 		var raw = new HttpRequestMessage(HttpMethod.Get, Host.Route(Routes.ResponseErrorType));
 		foreach (var accept in request.Headers.Accept) raw.Headers.Accept.Add(accept);
-		var wire = await client.HttpClient.SendAsync(raw);
+		var wire = await client.HttpClient.SendAsync(raw, TestContext.Current.CancellationToken);
 		Assert.Equal(ResponseMediaTypes.ErrorJson, wire.Content.Headers.ContentType?.MediaType);
 	}
 }

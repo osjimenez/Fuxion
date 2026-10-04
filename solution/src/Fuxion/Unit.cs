@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -12,7 +13,9 @@ public readonly struct Unit
 	public static readonly Unit Value = default;
 }
 
-internal sealed class UnitJsonConverter : JsonConverter<Unit>
+// Public only because consumer source-generated contexts instantiate it (SYSLIB1220 otherwise); not meant to be used directly.
+[EditorBrowsable(EditorBrowsableState.Never)]
+public sealed class UnitJsonConverter : JsonConverter<Unit>
 {
 	public override Unit Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
 	{

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net.Http.Headers;
+using System.Text;
 
 namespace Fuxion;
 
@@ -56,6 +57,25 @@ public static class ResponseMediaTypes
 			&& (media.Equals(Json, StringComparison.OrdinalIgnoreCase)
 				|| media.Equals(TextJson, StringComparison.OrdinalIgnoreCase)
 				|| media.EndsWith("+json", StringComparison.OrdinalIgnoreCase));
+
+	// The encodings a JSON request body may declare in its charset parameter, the same as ASP.NET Core's own JSON
+	// input: UTF-8 (also when there is no charset) and UTF-16 little endian. Anything else is refused with a 415
+	// by both adapters. RFC 8259 asks for UTF-8 between systems, so the rest is legacy that is not worth guessing.
+	public static bool TryGetRequestEncoding(string? charset, out Encoding encoding)
+	{
+		switch (charset?.Trim('"').Trim().ToLowerInvariant())
+		{
+			case null or "" or "utf-8" or "utf8":
+				encoding = Encoding.UTF8;
+				return true;
+			case "utf-16" or "utf-16le" or "unicode":
+				encoding = Encoding.Unicode;
+				return true;
+			default:
+				encoding = null!;
+				return false;
+		}
+	}
 
 	internal static bool TryParse(string? contentType, out MediaTypeHeaderValue parsed)
 	{

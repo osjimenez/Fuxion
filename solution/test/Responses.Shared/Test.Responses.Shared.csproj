@@ -9,6 +9,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<!-- The shared families hold [Fact]s too: the same xUnit rules as the test projects. -->
+		<PackageReference Include="xunit.analyzers" PrivateAssets="all" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="$(XunitProjectPath)" />
 		<ProjectReference Include="$(FuxionProjectPath)" />
 		<ProjectReference Include="$(HttpProjectPath)" />

@@ -22,10 +22,10 @@ public class ScopesTest(ITestOutputHelper output, WebApplicationFactory<Program>
 	{
 		// The global options ask for the raw payload, but the subgroup forces the full envelope.
 		var cli = factory.CreateClient(new ResponseOptions { SerializeFullResponses = false, SerializeErrorAsProblemDetails = true, StrictNone = false });
-		var res = await cli.GetAsync("minimal/special/payload");
+		var res = await cli.GetAsync("minimal/special/payload", TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.OK, res.StatusCode);
 
-		var body = await res.Content.ReadAsStringAsync();
+		var body = await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 		PrintVariable(JsonNode.Parse(body)?.ToJsonString(JsonSerializerOptions.Formatted), false);
 
 		// El envelope completo expone el payload anidado, no en la raiz.
@@ -38,35 +38,35 @@ public class ScopesTest(ITestOutputHelper output, WebApplicationFactory<Program>
 	{
 		var cli = factory.CreateClient();
 		// global: full=false, strictNone=false; sub: full=true; deep: strictNone=true (inherits full=true)
-		Assert.Equal("application/json", (await cli.GetAsync("minimal/response/payload")).Content.Headers.ContentType?.MediaType);
-		Assert.Equal(ResponseMediaTypes.ResponseJson, (await cli.GetAsync("sub/payload")).Content.Headers.ContentType?.MediaType);
-		var subNone = await cli.GetAsync("sub/none");
+		Assert.Equal("application/json", (await cli.GetAsync("minimal/response/payload", TestContext.Current.CancellationToken)).Content.Headers.ContentType?.MediaType);
+		Assert.Equal(ResponseMediaTypes.ResponseJson, (await cli.GetAsync("sub/payload", TestContext.Current.CancellationToken)).Content.Headers.ContentType?.MediaType);
+		var subNone = await cli.GetAsync("sub/none", TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.OK, subNone.StatusCode); // full=true, strictNone=false → envelope
 		Assert.Equal(ResponseMediaTypes.ResponseJson, subNone.Content.Headers.ContentType?.MediaType);
-		var subNoneBody = Assert.IsType<JsonObject>(JsonNode.Parse(await subNone.Content.ReadAsStringAsync()));
+		var subNoneBody = Assert.IsType<JsonObject>(JsonNode.Parse(await subNone.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)));
 		IsTrue((bool?)subNoneBody["isNone"]);
-		Assert.Equal(ResponseMediaTypes.ResponseJson, (await cli.GetAsync("sub/deep/payload")).Content.Headers.ContentType?.MediaType); // inherited
-		Assert.Equal(HttpStatusCode.NoContent, (await cli.GetAsync("sub/deep/none")).StatusCode); // strictNone=true wins over inherited full=true
+		Assert.Equal(ResponseMediaTypes.ResponseJson, (await cli.GetAsync("sub/deep/payload", TestContext.Current.CancellationToken)).Content.Headers.ContentType?.MediaType); // inherited
+		Assert.Equal(HttpStatusCode.NoContent, (await cli.GetAsync("sub/deep/none", TestContext.Current.CancellationToken)).StatusCode); // strictNone=true wins over inherited full=true
 	}
 
 	[Fact(DisplayName = "An override on a single endpoint applies to it alone")]
 	public async Task EndpointOverride_IsLocal()
 	{
 		var cli = factory.CreateClient();
-		Assert.Equal(ResponseMediaTypes.ResponseJson, (await cli.GetAsync("minimal/response/payload-enveloped")).Content.Headers.ContentType?.MediaType);
-		Assert.Equal("application/json", (await cli.GetAsync("minimal/response/payload")).Content.Headers.ContentType?.MediaType);
+		Assert.Equal(ResponseMediaTypes.ResponseJson, (await cli.GetAsync("minimal/response/payload-enveloped", TestContext.Current.CancellationToken)).Content.Headers.ContentType?.MediaType);
+		Assert.Equal("application/json", (await cli.GetAsync("minimal/response/payload", TestContext.Current.CancellationToken)).Content.Headers.ContentType?.MediaType);
 	}
 
 	[Fact(DisplayName = "A bare Error or None returned from a lambda is mapped like its response wrapper")]
 	public async Task BareErrorAndNone_AreMapped()
 	{
 		var cli = factory.CreateClient();
-		var error = await cli.GetAsync("minimal/result/bare-error");
+		var error = await cli.GetAsync("minimal/result/bare-error", TestContext.Current.CancellationToken);
 		Assert.Equal(HttpStatusCode.InternalServerError, error.StatusCode);
 		Assert.Equal(ResponseMediaTypes.ProblemJson, error.Content.Headers.ContentType?.MediaType);
-		Assert.Equal(HttpStatusCode.NoContent, (await cli.GetAsync("minimal/result/bare-none")).StatusCode);
-		var plain = await cli.GetAsync("minimal/result/bare-value");
-		Assert.Equal("123", await plain.Content.ReadAsStringAsync());
+		Assert.Equal(HttpStatusCode.NoContent, (await cli.GetAsync("minimal/result/bare-none", TestContext.Current.CancellationToken)).StatusCode);
+		var plain = await cli.GetAsync("minimal/result/bare-value", TestContext.Current.CancellationToken);
+		Assert.Equal("123", await plain.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 		IsFalse(plain.Headers.Vary.Any());
 	}
 
@@ -76,11 +76,11 @@ public class ScopesTest(ITestOutputHelper output, WebApplicationFactory<Program>
 		// Pins the observable contract - non-union values are never mapped, and no Vary is added - independently
 		// of which layer (the endpoint filter, the naming wrapper...) is responsible for enforcing it.
 		var cli = factory.CreateClient();
-		var list = await cli.GetAsync("minimal/plain/list");
-		Assert.Equal("""["a","b"]""", await list.Content.ReadAsStringAsync());
+		var list = await cli.GetAsync("minimal/plain/list", TestContext.Current.CancellationToken);
+		Assert.Equal("""["a","b"]""", await list.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 		IsFalse(list.Headers.Vary.Any());
-		var ok = await cli.GetAsync("minimal/plain/ok");
-		Assert.Equal("plain", (string?)JsonNode.Parse(await ok.Content.ReadAsStringAsync())!["name"]);
+		var ok = await cli.GetAsync("minimal/plain/ok", TestContext.Current.CancellationToken);
+		Assert.Equal("plain", (string?)JsonNode.Parse(await ok.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!["name"]);
 		IsFalse(ok.Headers.Vary.Any());
 	}
 
@@ -96,10 +96,10 @@ public class ScopesTest(ITestOutputHelper output, WebApplicationFactory<Program>
 	{
 		var request = new HttpRequestMessage(HttpMethod.Get, url);
 		request.Headers.TryAddWithoutValidation("Accept", accept);
-		var res = await factory.CreateClient().SendAsync(request);
+		var res = await factory.CreateClient().SendAsync(request, TestContext.Current.CancellationToken);
 		Assert.Equal(expectedMediaType, res.Content.Headers.ContentType?.MediaType);
 		// Only the envelope shape has an "isSuccess" wrapper to inspect; the plain shape is the bare payload.
 		if (expectedMediaType == ResponseMediaTypes.ResponseJson)
-			IsTrue((bool?)JsonNode.Parse(await res.Content.ReadAsStringAsync())!["isSuccess"]);
+			IsTrue((bool?)JsonNode.Parse(await res.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))!["isSuccess"]);
 	}
 }

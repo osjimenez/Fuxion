@@ -6,17 +6,19 @@ using Fuxion;
 using Fuxion.Xunit;
 using Xunit;
 
-namespace Test.Fuxion;
+namespace Test.Http;
 
-// Pins that the union types serialize the same through reflection and through a source-generated context
-// declared in a consumer assembly (this one). The [JsonConverter] attributes on the unions point to converters
-// in Fuxion; the context instantiates them from the attribute, so they keep working even when they are internal.
+// Pins that the union types serialize the same through reflection and through a source-generated context declared in
+// a consumer assembly. It lives in Test.Http on purpose: unlike Test.Fuxion, this assembly cannot see Fuxion's internals,
+// like any real consumer. The generated code instantiates the converters named in the [JsonConverter] attributes of
+// the unions, None and Unit, so those converters must be public (SYSLIB1220/SYSLIB1030 otherwise).
 public class ResponseJsonSourceGenerationTest(ITestOutputHelper output) : BaseTest<ResponseJsonSourceGenerationTest>(output)
 {
 	public static IEnumerable<object[]> Values() =>
 	[
 		[typeof(Response<SourceGenPayload>), (Response<SourceGenPayload>)new SourceGenPayload("Ana", 30)],
 		[typeof(Response<SourceGenPayload>), (Response<SourceGenPayload>)Error.NotFound("missing")],
+		[typeof(Response<SourceGenPayload>), (Response<SourceGenPayload>)Error.InternalServerError("boom", exception: new InvalidOperationException("inner"))],
 		[typeof(Response<SourceGenPayload, SourceGenError>), (Response<SourceGenPayload, SourceGenError>)new SourceGenPayload("Ana", 30)],
 		[typeof(Response<SourceGenPayload, SourceGenError>), (Response<SourceGenPayload, SourceGenError>)new SourceGenError("E1")],
 		[typeof(ResponseMaybe<SourceGenPayload>), (ResponseMaybe<SourceGenPayload>)new SourceGenPayload("Ana", 30)],
@@ -69,5 +71,7 @@ public record SourceGenError(string Code);
 [JsonSerializable(typeof(SourceGenError))]
 [JsonSerializable(typeof(Error))]
 [JsonSerializable(typeof(ErrorSource?))]
+// An Error with an exception carries it as ExceptionJson.
+[JsonSerializable(typeof(ExceptionJson))]
 internal partial class SourceGenerationJsonContext : JsonSerializerContext;
 #pragma warning restore SYSLIB1227

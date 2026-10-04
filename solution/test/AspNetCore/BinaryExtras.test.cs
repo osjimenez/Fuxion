@@ -21,10 +21,10 @@ public class AspNetCoreBinaryExtrasTest(ITestOutputHelper output, WebApplication
 	{
 		var request = Get("minimal/binary/file");
 		request.Headers.TryAddWithoutValidation("If-None-Match", "\"v1\"");
-		var res = await factory.CreateClient().SendAsync(request);
+		var res = await factory.CreateClient().SendAsync(request, TestContext.Current.CancellationToken);
 
 		Assert.Equal(HttpStatusCode.NotModified, res.StatusCode);
-		Assert.Empty(await res.Content.ReadAsByteArrayAsync());
+		Assert.Empty(await res.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
 	}
 
 	[Fact(DisplayName = "A 304 from a conditional GET is read by the client as an error typed NotModified")]
@@ -32,7 +32,7 @@ public class AspNetCoreBinaryExtrasTest(ITestOutputHelper output, WebApplication
 	{
 		var request = Get("minimal/binary/file");
 		request.Headers.TryAddWithoutValidation("If-None-Match", TestFile.ETag);
-		var response = await factory.CreateClient().SendAsync(request, HttpCompletionOption.ResponseHeadersRead).AsResponseAsync<IOContent>();
+		var response = await factory.CreateClient().SendAsync(request, HttpCompletionOption.ResponseHeadersRead, TestContext.Current.CancellationToken).AsResponseAsync<IOContent>(ct: TestContext.Current.CancellationToken);
 		IsTrue(response.TryGetValue(out Error error));
 		Assert.Equal(HttpStatusCode.NotModified, error.Type);
 	}
@@ -47,13 +47,13 @@ public class AspNetCoreBinaryClientTest(ITestOutputHelper output, WebApplication
 	[InlineData("controller")]
 	public async Task Client_ReadsStreamAndBytes(string prefix)
 	{
-		var streamResponse = await factory.CreateClient().GetAsync($"{prefix}/binary/stream").AsResponseAsync<System.IO.Stream>();
+		var streamResponse = await factory.CreateClient().GetAsync($"{prefix}/binary/stream", TestContext.Current.CancellationToken).AsResponseAsync<System.IO.Stream>(ct: TestContext.Current.CancellationToken);
 		IsTrue(streamResponse.TryGetValue(out System.IO.Stream? stream));
 		using var memory = new System.IO.MemoryStream();
-		await stream!.CopyToAsync(memory);
+		await stream!.CopyToAsync(memory, TestContext.Current.CancellationToken);
 		Assert.Equal(TestFile.Bytes, memory.ToArray());
 
-		var bytesResponse = await factory.CreateClient().GetAsync($"{prefix}/binary/bytes").AsResponseAsync<byte[]>();
+		var bytesResponse = await factory.CreateClient().GetAsync($"{prefix}/binary/bytes", TestContext.Current.CancellationToken).AsResponseAsync<byte[]>(ct: TestContext.Current.CancellationToken);
 		IsTrue(bytesResponse.TryGetValue(out byte[]? bytes));
 		Assert.Equal(TestFile.Bytes, bytes);
 	}
@@ -63,10 +63,10 @@ public class AspNetCoreBinaryClientTest(ITestOutputHelper output, WebApplication
 	[InlineData("controller")]
 	public async Task Client_NoneAndError(string prefix)
 	{
-		var none = await factory.CreateClient().GetAsync($"{prefix}/binary/none").AsResponseAsync<IOContent>();
+		var none = await factory.CreateClient().GetAsync($"{prefix}/binary/none", TestContext.Current.CancellationToken).AsResponseAsync<IOContent>(ct: TestContext.Current.CancellationToken);
 		IsTrue(none.IsNone);
 
-		var error = await factory.CreateClient().GetAsync($"{prefix}/binary/error").AsResponseAsync<IOContent>();
+		var error = await factory.CreateClient().GetAsync($"{prefix}/binary/error", TestContext.Current.CancellationToken).AsResponseAsync<IOContent>(ct: TestContext.Current.CancellationToken);
 		IsTrue(error.TryGetValue(out Error e));
 		Assert.Equal(HttpStatusCode.NotFound, e.Type);
 	}

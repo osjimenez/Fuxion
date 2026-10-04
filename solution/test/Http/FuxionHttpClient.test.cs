@@ -57,12 +57,12 @@ public class FuxionHttpClientTest(ITestOutputHelper output) : BaseTest<FuxionHtt
 	public async Task Accept_OnlyWhenAbsent()
 	{
 		var (client, handler) = Create(new FuxionHttpClientOptions { PreferEnvelope = true });
-		await client.GetAsync<Person>("people/1");
+		await client.GetAsync<Person>("people/1", TestContext.Current.CancellationToken);
 		Assert.Contains(handler.Last!.Headers.Accept, a => a.MediaType == ResponseMediaTypes.ResponseJson);
 
 		var request = new HttpRequestMessage(HttpMethod.Get, "people/1");
 		request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
-		await client.SendAsync<Person>(request);
+		await client.SendAsync<Person>(request, TestContext.Current.CancellationToken);
 		Assert.Single(handler.Last!.Headers.Accept);
 		Assert.Equal("text/plain", handler.Last.Headers.Accept.Single().MediaType);
 	}
@@ -71,7 +71,7 @@ public class FuxionHttpClientTest(ITestOutputHelper output) : BaseTest<FuxionHtt
 	public async Task GetAsync_ReadsPayload()
 	{
 		var (client, _) = Create();
-		var response = await client.GetAsync<Person>("people/1");
+		var response = await client.GetAsync<Person>("people/1", TestContext.Current.CancellationToken);
 		IsTrue(response.TryGetValue(out Person? p));
 		Assert.Equal("test", p!.Name);
 	}
@@ -89,7 +89,7 @@ public class FuxionHttpClientTest(ITestOutputHelper output) : BaseTest<FuxionHtt
 				return message;
 			});
 
-		var response = await client.GetAsync<TwoWords>("people/1");
+		var response = await client.GetAsync<TwoWords>("people/1", TestContext.Current.CancellationToken);
 
 		IsTrue(response.TryGetValue(out TwoWords? payload));
 		Assert.Equal("Ada", payload!.FirstName);
@@ -123,12 +123,12 @@ public class FuxionHttpClientTest(ITestOutputHelper output) : BaseTest<FuxionHtt
 			return message;
 		});
 
-		var response = await client.GetAsync<Stream>("files/big");
+		var response = await client.GetAsync<Stream>("files/big", TestContext.Current.CancellationToken);
 
 		IsTrue(response.TryGetValue(out Stream? stream));
 		Assert.Equal(0, body.BytesRead); // HttpClient did not pre-read the body
 		using var memory = new MemoryStream();
-		await stream!.CopyToAsync(memory);
+		await stream!.CopyToAsync(memory, TestContext.Current.CancellationToken);
 		Assert.Equal(64 * 1024, memory.Length);
 	}
 
@@ -145,7 +145,7 @@ public class FuxionHttpClientTest(ITestOutputHelper output) : BaseTest<FuxionHtt
 			return message;
 		});
 
-		var response = await client.GetAsync<Person, BusinessError>("people/1");
+		var response = await client.GetAsync<Person, BusinessError>("people/1", TestContext.Current.CancellationToken);
 
 		Assert.Contains(handler.Last!.Headers.Accept, a => a.MediaType == ResponseMediaTypes.ResponseJson);
 		IsTrue(response.TryGetValue(out BusinessError? error));
@@ -163,12 +163,12 @@ public class FuxionHttpClientTest(ITestOutputHelper output) : BaseTest<FuxionHtt
 			return message;
 		});
 
-		var response = await client.GetAsync<Stream, BusinessError>("files/big");
+		var response = await client.GetAsync<Stream, BusinessError>("files/big", TestContext.Current.CancellationToken);
 
 		IsTrue(response.TryGetValue(out Stream? stream));
 		Assert.Equal(0, body.BytesRead);
 		using var memory = new MemoryStream();
-		await stream!.CopyToAsync(memory);
+		await stream!.CopyToAsync(memory, TestContext.Current.CancellationToken);
 		Assert.Equal(64 * 1024, memory.Length);
 	}
 

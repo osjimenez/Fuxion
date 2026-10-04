@@ -24,7 +24,7 @@ public class ImmutableExtensionsTest(ITestOutputHelper output) : BaseTest<Immuta
 		source["b"] = 2;
 		source["a"] = 3;
 
-		Assert.Equal(1, extensions.Count);
+		Assert.Single(extensions);
 		Assert.Equal(1, extensions["a"]);
 	}
 
@@ -45,7 +45,7 @@ public class ImmutableExtensionsTest(ITestOutputHelper output) : BaseTest<Immuta
 		var replaced = original.With("a", 10);
 		var many = original.With([new("c", 3), new("d", 4)]);
 
-		Assert.Equal(1, original.Count);
+		Assert.Single(original);
 		Assert.Equal(1, original["a"]);
 		Assert.Equal(2, added.Count);
 		Assert.Equal(2, added["b"]);
@@ -62,7 +62,7 @@ public class ImmutableExtensionsTest(ITestOutputHelper output) : BaseTest<Immuta
 		var removed = original.Without("a");
 
 		Assert.Equal(2, original.Count);
-		Assert.Equal(1, removed.Count);
+		Assert.Single(removed);
 		IsFalse(removed.ContainsKey("a"));
 		Assert.Same(original, original.Without("missing"));
 	}
@@ -117,7 +117,7 @@ public class ImmutableExtensionsTest(ITestOutputHelper output) : BaseTest<Immuta
 	{
 		Assert.Same(ImmutableExtensions<ImmutableExtensionsTest>.Empty(Reserved), ImmutableExtensions<ImmutableExtensionsTest>.Empty(Reserved));
 		Assert.Same(ImmutableExtensions<ImmutableExtensionsTest>.Empty(Reserved), Create());
-		Assert.Equal(0, Create().Count);
+		Assert.Empty(Create());
 	}
 
 	[Fact(DisplayName = "The extensions expose no way to change them")]
