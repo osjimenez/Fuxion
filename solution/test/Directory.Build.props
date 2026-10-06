@@ -4,16 +4,22 @@
 	<Import Project="$(MSBuildThisFileDirectory)..\.config\Files.props" />
 	<Import Project="$(MSBuildThisFileDirectory)..\..\..\solution\.config\Files.props"
 	        Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\solution\.config\Files.props')"/>
+
+	<!-- Fuxion.Tools.Sdk (design §7): the defaults and the test infrastructure (what .config's Project.Default and
+	     Project.Test did): Exe, xunit.v3 and coverage on Microsoft.Testing.Platform. Versioning off, as in src. -->
+	<PropertyGroup>
+		<FxTestProject>true</FxTestProject>
+		<FxVersioningEnabled>false</FxVersioningEnabled>
+	</PropertyGroup>
+	<Import Project="Sdk.props" Sdk="Fuxion.Tools.Sdk" />
+
 	<!-- Core -->
 	<Import Project="$(Core_Frameworks_Prop)" />
 	<Import Project="$(Core_Paths_Prop)" />
 	<Import Project="$(Core_Paths_Plus_Prop)" Condition="Exists('$(Core_Paths_Plus_Prop)')"/>
-	<!-- Project -->
-	<Import Project="$(Project_Default_Prop)" />
-	<Import Project="$(Project_Test_Prop)" />
 	<!-- Analyzers -->
 	<Import Project="$(Analyzers_Reference_Prop)" />
-	
+
 	<PropertyGroup>
 		<!-- Remove warnings to moderate and high vulnerabilities in nugets -->
 		<NoWarn>$(NoWarn);NU1902;NU1903</NoWarn>
