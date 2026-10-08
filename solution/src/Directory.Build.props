@@ -1,31 +1,20 @@
 <Project>
 
-	<!-- Files -->
+	<!-- oss's own build pieces: the paths between its projects and its analyzers -->
 	<Import Project="$(MSBuildThisFileDirectory)..\.config\Files.props" />
-	<Import Project="$(MSBuildThisFileDirectory)..\..\..\solution\.config\Files.props"
-	        Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\solution\.config\Files.props')"/>
 
-	<!-- Fuxion.Tools.Sdk (design §7): the defaults, the packages and the XML documentation (what .config's
-	     Project.Default, Nuget.Metadata and Documentation did). Versioning is off until oss has its version/ base tag
-	     (plan L): inside Fuxion-plus, its frozen tool still versions these projects. -->
+	<!-- Packages, with the translated documentation (es); the rest of the workspace's conventions come from
+	     _fx/dotnet.yaml (plan N, decision 15) -->
 	<PropertyGroup>
-		<FxPackable>true</FxPackable>
-		<FxVersioningEnabled>false</FxVersioningEnabled>
+		<IsPackable>true</IsPackable>
 		<FxDocumentationLanguages>es</FxDocumentationLanguages>
-		<FxPackageIconFile>$(MSBuildThisFileDirectory)..\.config\icon.png</FxPackageIconFile>
-		<Authors>Oscar Jimenez</Authors>
-		<Product>Fuxion</Product>
-		<ProductName>Fuxion</ProductName>
 	</PropertyGroup>
 	<Import Project="Sdk.props" Sdk="Fuxion.Tools.Sdk" />
 
-	<!-- Core -->
-	<Import Project="$(Core_Frameworks_Prop)" />
 	<Import Project="$(Core_Paths_Prop)" />
-	<Import Project="$(Core_Paths_Plus_Prop)" Condition="Exists('$(Core_Paths_Plus_Prop)')"/>
-	<!-- Analyzers -->
+	<!-- The analyzers of oss in its own projects (the other repos get them from the workspace, fuxion-analyzers.targets) -->
 	<Import Project="$(Analyzers_Reference_Prop)" />
-	<!-- Nuget: license, repository and the analyzers inside the packages (oss's own) -->
+	<!-- License and repository, and the analyzers inside every package -->
 	<Import Project="$(Nuget_Config_OpenSource_Prop)" />
 	<Import Project="$(Nuget_Pack_Analyzers_Prop)" />
 	<PropertyGroup>

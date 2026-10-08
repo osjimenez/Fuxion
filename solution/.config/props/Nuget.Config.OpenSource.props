@@ -18,17 +18,9 @@
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
-		<!-- SourceLink -->
-		<SourceLinkCreate>true</SourceLinkCreate>
-		<SourceLinkOriginUrl>https://github.com/osjimenez/Fuxion</SourceLinkOriginUrl>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
-		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 		
 	</PropertyGroup>
 
-	<ItemGroup>
-		<!-- SourceLink package reference -->
-		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All"/>
-	</ItemGroup>
 	
 </Project>

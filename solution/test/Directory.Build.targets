@@ -1,8 +1,0 @@
-<Project>
-
-	<!-- Tools -->
-	<Import Project="$(Tools_Build_Target)" Condition="Exists('$(Tools_Build_Target)')"/>
-	<Import Project="$(Tools_Versioning_Target)" Condition="Exists('$(Tools_Versioning_Target)')"/>
-	<Import Project="$(Tools_Metadata_Target)" Condition="Exists('$(Tools_Metadata_Target)')"/>
-
-</Project>

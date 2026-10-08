@@ -1,9 +1,14 @@
 <Project>
+
+	<!-- The packages governed by _fx/dotnet.yaml (fx sync dotnet, design §7.3) -->
+	<Import Project="$(MSBuildThisFileDirectory)../_fx/packages.g.props" Condition="Exists('$(MSBuildThisFileDirectory)../_fx/packages.g.props')" />
 	<PropertyGroup>
 		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 	</PropertyGroup>
 
+	<!-- The packages of oss; the ones every repo shares (test, PolySharp, the .NET platform, EF Core, MongoDB EF Core)
+	     come from the workspace's _fx/dotnet.yaml (_fx/.workspace/dotnet.yaml), and cannot be here too (design D-16) -->
 	<ItemGroup>
 		<PackageVersion Include="EntityFramework" Version="6.5.2" />
 		<PackageVersion Include="Microsoft.AspNet.WebApi.Core" Version="5.3.0" />
@@ -11,81 +16,9 @@
 		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.9.0" />
 		<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
 		<PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
-		<PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.11.2" />
-		<PackageVersion Include="PolySharp" Version="1.16.0" />
 		<PackageVersion Include="xunit.analyzers" Version="2.0.0" />
-		<PackageVersion Include="xunit.v3" Version="4.0.0" />
 		<PackageVersion Include="xunit.v3.assert" Version="4.0.0" />
 		<PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.0" />
 	</ItemGroup>
 
-	<!-- Microsoft.SourceLink.GitHub -->
-	<ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
-		<PackageVersion Include="Microsoft.SourceLink.GitHub" Version="11.0.100-rc.1.26425.128" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' != 'net11.0'">
-		<PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.401" />
-	</ItemGroup>
-
-	<!-- MongoDB.EntityFrameworkCore -->
-	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0' Or '$(TargetFramework)' == 'net11.0'">
-		<PackageVersion Include="MongoDB.EntityFrameworkCore" Version="10.0.3" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' != 'net10.0' And '$(TargetFramework)' != 'net11.0'">
-		<PackageVersion Include="MongoDB.EntityFrameworkCore" Version="9.1.3" />
-	</ItemGroup>
-
-	<!-- Framework Packages -->
-	<PropertyGroup>
-		<NetStableVersion>10.0.12</NetStableVersion>
-	</PropertyGroup>
-	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0'
-			   Or '$(TargetFramework)' == 'net10.0-windows10.0.19041'
-			   Or '$(TargetFramework)' == 'net472'
-			   Or '$(TargetFramework)' == 'netstandard2.0'">
-		<PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(NetStableVersion)" />
-		<PackageVersion Include="Microsoft.Extensions.Http" Version="$(NetStableVersion)" />
-		<PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="$(NetStableVersion)" />
-		<PackageVersion Include="System.Drawing.Common" Version="$(NetStableVersion)" />
-		<PackageVersion Include="System.Management" Version="$(NetStableVersion)" />
-		<PackageVersion Include="System.Text.Json" Version="$(NetStableVersion)" />
-	</ItemGroup>
-
-	<!-- Packages in preview version -->
-	<PropertyGroup>
-		<NetPreviewVersion>11.0.0-rc.1.26425.128</NetPreviewVersion>
-	</PropertyGroup>
-	<ItemGroup Condition="'$(TargetFramework)' == 'net11.0'
-			   Or '$(TargetFramework)' == 'net11.0-windows10.0.19041'">
-		<PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(NetPreviewVersion)" />
-		<PackageVersion Include="Microsoft.Extensions.Http" Version="$(NetPreviewVersion)" />
-		<PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="$(NetPreviewVersion)" />
-		<PackageVersion Include="System.Drawing.Common" Version="$(NetPreviewVersion)" />
-		<PackageVersion Include="System.Management" Version="$(NetPreviewVersion)" />
-		<PackageVersion Include="System.Text.Json" Version="$(NetPreviewVersion)" />
-	</ItemGroup>
-
-	<!-- Entity Framework Core Packages -->
-	<PropertyGroup>
-		<EntityFrameworkCore10Version>10.0.12</EntityFrameworkCore10Version>
-	</PropertyGroup>
-	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0'
-			   Or '$(TargetFramework)' == 'net10.0-windows10.0.19041'">
-		<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(EntityFrameworkCore10Version)" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(EntityFrameworkCore10Version)" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EntityFrameworkCore10Version)" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EntityFrameworkCore10Version)" />
-	</ItemGroup>
-	<PropertyGroup>
-		<EntityFrameworkCore11Version>11.0.0-rc.1.26425.128</EntityFrameworkCore11Version>
-	</PropertyGroup>
-	<ItemGroup Condition="'$(TargetFramework)' == 'net11.0'
-			   Or '$(TargetFramework)' == 'net11.0-windows10.0.19041'">
-		<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(EntityFrameworkCore11Version)" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(EntityFrameworkCore11Version)" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EntityFrameworkCore11Version)" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EntityFrameworkCore11Version)" />
-	</ItemGroup>
 </Project>

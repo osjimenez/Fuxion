@@ -1,11 +1,6 @@
 <Project>
 
-	<!-- Nuget -->
+	<!-- The analyzers built before packing, and Fuxion.Analyzers.Abstractions inside every package -->
 	<Import Project="$(Nuget_Pack_Analyzers_Target)" />
-
-	<!-- Tools: the frozen tool of Fuxion-plus versions these projects when they are built there (until phase 4) -->
-	<Import Project="$(Tools_Build_Target)" Condition="Exists('$(Tools_Build_Target)')"/>
-	<Import Project="$(Tools_Versioning_Target)" Condition="Exists('$(Tools_Versioning_Target)')"/>
-	<Import Project="$(Tools_Metadata_Target)" Condition="Exists('$(Tools_Metadata_Target)')"/>
 
 </Project>

@@ -1,23 +1,13 @@
 <Project>
 
-	<!-- Files -->
+	<!-- oss's own build pieces: the paths between its projects and its analyzers -->
 	<Import Project="$(MSBuildThisFileDirectory)..\.config\Files.props" />
-	<Import Project="$(MSBuildThisFileDirectory)..\..\..\solution\.config\Files.props"
-	        Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\solution\.config\Files.props')"/>
 
-	<!-- Fuxion.Tools.Sdk (design §7): the defaults and the test infrastructure (what .config's Project.Default and
-	     Project.Test did): Exe, xunit.v3 and coverage on Microsoft.Testing.Platform. Versioning off, as in src. -->
-	<PropertyGroup>
-		<FxTestProject>true</FxTestProject>
-		<FxVersioningEnabled>false</FxVersioningEnabled>
-	</PropertyGroup>
+	<!-- The test projects say <IsTestProject>true</IsTestProject> in their .csproj; the workspace's test.targets does
+	     the rest (plan N, decision 15) -->
 	<Import Project="Sdk.props" Sdk="Fuxion.Tools.Sdk" />
 
-	<!-- Core -->
-	<Import Project="$(Core_Frameworks_Prop)" />
 	<Import Project="$(Core_Paths_Prop)" />
-	<Import Project="$(Core_Paths_Plus_Prop)" Condition="Exists('$(Core_Paths_Plus_Prop)')"/>
-	<!-- Analyzers -->
 	<Import Project="$(Analyzers_Reference_Prop)" />
 
 	<PropertyGroup>

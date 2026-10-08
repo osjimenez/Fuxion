@@ -1,0 +1,19 @@
+<Project>
+
+	<!-- The projects that make a NuGet package (IsPackable=true; from oss/solution/.config/props/Nuget.Metadata.props
+	     and Documentation.props). The license and the repository URL are each repo's. -->
+	<PropertyGroup>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<Authors Condition="'$(Authors)' == ''">Oscar Jimenez</Authors>
+		<Product Condition="'$(Product)' == ''">Fuxion</Product>
+		<ProductName Condition="'$(ProductName)' == ''">Fuxion</ProductName>
+		<PackageProjectUrl Condition="'$(PackageProjectUrl)' == ''">https://fuxion.dev/</PackageProjectUrl>
+		<!-- The packages to <workspace>/~$publish/<repo>/nupkgs (design D-36) -->
+		<FxLocalPublish Condition="'$(FxLocalPublish)' == ''">true</FxLocalPublish>
+	</PropertyGroup>
+
+</Project>

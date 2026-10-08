@@ -1,0 +1,12 @@
+<Project>
+
+	<!-- The analyzers of Fuxion in the repos that use Fuxion (from oss/solution/.config/props/Analyzers.Reference.props).
+	     In the workspace they are its projects; outside it they come inside the Fuxion package (WorkspaceOnly).
+	     A project that must not have them (an Aspire app host) says <UseFuxionAnalyzers>false</UseFuxionAnalyzers>. -->
+	<ItemGroup>
+		<FxReference Include="Fuxion.Analyzers.Abstractions" WorkspaceOnly="true" ReferenceOutputAssembly="true" PrivateAssets="none" />
+		<FxReference Include="Fuxion.Analyzers" WorkspaceOnly="true" ReferenceOutputAssembly="false" OutputItemType="Analyzer" PrivateAssets="all" />
+		<FxReference Include="Fuxion.Analyzers.CodeFixes" WorkspaceOnly="true" ReferenceOutputAssembly="false" OutputItemType="Analyzer" PrivateAssets="all" />
+	</ItemGroup>
+
+</Project>
