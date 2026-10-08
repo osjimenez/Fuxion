@@ -36,4 +36,9 @@ public static class DiagnosticIds
 	// Range: FXRF001-099
 	//public const string ReflectionBase = "FXRF";
 	// Reserved for future Reflection analyzers
+
+	// ==================== TOOLS (FXTL) ====================
+	// Range: FXTL001-099
+	// Reserved for Fuxion.Tools.Sdk and fx (Fuxion-tool repo): MSBuild errors and warnings, not analyzers.
+	// FXTL001: a repository that needs the workspace has an FxReference that is not mounted there.
 }

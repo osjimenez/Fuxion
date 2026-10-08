@@ -4,7 +4,7 @@
 # own _fx/dotnet.yaml.
 
 sdks:
-  Fuxion.Tools.Sdk: 0.1.11
+  Fuxion.Tools.Sdk: 0.1.12
 
 # The tool defines them; the projects use them: $(CoreFrameworks), Condition="'$(IsNet11)' == 'true'", #if OLD_FRAMEWORKS
 # (from oss/solution/.config/props/Core.Frameworks.props)
