@@ -4,6 +4,8 @@
 		<TargetFramework>$(LatestCoreFramework)</TargetFramework>
 		<!-- The service hosted by Test.AspNetCore, not a test project: keeps the test framework out (Project.Test.props). -->
 		<IsTestProject>false</IsTestProject>
+		<!-- Never packed: the web SDK warns when a non-packable web project is packed (dotnet pack of the solution) -->
+		<WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
 	</PropertyGroup>
 
 	<ItemGroup>
