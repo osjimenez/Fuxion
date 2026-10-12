@@ -9,17 +9,11 @@
   </Folder>
   <Folder Name="/.config/props/">
     <File Path="solution/.config/props/Analyzers.Reference.props" />
-    <File Path="solution/.config/props/Core.Frameworks.props" />
     <File Path="solution/.config/props/Core.Paths.props" />
-    <File Path="solution/.config/props/Documentation.props" />
     <File Path="solution/.config/props/Nuget.Config.OpenSource.props" />
-    <File Path="solution/.config/props/Nuget.Metadata.props" />
     <File Path="solution/.config/props/Nuget.Pack.Analyzers.props" />
-    <File Path="solution/.config/props/Project.Default.props" />
-    <File Path="solution/.config/props/Project.Test.props" />
   </Folder>
   <Folder Name="/.config/targets/">
-    <File Path="solution/.config/targets/Documentation.targets" />
     <File Path="solution/.config/targets/Nuget.Pack.Analyzers.targets" />
   </Folder>
   <Folder Name="/.repo/">
@@ -42,11 +36,10 @@
     <Project Path="solution/src/AspNetCore/Fuxion.AspNetCore.csproj" />
     <Project Path="solution/src/Fuxion/Fuxion.csproj" />
     <Project Path="solution/src/Http/Fuxion.Http.csproj" />
-    <Project Path="solution/src/Xunit/Fuxion.Xunit.csproj" />
+    <Project Path="solution/src/xUnit/Fuxion.Xunit.csproj" />
   </Folder>
   <Folder Name="/test/">
     <File Path="solution/test/Directory.Build.props" />
-    <File Path="solution/test/Directory.Build.targets" />
     <Project Path="solution/test/AspNet/Test.AspNet.csproj" />
     <Project Path="solution/test/AspNetCore.Service/Test.AspNetCore.Service.csproj" />
     <Project Path="solution/test/AspNetCore/Test.AspNetCore.csproj" />
