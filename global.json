@@ -1,6 +1,6 @@
 {
   "msbuild-sdks": {
-    "Fuxion.Tools.Sdk": "0.1.12"
+    "Fuxion.Tools.Sdk": "0.2.0"
   },
   "test": {
     "runner": "Microsoft.Testing.Platform"

@@ -6,7 +6,6 @@
   <Folder Name="/.config/">
     <File Path="solution/.config/Files.props" />
     <File Path="solution/.config/full_logo.svg" />
-    <File Path="solution/.config/icon.png" />
   </Folder>
   <Folder Name="/.config/props/">
     <File Path="solution/.config/props/Analyzers.Reference.props" />
@@ -36,7 +35,6 @@
   <Folder Name="/src/">
     <File Path="solution/src/Directory.Build.props" />
     <File Path="solution/src/Directory.Build.targets" />
-    <File Path="solution/src/icon.png" />
     <Project Path="solution/src/Analyzers.Abstractions/Fuxion.Analyzers.Abstractions.csproj" />
     <Project Path="solution/src/Analyzers.CodeFixes/Fuxion.Analyzers.CodeFixes.csproj" />
     <Project Path="solution/src/Analyzers/Fuxion.Analyzers.csproj" />

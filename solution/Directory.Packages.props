@@ -1,14 +1,14 @@
 <Project>
 
-	<!-- The packages governed by _fx/dotnet.yaml (fx sync dotnet, design §7.3) -->
-	<Import Project="$(MSBuildThisFileDirectory)../_fx/packages.g.props" Condition="Exists('$(MSBuildThisFileDirectory)../_fx/packages.g.props')" />
+	<!-- The package versions fx governs (fx sync) -->
+	<Import Project="$(MSBuildThisFileDirectory)../_fx/dotnet/packages.g.props" Condition="Exists('$(MSBuildThisFileDirectory)../_fx/dotnet/packages.g.props')" />
 	<PropertyGroup>
 		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 	</PropertyGroup>
 
 	<!-- The packages of oss; the ones every repo shares (test, PolySharp, the .NET platform, EF Core, MongoDB EF Core)
-	     come from the workspace's _fx/dotnet.yaml (_fx/.workspace/dotnet.yaml), and cannot be here too (design D-16) -->
+	     come from the workspace's dotnet.yaml (in _fx/.inherited/dotnet/), and cannot be here too (design D-16) -->
 	<ItemGroup>
 		<PackageVersion Include="EntityFramework" Version="6.5.2" />
 		<PackageVersion Include="Microsoft.AspNet.WebApi.Core" Version="5.3.0" />

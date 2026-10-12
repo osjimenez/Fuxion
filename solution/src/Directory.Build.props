@@ -4,7 +4,7 @@
 	<Import Project="$(MSBuildThisFileDirectory)..\.config\Files.props" />
 
 	<!-- Packages, with the translated documentation (es); the rest of the workspace's conventions come from
-	     _fx/dotnet.yaml (plan N, decision 15) -->
+	     _fx/dotnet/dotnet.yaml (plan N, decision 15) -->
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
 		<FxDocumentationLanguages>es</FxDocumentationLanguages>
