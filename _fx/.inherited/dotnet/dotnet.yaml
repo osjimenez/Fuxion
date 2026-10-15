@@ -56,30 +56,108 @@ imports:
     applies-to:
       tags: [uses-fuxion]
 packages:
-  - ids: [xunit.v3]
+  - ids: [Aspire.Hosting.RabbitMQ]
     versions:
-      - version: 4.0.0
+      - version: 13.6.1
+  - ids: [Aspire.RabbitMQ.Client.v7]
+    versions:
+      - version: 9.5.2
+  - ids: [EntityFramework]
+    versions:
+      - version: 6.5.2
+  - ids: [EventStore.Client.Grpc.Streams]
+    versions:
+      - version: 23.3.9
+  - ids: [KubernetesClient]
+    versions:
+      - version: 21.0.8
+  - ids: [Microsoft.AspNet.WebApi.Core]
+    versions:
+      - version: 5.3.0
+  - ids: [Microsoft.CodeAnalysis.Analyzers, Microsoft.CodeAnalysis.CSharp, Microsoft.CodeAnalysis.CSharp.Workspaces]
+    versions:
+      - version: 5.9.0
+  - ids: [Microsoft.CSharp]
+    versions:
+      - version: 4.7.0
+  - ids: [Microsoft.Extensions.Http.Resilience, Microsoft.Extensions.ServiceDiscovery]
+    versions:
+      - version: 10.11.0
+  - ids: [Microsoft.Orleans.EventSourcing, Microsoft.Orleans.Sdk]
+    versions:
+      - version: 10.4.0
+  - ids: [Microsoft.Reactive.Testing]
+    versions:
+      - version: 7.0.0
+  - ids: [Microsoft.SqlServer.TransactSql.ScriptDom]
+    versions:
+      - version: 180.140.0
+  - ids: [Microsoft.VisualStudio.Azure.Containers.Tools.Targets]
+    versions:
+      - version: 1.23.0
   - ids: [Microsoft.Testing.Extensions.CodeCoverage]
     versions:
-      - version: 18.11.2
+      - version: 18.12.0
+  - ids: [MQTTnet]
+    versions:
+      - version: 5.2.0.1603
+  - ids: [OpenTelemetry.Exporter.OpenTelemetryProtocol, OpenTelemetry.Extensions.Hosting, OpenTelemetry.Instrumentation.AspNetCore, OpenTelemetry.Instrumentation.Http, OpenTelemetry.Instrumentation.Runtime]
+    versions:
+      - version: 1.20.0
+  - ids: [Polly]
+    versions:
+      - version: 8.8.0
+  - ids: [RabbitMQ.Client]
+    versions:
+      - version: 7.2.2
   - ids: [PolySharp]
     versions:
       - version: 1.16.0
+  - ids: [ReactiveUI.WPF]
+    versions:
+      - version: 23.2.9
+  - ids: [Spectre.Console, Spectre.Console.Json]
+    versions:
+      - version: 0.57.2
+  - ids: [Swashbuckle.AspNetCore]
+    versions:
+      - version: 10.3.0
+  - ids: [System.ComponentModel.Annotations]
+    versions:
+      - version: 5.0.0
+  - ids: [System.Private.Uri]
+    versions:
+      - version: 4.3.2
+  - ids: [System.Reactive]
+    versions:
+      - version: 7.0.0
+  - ids: [System.Security.Cryptography.Pkcs]
+    versions:
+      - version: 10.0.13
+  - ids: [Testcontainers.MongoDb, Testcontainers.MsSql, Testcontainers.XunitV3]
+    versions:
+      - version: 4.16.0
+  - ids: [xunit.analyzers]
+    versions:
+      - version: 2.2.0
+  - ids: [xunit.v3, xunit.v3.assert, xunit.v3.extensibility.core]
+    versions:
+      - version: 4.0.2
   - ids: [Microsoft.AspNetCore.Mvc.Testing, Microsoft.AspNetCore.OpenApi, Microsoft.AspNetCore.SignalR.Client, Microsoft.Bcl.AsyncInterfaces, Microsoft.Extensions.Configuration, Microsoft.Extensions.Configuration.UserSecrets, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.Hosting, Microsoft.Extensions.Hosting.Abstractions, Microsoft.Extensions.Hosting.WindowsServices, Microsoft.Extensions.Http, Microsoft.Extensions.Logging.Configuration, System.Drawing.Common, System.Management, System.Text.Json]
     versions:
-      - version: 11.0.0-rc.1.26425.128
+      - version: 11.0.0-rc.2.26504.105
         when: $(IsNet11)
-      - version: 10.0.12
+      - version: 10.0.13
         when: $(IsNet10) Or $(IsStandardOrOldFrameworks)
   - ids: [Microsoft.EntityFrameworkCore, Microsoft.EntityFrameworkCore.InMemory, Microsoft.EntityFrameworkCore.Sqlite, Microsoft.EntityFrameworkCore.SqlServer]
     versions:
-      - version: 11.0.0-rc.1.26425.128
+      - version: 11.0.0-rc.2.26504.105
         when: $(IsNet11)
-      - version: 10.0.12
+      - version: 10.0.13
         when: $(IsNet10)
   - ids: [MongoDB.EntityFrameworkCore]
     versions:
-      - version: 10.0.3
+      - version: 10.0.4
         when: $(IsNet10) Or $(IsNet11)
-      - version: 9.1.3
+      - version: 9.1.4
         when: $(IsStandardOrOldFrameworks)

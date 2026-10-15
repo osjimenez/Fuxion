@@ -7,18 +7,4 @@
 		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 	</PropertyGroup>
 
-	<!-- The packages of oss; the ones every repo shares (test, PolySharp, the .NET platform, EF Core, MongoDB EF Core)
-	     come from the workspace's dotnet.yaml (in _fx/.inherited/dotnet/), and cannot be here too (design D-16) -->
-	<ItemGroup>
-		<PackageVersion Include="EntityFramework" Version="6.5.2" />
-		<PackageVersion Include="Microsoft.AspNet.WebApi.Core" Version="5.3.0" />
-		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
-		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.9.0" />
-		<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
-		<PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
-		<PackageVersion Include="xunit.analyzers" Version="2.0.0" />
-		<PackageVersion Include="xunit.v3.assert" Version="4.0.0" />
-		<PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.0" />
-	</ItemGroup>
-
 </Project>
