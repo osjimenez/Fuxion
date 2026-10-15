@@ -5,7 +5,7 @@ schema: 1.0.0
 applies-to:
   tags: [fuxion-build]
 sdks:
-  Fuxion.Tools.Sdk: 0.2.0
+  Fuxion.Tools.Sdk: 0.3.0
 variables:
   - name: OldFrameworks
     value: net472
@@ -68,12 +68,20 @@ packages:
   - ids: [EventStore.Client.Grpc.Streams]
     versions:
       - version: 23.3.9
+  - ids: [Fuxion]
+    versions:
+      - version: 10.0.18
+    applies-to:
+      repositories: [/fuxion/tool]
   - ids: [KubernetesClient]
     versions:
       - version: 21.0.8
   - ids: [Microsoft.AspNet.WebApi.Core]
     versions:
       - version: 5.3.0
+  - ids: [Microsoft.Build.Utilities.Core]
+    versions:
+      - version: 18.11.0
   - ids: [Microsoft.CodeAnalysis.Analyzers, Microsoft.CodeAnalysis.CSharp, Microsoft.CodeAnalysis.CSharp.Workspaces]
     versions:
       - version: 5.9.0
@@ -92,12 +100,12 @@ packages:
   - ids: [Microsoft.SqlServer.TransactSql.ScriptDom]
     versions:
       - version: 180.140.0
-  - ids: [Microsoft.VisualStudio.Azure.Containers.Tools.Targets]
-    versions:
-      - version: 1.23.0
   - ids: [Microsoft.Testing.Extensions.CodeCoverage]
     versions:
       - version: 18.12.0
+  - ids: [Microsoft.VisualStudio.Azure.Containers.Tools.Targets]
+    versions:
+      - version: 1.23.0
   - ids: [MQTTnet]
     versions:
       - version: 5.2.0.1603
@@ -107,21 +115,27 @@ packages:
   - ids: [Polly]
     versions:
       - version: 8.8.0
-  - ids: [RabbitMQ.Client]
-    versions:
-      - version: 7.2.2
   - ids: [PolySharp]
     versions:
       - version: 1.16.0
+  - ids: [RabbitMQ.Client]
+    versions:
+      - version: 7.2.2
   - ids: [ReactiveUI.WPF]
     versions:
       - version: 23.2.9
+  - ids: [SharpYaml]
+    versions:
+      - version: 3.16.0
   - ids: [Spectre.Console, Spectre.Console.Json]
     versions:
       - version: 0.57.2
   - ids: [Swashbuckle.AspNetCore]
     versions:
       - version: 10.3.0
+  - ids: [System.CommandLine]
+    versions:
+      - version: 2.0.13
   - ids: [System.ComponentModel.Annotations]
     versions:
       - version: 5.0.0
@@ -137,6 +151,9 @@ packages:
   - ids: [Testcontainers.MongoDb, Testcontainers.MsSql, Testcontainers.XunitV3]
     versions:
       - version: 4.16.0
+  - ids: [XenoAtom.Terminal.UI]
+    versions:
+      - version: 3.10.0
   - ids: [xunit.analyzers]
     versions:
       - version: 2.2.0
