@@ -7,7 +7,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="$(XunitProjectPath)" />
+		<FxReference Include="Fuxion.Xunit" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">

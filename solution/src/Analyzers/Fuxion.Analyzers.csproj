@@ -23,6 +23,8 @@
 		<!-- IMPORTANT: analyzers packages usually have no lib/ref; avoid TFM-specific dependency groups -->
 		<!--<NoPackageAnalysis>true</NoPackageAnalysis>-->
 		<NoWarn>$(NoWarn);NU5128</NoWarn>
+		<!-- not the analyzers of Fuxion in themselves (the workspace's fuxion-analyzers.targets and pack-analyzers.targets) -->
+		<UseFuxionAnalyzers>false</UseFuxionAnalyzers>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -39,7 +41,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="$(Analyzers_AbstractionsProjectPath)" PrivateAssets="none" />
+		<FxReference Include="Fuxion.Analyzers.Abstractions" PrivateAssets="none" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -50,7 +52,7 @@
 		      Visible="false" />
 
 		<!-- Pack CodeFixes DLL into NuGet (from sibling project) -->
-		<None Include="$(Analyzers_CodeFixProjectArtifact)"
+		<None Include="$(MSBuildThisFileDirectory)..\Analyzers.CodeFixes\bin\$(Configuration)\$(StandardFramework)\Fuxion.Analyzers.CodeFixes.dll"
 		      Pack="true"
 		      PackagePath="analyzers/dotnet/cs"
 		      Visible="false"/>
@@ -58,7 +60,7 @@
 
 	<Target Name="BuildCodeFixesBeforePack"
 	        BeforeTargets="GenerateNuspec">
-		<MSBuild Projects="$(Analyzers_CodeFixProjectPath)"
+		<MSBuild Projects="$(MSBuildThisFileDirectory)..\Analyzers.CodeFixes\Fuxion.Analyzers.CodeFixes.csproj"
 		         Targets="Build"
 		         Properties="Configuration=$(Configuration);TargetFramework=$(StandardFramework)" />
 	</Target>

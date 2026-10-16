@@ -11,11 +11,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="$(XunitProjectPath)" />
-		<ProjectReference Include="$(AspNetCoreProjectPath)" />
-		<ProjectReference Include="$(HttpProjectPath)" />
-		<ProjectReference Include="$(Test_AspNetCore_ServiceProjectPath)" />
-		<ProjectReference Include="$(Test_Responses_SharedProjectPath)" />
+		<FxReference Include="Fuxion.Xunit" />
+		<FxReference Include="Fuxion.AspNetCore" />
+		<FxReference Include="Fuxion.Http" />
+		<FxReference Include="Test.AspNetCore.Service" />
+		<FxReference Include="Test.Responses.Shared" />
 	</ItemGroup>
 
 	<ItemGroup>

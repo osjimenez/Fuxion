@@ -12,7 +12,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="$(Test_DatasetProjectPath)" />
+		<FxReference Include="Test.Dataset" />
 	</ItemGroup>
 
 </Project>

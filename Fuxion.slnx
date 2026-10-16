@@ -4,17 +4,7 @@
     <Platform Name="x64" />
   </Configurations>
   <Folder Name="/.config/">
-    <File Path="solution/.config/Files.props" />
     <File Path="solution/.config/full_logo.svg" />
-  </Folder>
-  <Folder Name="/.config/props/">
-    <File Path="solution/.config/props/Analyzers.Reference.props" />
-    <File Path="solution/.config/props/Core.Paths.props" />
-    <File Path="solution/.config/props/Nuget.Config.OpenSource.props" />
-    <File Path="solution/.config/props/Nuget.Pack.Analyzers.props" />
-  </Folder>
-  <Folder Name="/.config/targets/">
-    <File Path="solution/.config/targets/Nuget.Pack.Analyzers.targets" />
   </Folder>
   <Folder Name="/.repo/">
     <File Path=".gitattributes" />
@@ -28,7 +18,6 @@
   </Folder>
   <Folder Name="/src/">
     <File Path="solution/src/Directory.Build.props" />
-    <File Path="solution/src/Directory.Build.targets" />
     <Project Path="solution/src/Analyzers.Abstractions/Fuxion.Analyzers.Abstractions.csproj" />
     <Project Path="solution/src/Analyzers.CodeFixes/Fuxion.Analyzers.CodeFixes.csproj" />
     <Project Path="solution/src/Analyzers/Fuxion.Analyzers.csproj" />

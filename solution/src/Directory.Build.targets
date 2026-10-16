@@ -1,6 +1,0 @@
-<Project>
-
-	<!-- The analyzers built before packing, and Fuxion.Analyzers.Abstractions inside every package -->
-	<Import Project="$(Nuget_Pack_Analyzers_Target)" />
-
-</Project>

@@ -7,8 +7,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="$(HttpProjectPath)" />
-		<ProjectReference Include="$(XunitProjectPath)" />
+		<FxReference Include="Fuxion.Http" />
+		<FxReference Include="Fuxion.Xunit" />
 	</ItemGroup>
 
 	<ItemGroup>

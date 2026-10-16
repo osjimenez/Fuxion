@@ -9,9 +9,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="$(FuxionProjectPath)" />
-		<ProjectReference Include="$(AspNetCoreProjectPath)" />
-		<ProjectReference Include="$(Test_Responses_Shared_FixturesProjectPath)" />
+		<FxReference Include="Fuxion" />
+		<FxReference Include="Fuxion.AspNetCore" />
+		<FxReference Include="Test.Responses.Shared.Fixtures" />
 	</ItemGroup>
 
 </Project>

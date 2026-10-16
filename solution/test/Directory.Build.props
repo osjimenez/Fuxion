@@ -1,14 +1,8 @@
 <Project>
 
-	<!-- oss's own build pieces: the paths between its projects and its analyzers -->
-	<Import Project="$(MSBuildThisFileDirectory)..\.config\Files.props" />
-
 	<!-- The test projects say <IsTestProject>true</IsTestProject> in their .csproj; the workspace's test.targets does
-	     the rest (plan N, decision 15) -->
+	     the rest, and its fuxion-analyzers.targets the analyzers (plan N, decision 15; plan R) -->
 	<Import Project="Sdk.props" Sdk="Fuxion.Tools.Sdk" />
-
-	<Import Project="$(Core_Paths_Prop)" />
-	<Import Project="$(Analyzers_Reference_Prop)" />
 
 	<PropertyGroup>
 		<!-- Remove warnings to moderate and high vulnerabilities in nugets -->

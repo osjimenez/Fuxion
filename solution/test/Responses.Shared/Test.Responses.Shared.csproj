@@ -14,10 +14,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="$(XunitProjectPath)" />
-		<ProjectReference Include="$(FuxionProjectPath)" />
-		<ProjectReference Include="$(HttpProjectPath)" />
-		<ProjectReference Include="$(Test_Responses_Shared_FixturesProjectPath)" />
+		<FxReference Include="Fuxion.Xunit" />
+		<FxReference Include="Fuxion" />
+		<FxReference Include="Fuxion.Http" />
+		<FxReference Include="Test.Responses.Shared.Fixtures" />
 	</ItemGroup>
 
 </Project>

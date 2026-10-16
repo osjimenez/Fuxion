@@ -12,7 +12,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="$(FuxionProjectPath)" />
+		<FxReference Include="Fuxion" />
 	</ItemGroup>
 
 </Project>

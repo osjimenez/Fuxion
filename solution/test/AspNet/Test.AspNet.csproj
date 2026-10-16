@@ -7,10 +7,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="$(XunitProjectPath)" />
-		<ProjectReference Include="$(AspNetProjectPath)" />
-		<ProjectReference Include="$(HttpProjectPath)" />
-		<ProjectReference Include="$(Test_Responses_SharedProjectPath)" />
+		<FxReference Include="Fuxion.Xunit" />
+		<FxReference Include="Fuxion.AspNet" />
+		<FxReference Include="Fuxion.Http" />
+		<FxReference Include="Test.Responses.Shared" />
 	</ItemGroup>
 
 	<ItemGroup>

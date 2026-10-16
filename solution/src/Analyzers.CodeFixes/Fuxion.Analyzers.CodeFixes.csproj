@@ -9,6 +9,9 @@
 		<!-- Disable Nuget -->
 		<IsPackable>false</IsPackable>
 
+		<!-- not the analyzers of Fuxion in themselves (the workspace's fuxion-analyzers.targets) -->
+		<UseFuxionAnalyzers>false</UseFuxionAnalyzers>
+
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -19,7 +22,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="$(Analyzers_AbstractionsProjectPath)" PrivateAssets="none" />
+		<FxReference Include="Fuxion.Analyzers.Abstractions" PrivateAssets="none" />
 	</ItemGroup>
 
 </Project>

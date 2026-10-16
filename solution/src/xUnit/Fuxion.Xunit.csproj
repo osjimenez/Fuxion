@@ -9,7 +9,7 @@
 	</PropertyGroup>
 
 	<!-- A test support library, not a test project: xunit.v3.extensibility.core (instead of xunit.v3) keeps it a plain
-	     library. Test projects get xunit.v3 themselves (.config/props/Project.Test.props). -->
+	     library. Test projects get xunit.v3 themselves (the workspace's test.targets). -->
 	<ItemGroup>
 		<PackageReference Include="xunit.analyzers" PrivateAssets="all" />
 		<PackageReference Include="xunit.v3.assert" />
@@ -17,7 +17,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="$(FuxionProjectPath)" />
+		<FxReference Include="Fuxion" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(IsOldFrameworks)' == 'true'">

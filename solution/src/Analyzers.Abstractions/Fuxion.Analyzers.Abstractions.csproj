@@ -6,6 +6,8 @@
 		<PackageId>Fuxion.Analyzers.Abstractions</PackageId>
 		<Description>Attribute definitions for Fuxion Roslyn analyzers. Use these attributes to mark members that require compile-time safety checks.</Description>
 		<PackageTags>fuxion;analyzers;roslyn;csharp;attributes;abstractions</PackageTags>
+		<!-- not the analyzers of Fuxion in themselves (the workspace's fuxion-analyzers.targets and pack-analyzers.targets) -->
+		<UseFuxionAnalyzers>false</UseFuxionAnalyzers>
 	</PropertyGroup>
 
 </Project>

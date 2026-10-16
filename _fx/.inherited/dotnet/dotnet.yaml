@@ -5,7 +5,7 @@ schema: 1.0.0
 applies-to:
   tags: [fuxion-build]
 sdks:
-  Fuxion.Tools.Sdk: 0.3.0
+  Fuxion.Tools.Sdk: 0.5.0
 variables:
   - name: OldFrameworks
     value: net472
@@ -46,7 +46,10 @@ imports:
   - props: default.props
   - props: packable.props
     targets: packable.targets
+    files: icon.png
     when: "'$(IsPackable)' == 'true'"
+  - targets: package-oss.targets
+    when: "'$(IsPackable)' == 'true' And '$(FuxionPackage)' == 'oss'"
   - targets: test.targets
     when: "'$(IsTestProject)' == 'true'"
   - targets: polysharp.targets
@@ -55,6 +58,11 @@ imports:
     when: "'$(UseFuxionAnalyzers)' != 'false'"
     applies-to:
       tags: [uses-fuxion]
+      repositories: [/fuxion/oss]
+  - targets: pack-analyzers.targets
+    when: "'$(IsPackable)' == 'true'"
+    applies-to:
+      repositories: [/fuxion/oss]
 packages:
   - ids: [Aspire.Hosting.RabbitMQ]
     versions:
@@ -68,11 +76,6 @@ packages:
   - ids: [EventStore.Client.Grpc.Streams]
     versions:
       - version: 23.3.9
-  - ids: [Fuxion]
-    versions:
-      - version: 10.0.18
-    applies-to:
-      repositories: [/fuxion/tool]
   - ids: [KubernetesClient]
     versions:
       - version: 21.0.8

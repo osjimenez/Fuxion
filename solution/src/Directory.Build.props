@@ -1,24 +1,11 @@
 <Project>
 
-	<!-- oss's own build pieces: the paths between its projects and its analyzers -->
-	<Import Project="$(MSBuildThisFileDirectory)..\.config\Files.props" />
-
-	<!-- Packages, with the translated documentation (es); the rest of the workspace's conventions come from
-	     _fx/dotnet/dotnet.yaml (plan N, decision 15) -->
+	<!-- Packages, open source; the rest of the workspace's conventions come from _fx/dotnet/dotnet.yaml (plan N, decision
+	     15), the analyzers of Fuxion and their packing among them (plan R) -->
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<FxDocumentationLanguages>es</FxDocumentationLanguages>
+		<FuxionPackage>oss</FuxionPackage>
 	</PropertyGroup>
 	<Import Project="Sdk.props" Sdk="Fuxion.Tools.Sdk" />
-
-	<Import Project="$(Core_Paths_Prop)" />
-	<!-- The analyzers of oss in its own projects (the other repos get them from the workspace, fuxion-analyzers.targets) -->
-	<Import Project="$(Analyzers_Reference_Prop)" />
-	<!-- License and repository, and the analyzers inside every package -->
-	<Import Project="$(Nuget_Config_OpenSource_Prop)" />
-	<Import Project="$(Nuget_Pack_Analyzers_Prop)" />
-	<PropertyGroup>
-		<TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);IncludeAnalyzersAbstractionsInPackage</TargetsForTfmSpecificContentInPackage>
-	</PropertyGroup>
 
 </Project>
