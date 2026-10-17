@@ -11,13 +11,15 @@
 		<TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);FuxionAbstractionsInPackage</TargetsForTfmSpecificContentInPackage>
 	</PropertyGroup>
 
-	<!-- Built before packing, in the framework they ship (netstandard2.0), and packed as they are -->
+	<!-- Built before packing, in the framework they ship (netstandard2.0), and packed as they are. When the pack does not
+	     build (NoBuild: the CI builds the solution first) they are built already, and Build would fail (NETSDK1085) -->
 	<Target Name="FuxionAnalyzersInPackage" BeforeTargets="_GetPackageFiles" Condition="'$(UseFuxionAnalyzers)' != 'false'">
 		<ItemGroup>
 			<_FuxionPackedAnalyzer Include="@(FxRepositoryProject)" Condition="'%(Identity)' == 'Fuxion.Analyzers' Or '%(Identity)' == 'Fuxion.Analyzers.CodeFixes'" />
 			<_FuxionPackedAnalyzer Include="@(FxRepositoryProject)" Condition="'%(Identity)' == 'Fuxion.Analyzers.Abstractions'" Library="true" />
 		</ItemGroup>
-		<MSBuild Projects="@(_FuxionPackedAnalyzer->'%(Path)')" Targets="Build" Properties="Configuration=$(Configuration);TargetFramework=netstandard2.0" />
+		<MSBuild Projects="@(_FuxionPackedAnalyzer->'%(Path)')" Targets="Build" Properties="Configuration=$(Configuration);TargetFramework=netstandard2.0"
+		         Condition="'$(NoBuild)' != 'true'" />
 		<ItemGroup>
 			<None Include="$([System.IO.Path]::GetDirectoryName('%(_FuxionPackedAnalyzer.Path)'))\bin\$(Configuration)\netstandard2.0\%(_FuxionPackedAnalyzer.Identity).dll"
 			      Condition="'%(_FuxionPackedAnalyzer.Library)' != 'true'" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />

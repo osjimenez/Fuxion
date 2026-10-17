@@ -58,8 +58,10 @@
 		      Visible="false"/>
 	</ItemGroup>
 
+	<!-- not when the pack does not build (NoBuild: the CI builds the solution first, the code fixes too) -->
 	<Target Name="BuildCodeFixesBeforePack"
-	        BeforeTargets="GenerateNuspec">
+	        BeforeTargets="GenerateNuspec"
+	        Condition="'$(NoBuild)' != 'true'">
 		<MSBuild Projects="$(MSBuildThisFileDirectory)..\Analyzers.CodeFixes\Fuxion.Analyzers.CodeFixes.csproj"
 		         Targets="Build"
 		         Properties="Configuration=$(Configuration);TargetFramework=$(StandardFramework)" />
