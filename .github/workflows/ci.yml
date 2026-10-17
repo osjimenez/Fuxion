@@ -86,6 +86,19 @@ jobs:
         if: matrix.pack
         run: dotnet pack Fuxion.slnx -c Release --no-build -p:PackageOutputPath=${{ github.workspace }}/artifacts/nupkgs/
 
+      # the version that would go out, seen before approving: a notice at the top of the run, and the packages in its
+      # summary (a tag not pushed gives another version: version/X.Y.0 is on GitHub, or this is not the one expected)
+      - name: Version
+        if: matrix.pack
+        shell: pwsh
+        run: |
+          $packages = Get-ChildItem artifacts/nupkgs -Filter *.nupkg | Sort-Object Name
+          if ($packages[0].BaseName -notmatch '^.+?\.(?<version>\d+\.\d+\.\d+(-.+)?)$') { throw "No version in $($packages[0].Name)" }
+          $version = $Matches.version
+          Write-Output "::notice title=Version::$version"
+          @("### Version $version", '') + ($packages | ForEach-Object { "- ``$($_.BaseName)``" }) |
+            Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+
       - uses: actions/upload-artifact@v7
         if: matrix.pack
         with:
