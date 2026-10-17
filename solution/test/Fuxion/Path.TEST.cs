@@ -8,9 +8,13 @@ namespace Test.Fuxion;
 
 public class StringTest(ITestOutputHelper output) : BaseTest<StringTest>(output)
 {
+	// Windows paths (c:\…, \\server\…): elsewhere a backslash is no separator
+	static void WindowsOnly() => Assert.SkipUnless(RuntimeInformation.IsOSPlatform(OSPlatform.Windows), "Windows paths: only on Windows");
+
 	[Fact]
 	public void IsSubPathOf()
 	{
+		WindowsOnly();
 		var root = @"c:\foo\bar";
 		var relative = @"c:/fOo/Bar\file.txt";
 #if NET5_0_OR_GREATER
@@ -24,6 +28,7 @@ public class StringTest(ITestOutputHelper output) : BaseTest<StringTest>(output)
 	[Fact]
 	public void Operator()
 	{
+		WindowsOnly();
 		var t1 = @"c:\one".Fx.Path / "two/three".Fx.Path / "four".Fx.Path;
 		PrintVariable(t1);
 		Assert.Equal(@"c:\one\two\three\four", t1);

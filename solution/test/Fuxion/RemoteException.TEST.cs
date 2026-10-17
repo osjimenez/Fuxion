@@ -82,7 +82,7 @@ public class RemoteException_Test(ITestOutputHelper output) : BaseTest<RemoteExc
          Assert.NotNull(rex.RemoteStackTrace);
          var stackFrame = rex.RemoteStackTrace.First();
          Assert.NotNull(stackFrame.File);
-         IsTrue(stackFrame.File.EndsWith("solution\\test\\Fuxion\\RemoteException.TEST.cs"));
+         IsTrue(stackFrame.File.Replace('\\', '/').EndsWith("solution/test/Fuxion/RemoteException.TEST.cs"));
          IsTrue(stackFrame.Line > 0);
          Assert.Equal("private static void Test.Fuxion.ExceptionGenerator.FailWithData()", stackFrame.Method);
       }
@@ -98,7 +98,7 @@ public class RemoteException_Test(ITestOutputHelper output) : BaseTest<RemoteExc
          Assert.NotNull(exceptionJson.StackTrace);
          var stackFrame = exceptionJson.StackTrace.First();
          Assert.NotNull(stackFrame.File);
-         IsTrue(stackFrame.File.EndsWith("solution\\test\\Fuxion\\RemoteException.TEST.cs"));
+         IsTrue(stackFrame.File.Replace('\\', '/').EndsWith("solution/test/Fuxion/RemoteException.TEST.cs"));
          IsTrue(stackFrame.Line > 0);
          Assert.Equal("private static void Test.Fuxion.ExceptionGenerator.FailWithData()", stackFrame.Method);
       }
@@ -120,7 +120,7 @@ public class RemoteException_Test(ITestOutputHelper output) : BaseTest<RemoteExc
          Assert.NotNull(innerRex.RemoteStackTrace);
          var stackFrame = innerRex.RemoteStackTrace.First();
          Assert.NotNull(stackFrame.File);
-         IsTrue(stackFrame.File.EndsWith("solution\\test\\Fuxion\\RemoteException.TEST.cs"));
+         IsTrue(stackFrame.File.Replace('\\', '/').EndsWith("solution/test/Fuxion/RemoteException.TEST.cs"));
          IsTrue(stackFrame.Line > 0);
          Assert.Equal("private static void Test.Fuxion.ExceptionGenerator.FailWithData()", stackFrame.Method);
       }

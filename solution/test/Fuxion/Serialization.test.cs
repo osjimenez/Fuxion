@@ -161,8 +161,9 @@ public class SerializeTest(ITestOutputHelper output) : BaseTest<SerializeTest>(o
 						Assert.Equal("null", json);
 					else
 					{
+						// indented with the line ending of the system
 						if (input.Formatted)
-							Assert.Equal("{\r\n\t\"", json.Substring(0, 5));
+							Assert.StartsWith("{" + Environment.NewLine + "\t\"", json);
 						else
 							Assert.Equal("{\"", json.Substring(0, 2));
 					}
