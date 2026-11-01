@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsTestProject>true</IsTestProject>
+		<!-- Fuxion is compatible with trimming and native AOT from .NET 11 on -->
+		<TargetFramework>$(LatestCoreFramework)</TargetFramework>
+		<IsPackable>false</IsPackable>
+		<!-- As with trimming and native AOT: System.Text.Json does not fall back to reflection, so a type that no context
+		     describes fails (plan "Las Responses compatibles con AOT"). The switch is for the whole process: these tests
+		     live in their own project -->
+		<JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<FxReference Include="Fuxion.Http" />
+		<FxReference Include="Fuxion.Xunit" />
+	</ItemGroup>
+
+</Project>

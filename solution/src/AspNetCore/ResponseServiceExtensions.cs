@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using System;
 using System.Text.Json.Serialization.Metadata;
+using Fuxion.Text.Json;
 using HttpJsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 using MvcJsonOptions = Microsoft.AspNetCore.Mvc.JsonOptions;
 
@@ -48,6 +49,6 @@ public static class ResponseServiceExtensions
 	// The existing resolver is composed instead of replaced, so a source generated context configured by the
 	// application keeps working.
 	static IJsonTypeInfoResolver ResolveWithOmission(IJsonTypeInfoResolver? current)
-		=> (current ?? new DefaultJsonTypeInfoResolver()).WithAddedModifier(UndefinableJsonTypeInfo.OmitUndefined);
+		=> JsonTypeInfoResolver.Combine(current ?? ResponsesJsonDefaults.ReflectionIfEnabled(), FuxionJsonContext.Default).WithAddedModifier(UndefinableJsonTypeInfo.OmitUndefined);
 }
 #pragma warning restore CS1591

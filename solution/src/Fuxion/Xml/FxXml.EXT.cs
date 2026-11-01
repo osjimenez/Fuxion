@@ -1,5 +1,6 @@
 ﻿using Fuxion.Text.Json;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -93,6 +94,8 @@ public static class XElementExtensions
 		///         person.Fx.Xml.ToXElement()));
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Xml)]
+		[RequiresDynamicCode(AotMessages.Xml)]
 		public XElement ToXElement()
 		{
 			using var memoryStream = new MemoryStream();
@@ -144,6 +147,8 @@ public static class XElementExtensions
 		/// XElement dynamicXml = obj.Fx.Xml.ToXElement(serializationType);
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Xml)]
+		[RequiresDynamicCode(AotMessages.Xml)]
 		public XElement ToXElement(Type type)
 		{
 			using var memoryStream = new MemoryStream();
@@ -201,6 +206,8 @@ public static class XElementExtensions
 		/// // restored is equivalent to original
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Xml)]
+		[RequiresDynamicCode(AotMessages.Xml)]
 		public T FromXElement()
 		{
 			using var memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(me.Value.ToString().ToCharArray()));

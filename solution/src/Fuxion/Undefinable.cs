@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Fuxion.Reflection;
+using Fuxion.Text.Json;
 
 namespace Fuxion;
 
@@ -18,7 +19,11 @@ public interface IUndefinable : IUnion
 }
 
 [Union]
+#if NET11_0_OR_GREATER
+[JsonConverter(typeof(UndefinableJsonConverter<>))]
+#else
 [JsonConverter(typeof(UndefinableJsonConverterFactory))]
+#endif
 public readonly struct Undefinable<TValue> : IUndefinable, IEquatable<Undefinable<TValue>>
 {
 	private const byte UndefinedKind = 0;
@@ -131,6 +136,16 @@ public readonly struct Undefinable<TValue> : IUndefinable, IEquatable<Undefinabl
 public static class UndefinableJsonTypeInfo
 {
 	/// <summary>
+	/// Name of the marker property used to represent an undefined value when it cannot be omitted.
+	/// </summary>
+	/// <remarks>
+	/// An object marker is used instead of a sentinel string because a string sentinel belongs to the
+	/// value domain of <see cref="Undefinable{TValue}"/> of <see cref="string"/> and would silently turn a
+	/// legitimate value into an undefined one when round tripping.
+	/// </remarks>
+	public const string UndefinedMarkerPropertyName = "$undefined";
+
+	/// <summary>
 	/// Omits every property holding an undefined <see cref="Undefinable{TValue}"/> value.
 	/// </summary>
 	/// <param name="jsonTypeInfo">The contract to modify.</param>
@@ -157,7 +172,7 @@ public static class UndefinableJsonTypeInfo
 
 		foreach (var property in jsonTypeInfo.Properties)
 		{
-			if (!property.PropertyType.IsSubclassOfGenericDefinition(typeof(Undefinable<>))) continue;
+			if (!IsUndefinable(property.PropertyType)) continue;
 
 			var previous = property.ShouldSerialize;
 			property.ShouldSerialize = (container, value) =>
@@ -166,8 +181,13 @@ public static class UndefinableJsonTypeInfo
 					: previous is null || previous(container, value);
 		}
 	}
+
+	// Undefinable<TValue> is a struct: nothing derives from it, so its generic definition is enough, without reflecting
+	// over interfaces or base types.
+	internal static bool IsUndefinable(Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Undefinable<>);
 }
 
+#if !NET11_0_OR_GREATER
 /// <summary>
 /// Creates converters for <see cref="Undefinable{TValue}"/> values.
 /// </summary>
@@ -178,25 +198,16 @@ public static class UndefinableJsonTypeInfo
 /// </remarks>
 public class UndefinableJsonConverterFactory : JsonConverterFactory
 {
-	/// <summary>
-	/// Name of the marker property used to represent an undefined value when it cannot be omitted.
-	/// </summary>
-	/// <remarks>
-	/// An object marker is used instead of a sentinel string because a string sentinel belongs to the
-	/// value domain of <see cref="Undefinable{TValue}"/> of <see cref="string"/> and would silently turn a
-	/// legitimate value into an undefined one when round tripping.
-	/// </remarks>
-	public const string UndefinedMarkerPropertyName = "$undefined";
-
-	public override bool CanConvert(Type type) => type.IsSubclassOfGenericDefinition(typeof(Undefinable<>));
+	public override bool CanConvert(Type type) => UndefinableJsonTypeInfo.IsUndefinable(type);
 
 	public override JsonConverter? CreateConverter(Type type, JsonSerializerOptions options)
 		=> (JsonConverter?)Activator.CreateInstance(typeof(UndefinableJsonConverter<>).MakeGenericType(type.GetGenericArguments()[0])) ?? null;
 }
+#endif
 
 public class UndefinableJsonConverter<T> : JsonConverter<Undefinable<T?>>
 {
-	public override bool CanConvert(Type type) => type.IsSubclassOfGenericDefinition(typeof(Undefinable<>));
+	public override bool CanConvert(Type type) => UndefinableJsonTypeInfo.IsUndefinable(type);
 
 	public override Undefinable<T?> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
 	{
@@ -208,7 +219,7 @@ public class UndefinableJsonConverter<T> : JsonConverter<Undefinable<T?>>
 			return default;
 		}
 
-		return new(JsonSerializer.Deserialize<T>(ref reader, options));
+		return new(JsonSerializer.Deserialize(ref reader, options.GetTypeInfo<T>()));
 	}
 
 	public override void Write(Utf8JsonWriter writer, Undefinable<T?> value, JsonSerializerOptions options)
@@ -216,11 +227,11 @@ public class UndefinableJsonConverter<T> : JsonConverter<Undefinable<T?>>
 		if (value.IsUndefined)
 		{
 			writer.WriteStartObject();
-			writer.WriteBoolean(UndefinableJsonConverterFactory.UndefinedMarkerPropertyName, true);
+			writer.WriteBoolean(UndefinableJsonTypeInfo.UndefinedMarkerPropertyName, true);
 			writer.WriteEndObject();
 		}
 		else
-			JsonSerializer.Serialize(writer, value.Value, options);
+			JsonSerializer.Serialize(writer, value.Value, options.GetTypeInfo<T?>());
 	}
 
 	// The reader is a struct, so the copy taken here allows looking ahead without consuming the original.
@@ -228,7 +239,7 @@ public class UndefinableJsonConverter<T> : JsonConverter<Undefinable<T?>>
 	{
 		if (reader.TokenType != JsonTokenType.StartObject) return false;
 		if (!reader.Read() || reader.TokenType != JsonTokenType.PropertyName) return false;
-		if (reader.GetString() != UndefinableJsonConverterFactory.UndefinedMarkerPropertyName) return false;
+		if (reader.GetString() != UndefinableJsonTypeInfo.UndefinedMarkerPropertyName) return false;
 		if (!reader.Read() || reader.TokenType != JsonTokenType.True) return false;
 		return reader.Read() && reader.TokenType == JsonTokenType.EndObject;
 	}

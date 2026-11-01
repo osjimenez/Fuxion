@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Fuxion.Reflection;
+using Fuxion.Text.Json;
 
 namespace Fuxion;
 
@@ -78,7 +79,7 @@ public readonly record struct Error
 			return value;
 
 		if (Payload is JsonElement json)
-			return json.Deserialize<T>(options);
+			return json.Deserialize(options.Configured().GetTypeInfo<T>());
 
 		throw new InvalidCastException($"Payload is neither '{typeof(T).GetSignature()}' nor '{nameof(JsonElement)}'.");
 	}
@@ -105,7 +106,7 @@ public readonly record struct Error
 			return value;
 
 		if (Type is JsonElement json)
-			return json.Deserialize<T>(options);
+			return json.Deserialize(options.Configured().GetTypeInfo<T>());
 
 		throw new InvalidCastException($"Type is neither '{typeof(T).GetSignature()}' nor '{nameof(JsonElement)}'.");
 	}
@@ -125,6 +126,7 @@ public readonly record struct Error
 }
 public readonly record struct ErrorSource(string MethodName, string File, int Line)
 {
+	[UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Best effort: the name of the method may be missing, and it is left empty.")]
 	public static ErrorSource FromStackTrace()
 	{
 		var frame = new StackTrace(true).GetFrame(1);

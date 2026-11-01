@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Fuxion.Reflection;
+using Fuxion.Text.Json;
 
 namespace Fuxion;
 
@@ -57,7 +58,7 @@ public abstract class ImmutableExtensions : IReadOnlyDictionary<string, object?>
 		{
 			null => default,
 			T typed => typed,
-			JsonElement json => json.Deserialize<T>(options),
+			JsonElement json => json.Deserialize(options.Configured().GetTypeInfo<T>()),
 			_ => throw new InvalidCastException($"The value associated with key '{key}' is neither '{typeof(T).GetSignature()}' nor '{nameof(JsonElement)}'.")
 		};
 	}

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Fuxion.Reflection;
@@ -178,6 +179,7 @@ public class PatcherJsonConverterFactory : JsonConverterFactory
 	/// bool result4 = factory.CanConvert(typeof(Patcher&lt;&gt;));  // false (open generic)
 	/// </code>
 	/// </example>
+	[UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "It only converts Patcher<T>, which is marked RequiresUnreferencedCode.")]
 	public override bool CanConvert(Type typeToConvert) => typeToConvert.IsSubclassOfGenericDefinition(typeof(Patcher<>));
 
 	/// <summary>
@@ -270,6 +272,7 @@ public class PatcherJsonConverterFactory : JsonConverterFactory
 	/// return (JsonConverter)converter;
 	/// </code>
 	/// </example>
+	[UnconditionalSuppressMessage("AOT", "IL3050", Justification = "It only converts Patcher<T>, which is marked RequiresDynamicCode.")]
 	public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
 	{
 		var types = typeToConvert.GetGenericArguments();

@@ -60,6 +60,8 @@ public enum NonExistingPropertiesMode
 /// patcher.Patch(person); // Only Name and Age will be updated
 /// </code>
 /// </example>
+[RequiresUnreferencedCode(AotMessages.Reflection)]
+[RequiresDynamicCode(AotMessages.DynamicCode)]
 [JsonConverter(typeof(PatcherJsonConverterFactory))]
 public sealed class Patcher<T>(NonExistingPropertiesMode nonExistingPropertiesMode = NonExistingPropertiesMode.NotAllowed) : DynamicObject
 	where T : notnull

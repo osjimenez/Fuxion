@@ -12,7 +12,9 @@ namespace Fuxion;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-// Public only because consumer source-generated contexts instantiate the converter named in the [JsonConverter]
+#if !NET11_0_OR_GREATER
+// Before .NET 11, the [JsonConverter] attribute of a generic type cannot name an open generic converter, so a factory
+// creates it. Public only because consumer source-generated contexts instantiate the converter named in the
 // attribute (SYSLIB1220 otherwise); not meant to be used directly.
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class ResponseOfTSuccessJsonConverterFactory : JsonConverterFactory
@@ -23,8 +25,12 @@ public sealed class ResponseOfTSuccessJsonConverterFactory : JsonConverterFactor
 	public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
 		=> CreateGenericConverter(typeof(ResponseOfTSuccessJsonConverter<>), typeToConvert);
 }
+#endif
 
-internal sealed class ResponseOfTSuccessJsonConverter<TSuccess> : JsonConverter<Response<TSuccess>>
+// Public only because consumer source-generated contexts instantiate the converter named in the [JsonConverter]
+// attribute (SYSLIB1220 otherwise), or the factory before .NET 11; not meant to be used directly.
+[EditorBrowsable(EditorBrowsableState.Never)]
+public sealed class ResponseOfTSuccessJsonConverter<TSuccess> : JsonConverter<Response<TSuccess>>
 	where TSuccess : notnull
 {
 	public override Response<TSuccess> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -62,7 +68,9 @@ internal sealed class ResponseOfTSuccessJsonConverter<TSuccess> : JsonConverter<
 	}
 }
 
-// Public only because consumer source-generated contexts instantiate the converter named in the [JsonConverter]
+#if !NET11_0_OR_GREATER
+// Before .NET 11, the [JsonConverter] attribute of a generic type cannot name an open generic converter, so a factory
+// creates it. Public only because consumer source-generated contexts instantiate the converter named in the
 // attribute (SYSLIB1220 otherwise); not meant to be used directly.
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class ResponseOfTSuccessAndTErrorJsonConverterFactory : JsonConverterFactory
@@ -73,8 +81,12 @@ public sealed class ResponseOfTSuccessAndTErrorJsonConverterFactory : JsonConver
 	public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
 		=> CreateGenericConverter(typeof(ResponseOfTSuccessAndTErrorJsonConverter<,>), typeToConvert);
 }
+#endif
 
-internal sealed class ResponseOfTSuccessAndTErrorJsonConverter<TSuccess, TError> : JsonConverter<Response<TSuccess, TError>>
+// Public only because consumer source-generated contexts instantiate the converter named in the [JsonConverter]
+// attribute (SYSLIB1220 otherwise), or the factory before .NET 11; not meant to be used directly.
+[EditorBrowsable(EditorBrowsableState.Never)]
+public sealed class ResponseOfTSuccessAndTErrorJsonConverter<TSuccess, TError> : JsonConverter<Response<TSuccess, TError>>
 	where TSuccess : notnull
 	where TError : notnull
 {
@@ -113,7 +125,9 @@ internal sealed class ResponseOfTSuccessAndTErrorJsonConverter<TSuccess, TError>
 	}
 }
 
-// Public only because consumer source-generated contexts instantiate the converter named in the [JsonConverter]
+#if !NET11_0_OR_GREATER
+// Before .NET 11, the [JsonConverter] attribute of a generic type cannot name an open generic converter, so a factory
+// creates it. Public only because consumer source-generated contexts instantiate the converter named in the
 // attribute (SYSLIB1220 otherwise); not meant to be used directly.
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class ResponseMaybeOfTSuccessJsonConverterFactory : JsonConverterFactory
@@ -124,8 +138,12 @@ public sealed class ResponseMaybeOfTSuccessJsonConverterFactory : JsonConverterF
 	public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
 		=> CreateGenericConverter(typeof(ResponseMaybeOfTSuccessJsonConverter<>), typeToConvert);
 }
+#endif
 
-internal sealed class ResponseMaybeOfTSuccessJsonConverter<TSuccess> : JsonConverter<ResponseMaybe<TSuccess>>
+// Public only because consumer source-generated contexts instantiate the converter named in the [JsonConverter]
+// attribute (SYSLIB1220 otherwise), or the factory before .NET 11; not meant to be used directly.
+[EditorBrowsable(EditorBrowsableState.Never)]
+public sealed class ResponseMaybeOfTSuccessJsonConverter<TSuccess> : JsonConverter<ResponseMaybe<TSuccess>>
 	where TSuccess : notnull
 {
 	public override ResponseMaybe<TSuccess> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -172,7 +190,9 @@ internal sealed class ResponseMaybeOfTSuccessJsonConverter<TSuccess> : JsonConve
 	}
 }
 
-// Public only because consumer source-generated contexts instantiate the converter named in the [JsonConverter]
+#if !NET11_0_OR_GREATER
+// Before .NET 11, the [JsonConverter] attribute of a generic type cannot name an open generic converter, so a factory
+// creates it. Public only because consumer source-generated contexts instantiate the converter named in the
 // attribute (SYSLIB1220 otherwise); not meant to be used directly.
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class ResponseMaybeOfTSuccessAndTErrorJsonConverterFactory : JsonConverterFactory
@@ -183,8 +203,12 @@ public sealed class ResponseMaybeOfTSuccessAndTErrorJsonConverterFactory : JsonC
 	public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
 		=> CreateGenericConverter(typeof(ResponseMaybeOfTSuccessAndTErrorJsonConverter<,>), typeToConvert);
 }
+#endif
 
-internal sealed class ResponseMaybeOfTSuccessAndTErrorJsonConverter<TSuccess, TError> : JsonConverter<ResponseMaybe<TSuccess, TError>>
+// Public only because consumer source-generated contexts instantiate the converter named in the [JsonConverter]
+// attribute (SYSLIB1220 otherwise), or the factory before .NET 11; not meant to be used directly.
+[EditorBrowsable(EditorBrowsableState.Never)]
+public sealed class ResponseMaybeOfTSuccessAndTErrorJsonConverter<TSuccess, TError> : JsonConverter<ResponseMaybe<TSuccess, TError>>
 	where TSuccess : notnull
 	where TError : notnull
 {
@@ -235,9 +259,11 @@ internal sealed class ResponseMaybeOfTSuccessAndTErrorJsonConverter<TSuccess, TE
 
 file static class ResponseEnvelopeJson
 {
+#if !NET11_0_OR_GREATER
 	public static JsonConverter CreateGenericConverter(Type converterGenericType, Type typeToConvert)
 		=> (JsonConverter)(Activator.CreateInstance(converterGenericType.MakeGenericType(typeToConvert.GetGenericArguments()))
 			?? throw new InvalidOperationException($"Can't create converter for '{typeToConvert.GetSignature()}'."));
+#endif
 
 	public static bool TryReadNullOrThrow(ref Utf8JsonReader reader, Type typeToConvert)
 	{
@@ -297,7 +323,7 @@ file static class ResponseEnvelopeJson
 			throw new JsonException($"Property '{propertyNames.Payload}' is required when '{propertyNames.IsSuccess}' is true deserializing '{typeToConvert.GetSignature()}'");
 		}
 
-		var success = payloadElement.Deserialize<TSuccess>(options);
+		var success = payloadElement.Deserialize(options.GetTypeInfo<TSuccess>());
 		if (success is null)
 			throw new JsonException(includeIsNoneInNullMessage && propertyNames.IsNone is not null
 				? $"Property '{propertyNames.Payload}' cannot be null when '{propertyNames.IsSuccess}' is true and '{propertyNames.IsNone}' is false."
@@ -315,7 +341,7 @@ file static class ResponseEnvelopeJson
 		if (rejectNullElement && errorElement.ValueKind == JsonValueKind.Null)
 			throw new JsonException($"Property '{propertyNames.Error}' cannot be null when '{propertyNames.IsSuccess}' is false.");
 
-		var error = errorElement.Deserialize<TError>(options);
+		var error = errorElement.Deserialize(options.GetTypeInfo<TError>());
 		if (error is null)
 			throw new JsonException($"Property '{propertyNames.Error}' cannot be null when '{propertyNames.IsSuccess}' is false.");
 
@@ -327,7 +353,7 @@ file static class ResponseEnvelopeJson
 		if (!root.TryGetProperty(propertyNames.Payload, options, out var payloadElement))
 			return None.Value;
 
-		return payloadElement.Deserialize<None>(options);
+		return payloadElement.Deserialize(options.GetTypeInfo<None>());
 	}
 
 	public static void EnsureNoneIsNotError(MaybeState state, ResponseJsonPropertyNames propertyNames)
@@ -371,14 +397,14 @@ file static class ResponseEnvelopeJson
 			return;
 
 		writer.WritePropertyName(propertyNames.Payload);
-		JsonSerializer.Serialize(writer, value, options);
+		JsonSerializer.Serialize(writer, value, options.GetTypeInfo<TSuccess>());
 	}
 
 	public static void WriteErrorPayload<TError>(Utf8JsonWriter writer, TError value, ResponseJsonPropertyNames propertyNames, JsonSerializerOptions options)
 		where TError : notnull
 	{
 		writer.WritePropertyName(propertyNames.Error);
-		JsonSerializer.Serialize(writer, value, options);
+		JsonSerializer.Serialize(writer, value, options.GetTypeInfo<TError>());
 	}
 
 	public static ExtensionsDictionary<IResponse> GetExtensionData(JsonElement root, JsonSerializerOptions options, params string[] reservedPropertyNames)
@@ -388,7 +414,7 @@ file static class ResponseEnvelopeJson
 
 		foreach (var prop in root.EnumerateObject())
 			if (!reserved.Contains(prop.Name))
-				extensions[prop.Name] = prop.Value.Deserialize<object?>(options);
+				extensions[prop.Name] = prop.Value.Deserialize(options.GetTypeInfo<object?>());
 
 		return extensions;
 	}
@@ -401,7 +427,7 @@ file static class ResponseEnvelopeJson
 			if (extension.Value is JsonElement element)
 				element.WriteTo(writer);
 			else
-				JsonSerializer.Serialize(writer, extension.Value, options);
+				JsonSerializer.Serialize(writer, extension.Value, options.GetTypeInfo<object?>());
 		}
 	}
 

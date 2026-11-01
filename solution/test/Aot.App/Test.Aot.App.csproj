@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<!-- Fuxion is compatible with trimming and native AOT from .NET 11 on -->
+		<TargetFramework>$(LatestCoreFramework)</TargetFramework>
+		<!-- Not a test project: an application that the CI publishes with native AOT and runs (plan "Las Responses
+		     compatibles con AOT"); it fails if a response does not travel as it should. With PublishAot, every build
+		     analyzes it as native AOT will, and its warnings are errors -->
+		<IsTestProject>false</IsTestProject>
+		<PublishAot>true</PublishAot>
+		<!-- Never packed: the web SDK warns when a non-packable web project is packed (dotnet pack of the solution) -->
+		<WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<FxReference Include="Fuxion" />
+		<FxReference Include="Fuxion.AspNetCore" />
+		<FxReference Include="Fuxion.Http" />
+	</ItemGroup>
+
+</Project>

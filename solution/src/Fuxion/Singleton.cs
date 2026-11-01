@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using Fuxion.Reflection;
@@ -527,10 +528,11 @@ public interface ISingletonConstants
 /// var config = Singleton.Get&lt;IConfiguration&gt;();
 /// </code>
 /// </example>
-public class DefaultSingletonInstanceAttribute(Type type) : Attribute
+public class DefaultSingletonInstanceAttribute([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type) : Attribute
 {
 	/// <summary>
 	/// Gets or sets the type to instantiate as the default singleton instance.
 	/// </summary>
+	[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 	public Type Type { get; set; } = type;
 }

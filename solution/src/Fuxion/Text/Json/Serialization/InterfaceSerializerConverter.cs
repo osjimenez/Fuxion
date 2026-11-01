@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -144,6 +145,13 @@ namespace Fuxion.Text.Json.Serialization;
 public class InterfaceSerializerConverter<TInterface> : JsonConverter<TInterface>
 {
 	/// <summary>
+	/// Creates the converter, which works by reflection.
+	/// </summary>
+	[RequiresUnreferencedCode(AotMessages.Json)]
+	[RequiresDynamicCode(AotMessages.JsonDynamic)]
+	public InterfaceSerializerConverter() { }
+
+	/// <summary>
 	/// Determines whether this converter can handle the specified type.
 	/// </summary>
 	/// <param name="type">The type to check for conversion compatibility.</param>
@@ -246,6 +254,7 @@ public class InterfaceSerializerConverter<TInterface> : JsonConverter<TInterface
 	/// }
 	/// </code>
 	/// </example>
+	[UnconditionalSuppressMessage("AOT", "IL3050", Justification = "The constructor is marked RequiresDynamicCode.")]
 	public override TInterface Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options)
 		=> throw new SerializationException($"Deserialize from an interface is not supported by '{typeof(InterfaceSerializerConverter<>).MakeGenericType(type).GetSignature()}'");
 	
@@ -331,6 +340,8 @@ public class InterfaceSerializerConverter<TInterface> : JsonConverter<TInterface
 	/// // Result: {"Payment":null}
 	/// </code>
 	/// </example>
+	[UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The constructor is marked RequiresUnreferencedCode.")]
+	[UnconditionalSuppressMessage("AOT", "IL3050", Justification = "The constructor is marked RequiresDynamicCode.")]
 	public override void Write(Utf8JsonWriter writer, TInterface? value, JsonSerializerOptions options)
 	{
 		if (value is null)

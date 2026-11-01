@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -236,8 +237,17 @@ namespace Fuxion.Web;
 /// </example>
 public class PatcherJsonConverter<T> : JsonConverter<Patcher<T>> where T : class
 {
+	/// <summary>
+	/// Creates the converter, which works by reflection.
+	/// </summary>
+	[RequiresUnreferencedCode(AotMessages.Json)]
+	[RequiresDynamicCode(AotMessages.JsonDynamic)]
+	public PatcherJsonConverter() { }
+
 	private static JsonSerializerOptions JsonOptions
 	{
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
 		get
 		{
 			if (field is null)
@@ -393,6 +403,9 @@ public class PatcherJsonConverter<T> : JsonConverter<Patcher<T>> where T : class
 	/// // return patcher
 	/// </code>
 	/// </example>
+	[UnconditionalSuppressMessage("Trimming", "IL2087", Justification = "The constructor is marked RequiresUnreferencedCode.")]
+	[UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The constructor is marked RequiresUnreferencedCode.")]
+	[UnconditionalSuppressMessage("AOT", "IL3050", Justification = "The constructor is marked RequiresDynamicCode.")]
 	public override Patcher<T> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
 	{
 		var ins = Activator.CreateInstance(typeof(Patcher<T>), true)
@@ -571,6 +584,8 @@ public class PatcherJsonConverter<T> : JsonConverter<Patcher<T>> where T : class
 	/// }
 	/// </code>
 	/// </example>
+	[UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The constructor is marked RequiresUnreferencedCode.")]
+	[UnconditionalSuppressMessage("AOT", "IL3050", Justification = "The constructor is marked RequiresDynamicCode.")]
 	public override void Write(Utf8JsonWriter writer, Patcher<T> value, JsonSerializerOptions options)
 	{
 		writer.WriteStartObject();

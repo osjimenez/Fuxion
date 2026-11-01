@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using Fuxion.Reflection;
@@ -377,6 +378,27 @@ public interface IRouteGroup<TRouteGroup> : IRouteGroup where TRouteGroup : IRou
 /// </example>
 public static class EndpointsExtensions
 {
+	const string AssemblyScan = "It finds the endpoints and the route groups by reflecting over the types of the assembly, which trimming may "
+		+ "remove. Map each endpoint by its type instead, with MapEndpoint<TEndpoint>().";
+
+	/// <summary>
+	///    Registers one endpoint by its type, without reflection: compatible with trimming and native AOT.
+	/// </summary>
+	/// <typeparam name="TEndpoint">The endpoint to register.</typeparam>
+	/// <param name="builder">
+	///    The <see cref="IEndpointRouteBuilder"/> to register it on: the application, or the builder of a route group
+	///    (<see cref="IRouteGroup.Group"/>) for an endpoint that belongs to one.
+	/// </param>
+	/// <example>
+	///    <code>
+	/// app.MapEndpoint&lt;GetOrderEndpoint&gt;();
+	/// var orders = new OrdersGroup().Group(app);
+	/// orders.MapEndpoint&lt;ListOrdersEndpoint&gt;();
+	/// </code>
+	/// </example>
+	public static void MapEndpoint<TEndpoint>(this IEndpointRouteBuilder builder) where TEndpoint : IEndpoint, new()
+		=> new TEndpoint().MapEndpoint(builder);
+
 	/// <summary>
 	///    Discovers and registers all endpoints and route groups from the specified assembly.
 	/// </summary>
@@ -445,6 +467,7 @@ public static class EndpointsExtensions
 	/// app.MapEndpointsForAssembly(typeof(ExternalModule).Assembly);
 	/// </code>
 	/// </example>
+	[RequiresUnreferencedCode(AssemblyScan)]
 	public static void MapEndpointsForAssembly(this IEndpointRouteBuilder builder, Assembly assembly)
 		=> MapEndpointsForAssemblyPrivate(builder, assembly);
 
@@ -490,10 +513,12 @@ public static class EndpointsExtensions
 	/// app.MapEndpointsForAssembly&lt;ApiV1Group&gt;(typeof(Program).Assembly);
 	/// </code>
 	/// </example>
+	[RequiresUnreferencedCode(AssemblyScan)]
 	public static void MapEndpointsForAssembly<TRouteGroup>(this IEndpointRouteBuilder builder, Assembly assembly)
 		where TRouteGroup : IRouteGroup, new()
 		=> MapEndpointsForAssemblyPrivate(builder, assembly, typeof(TRouteGroup));
 
+	[RequiresUnreferencedCode(AssemblyScan)]
 	private static void MapEndpointsForAssemblyPrivate(IEndpointRouteBuilder builder, Assembly assembly, Type? baseRouteGroupType = null)
 	{
 		// Compruebo que no haya endpoints o grupos mal configurados

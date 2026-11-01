@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Fuxion.Reflection;
+using Fuxion.Text.Json;
 
 namespace Fuxion;
 
@@ -73,7 +74,7 @@ public class ExtensionsDictionary : IDictionary<string, object?>
 			if (value is T tValue)
 				return tValue;
 			if (value is JsonElement json)
-				return json.Deserialize<T>(options);
+				return json.Deserialize(options.Configured().GetTypeInfo<T>());
 			throw new InvalidCastException($"The value associated with key '{key}' is neither '{typeof(T).GetSignature()}' nor '{nameof(JsonElement)}'.");
 		}
 		throw new KeyNotFoundException($"The key '{key}' was not found in the dictionary");

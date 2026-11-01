@@ -170,6 +170,13 @@ public static class JsonExtensions
 	public class FuxionFormattedTypeInfoResolver : DefaultJsonTypeInfoResolver
 	{
 		/// <summary>
+		/// Creates the resolver, which describes the types by reflection.
+		/// </summary>
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
+		public FuxionFormattedTypeInfoResolver() { }
+
+		/// <summary>
 		/// Gets or sets a value indicating whether object types without public instance constructors can be instantiated through reflection.
 		/// </summary>
 		/// <value>
@@ -259,6 +266,8 @@ public static class JsonExtensions
 		/// //         and properties appear in JSON as: {"Apple":..., "Zebra":...}
 		/// </code>
 		/// </example>
+		[UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "The constructor is marked RequiresUnreferencedCode.")]
+		[UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "The constructor is marked RequiresUnreferencedCode.")]
 		public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
 		{
 			var jsonTypeInfo = base.GetTypeInfo(type, options);
@@ -370,6 +379,8 @@ public static class JsonExtensions
 		/// </example>
 		public static JsonSerializerOptions Formatted
 		{
+			[RequiresUnreferencedCode(AotMessages.Json)]
+			[RequiresDynamicCode(AotMessages.JsonDynamic)]
 			get
 			{
 				var current = Singleton.GetOrAdd(FormattedKey, () => new JsonSerializerOptions
@@ -433,6 +444,8 @@ public static class JsonExtensions
 		/// // - TypeInfoResolver is replaced with FuxionFormattedTypeInfoResolver
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
 		private JsonSerializerOptions ApplyFormat() => new(me)
 		{
 			IndentCharacter = '\t',
@@ -566,6 +579,8 @@ public static class JsonExtensions
 		/// // Returns: null (JsonSerializer uses its defaults)
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
 		private JsonSerializerOptions? ToFinalOptions() =>
 			me switch
 			{
@@ -617,6 +632,8 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
 		public Response<T> Deserialize<T>(bool formatted = false, JsonSerializerOptions? options = null) where T : notnull
 		{
 			ThrowIfUnionCase<T>(nameof(Deserialize));
@@ -644,6 +661,8 @@ public static class JsonExtensions
 		/// <param name="failure">A critical <see cref="Error"/> describing why the string could not be read when the method returns <see langword="false"/>.</param>
 		/// <param name="formatted">Whether to use Fuxion's formatted JSON options.</param>
 		/// <param name="options">Custom serializer options; <see langword="null"/> uses the defaults.</param>
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
 		public bool TryDeserializeError(out Error error, out Error failure, bool formatted = false, JsonSerializerOptions? options = null)
 		{
 			error = default;
@@ -712,6 +731,8 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
 		public ResponseMaybe<T> DeserializeMaybe<T>(bool formatted = false, JsonSerializerOptions? options = null) where T : notnull
 		{
 			ThrowIfUnionCase<T>(nameof(DeserializeMaybe));
@@ -760,6 +781,8 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
 		public Response<object> Deserialize(Type type, bool formatted = false, JsonSerializerOptions? options = null)
 		{
 			if (me.Value.IsNullOrWhiteSpace())
@@ -809,6 +832,8 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
 		public ResponseMaybe<object> DeserializeMaybe(Type type, bool formatted = false, JsonSerializerOptions? options = null)
 		{
 			if (me.Value.IsNullOrWhiteSpace())
@@ -869,6 +894,8 @@ public static class JsonExtensions
 		/// var nullResponse2 = nullPerson.Fx.Json.Serialize(errorIfNull: true);  // Error response
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
 		public Response<string> Serialize(bool formatted = false, JsonSerializerOptions? options = null, bool errorIfNull = false)
 		{
 			try
@@ -912,6 +939,8 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
 		public Response<JsonNode> SerializeToNode(bool formatted = false, JsonSerializerOptions? options = null)
 		{
 			try
@@ -962,6 +991,8 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
 		public Response<JsonElement> SerializeToElement(bool formatted = false, JsonSerializerOptions? options = null, bool errorIfNull = false)
 		{
 			try
@@ -1018,6 +1049,8 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
 		public Response<string> Serialize(bool formatted = false, JsonSerializerOptions? options = null, bool errorIfNull = false)
 		{
 			try
@@ -1077,6 +1110,8 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
 		public Response<JsonNode> SerializeToNode(bool formatted = false, JsonSerializerOptions? options = null)
 		{
 			try
@@ -1143,6 +1178,8 @@ public static class JsonExtensions
 		/// }
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Json)]
+		[RequiresDynamicCode(AotMessages.JsonDynamic)]
 		public Response<JsonElement> SerializeToElement(bool formatted = false, JsonSerializerOptions? options = null, bool errorIfNull = false)
 		{
 			try

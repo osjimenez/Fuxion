@@ -66,7 +66,7 @@ sealed class RequestNamingInputFormatter(JsonOptions jsonOptions, ILogger<Reques
 		try
 		{
 			// Same shape as the base implementation: a malformed body is a model-state error, not an exception.
-			var model = await JsonSerializer.DeserializeAsync(stream, context.ModelType, options, context.HttpContext.RequestAborted);
+			var model = await JsonSerializer.DeserializeAsync(stream, options.GetTypeInfo(context.ModelType), context.HttpContext.RequestAborted);
 			return model is null && !context.TreatEmptyInputAsDefaultValue ? InputFormatterResult.NoValue() : InputFormatterResult.Success(model);
 		}
 		catch (JsonException ex)

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,9 +28,11 @@ public static class FuxionJsonTypes
 	/// property graph (recursively; through arrays, <see cref="IEnumerable{T}"/>, <see cref="Nullable{T}"/>
 	/// and the generic arguments of a dictionary).
 	/// </summary>
+	[RequiresUnreferencedCode(AotMessages.Reflection)]
 	public static bool RequiresSystemTextJson(Type type)
 		=> cache.GetOrAdd(type, static t => Requires(t, new HashSet<Type>()));
 
+	[RequiresUnreferencedCode(AotMessages.Reflection)]
 	static bool Requires(Type type, HashSet<Type> visiting)
 	{
 		if (IsFuxionType(type)) return true;

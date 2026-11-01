@@ -26,7 +26,11 @@ static class ResponseConstants
 }
 
 [Union]
+#if NET11_0_OR_GREATER
+[JsonConverter(typeof(ResponseOfTSuccessJsonConverter<>))]
+#else
 [JsonConverter(typeof(ResponseOfTSuccessJsonConverterFactory))]
+#endif
 public readonly struct Response<TSuccess> : IResponse
 	where TSuccess : notnull
 {
@@ -135,7 +139,11 @@ public readonly struct Response<TSuccess> : IResponse
 }
 
 [Union]
+#if NET11_0_OR_GREATER
+[JsonConverter(typeof(ResponseOfTSuccessAndTErrorJsonConverter<,>))]
+#else
 [JsonConverter(typeof(ResponseOfTSuccessAndTErrorJsonConverterFactory))]
+#endif
 public readonly struct Response<TSuccess, TError> : IResponse
 	where TSuccess : notnull
 	where TError : notnull
@@ -255,7 +263,11 @@ public readonly struct Response<TSuccess, TError> : IResponse
 }
 
 [Union]
+#if NET11_0_OR_GREATER
+[JsonConverter(typeof(ResponseMaybeOfTSuccessJsonConverter<>))]
+#else
 [JsonConverter(typeof(ResponseMaybeOfTSuccessJsonConverterFactory))]
+#endif
 public readonly struct ResponseMaybe<TSuccess> : IResponseMaybe
 	where TSuccess : notnull
 {
@@ -398,7 +410,11 @@ public readonly struct ResponseMaybe<TSuccess> : IResponseMaybe
 }
 
 [Union]
+#if NET11_0_OR_GREATER
+[JsonConverter(typeof(ResponseMaybeOfTSuccessAndTErrorJsonConverter<,>))]
+#else
 [JsonConverter(typeof(ResponseMaybeOfTSuccessAndTErrorJsonConverterFactory))]
+#endif
 public readonly struct ResponseMaybe<TSuccess, TError> : IResponseMaybe
 	where TSuccess : notnull
 	where TError : notnull

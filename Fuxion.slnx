@@ -29,6 +29,8 @@
   </Folder>
   <Folder Name="/test/">
     <File Path="solution/test/Directory.Build.props" />
+    <Project Path="solution/test/Aot.App/Test.Aot.App.csproj" />
+    <Project Path="solution/test/Aot/Test.Aot.csproj" />
     <Project Path="solution/test/AspNet/Test.AspNet.csproj" />
     <Project Path="solution/test/AspNetCore.Service/Test.AspNetCore.Service.csproj" />
     <Project Path="solution/test/AspNetCore/Test.AspNetCore.csproj" />

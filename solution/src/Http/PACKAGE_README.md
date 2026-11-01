@@ -9,4 +9,9 @@ Install command:
 dotnet add package Fuxion.Http
 ```
 
+## Native AOT
+
+From .NET 11 on, compatible with trimming and native AOT: give `FuxionHttpClientOptions.JsonOptions` options that chain
+a context of your own (your types and the responses you read) and `FuxionJsonContext`.
+
 **🔨 Work in progress..**

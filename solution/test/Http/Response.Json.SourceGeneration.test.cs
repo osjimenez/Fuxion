@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using Fuxion;
+using Fuxion.Text.Json;
 using Fuxion.Xunit;
 using Xunit;
 
@@ -42,36 +44,35 @@ public class ResponseJsonSourceGenerationTest(ITestOutputHelper output) : BaseTe
 		Assert.Equal(json, JsonSerializer.Serialize(back, type, options));
 	}
 
+	// The recipe of a consumer: its context declares its types and its responses, and FuxionJsonContext, chained after it,
+	// brings the types of Fuxion.
+	static readonly JsonSerializerOptions SourceGenOptions = new()
+	{
+		TypeInfoResolver = JsonTypeInfoResolver.Combine(SourceGenerationJsonContext.Default, FuxionJsonContext.Default)
+	};
+
 	[Theory(DisplayName = "A source-generated context in a consumer assembly writes the same JSON as reflection and reads it back")]
 	[MemberData(nameof(Values))]
 	public void ConsumerSourceGenContext_MatchesReflection(Type type, object value)
 	{
 		var expected = JsonSerializer.Serialize(value, type, new JsonSerializerOptions());
-		var json = JsonSerializer.Serialize(value, type, SourceGenerationJsonContext.Default);
+		var json = JsonSerializer.Serialize(value, type, SourceGenOptions);
 		PrintVariable(json);
 		Assert.Equal(expected, json);
-		var back = JsonSerializer.Deserialize(json, type, SourceGenerationJsonContext.Default);
-		Assert.Equal(json, JsonSerializer.Serialize(back, type, SourceGenerationJsonContext.Default));
+		var back = JsonSerializer.Deserialize(json, type, SourceGenOptions);
+		Assert.Equal(json, JsonSerializer.Serialize(back, type, SourceGenOptions));
 	}
 }
 
 public record SourceGenPayload(string Name, int Age);
 public record SourceGenError(string Code);
 
-#pragma warning disable SYSLIB1227 // Union case types that serialize as the same JSON value kind
 [JsonSerializable(typeof(Response<SourceGenPayload>))]
 [JsonSerializable(typeof(Response<SourceGenPayload, SourceGenError>))]
 [JsonSerializable(typeof(ResponseMaybe<SourceGenPayload>))]
 [JsonSerializable(typeof(ResponseMaybe<SourceGenPayload, SourceGenError>))]
-[JsonSerializable(typeof(None))]
-[JsonSerializable(typeof(Unit))]
 // The union converters delegate the cases to the options they receive, and the generator does not walk into
 // types that declare their own converter, so the consumer registers the case types explicitly.
 [JsonSerializable(typeof(SourceGenPayload))]
 [JsonSerializable(typeof(SourceGenError))]
-[JsonSerializable(typeof(Error))]
-[JsonSerializable(typeof(ErrorSource?))]
-// An Error with an exception carries it as ExceptionJson.
-[JsonSerializable(typeof(ExceptionJson))]
 internal partial class SourceGenerationJsonContext : JsonSerializerContext;
-#pragma warning restore SYSLIB1227

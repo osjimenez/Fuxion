@@ -145,12 +145,12 @@ public static class ResponseProblemDetailsExtensions
 			if (json.ValueKind == JsonValueKind.String)
 				return json.GetString();
 
-			var options = jsonOptions ?? new JsonSerializerOptions();
+			var options = jsonOptions.Configured();
 			foreach (var converter in ErrorJsonConverter.UseErrorTypeConverters())
 				if (converter.TryRead(json, out var convertedType, options))
 					return convertedType;
 
-			return json.Deserialize<object?>(options);
+			return json.Deserialize(options.GetTypeInfo<object?>());
 		}
 
 		return value;
@@ -165,7 +165,7 @@ public static class ResponseProblemDetailsExtensions
 		if (value is ExceptionJson exceptionJson)
 			return exceptionJson.ToRemoteException();
 		if (value is JsonElement json)
-			return json.Deserialize<ExceptionJson?>(jsonOptions)?.ToRemoteException();
+			return json.Deserialize(jsonOptions.Configured().GetTypeInfo<ExceptionJson?>())?.ToRemoteException();
 		return null;
 	}
 
@@ -176,7 +176,7 @@ public static class ResponseProblemDetailsExtensions
 		if (value is T typed)
 			return typed;
 		if (value is JsonElement json)
-			return json.Deserialize<T>(jsonOptions);
+			return json.Deserialize(jsonOptions.Configured().GetTypeInfo<T>());
 		return default;
 	}
 

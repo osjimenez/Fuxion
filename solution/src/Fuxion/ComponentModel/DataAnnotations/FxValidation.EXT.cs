@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Fuxion.Collections.Generic;
@@ -184,6 +185,7 @@ public static class DataAnnotationsExtensions
 		///     Console.WriteLine(response.Message);
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Validation)]
 		public Response<Unit> ToResponse(bool nullValueIsValid = false)
 		{
 			if (me.Value is null)

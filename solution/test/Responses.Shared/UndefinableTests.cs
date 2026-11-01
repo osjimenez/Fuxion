@@ -28,7 +28,7 @@ public abstract class UndefinableTests : WireTestBase<UndefinableTests>
 		// property is omitted and when the marker object is used, so it could not tell them apart.
 		var json = JsonNode.Parse(body)!.AsObject();
 		Assert.False(json.ContainsKey("name"), "The undefined member must be absent from the payload");
-		Assert.DoesNotContain(UndefinableJsonConverterFactory.UndefinedMarkerPropertyName, body);
+		Assert.DoesNotContain(UndefinableJsonTypeInfo.UndefinedMarkerPropertyName, body);
 		Assert.Equal(123, (int?)json["age"]);
 	}
 

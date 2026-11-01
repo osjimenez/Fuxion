@@ -43,7 +43,7 @@ public static class HttpResponseMessageExtensions
 {
 	// Web defaults: any HTTP server serializing the envelope (ASP.NET Core included) uses them, and the
 	// envelope property names are resolved through the naming policy at read time.
-	static readonly JsonSerializerOptions defaultJsonOptions = new(JsonSerializerDefaults.Web);
+	static readonly JsonSerializerOptions defaultJsonOptions = FuxionJsonOptions.Web;
 
 	static string? ContentType(HttpResponseMessage me) => me.Content?.Headers.ContentType?.ToString();
 
@@ -88,34 +88,32 @@ public static class HttpResponseMessageExtensions
 			return false;
 		}
 
-		// Error cannot be the success type of a Response<T>, so a bare native error is read through its own path.
-		Error deserializationFailure;
-		if (typeof(T) == typeof(Error))
+		// Through the contracts the options give (FuxionJsonOptions): no reflection unless the options bring it. A JSON null
+		// is not a value: a bare native error is read as Error? to tell it apart.
+		Exception? deserializationException = null;
+		try
 		{
-			if (body.Fx.Json.TryDeserializeError(out var nativeError, out deserializationFailure, options: jsonOptions))
+			var options = jsonOptions.Configured();
+			object? read = typeof(T) == typeof(Error)
+				? JsonSerializer.Deserialize(body, options.GetTypeInfo<Error?>())
+				: JsonSerializer.Deserialize(body, options.GetTypeInfo<T>());
+			if (read is not null)
 			{
-				value = (T)(object)nativeError;
+				value = (T)read;
 				failure = default;
 				return true;
 			}
 		}
-		else
+		catch (Exception ex)
 		{
-			var desRes = body.Fx.Json.Deserialize<T>(options: jsonOptions);
-			if (desRes.TryGetValue(out T? desValue))
-			{
-				value = desValue;
-				failure = default;
-				return true;
-			}
-			desRes.TryGetValue(out deserializationFailure);
+			deserializationException = ex;
 		}
 
 		var hint = string.Equals(ResponseNaming.GetParameter(contentType), ResponseNaming.Custom, StringComparison.OrdinalIgnoreCase)
 			? " The server announced a custom naming policy; pass JsonSerializerOptions with the same policy."
 			: string.Empty;
 		value = default!;
-		failure = Error.InternalServerError($"The JSON body could not be read as '{typeof(T).GetSignature()}'.{hint}", exception: deserializationFailure.Exception)
+		failure = Error.InternalServerError($"The JSON body could not be read as '{typeof(T).GetSignature()}'.{hint}", exception: deserializationException)
 			.WithExtension(ClientErrorKeys.JsonPayload, element)
 			.WithExtension(ClientErrorKeys.ContentType, MediaTypeOf(contentType));
 		return false;

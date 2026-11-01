@@ -3,11 +3,13 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Fuxion.Text.Json;
 
 namespace Fuxion;
 
@@ -90,16 +92,16 @@ public class ExceptionConverter : JsonConverter<Exception>
       if (reader.TokenType == JsonTokenType.Null)
          return null;
 
-      var res = JsonSerializer.Deserialize<ExceptionJson>(ref reader, options);
+      var res = JsonSerializer.Deserialize(ref reader, options.GetTypeInfo<ExceptionJson>());
       return res?.ToRemoteException();
    }
 
    public override void Write(Utf8JsonWriter writer, Exception value, JsonSerializerOptions options)
    {
       if (value is RemoteException remote)
-         JsonSerializer.Serialize(writer, remote.ExceptionJson, options);
+         JsonSerializer.Serialize(writer, remote.ExceptionJson, options.GetTypeInfo<ExceptionJson>());
       else
-         JsonSerializer.Serialize(writer, value.ToExceptionJson(options), options);
+         JsonSerializer.Serialize(writer, value.ToExceptionJson(options), options.GetTypeInfo<ExceptionJson>());
    }
 }
 public static class ExceptionJsonMapper
@@ -128,7 +130,7 @@ public static class ExceptionJsonMapper
                ? [.. aggregate.InnerExceptions.Select(ex => ex.ToExceptionJson(options))]
                : null,
             Data = GetData(me, options),
-            TargetSite = me.TargetSite?.GetSignature(
+            TargetSite = GetTargetSite(me)?.GetSignature(
                includeAccessModifiers: true,
                includeReturn: true,
                includeDeclaringType: true,
@@ -140,6 +142,16 @@ public static class ExceptionJsonMapper
          };
       }
    }
+
+   // The description of an exception is best effort: what trimming or native AOT remove (the method that threw, the
+   // method of a frame, a property of the type of the exception) is left out, and nothing fails.
+   const string BestEffort = "Best effort: under trimming or native AOT this may be missing, and it is left out.";
+
+   [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = BestEffort)]
+   static MethodBase? GetTargetSite(Exception exception) => exception.TargetSite;
+
+   [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = BestEffort)]
+   static MethodBase? GetMethod(StackFrame frame) => frame.GetMethod();
    extension(ExceptionJson me)
    {
       public RemoteException ToRemoteException()
@@ -175,7 +187,7 @@ public static class ExceptionJsonMapper
       foreach (var frame in frames)
          res.Add(new()
          {
-            Method = frame.GetMethod()?.GetSignature(
+            Method = GetMethod(frame)?.GetSignature(
                includeAccessModifiers: true,
                includeReturn: true,
                includeDeclaringType: true,
@@ -203,6 +215,7 @@ public static class ExceptionJsonMapper
       return res.Count == 0 ? null : res.ToArray();
    }
 
+   [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = BestEffort)]
    static IEnumerable<KeyValuePair<string, object?>> GetExtensionProperties(Exception exception, JsonSerializerOptions? options)
    {
       foreach (var property in exception.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
@@ -243,9 +256,11 @@ public static class ExceptionJsonMapper
 
       try
       {
-         var safeOptions = options is null ? new JsonSerializerOptions() : new JsonSerializerOptions(options);
+         var safeOptions = new JsonSerializerOptions(options ?? FuxionJsonOptions.Default);
          safeOptions.ReferenceHandler ??= ReferenceHandler.IgnoreCycles;
-         var serialized = JsonSerializer.Serialize(value, value.GetType(), safeOptions);
+         // A type the options cannot describe (with native AOT, one no context declares) throws, and the catch below
+         // falls back to its name.
+         var serialized = JsonSerializer.Serialize(value, safeOptions.Configured().GetTypeInfo(value.GetType()));
          using var doc = JsonDocument.Parse(serialized);
          return doc.RootElement.Clone();
       }

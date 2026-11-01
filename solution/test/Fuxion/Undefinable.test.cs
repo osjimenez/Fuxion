@@ -229,7 +229,7 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 		IsFalse(members.ContainsKey("String"));
 		IsTrue(members.ContainsKey("NullableInteger"));
 		// The marker must not appear anywhere in the document, at any depth.
-		Assert.DoesNotContain(UndefinableJsonConverterFactory.UndefinedMarkerPropertyName, json);
+		Assert.DoesNotContain(UndefinableJsonTypeInfo.UndefinedMarkerPropertyName, json);
 
 
 		var back = json.Fx.Json.Deserialize<UndefinableSampleWithoutIgnore>(true).SuccessOrThrow();
@@ -248,13 +248,13 @@ public class UndefinableTest(ITestOutputHelper output) : BaseTest<UndefinableTes
 		Undefinable<int> root = None.Value;
 		var rootJson = root.Fx.Json.Serialize(true).SuccessOrThrow();
 		PrintVariable(rootJson);
-		Assert.Contains(UndefinableJsonConverterFactory.UndefinedMarkerPropertyName, rootJson!);
+		Assert.Contains(UndefinableJsonTypeInfo.UndefinedMarkerPropertyName, rootJson!);
 		IsTrue(rootJson.Fx.Json.Deserialize<Undefinable<int>>(true).SuccessOrThrow().IsUndefined);
 
 		var array = new Undefinable<int>[] { new(1), None.Value, new(3) };
 		var arrayJson = array.Fx.Json.Serialize(true).SuccessOrThrow();
 		PrintVariable(arrayJson);
-		Assert.Contains(UndefinableJsonConverterFactory.UndefinedMarkerPropertyName, arrayJson!);
+		Assert.Contains(UndefinableJsonTypeInfo.UndefinedMarkerPropertyName, arrayJson!);
 
 		var backArray = arrayJson.Fx.Json.Deserialize<Undefinable<int>[]>(true).SuccessOrThrow();
 		Assert.NotNull(backArray);
@@ -332,7 +332,7 @@ file static class UndefinableSampleAssertions
 		var undefinedJson = $$"""
 			{
 				"Demo": "test",
-				"Integer": { "{{UndefinableJsonConverterFactory.UndefinedMarkerPropertyName}}": true },
+				"Integer": { "{{UndefinableJsonTypeInfo.UndefinedMarkerPropertyName}}": true },
 				"NullableString": null,
 				"Object": {
 					"Integer": 123,

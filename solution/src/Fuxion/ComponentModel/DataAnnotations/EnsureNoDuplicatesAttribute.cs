@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Collections;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -104,7 +105,7 @@ public class EnsureNoDuplicatesAttribute : ValidationAttribute
 	/// </code>
 	/// where T is the type of elements in the collection being validated.
 	/// </remarks>
-	public EnsureNoDuplicatesAttribute(Type type, string comparassionMethodName)
+	public EnsureNoDuplicatesAttribute([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type type, string comparassionMethodName)
 	{
 		this.type = type;
 		method = type.GetMethod(comparassionMethodName, BindingFlags.Static | BindingFlags.Public);

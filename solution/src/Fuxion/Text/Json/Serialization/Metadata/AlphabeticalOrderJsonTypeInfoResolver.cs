@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -121,6 +122,13 @@ namespace Fuxion.Text.Json.Serialization.Metadata;
 /// </example>
 public class AlphabeticalOrderJsonTypeInfoResolver : DefaultJsonTypeInfoResolver
 {
+	/// <summary>
+	/// Creates the resolver, which works by reflection.
+	/// </summary>
+	[RequiresUnreferencedCode(AotMessages.Json)]
+	[RequiresDynamicCode(AotMessages.JsonDynamic)]
+	public AlphabeticalOrderJsonTypeInfoResolver() { }
+
 	/// <summary>
 	/// Gets the type information for the specified type and applies alphabetical ordering to its properties.
 	/// </summary>

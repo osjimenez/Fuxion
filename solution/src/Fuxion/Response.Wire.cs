@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using Fuxion.Text.Json;
 using System.Threading.Tasks;
 
 namespace Fuxion;
@@ -60,7 +61,7 @@ public sealed record ResponseWireMapping(int StatusCode, ResponseWireShape Shape
 	public static readonly object EmptyObject = new();
 
 	/// <summary>The contract default: Web (camelCase) options, used whenever a shape cannot announce its naming.</summary>
-	static readonly JsonSerializerOptions WebDefaults = new(JsonSerializerDefaults.Web);
+	static readonly JsonSerializerOptions WebDefaults = FuxionJsonOptions.Web;
 
 	public bool HasBody => Shape != ResponseWireShape.NoContent;
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -194,6 +195,13 @@ namespace Fuxion.Text.Json.Serialization.Metadata;
 public class PrivateConstructorJsonTypeInfoResolver : DefaultJsonTypeInfoResolver
 {
 	/// <summary>
+	/// Creates the resolver, which works by reflection.
+	/// </summary>
+	[RequiresUnreferencedCode(AotMessages.Json)]
+	[RequiresDynamicCode(AotMessages.JsonDynamic)]
+	public PrivateConstructorJsonTypeInfoResolver() { }
+
+	/// <summary>
 	/// Gets the type information for the specified type and configures object creation for types with non-public constructors.
 	/// </summary>
 	/// <param name="type">The type to get information for.</param>
@@ -276,6 +284,8 @@ public class PrivateConstructorJsonTypeInfoResolver : DefaultJsonTypeInfoResolve
 	/// Thrown when <see cref="Activator.CreateInstance(Type, bool)"/> fails to create an instance
 	/// and returns <c>null</c>. The exception message includes the type signature for debugging.
 	/// </exception>
+	[UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "The constructor is marked RequiresUnreferencedCode.")]
+	[UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "The constructor is marked RequiresUnreferencedCode.")]
 	public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
 	{
 		var jsonTypeInfo = base.GetTypeInfo(type, options);

@@ -57,12 +57,12 @@ static class ResponseHttpAdapter
 
 	public static JsonSerializerOptions ResolveHttpJsonOptions(HttpContext httpContext)
 		=> httpContext.RequestServices.GetService<IOptions<HttpJsonOptions>>()?.Value.SerializerOptions
-			?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
+			?? ResponsesJsonDefaults.Web;
 
 	public static JsonSerializerOptions ResolveMvcJsonOptions(HttpContext httpContext)
 		=> httpContext.RequestServices.GetService<IOptions<MvcJsonOptions>>()?.Value.JsonSerializerOptions
 			?? httpContext.RequestServices.GetService<IOptions<HttpJsonOptions>>()?.Value.SerializerOptions
-			?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
+			?? ResponsesJsonDefaults.Web;
 
 	public static EntityTagHeaderValue? ParseETag(string? etag)
 		=> !string.IsNullOrWhiteSpace(etag) && EntityTagHeaderValue.TryParse(etag, out var parsed) ? parsed : null;
@@ -84,7 +84,8 @@ sealed class WireResult(ResponseWireMapping mapping) : IResult
 
 		var jsonOptions = ResponseHttpAdapter.ResolveHttpJsonOptions(httpContext);
 		var (contentType, body, serializerOptions) = mapping.Materialize(jsonOptions);
-		return Results.Json(body, serializerOptions ?? jsonOptions, contentType, mapping.StatusCode).ExecuteAsync(httpContext);
+		var options = serializerOptions ?? jsonOptions;
+		return Results.Json(body, options.GetTypeInfo(body!.GetType()), contentType, mapping.StatusCode).ExecuteAsync(httpContext);
 	}
 
 	// The framework writes the stream (and disposes it), sets Content-Disposition, Content-Length,
@@ -112,7 +113,8 @@ sealed class WireActionResult(ResponseWireMapping mapping) : IActionResult
 
 		var jsonOptions = ResponseHttpAdapter.ResolveMvcJsonOptions(http);
 		var (contentType, body, serializerOptions) = mapping.Materialize(jsonOptions);
-		return http.Response.WriteAsJsonAsync(body, body!.GetType(), serializerOptions ?? jsonOptions, contentType, http.RequestAborted);
+		var options = serializerOptions ?? jsonOptions;
+		return http.Response.WriteAsJsonAsync(body, options.GetTypeInfo(body!.GetType()), contentType, http.RequestAborted);
 	}
 
 	static Task WriteBinaryAsync(ActionContext context, IOContent file)

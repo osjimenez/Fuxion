@@ -184,6 +184,7 @@ public static partial class ReflectionExtensions
 		/// // Output: "ProcessDataAsync(string, int)"
 		/// </code>
 		/// </example>
+		[UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Best effort: if trimming removed the original async method, the signature is the one of its state machine.")]
 		public string GetSignature(bool includeAccessModifiers = false,
 			bool includeReturn = false,
 			bool includeDeclaringType = true,
@@ -544,6 +545,7 @@ public static partial class ReflectionExtensions
 		/// // Returns: false
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Reflection)]
 		public bool IsSubclassOfGenericDefinition(Type genericDefinition) => me.GetSubclassOfGenericDefinition(genericDefinition) is not null;
 		/// <summary>
 		/// Gets the concrete type in the inheritance hierarchy that matches the specified raw generic type.
@@ -570,6 +572,7 @@ public static partial class ReflectionExtensions
 		/// // Returns: typeof(ICollection&lt;int&gt;)
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Reflection)]
 		public Type? GetSubclassOfGenericDefinition(Type genericDefinition)
 		{
 			Queue<Type> toProcess = new([me]);
@@ -658,6 +661,8 @@ public static partial class ReflectionExtensions
 		/// // Returns: DateTime.MinValue (01/01/0001 00:00:00)
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Reflection)]
+		[RequiresDynamicCode(AotMessages.DynamicCode)]
 		public object? GetDefaultValue()
 			=> me.GetTypeInfo().IsValueType && Nullable.GetUnderlyingType(me) == null
 				? Activator.CreateInstance(me)
@@ -717,6 +722,7 @@ public static partial class ReflectionExtensions
 		/// Console.WriteLine(secret);  // Output: "Hidden"
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Reflection)]
 		public TValue? GetPrivatePropertyValue<TValue>(string propertyName)
 		{
 #pragma warning disable CA2208
@@ -763,6 +769,7 @@ public static partial class ReflectionExtensions
 		/// Console.WriteLine(data);  // Output: "Secret"
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Reflection)]
 		public TValue? GetPrivateFieldValue<TValue>(string propertyName)
 		{
 #pragma warning disable CA2208
@@ -810,6 +817,7 @@ public static partial class ReflectionExtensions
 		/// Console.WriteLine(obj.GetSecret());  // Output: "NewSecret"
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Reflection)]
 		public void SetPrivatePropertyValue(string propertyName, object? value)
 		{
 #pragma warning disable CA2208
@@ -855,6 +863,7 @@ public static partial class ReflectionExtensions
 		/// Console.WriteLine(obj.GetData());  // Output: "NewData"
 		/// </code>
 		/// </example>
+		[RequiresUnreferencedCode(AotMessages.Reflection)]
 		public void SetPrivateFieldValue(string propertyName, object? value)
 		{
 #pragma warning disable CA2208

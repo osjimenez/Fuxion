@@ -64,7 +64,7 @@ static class RequestNamingEndpoint
 			return await WriteProblemAsync(context, StatusCodes.Status413PayloadTooLarge, $"Request body exceeds the configured limit of {max} bytes.");
 		if (buffer.Length == 0) return true;
 
-		var jsonOptions = context.RequestServices.GetService<IOptions<HttpJsonOptions>>()?.Value.SerializerOptions ?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
+		var jsonOptions = context.RequestServices.GetService<IOptions<HttpJsonOptions>>()?.Value.SerializerOptions ?? ResponsesJsonDefaults.Web;
 		// The transcoder works on UTF-8: a UTF-16 body is converted first, and the Content-Type then says so.
 		var utf8 = encoding.Equals(Encoding.UTF8) ? buffer.ToArray() : Encoding.UTF8.GetBytes(encoding.GetString(buffer.GetBuffer(), 0, (int)buffer.Length));
 		byte[] bytes;

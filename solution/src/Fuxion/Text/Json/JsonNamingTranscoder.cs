@@ -99,11 +99,10 @@ public static class JsonNamingTranscoder
 	{
 		// A freshly constructed JsonSerializerOptions only gets a reflection-based TypeInfoResolver once
 		// JsonSerializer.Serialize/Deserialize has run on it at least once; GetTypeInfo alone never populates
-		// it and throws NotSupportedException instead. MakeReadOnly(populateMissingResolver: true) is the
-		// sanctioned STJ 8+ way to force that: it is idempotent, only fills in the default resolver when
-		// none is configured (a caller's own TypeInfoResolverChain is never discarded), and freezes the
-		// options explicitly here rather than as a side effect of the first GetTypeInfo call below.
-		options.MakeReadOnly(populateMissingResolver: true);
+		// it and throws NotSupportedException instead. Configured() fills in the reflection-based resolver when
+		// none is configured and reflection is enabled (a caller's own TypeInfoResolverChain is never discarded),
+		// and freezes the options explicitly here rather than as a side effect of the first GetTypeInfo call below.
+		options.Configured();
 
 		var reader = new Utf8JsonReader(utf8Json, new JsonReaderOptions { CommentHandling = JsonCommentHandling.Disallow, AllowTrailingCommas = false });
 		using var buffer = new MemoryStream(utf8Json.Length);

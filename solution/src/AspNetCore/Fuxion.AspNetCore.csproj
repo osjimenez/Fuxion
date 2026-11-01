@@ -7,6 +7,11 @@
 		<Description>Fuxion library for Asp.Net Core.</Description>
 	</PropertyGroup>
 
+	<!-- Compatible with trimming and native AOT from .NET 11 on, like Fuxion (plan "Las Responses compatibles con AOT") -->
+	<PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net11.0'))">
+		<IsAotCompatible>true</IsAotCompatible>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>

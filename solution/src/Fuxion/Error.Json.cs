@@ -113,11 +113,11 @@ public sealed class ErrorJsonConverter : JsonConverter<Error>
 
 		object? payload = null;
 		if (root.TryGetProperty(payloadPropertyName, options, out var payloadElement))
-			payload = payloadElement.Deserialize<object?>(options);
+			payload = payloadElement.Deserialize(options.GetTypeInfo<object?>());
 
 		string? message = null;
 		if (root.TryGetProperty(messagePropertyName, options, out var messageElement))
-			message = messageElement.Deserialize<string?>(options);
+			message = messageElement.Deserialize(options.GetTypeInfo<string?>());
 
 		object? type = null;
 		if (root.TryGetProperty(typePropertyName, options, out var typeElement))
@@ -133,28 +133,28 @@ public sealed class ErrorJsonConverter : JsonConverter<Error>
 				}
 			}
 			if (!converted)
-				type = typeElement.Deserialize<object?>(options);
+				type = typeElement.Deserialize(options.GetTypeInfo<object?>());
 		}
 
 		foreach (var prop in root.EnumerateObject())
 			if (!ErrorConstants.ErrorExtensionsReservedKeys.Contains(prop.Name))
-				extensions[prop.Name] = prop.Value.Deserialize<object?>(options);
+				extensions[prop.Name] = prop.Value.Deserialize(options.GetTypeInfo<object?>());
 
 		Exception? exception = null;
 		if (root.TryGetProperty(exceptionPropertyName, options, out var exceptionElement))
 		{
-			var exceptionJson = exceptionElement.Deserialize<ExceptionJson?>(options);
+			var exceptionJson = exceptionElement.Deserialize(options.GetTypeInfo<ExceptionJson?>());
 			if (exceptionJson is not null)
 				exception = exceptionJson.ToRemoteException();
 		}
 
 		Error[]? innerErrors = null;
 		if (root.TryGetProperty(innerErrorsPropertyName, options, out var innerErrorsElement))
-			innerErrors = innerErrorsElement.Deserialize<Error[]?>(options);
+			innerErrors = innerErrorsElement.Deserialize(options.GetTypeInfo<Error[]?>());
 
 		ErrorSource? source = null;
 		if (root.TryGetProperty(sourcePropertyName, options, out var sourceElement))
-			source = sourceElement.Deserialize<ErrorSource?>(options);
+			source = sourceElement.Deserialize(options.GetTypeInfo<ErrorSource?>());
 
 		return new Error(message, type, payload, exception, extensions, innerErrors, source);
 	}
@@ -166,13 +166,13 @@ public sealed class ErrorJsonConverter : JsonConverter<Error>
 		if (value.Payload is not null)
 		{
 			writer.WritePropertyName(options.ApplyNamingPolicy(nameof(Error.Payload)));
-			JsonSerializer.Serialize(writer, value.Payload, options);
+			JsonSerializer.Serialize(writer, value.Payload, options.GetTypeInfo<object>());
 		}
 
 		if (value.Message is not null)
 		{
 			writer.WritePropertyName(options.ApplyNamingPolicy(nameof(Error.Message)));
-			JsonSerializer.Serialize(writer, value.Message, options);
+			JsonSerializer.Serialize(writer, value.Message, options.GetTypeInfo<string>());
 		}
 
 		if (value.Type is not null)
@@ -189,28 +189,28 @@ public sealed class ErrorJsonConverter : JsonConverter<Error>
 				}
 			}
 			if (fallbackTypeConverter)
-				JsonSerializer.Serialize(writer, value.Type, options);
+				JsonSerializer.Serialize(writer, value.Type, options.GetTypeInfo<object>());
 		}
 
 		if (value.Exception is not null)
 		{
 			writer.WritePropertyName(options.ApplyNamingPolicy(nameof(Error.Exception)));
 			if (value.Exception is RemoteException remote)
-				JsonSerializer.Serialize(writer, remote.ExceptionJson, options);
+				JsonSerializer.Serialize(writer, remote.ExceptionJson, options.GetTypeInfo<ExceptionJson>());
 			else
-				JsonSerializer.Serialize(writer, value.Exception.ToExceptionJson(options), options);
+				JsonSerializer.Serialize(writer, value.Exception.ToExceptionJson(options), options.GetTypeInfo<ExceptionJson>());
 		}
 
 		if (value.InnerErrors is not null)
 		{
 			writer.WritePropertyName(options.ApplyNamingPolicy(nameof(Error.InnerErrors)));
-			JsonSerializer.Serialize(writer, value.InnerErrors, options);
+			JsonSerializer.Serialize(writer, value.InnerErrors, options.GetTypeInfo<Error[]>());
 		}
 
 		if (WriteSourceInformation && value.Source is not null)
 		{
 			writer.WritePropertyName(options.ApplyNamingPolicy(nameof(Error.Source)));
-			JsonSerializer.Serialize(writer, value.Source, options);
+			JsonSerializer.Serialize(writer, value.Source, options.GetTypeInfo<ErrorSource?>());
 		}
 
 		foreach (var extension in value.Extensions)
@@ -219,7 +219,7 @@ public sealed class ErrorJsonConverter : JsonConverter<Error>
 			if (extension.Value is JsonElement element)
 				element.WriteTo(writer);
 			else
-				JsonSerializer.Serialize(writer, extension.Value, options);
+				JsonSerializer.Serialize(writer, extension.Value, options.GetTypeInfo<object?>());
 		}
 
 		writer.WriteEndObject();

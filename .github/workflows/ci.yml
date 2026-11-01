@@ -60,6 +60,7 @@ jobs:
             pack: true
           - os: ubuntu-latest
             tests: ''
+            aot: true
     runs-on: ${{ matrix.os }}
     # a step that hangs does not hold the runner for the six hours GitHub allows by default
     timeout-minutes: 45
@@ -83,6 +84,16 @@ jobs:
       # left with no test to run (all need what it lacks) is not a failure (exit code 8)
       - name: Test
         run: dotnet test --solution Fuxion.slnx -c Release --no-build --timeout 25m --ignore-exit-code 8 ${{ matrix.tests }}
+
+      # the responses from one end to the other in an application published with native AOT (plan "Las Responses
+      # compatibles con AOT" of the space): the publish fails on any trimming or AOT warning, and the application on any
+      # response that does not arrive as it left. The native toolchain (clang and zlib), installed only if it is missing
+      - name: Native AOT
+        if: matrix.aot
+        run: |
+          if ! command -v clang > /dev/null || ! dpkg -s zlib1g-dev > /dev/null 2>&1; then sudo apt-get update && sudo apt-get install -y clang zlib1g-dev; fi
+          dotnet publish solution/test/Aot.App/Test.Aot.App.csproj -c Release -r linux-x64 -o "$RUNNER_TEMP/aot"
+          "$RUNNER_TEMP/aot/Test.Aot.App"
 
       - name: Pack
         if: matrix.pack

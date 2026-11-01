@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
@@ -177,6 +178,8 @@ public abstract class PropertyFallbackResolver
 	/// }
 	/// </code>
 	/// </example>
+	[RequiresUnreferencedCode(AotMessages.Json)]
+	[RequiresDynamicCode(AotMessages.JsonDynamic)]
 	public abstract void Do(object value, PropertyInfo propertyInfo, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers);
 
 	/// <summary>
@@ -196,6 +199,8 @@ public abstract class PropertyFallbackResolver
 	/// The method creates a new converter instance at depth <c>Deep + 1</c> to prevent infinite recursion.
 	/// </para>
 	/// </remarks>
+	[RequiresUnreferencedCode(AotMessages.Json)]
+	[RequiresDynamicCode(AotMessages.JsonDynamic)]
 	protected void FallbackWriteRaw(object value, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers)
 	{
 		var converterType = typeof(FallbackConverter<>).MakeGenericType(value.GetType());
@@ -231,6 +236,8 @@ public class IfNullWritePropertyFallbackResolver : PropertyFallbackResolver
 	/// <summary>
 	/// Writes the property as JSON <c>null</c>.
 	/// </summary>
+	[RequiresUnreferencedCode(AotMessages.Json)]
+	[RequiresDynamicCode(AotMessages.JsonDynamic)]
 	public override void Do(object value, PropertyInfo propertyInfo, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers) =>
 		writer.WriteNull(propertyInfo.Name);
 }
@@ -272,6 +279,8 @@ public class IfMemberInfoWriteNamePropertyFallbackResolver : PropertyFallbackRes
 	/// For <see cref="MethodBase"/> (methods, constructors), writes the full signature.
 	/// For other members, writes just the name.
 	/// </summary>
+	[RequiresUnreferencedCode(AotMessages.Json)]
+	[RequiresDynamicCode(AotMessages.JsonDynamic)]
 	public override void Do(object value, PropertyInfo propertyInfo, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers)
 	{
 		writer.WritePropertyName(propertyInfo.Name);
@@ -326,6 +335,8 @@ public class CollectionPropertyFallbackResolver : PropertyFallbackResolver
 	/// Writes the collection as a JSON array, serializing each element using the fallback system.
 	/// </summary>
 	/// <exception cref="InvalidProgramException">Thrown if the property value is unexpectedly null after matching.</exception>
+	[RequiresUnreferencedCode(AotMessages.Json)]
+	[RequiresDynamicCode(AotMessages.JsonDynamic)]
 	public override void Do(object value, PropertyInfo propertyInfo, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers)
 	{
 		if (propertyInfo.GetValue(value) is not ICollection collection) throw new InvalidProgramException("Collection cannot be null");
@@ -379,6 +390,8 @@ public class MultilineStringToCollectionPropertyFallbackResolver : PropertyFallb
 	/// Splits the multiline string into lines and writes them as a JSON array.
 	/// </summary>
 	/// <exception cref="InvalidProgramException">Thrown if the property value is unexpectedly null after matching.</exception>
+	[RequiresUnreferencedCode(AotMessages.Json)]
+	[RequiresDynamicCode(AotMessages.JsonDynamic)]
 	public override void Do(object value, PropertyInfo propertyInfo, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers)
 	{
 		if (propertyInfo.GetValue(value) is not string str) throw new InvalidProgramException("str cannot be null");
@@ -440,6 +453,8 @@ public class StackTraceFallbackResolver : PropertyFallbackResolver
 	/// Writes the stack trace as a structured JSON array with method signatures, file names, and line numbers.
 	/// </summary>
 	/// <exception cref="InvalidProgramException">Thrown if the value is not an <see cref="Exception"/>.</exception>
+	[RequiresUnreferencedCode(AotMessages.Json)]
+	[RequiresDynamicCode(AotMessages.JsonDynamic)]
 	public override void Do(object value, PropertyInfo propertyInfo, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers)
 	{
 		if (value is not Exception ex) throw new InvalidProgramException("ex cannot be null");
@@ -572,6 +587,8 @@ public class FallbackConverter<T> : JsonConverter<T>
 	/// Initializes a new instance of the <see cref="FallbackConverter{T}"/> class with default resolvers.
 	/// </summary>
 	/// <param name="deep">The current nesting depth level (typically 0 for root objects).</param>
+	[RequiresUnreferencedCode(AotMessages.Json)]
+	[RequiresDynamicCode(AotMessages.JsonDynamic)]
 	public FallbackConverter(int deep) : this(deep, false, []) { }
 
    /// <summary>
@@ -592,6 +609,8 @@ public class FallbackConverter<T> : JsonConverter<T>
    /// <item><description><see cref="CollectionPropertyFallbackResolver"/></description></item>
    /// </list>
    /// </remarks>
+   [RequiresUnreferencedCode(AotMessages.Json)]
+   [RequiresDynamicCode(AotMessages.JsonDynamic)]
    public FallbackConverter(int deep, bool readAlwaysAsDefault, params PropertyFallbackResolver[] resolvers)
 	{
 		if (!resolvers.OfType<IfNullWritePropertyFallbackResolver>().Any()) this.resolvers.Add(new IfNullWritePropertyFallbackResolver { Deep = deep });
@@ -655,6 +674,9 @@ public class FallbackConverter<T> : JsonConverter<T>
 	/// and skip circular references rather than throwing exceptions.
 	/// </para>
 	/// </remarks>
+	[UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The constructor is marked RequiresUnreferencedCode.")]
+	[UnconditionalSuppressMessage("AOT", "IL3050", Justification = "The constructor is marked RequiresDynamicCode.")]
+	[UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "The constructor is marked RequiresUnreferencedCode.")]
 	public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
 	{
 		if (value is null) throw new ArgumentNullException(nameof(value));
@@ -713,6 +735,8 @@ public class FallbackConverter<T> : JsonConverter<T>
 	/// On serialization error, writes an error message string instead of throwing an exception.
 	/// </para>
 	/// </remarks>
+	[RequiresUnreferencedCode(AotMessages.Json)]
+	[RequiresDynamicCode(AotMessages.JsonDynamic)]
 	public void FallbackWriteRaw(object? value, Utf8JsonWriter writer, JsonSerializerOptions options, List<PropertyFallbackResolver> resolvers)
 	{
 		//try

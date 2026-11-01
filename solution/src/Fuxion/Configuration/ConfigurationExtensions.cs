@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 
@@ -31,6 +32,8 @@ public static class ConfigurationExtensions
 		/// reads its <see cref="ISectionNamedOptions.SectionName"/>, and then binds the corresponding configuration section
 		/// unless <paramref name="sectionName"/> provides an explicit override.
 		/// </remarks>
+		[RequiresUnreferencedCode(AotMessages.Configuration)]
+		[RequiresDynamicCode(AotMessages.Configuration)]
 		public T GetSectionNamedOptions<T>(string? sectionName = null) where T : ISectionNamedOptions, new()
 		{
 			var t = new T();
@@ -39,7 +42,8 @@ public static class ConfigurationExtensions
 		}
 	}
 
-	private static readonly MethodInfo ConfigureMethod = typeof(OptionsConfigurationServiceCollectionExtensions)
+	[RequiresUnreferencedCode(AotMessages.Configuration)]
+	static MethodInfo GetConfigureMethod() => configureMethod ??= typeof(OptionsConfigurationServiceCollectionExtensions)
 		.GetMethods(BindingFlags.Public | BindingFlags.Static)
 		.Where(m => m.Name == nameof(OptionsConfigurationServiceCollectionExtensions.Configure))
 		.Where(m => m.IsGenericMethodDefinition)
@@ -54,6 +58,7 @@ public static class ConfigurationExtensions
 		.Where(x => typeof(IConfiguration).IsAssignableFrom(x.Params[2].ParameterType))
 		.Select(x => x.Method)
 		.Single();
+	static MethodInfo? configureMethod;
 
 	extension(IServiceCollection me)
 	{
@@ -68,6 +73,8 @@ public static class ConfigurationExtensions
 		/// Each matching type is registered through <c>AddSectionNamedOptions(Type, IConfiguration, string?)</c>
 		/// using the section name declared by the options type.
 		/// </remarks>
+		[RequiresUnreferencedCode(AotMessages.Configuration)]
+		[RequiresDynamicCode(AotMessages.DynamicCode)]
 		public void AddSectionNamedOptionsFromAssembly(Assembly assembly, IConfigurationRoot config)
 		{
 			foreach (var type in assembly.GetTypes()
@@ -85,6 +92,8 @@ public static class ConfigurationExtensions
 		/// <param name="sectionName">
 		/// An optional configuration section name to use instead of <see cref="ISectionNamedOptions.SectionName"/>.
 		/// </param>
+		[RequiresUnreferencedCode(AotMessages.Configuration)]
+		[RequiresDynamicCode(AotMessages.DynamicCode)]
 		public void AddSectionNamedOptions<T>(IConfiguration config, string? sectionName = null)
 			where T : ISectionNamedOptions
 			=> me.AddSectionNamedOptions(typeof(T), config, sectionName);
@@ -105,6 +114,8 @@ public static class ConfigurationExtensions
 		/// resolves the section indicated by <paramref name="sectionName"/> or, when it is <see langword="null"/>,
 		/// the section declared by the type itself, and then invokes the corresponding generic options registration API.
 		/// </remarks>
+		[RequiresUnreferencedCode(AotMessages.Configuration)]
+		[RequiresDynamicCode(AotMessages.DynamicCode)]
 		public void AddSectionNamedOptions(Type type, IConfiguration config, string? sectionName = null)
 		{
 			if (Activator.CreateInstance(type) is not ISectionNamedOptions options)
@@ -112,7 +123,7 @@ public static class ConfigurationExtensions
 
 			var section = config.GetSection(sectionName ?? options.SectionName);
 
-			var genericConfigure = ConfigureMethod.MakeGenericMethod(type);
+			var genericConfigure = GetConfigureMethod().MakeGenericMethod(type);
 			genericConfigure.Invoke(null, [me, null, section]);
 		}
 	}

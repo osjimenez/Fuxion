@@ -5,6 +5,10 @@
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
 		<FuxionPackage>oss</FuxionPackage>
+		<!-- The trimming and AOT attributes ([UnconditionalSuppressMessage], [RequiresUnreferencedCode]…) on netstandard2.0
+		     and net472 too, from PolySharp, so the code is annotated once for every framework (plan "Las Responses
+		     compatibles con AOT") -->
+		<PolySharpIncludeRuntimeSupportedAttributes>true</PolySharpIncludeRuntimeSupportedAttributes>
 	</PropertyGroup>
 	<Import Project="Sdk.props" Sdk="Fuxion.Tool.Sdk" />
 
