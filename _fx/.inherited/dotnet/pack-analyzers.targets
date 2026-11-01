@@ -3,7 +3,7 @@
 <!-- Regenerated with: fx sync -->
 <Project>
 
-	<!-- The analyzers of Fuxion inside every package of oss (from oss's Nuget.Pack.Analyzers, plan R): the analyzer and
+	<!-- The analyzers of Fuxion inside every package of oss (it was oss's Nuget.Pack.Analyzers): the analyzer and
 	     its code fixes in analyzers/dotnet/cs, and the attributes (Abstractions), which the users need at run time, in
 	     lib/ of each framework. Their projects come from the map of the repository (FxRepositoryProject); the analyzer
 	     projects themselves say UseFuxionAnalyzers=false. -->
