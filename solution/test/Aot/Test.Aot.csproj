@@ -6,7 +6,7 @@
 		<TargetFramework>$(LatestCoreFramework)</TargetFramework>
 		<IsPackable>false</IsPackable>
 		<!-- As with trimming and native AOT: System.Text.Json does not fall back to reflection, so a type that no context
-		     describes fails (plan "Las Responses compatibles con AOT"). The switch is for the whole process: these tests
+		     describes fails. The switch is for the whole process: these tests
 		     live in their own project -->
 		<JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
 	</PropertyGroup>

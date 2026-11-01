@@ -1,7 +1,7 @@
 <Project>
 
-	<!-- The test projects say <IsTestProject>true</IsTestProject> in their .csproj; the workspace's test.targets does
-	     the rest, and its fuxion-analyzers.targets the analyzers (plan N, decision 15; plan R) -->
+	<!-- The test projects say <IsTestProject>true</IsTestProject> in their .csproj; the space's test.targets does the
+	     rest, and its fuxion-analyzers.targets the analyzers -->
 	<Import Project="Sdk.props" Sdk="Fuxion.Tool.Sdk" />
 
 	<PropertyGroup>

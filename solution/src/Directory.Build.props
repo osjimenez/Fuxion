@@ -1,13 +1,12 @@
 <Project>
 
-	<!-- Packages, open source; the rest of the workspace's conventions come from _fx/dotnet/dotnet.yaml (plan N, decision
-	     15), the analyzers of Fuxion and their packing among them (plan R) -->
+	<!-- Packages, open source; the rest of the space's conventions come from _fx/dotnet/dotnet.yaml, the analyzers of
+	     Fuxion and their packing among them -->
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
 		<FuxionPackage>oss</FuxionPackage>
 		<!-- The trimming and AOT attributes ([UnconditionalSuppressMessage], [RequiresUnreferencedCode]…) on netstandard2.0
-		     and net472 too, from PolySharp, so the code is annotated once for every framework (plan "Las Responses
-		     compatibles con AOT") -->
+		     and net472 too, from PolySharp, so the code is annotated once for every framework -->
 		<PolySharpIncludeRuntimeSupportedAttributes>true</PolySharpIncludeRuntimeSupportedAttributes>
 	</PropertyGroup>
 	<Import Project="Sdk.props" Sdk="Fuxion.Tool.Sdk" />

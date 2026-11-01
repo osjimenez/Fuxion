@@ -9,7 +9,7 @@
 	</PropertyGroup>
 
 	<!-- Compatible with trimming and native AOT from .NET 11 on: before it, the converters of the generic responses need a
-	     factory with MakeGenericType (plan "Las Responses compatibles con AOT"). The analyzers keep it so: what still
+	     factory with MakeGenericType. The analyzers keep it so: what still
 	     uses reflection is marked, and warns whoever uses it -->
 	<PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net11.0'))">
 		<IsAotCompatible>true</IsAotCompatible>
