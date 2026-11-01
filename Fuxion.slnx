@@ -29,6 +29,7 @@
   </Folder>
   <Folder Name="/test/">
     <File Path="solution/test/Directory.Build.props" />
+    <Project Path="solution/test/Analyzers/Test.Analyzers.csproj" />
     <Project Path="solution/test/Aot.App/Test.Aot.App.csproj" />
     <Project Path="solution/test/Aot/Test.Aot.csproj" />
     <Project Path="solution/test/AspNet/Test.AspNet.csproj" />

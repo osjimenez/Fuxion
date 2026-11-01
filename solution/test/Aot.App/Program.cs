@@ -9,6 +9,7 @@ using Fuxion;
 using Fuxion.AspNetCore;
 using Fuxion.Http;
 using Fuxion.Text.Json;
+using Fuxion.Types;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -19,6 +20,11 @@ using Test.Aot.App;
 
 // The responses from one end to the other in an application published with native AOT: minimal APIs that return them,
 // and FuxionHttpClient that reads them back over HTTP. It exits with 1 if anything does not arrive as it left.
+// With them, the registry of types that the generator of Fuxion fills without reflection, and a UriKey over HTTP.
+var registry = new TypeRegistry();
+AppTypes.Register(registry);
+var batchOfOrders = registry.RegisterConstruction<Batch<Order>>();
+
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.WebHost.UseUrls("http://127.0.0.1:0");
 builder.Logging.ClearProviders();
@@ -34,6 +40,7 @@ api.MapGet("none", ResponseMaybe<Order> () => None.Value);
 api.MapGet("unit", Response<Unit> () => Unit.Value);
 api.MapGet("business", Response<Order, OrderError> () => new OrderError("E1"));
 api.MapGet("boom", Response<Order> () => Error.InternalServerError("boom", exception: new InvalidOperationException("inner")));
+api.MapGet("typed", Response<Typed> () => new Typed(batchOfOrders));
 
 await app.StartAsync();
 var address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First();
@@ -73,14 +80,29 @@ Check("a business error", business.TryGetValue(out OrderError? businessError) &&
 var boom = await client.GetAsync<Order>("boom");
 Check("an error with its exception", boom.TryGetValue(out Error error) && error.Message == "boom" && error.Exception?.Message == "inner");
 
+var orderKey = UriKey.Parse("https://meta.fuxion.nexus/aot-app/order/v1");
+Check("the key of a type, from its generated definition", registry.GetKey<Order>() == orderKey);
+Check("the key of a construction", batchOfOrders.ToString() == "https://meta.fuxion.nexus/aot-app/batch/v1[https://meta.fuxion.nexus/aot-app/order/v1]");
+Check("the type of a registered construction", registry.TryGetType(batchOfOrders, out var batchType) && batchType == typeof(Batch<Order>));
+Check("a key by its fingerprint", batchOfOrders.Fingerprint.Length == 22 && registry.TryGetKeyByFingerprint(batchOfOrders.Fingerprint, out var byFingerprint) && byFingerprint == batchOfOrders);
+var typed = await client.GetAsync<Typed>("typed");
+Check("a UriKey over HTTP", typed.TryGetValue(out Typed? readTyped) && readTyped.Type == batchOfOrders);
+
 await app.StopAsync();
 Console.WriteLine(failures.Count == 0 ? "All the responses arrived as they left." : $"{failures.Count} failed: {string.Join(", ", failures)}");
 return failures.Count == 0 ? 0 : 1;
 
 namespace Test.Aot.App
 {
+	[UriKey("https://meta.fuxion.nexus/aot-app/order/v1", "1.0.0")]
 	public record Order(string Name, int Age);
+	[UriKey("https://meta.fuxion.nexus/aot-app/batch/v1", "1.0.0")]
+	public record Batch<T>(T[] Items);
+	public record Typed(UriKey Type);
 	public record OrderError(string Code);
+
+	[TypeDefinitions]
+	static partial class AppTypes;
 
 	[JsonSerializable(typeof(Response<Order>))]
 	[JsonSerializable(typeof(ResponseMaybe<Order>))]
@@ -90,5 +112,7 @@ namespace Test.Aot.App
 	[JsonSerializable(typeof(ResponseMaybe<Order, OrderError>))]
 	[JsonSerializable(typeof(Order))]
 	[JsonSerializable(typeof(OrderError))]
+	[JsonSerializable(typeof(Response<Typed>))]
+	[JsonSerializable(typeof(Typed))]
 	partial class AppJsonContext : JsonSerializerContext;
 }

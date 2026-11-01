@@ -27,4 +27,25 @@ options.TypeInfoResolverChain.Add(FuxionJsonContext.Default);
 
 What still uses reflection is marked, and warns where you use it.
 
+## Types by their key
+
+A `UriKey` names a type by an `https` URI that ends with its major version (`https://acme.example/erp/invoice/v1`), and a
+generic type with its arguments by its key followed by theirs between brackets. It has one canonical form: anything else
+is rejected. Declare the key and the exact revision of a type with `[UriKey]`, and mark a class with
+`[TypeDefinitions]`: the generator of Fuxion writes there the definition of each type (its key, its revision, its arity,
+its base and its interfaces) and the code that registers them, without reflection.
+
+```csharp
+[UriKey("https://acme.example/erp/invoice/v1", "1.3.0")]
+public record Invoice(string Number);
+
+[TypeDefinitions]
+internal static partial class AppTypes;
+
+var registry = new TypeRegistry();
+AppTypes.Register(registry);
+// https://meta.fuxion.nexus/system/list/v1[https://acme.example/erp/invoice/v1]
+UriKey key = registry.GetKey<List<Invoice>>();
+```
+
 **🔨 Work in progress..**

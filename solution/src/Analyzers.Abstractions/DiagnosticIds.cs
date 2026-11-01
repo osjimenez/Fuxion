@@ -32,6 +32,41 @@ public static class DiagnosticIds
 	// Note: FXLQ000-009 are currently in Fuxion.Linq.CodeGenerator
 	// and will remain there as they are Source Generator diagnostics
 
+	// ==================== TYPES (FXTY) ====================
+	// Range: FXTY001-099: the generator of type definitions, from the [UriKey] of each type
+	const string TypesBase = "FXTY";
+
+	/// <summary>
+	/// FXTY001: the key of a <c>[UriKey]</c> is not a key in its canonical form.
+	/// </summary>
+	public const string TypesInvalidKey = TypesBase + "001";
+
+	/// <summary>
+	/// FXTY002: the revision of a <c>[UriKey]</c> is not a semantic version, or not of the major version of its key.
+	/// </summary>
+	public const string TypesInvalidRevision = TypesBase + "002";
+
+	/// <summary>
+	/// FXTY003: the base or an interface of a type with a key cannot be named: a type argument has no key.
+	/// </summary>
+	public const string TypesUnnameableReference = TypesBase + "003";
+
+	/// <summary>
+	/// FXTY004: the same key is on more than one type of an assembly.
+	/// </summary>
+	public const string TypesRepeatedKey = TypesBase + "004";
+
+	/// <summary>
+	/// FXTY005: a type with a key cannot be reached by the generated class (private, protected, local to its file, or
+	/// nested in a generic type).
+	/// </summary>
+	public const string TypesUnreachableType = TypesBase + "005";
+
+	/// <summary>
+	/// FXTY006: the class marked with <c>[TypeDefinitions]</c> is not static and partial, or is nested or generic.
+	/// </summary>
+	public const string TypesInvalidDefinitionsClass = TypesBase + "006";
+
 	// ==================== REFLECTION (FXRF) ====================
 	// Range: FXRF001-099
 	//public const string ReflectionBase = "FXRF";

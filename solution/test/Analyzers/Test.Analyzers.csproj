@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsTestProject>true</IsTestProject>
+		<TargetFramework>$(LatestCoreFramework)</TargetFramework>
+		<IsPackable>false</IsPackable>
+		<!-- It runs the analyzers and generators of Fuxion on code of its own, as a library: they are not analyzers of this
+		     project (the workspace's fuxion-analyzers.targets) -->
+		<UseFuxionAnalyzers>false</UseFuxionAnalyzers>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<FxReference Include="Fuxion" />
+		<FxReference Include="Fuxion.Analyzers" />
+	</ItemGroup>
+
+</Project>

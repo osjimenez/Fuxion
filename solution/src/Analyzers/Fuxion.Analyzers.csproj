@@ -28,6 +28,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<!-- The grammar of a key and the types of the system, for the generator of type definitions: the same files Fuxion
+		     compiles, since an analyzer cannot depend on it -->
+		<Compile Include="..\Fuxion\Types\UriKeyGrammar.cs" Link="Types\Shared\UriKeyGrammar.cs" />
+		<Compile Include="..\Fuxion\Types\SystemTypeKeys.cs" Link="Types\Shared\SystemTypeKeys.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<!-- Analyzer release tracking -->
 		<AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
 		<AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />

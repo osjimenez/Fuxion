@@ -19,6 +19,8 @@
 		<ProjectReference Include="@(FxReference->WithMetadataValue('Identity', 'Fuxion.Http')->'$(MSBuildThisFileDirectory)../../solution/src/Http/Fuxion.Http.csproj')" />
 		<FxRepositoryProject Include="Fuxion.Xunit" Path="$(MSBuildThisFileDirectory)../../solution/src/xUnit/Fuxion.Xunit.csproj" />
 		<ProjectReference Include="@(FxReference->WithMetadataValue('Identity', 'Fuxion.Xunit')->'$(MSBuildThisFileDirectory)../../solution/src/xUnit/Fuxion.Xunit.csproj')" />
+		<FxRepositoryProject Include="Test.Analyzers" Path="$(MSBuildThisFileDirectory)../../solution/test/Analyzers/Test.Analyzers.csproj" />
+		<ProjectReference Include="@(FxReference->WithMetadataValue('Identity', 'Test.Analyzers')->'$(MSBuildThisFileDirectory)../../solution/test/Analyzers/Test.Analyzers.csproj')" />
 		<FxRepositoryProject Include="Test.Aot" Path="$(MSBuildThisFileDirectory)../../solution/test/Aot/Test.Aot.csproj" />
 		<ProjectReference Include="@(FxReference->WithMetadataValue('Identity', 'Test.Aot')->'$(MSBuildThisFileDirectory)../../solution/test/Aot/Test.Aot.csproj')" />
 		<FxRepositoryProject Include="Test.Aot.App" Path="$(MSBuildThisFileDirectory)../../solution/test/Aot.App/Test.Aot.App.csproj" />
